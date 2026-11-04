@@ -47,9 +47,8 @@
       display: grid;
       grid-template-columns: repeat(15, 1fr);
       grid-template-rows: repeat(15, 1fr);
-      /* 모바일 화면에서 상/하단 UI를 제외하고 1:1 정사각형으로 딱 맞게 자동 계산 */
-      width: min(88vw, calc(100dvh - 190px), 420px);
-      height: min(88vw, calc(100dvh - 190px), 420px);
+      width: min(88vw, calc(100dvh - 185px), 420px);
+      height: min(88vw, calc(100dvh - 185px), 420px);
       aspect-ratio: 1 / 1;
       touch-action: none;
       user-select: none;
@@ -62,7 +61,7 @@
       border: 1px solid #e2e8f0;
       cursor: pointer;
       font-weight: 800;
-      font-size: clamp(8px, 2.3vw, 13px);
+      font-size: clamp(8px, 2.2vw, 13px);
       user-select: none;
       -webkit-user-select: none;
       transition: background-color 0.08s ease-out;
@@ -762,8 +761,6 @@ const ALL_PATTERNS = [
                 ]
             }
         ];
-    
-  
 
     // ----------------------------------------------
     // 2. 공통 유틸리티 및 UI 로직 (모바일 무스크롤 & 터치 드래그 지원)
@@ -806,11 +803,11 @@ const ALL_PATTERNS = [
           item.classList.add('color-item');
           item.style.backgroundColor = colorData.hex;
           item.dataset.code = code;
-          item.title = colorData.label || ${code}번 색상;
+          item.title = colorData.label || `${code}번 색상`;
 
           const isLight = (code === 1 || colorData.hex === '#e0f2fe' || colorData.hex === '#ffffff' || colorData.hex === '#fef08a');
           const textColor = isLight ? 'text-slate-800' : 'text-white';
-          item.innerHTML = <span class=""></span>; 
+          item.innerHTML = `<span class="${textColor}">${code}</span>`; 
           
           if (code === previousSelectedCode) {
             item.classList.add('selected');
@@ -944,7 +941,7 @@ const ALL_PATTERNS = [
         
         selectedColorCode = code;
         
-        const newSelectedItem = document.querySelector(.color-item[data-code=""]);
+        const newSelectedItem = document.querySelector(`.color-item[data-code="${code}"]`);
         if (newSelectedItem) {
           newSelectedItem.classList.add('selected');
         }
@@ -960,7 +957,7 @@ const ALL_PATTERNS = [
         
         userPattern[r][c] = colorToApply;
         
-        const cell = document.querySelector(.grid-cell[data-row=""][data-col=""]);
+        const cell = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
         if (cell) {
           if (colorToApply === EMPTY_CELL) {
             cell.style.backgroundColor = '#f8fafc';
@@ -1010,7 +1007,7 @@ const ALL_PATTERNS = [
         const currentPatternData = ALL_PATTERNS[currentPictureIndex];
 
         document.getElementById('title-text').textContent = currentPatternData.name;
-        document.getElementById('picture-counter').textContent = ${index + 1} / ;
+        document.getElementById('picture-counter').textContent = `${index + 1} / ${ALL_PATTERNS.length}`;
         
         COLOR_PALETTE = currentPatternData.palette;
         SOLUTION_PATTERN = currentPatternData.pattern;
