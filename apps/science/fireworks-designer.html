@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fireworks Designer Simulator - 파티클 불꽃놀이 랩</title>
   <!-- SEO & Primary Meta Tags -->
-  <meta name="description" content="화려한 파티클 물리 역학과 폭발 시각 효과를 직접 커스텀하고 연출하는 시뮬레이터" />
-  <meta name="keywords" content="불꽃놀이 시뮬레이터, 파티클 시스템, HTML5 Canvas, 시각 효과, 물리 엔진" />
+  <meta name="description" content="화려한 파티클 물리 역학과 폭발 시각 효과를 직접 커스텀하고 연출하는 시뮬레이터. 커스텀 2D 물리 랩 및 Grand Fireworks WebGL 2 엔진 탑재." />
+  <meta name="keywords" content="불꽃놀이 시뮬레이터, 파티클 시스템, HTML5 Canvas, WebGL2, 시각 효과, 물리 엔진, grand-fireworks-js" />
   <meta name="author" content="Interactive Web Apps Collection" />
 
   <!-- Favicon -->
@@ -25,6 +25,15 @@
   <meta name="twitter:title" content="Fireworks Designer Simulator - 파티클 불꽃놀이 랩" />
   <meta name="twitter:description" content="화려한 파티클 물리 역학과 폭발 시각 효과를 직접 커스텀하고 연출하는 시뮬레이터" />
   <meta name="twitter:image" content="../../assets/og/og-fireworks-designer.png" />
+
+  <!-- Grand Fireworks Engine (CDN with local vendor fallback) -->
+  <script src="https://cdn.jsdelivr.net/gh/travisjmac/grand-fireworks-js@latest/dist/GrandFireworks.min.js"></script>
+  <script>
+    if (typeof GrandFireworks === 'undefined') {
+      document.write('<script src="vendor/GrandFireworks.min.js"><\/script>');
+    }
+  </script>
+
   <style>
     :root {
       --bg: #07111f;
@@ -76,9 +85,44 @@
     }
 
     .panel-header {
-      padding: 22px 22px 14px;
+      padding: 20px 22px 14px;
       border-bottom: 1px solid var(--border);
       background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+    }
+
+    .showcase-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #d6e9ff;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .showcase-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: var(--accent);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .engine-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      border-radius: 999px;
+      background: rgba(124, 192, 255, 0.15);
+      color: #94d7ff;
+      border: 1px solid rgba(124, 192, 255, 0.3);
+      transition: all 0.25s ease;
     }
 
     .title {
@@ -90,14 +134,15 @@
 
     .subtitle {
       margin: 8px 0 0;
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       line-height: 1.45;
       color: var(--muted);
     }
 
     .scroll {
       flex: 1;
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
       padding: 18px;
     }
 
@@ -117,11 +162,70 @@
       letter-spacing: -0.02em;
     }
 
+    /* Engine Selector Tabs */
+    .engine-section {
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border: 1px solid rgba(124, 192, 255, 0.22);
+    }
+    .engine-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .engine-tab {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+      color: var(--text);
+    }
+    .engine-tab:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(124, 192, 255, 0.35);
+      transform: translateY(-1px);
+    }
+    .engine-tab.active {
+      background: linear-gradient(135deg, rgba(124, 192, 255, 0.2), rgba(179, 143, 255, 0.2));
+      border-color: rgba(148, 215, 255, 0.7);
+      box-shadow: 0 0 14px rgba(124, 192, 255, 0.18);
+    }
+    .engine-tab-icon {
+      font-size: 1.4rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .engine-tab-info {
+      min-width: 0;
+      flex: 1;
+    }
+    .engine-tab-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .engine-tab-desc {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .grid-2, .grid-3 {
       display: grid;
       gap: 10px;
     }
-
     .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
@@ -141,6 +245,8 @@
       cursor: pointer;
       transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
       overflow: hidden;
+      text-align: left;
+      color: var(--text);
     }
 
     .shape-card:hover {
@@ -462,6 +568,7 @@
       background:
         radial-gradient(circle at 50% 100%, rgba(24, 44, 78, 0.38), transparent 33%),
         linear-gradient(180deg, rgba(6, 12, 22, 0.94), rgba(1, 4, 10, 0.98));
+      touch-action: none;
     }
 
     .stage-header {
@@ -477,7 +584,7 @@
 
     .hud, .legend {
       padding: 12px 14px;
-      background: rgba(5, 10, 18, 0.38);
+      background: rgba(5, 10, 18, 0.5);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
       backdrop-filter: blur(10px);
@@ -502,6 +609,7 @@
       height: 100%;
       display: block;
       background: transparent;
+      cursor: crosshair;
     }
 
     .status-bar {
@@ -518,7 +626,7 @@
     }
 
     .status-card {
-      background: rgba(5, 10, 18, 0.38);
+      background: rgba(5, 10, 18, 0.5);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
       padding: 10px 14px;
@@ -561,122 +669,242 @@
   <div class="app">
     <aside class="panel">
       <div class="panel-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <a href="../../index.html" class="showcase-btn">‹ Showcase</a>
+          <span class="engine-badge" id="engineBadge">Custom 2D</span>
+        </div>
         <h1 class="title">Fireworks Designer</h1>
-        <p class="subtitle">Peony, Chrysanthemum, Willow, Crossette, Palm, Ring, Pistil을 선택하고 색 조합과 크기를 바꿔보며 시퀀스를 저장할 수 있는 FHD 가로형 불꽃놀이 시뮬레이터.</p>
+        <p class="subtitle">Peony, Willow 등 커스텀 물리 랩과 Grand Fireworks WebGL 2 엔진을 자유롭게 전환하는 불꽃놀이 시뮬레이터.</p>
       </div>
       <div class="scroll">
-        <section class="section">
-          <h2>기본 설정</h2>
-          <div class="grid-2">
-            <div>
-              <label for="shellType">불꽃 모양</label>
-              <select id="shellType">
-                <option value="peony">Peony</option>
-                <option value="chrysanthemum">Chrysanthemum</option>
-                <option value="willow">Willow</option>
-                <option value="crossette">Crossette</option>
-                <option value="palm">Palm</option>
-                <option value="ring">Ring</option>
-                <option value="pistil">Pistil</option>
-              </select>
+        <!-- 0. 시뮬레이션 엔진 선택 탭 -->
+        <section class="section engine-section">
+          <h2 style="margin: 0 0 10px; font-size: 0.84rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em;">시뮬레이션 엔진 선택</h2>
+          <div class="engine-tabs">
+            <button type="button" class="engine-tab active" id="tabCustomEngine" data-engine="custom">
+              <div class="engine-tab-icon">🧪</div>
+              <div class="engine-tab-info">
+                <div class="engine-tab-title">커스텀 물리 랩</div>
+                <div class="engine-tab-desc">화학 원소색 · 2D Canvas</div>
+              </div>
+            </button>
+            <button type="button" class="engine-tab" id="tabGrandEngine" data-engine="grand">
+              <div class="engine-tab-icon">✨</div>
+              <div class="engine-tab-info">
+                <div class="engine-tab-title">Grand Fireworks</div>
+                <div class="engine-tab-desc">차세대 WebGL 2 · HDR</div>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        <!-- 1. 커스텀 물리 랩 컨트롤 패널 (Custom 2D) -->
+        <div id="customEngineControls">
+          <section class="section">
+            <h2>기본 설정</h2>
+            <div class="grid-2">
+              <div>
+                <label for="shellType">불꽃 모양</label>
+                <select id="shellType">
+                  <option value="peony">Peony</option>
+                  <option value="chrysanthemum">Chrysanthemum</option>
+                  <option value="willow">Willow</option>
+                  <option value="crossette">Crossette</option>
+                  <option value="palm">Palm</option>
+                  <option value="ring">Ring</option>
+                  <option value="pistil">Pistil</option>
+                </select>
+              </div>
+              <div>
+                <label for="fuseDelay">발사 간격</label>
+                <select id="fuseDelay">
+                  <option value="140">빠름</option>
+                  <option value="260" selected>보통</option>
+                  <option value="420">느림</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label for="fuseDelay">발사 간격</label>
-              <select id="fuseDelay">
-                <option value="140">빠름</option>
-                <option value="260" selected>보통</option>
-                <option value="420">느림</option>
-              </select>
+
+            <div class="shape-grid" id="shapeGrid"></div>
+
+            <div style="margin-top: 12px;">
+              <label for="sizeRange">폭발 크기</label>
+              <input id="sizeRange" type="range" min="50" max="180" value="110" />
+              <div class="value" id="sizeValue">110</div>
             </div>
-          </div>
 
-          <div class="shape-grid" id="shapeGrid"></div>
+            <div style="margin-top: 10px;">
+              <label for="burstCount">밀도</label>
+              <input id="burstCount" type="range" min="18" max="80" value="42" />
+              <div class="value" id="burstValue">42</div>
+            </div>
 
-          <div style="margin-top: 12px;">
-            <label for="sizeRange">폭발 크기</label>
-            <input id="sizeRange" type="range" min="50" max="180" value="110" />
-            <div class="value" id="sizeValue">110</div>
-          </div>
+            <div style="margin-top: 10px;">
+              <label for="trailRange">잔상 길이</label>
+              <input id="trailRange" type="range" min="0" max="100" value="64" />
+              <div class="value" id="trailValue">64</div>
+            </div>
 
-          <div style="margin-top: 10px;">
-            <label for="burstCount">밀도</label>
-            <input id="burstCount" type="range" min="18" max="80" value="42" />
-            <div class="value" id="burstValue">42</div>
-          </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="glitterToggle" checked />
+              <label for="glitterToggle" style="margin:0; color:var(--text); cursor:pointer;">반짝임 추가</label>
+            </div>
+          </section>
 
-          <div style="margin-top: 10px;">
-            <label for="trailRange">잔상 길이</label>
-            <input id="trailRange" type="range" min="0" max="100" value="64" />
-            <div class="value" id="trailValue">64</div>
-          </div>
+          <section class="section">
+            <h2>화학 불꽃색 조합</h2>
+            <label>외곽 색상</label>
+            <div class="swatches" id="outerSwatches"></div>
+            <div style="height: 12px;"></div>
+            <label>중심 색상</label>
+            <div class="swatches" id="innerSwatches"></div>
+            <div class="launch-buttons">
+              <button class="primary launch-main" id="launchSelectedBtn">선택 조합 발사</button>
+              <button class="secondary" id="launchCenterBtn">중앙 발사</button>
+            </div>
+            <div class="preset-hint">색상칩에는 대표 발광 원소기호(Sr, Ba, Cu, Na 등)가 함께 표시됩니다. 밤하늘을 클릭해도 해당 위치로 발사됩니다.</div>
+            <div class="footer-safe">이 시뮬레이터는 실제 화약 제조 정보 없이, 안전한 시각 디자인용 화학색상 프리셋만 제공합니다.</div>
+          </section>
 
-          <div class="checkbox-row">
-            <input type="checkbox" id="glitterToggle" checked />
-            <label for="glitterToggle" style="margin:0; color:var(--text);">반짝임 추가</label>
-          </div>
-        </section>
+          <section class="section">
+            <h2>프리셋 저장</h2>
+            <div>
+              <label for="presetName">프리셋 이름</label>
+              <input id="presetName" type="text" placeholder="예: 로열 블루 피오니" maxlength="40" />
+            </div>
+            <div class="buttons" style="margin-top: 10px;">
+              <button class="primary" id="savePresetBtn">현재 조합 저장</button>
+              <button class="secondary" id="loadCurrentBtn">선택 조합 발사</button>
+            </div>
+          </section>
 
-        <section class="section">
-          <h2>색 조합</h2>
-          <label>외곽 색상</label>
-          <div class="swatches" id="outerSwatches"></div>
-          <div style="height: 12px;"></div>
-          <label>중심 색상</label>
-          <div class="swatches" id="innerSwatches"></div>
-          <div class="launch-buttons">
-            <button class="primary launch-main" id="launchSelectedBtn">선택 조합 발사</button>
-            <button class="secondary" id="launchCenterBtn">중앙 발사</button>
-          </div>
-          <div class="preset-hint">색상칩에는 대표 발광 원소기호가 함께 표시됩니다. 현재 선택한 조합은 언제든 바로 발사할 수 있습니다.</div>
-          <div class="footer-safe">이 시뮬레이터는 실제 화약 제조 정보 없이, 안전한 시각 디자인용 색상 프리셋만 제공합니다.</div>
-        </section>
+          <section class="section">
+            <h2>저장된 프리셋</h2>
+            <div class="saved-list" id="savedList"></div>
+            <div class="buttons" style="margin-top: 12px;">
+              <button class="primary" id="fireFiveBtn">선택 프리셋 5발</button>
+              <button class="primary" id="fireTenBtn">선택 프리셋 10발</button>
+            </div>
+            <div class="buttons" style="margin-top: 10px;">
+              <button class="secondary" id="demoBtn">자동 쇼 데모</button>
+              <button class="danger" id="clearSkyBtn">하늘 정리</button>
+            </div>
+            <p class="note" style="margin-top: 10px;">프리셋별로 체크한 항목만 동시/연속 발사에 포함됩니다. 스페이스바로도 즉시 발사할 수 있습니다.</p>
+          </section>
+        </div>
 
-        <section class="section">
-          <h2>프리셋 저장</h2>
-          <div>
-            <label for="presetName">프리셋 이름</label>
-            <input id="presetName" type="text" placeholder="예: 로열 블루 피오니" maxlength="40" />
-          </div>
-          <div class="buttons" style="margin-top: 10px;">
-            <button class="primary" id="savePresetBtn">현재 조합 저장</button>
-            <button class="secondary" id="loadCurrentBtn">선택 조합 발사</button>
-          </div>
-        </section>
+        <!-- 2. Grand Fireworks 컨트롤 패널 (WebGL 2 HDR) -->
+        <div id="grandEngineControls" style="display: none;">
+          <section class="section">
+            <h2>✨ Grand Fireworks 스타일 & 연출</h2>
+            <div class="grid-2">
+              <div>
+                <label for="gfStyleSelect">연출 스타일</label>
+                <select id="gfStyleSelect">
+                  <option value="cinematic" selected>Cinematic (시네마틱 HDR)</option>
+                  <option value="spectacle">Spectacle (초대형 축제)</option>
+                  <option value="bold">Bold (선명하고 굵은 궤적)</option>
+                  <option value="mixed">Mixed (하이브리드 혼합)</option>
+                  <option value="thin">Thin (섬세한 미세 스파크)</option>
+                  <option value="classic">Classic (정통 밤하늘)</option>
+                  <option value="oldSchool">Old School (레트로 아날로그)</option>
+                </select>
+              </div>
+              <div>
+                <label for="gfThemeSelect">컬러 테마</label>
+                <select id="gfThemeSelect">
+                  <option value="default" selected>Default (다채로운 축제)</option>
+                  <option value="festival">Festival (비비드 멀티)</option>
+                  <option value="iceBlue">Ice Blue (쿨 아쿠아)</option>
+                  <option value="goldenSun">Golden Sun (황금빛 태양)</option>
+                  <option value="emberRed">Ember Red (불타는 루비)</option>
+                  <option value="royalPurple">Royal Purple (황실 보라)</option>
+                  <option value="neonGreen">Neon Green (형광 에메랄드)</option>
+                </select>
+              </div>
+            </div>
 
-        <section class="section">
-          <h2>저장된 프리셋</h2>
-          <div class="saved-list" id="savedList"></div>
-          <div class="buttons" style="margin-top: 12px;">
-            <button class="primary" id="fireFiveBtn">선택 프리셋 5발</button>
-            <button class="primary" id="fireTenBtn">선택 프리셋 10발</button>
+            <div style="margin-top: 12px;">
+              <label for="gfSpeedRange">연출 속도배율</label>
+              <input id="gfSpeedRange" type="range" min="40" max="180" value="100" />
+              <div class="value" id="gfSpeedValue">1.0x (표준)</div>
+            </div>
+
+            <div style="margin-top: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 14px; border: 1px solid rgba(255,255,255,0.06);">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.86rem; font-weight:700;">🔊 입체 절차적 사운드 효과</span>
+                <input type="checkbox" id="gfSoundToggle" style="accent-color: #7cc0ff; width:18px; height:18px; cursor:pointer;">
+              </div>
+              <div style="font-size:0.74rem; color:var(--muted); margin-top:4px;">
+                로켓 발사 호각음, 저음 폭발음, 시차 잔류 스파크 크랙클 오디오 합성
+              </div>
+              <div id="gfVolumeRow" style="margin-top: 10px; display: none;">
+                <label for="gfVolumeRange" style="font-size:0.78rem;">마스터 볼륨</label>
+                <input id="gfVolumeRange" type="range" min="0" max="100" value="35" />
+                <div class="value" id="gfVolumeValue">35%</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>🎆 스펙터클 발사 제어</h2>
+            <div class="launch-buttons" style="margin-top: 4px;">
+              <button class="primary launch-main" id="gfLaunchShellBtn">🚀 단일 쉘 발사</button>
+              <button class="secondary" id="gfAutoShowBtn">✨ 자동 쇼 시작</button>
+            </div>
+            <div class="buttons" style="margin-top: 10px;">
+              <button class="primary" style="background: linear-gradient(135deg, #ff8f6b, #ff4d88); color:#fff;" id="gfFinaleBtn">🎆 슈퍼 그랜드 피날레</button>
+              <button class="primary" style="background: linear-gradient(135deg, #a855f7, #6366f1); color:#fff;" id="gfWorldEnderBtn">💥 월드 엔더 연쇄폭발</button>
+            </div>
+            <div class="buttons" style="margin-top: 10px;">
+              <button class="secondary" id="gfLuckyBtn">🎲 I'm Feeling Lucky</button>
+              <button class="danger" id="gfClearBtn">하늘 정리</button>
+            </div>
+            <div class="preset-hint" style="margin-top: 10px;">
+              💡 <strong>직접 조준:</strong> 밤하늘 스테이지를 클릭하거나 터치하면 해당 위치로 로켓이 솟아올라 즉시 폭발합니다.
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>🔤 공중 텍스트 불꽃</h2>
+            <div>
+              <label for="gfTextInput">터뜨릴 텍스트 (영문 / 숫자 추천)</label>
+              <input id="gfTextInput" type="text" value="FIREWORKS" maxlength="16" placeholder="예: KABOOM, 2027, HELLO" />
+            </div>
+            <div class="buttons" style="margin-top: 10px;">
+              <button class="primary" id="gfLaunchTextBtn" style="background: linear-gradient(135deg, #38bdf8, #818cf8); color:#08111e;">✨ 텍스트 공중 폭발</button>
+            </div>
+            <div class="preset-hint">
+              공중으로 솟구친 로켓들이 밤하늘에서 단어 모양으로 찬란하게 발광·분해됩니다.
+            </div>
+          </section>
+
+          <div class="note" style="margin-top: 10px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); line-height: 1.5;">
+            <strong>Grand Fireworks JS (v1.11.1)</strong><br />
+            WebGL 2 셰이더 기반 포인트 스프라이트, HDR 블룸 및 영구 트레일 페이드 렌더러 탑재. Canvas 2D 자동 폴백 지원.
           </div>
-          <div class="buttons" style="margin-top: 10px;">
-            <button class="secondary" id="demoBtn">자동 쇼 데모</button>
-            <button class="danger" id="clearSkyBtn">하늘 정리</button>
-          </div>
-          <p class="note" style="margin-top: 10px;">프리셋별로 체크한 항목만 동시/연속 발사에 포함됩니다. 동시발사 느낌을 위해 짧은 간격으로 여러 위치에서 자동 발사됩니다.</p>
-        </section>
+        </div>
       </div>
     </aside>
 
-    <main class="stage-shell">
+    <main class="stage-shell" id="stageShell">
       <div class="stage-header">
-        <div class="hud">
-          <strong>1920 × 1080 가로형 스테이지</strong>
-          <p>클릭한 위치로도 발사됩니다. 밤하늘에서 조합을 테스트하고, 저장한 뒤 여러 발을 섞어 쇼를 구성해보세요.</p>
+        <div class="hud" id="hudBox">
+          <strong id="hudTitle">1920 × 1080 가로형 스테이지</strong>
+          <p id="hudDesc">클릭한 위치로도 발사됩니다. 밤하늘에서 조합을 테스트하고, 저장한 뒤 여러 발을 섞어 쇼를 구성해보세요.</p>
         </div>
-        <div class="legend">
-          <strong>지원 효과</strong>
-          <p>Peony · Chrysanthemum · Willow · Crossette · Palm · Ring · Pistil</p>
+        <div class="legend" id="legendBox">
+          <strong id="legendTitle">지원 효과</strong>
+          <p id="legendDesc">Peony · Chrysanthemum · Willow · Crossette · Palm · Ring · Pistil</p>
         </div>
       </div>
 
       <canvas id="stage" width="1920" height="1080"></canvas>
 
       <div class="status-bar">
-        <div class="status-card">현재 모양: <span id="statusType">Peony</span></div>
-        <div class="status-card">선택 색상: <span id="statusColors">Blue / Gold</span></div>
-        <div class="status-card">저장 프리셋: <span id="statusSaved">0</span></div>
+        <div class="status-card" id="statusCard1">현재 모양: <span id="statusType">Peony</span></div>
+        <div class="status-card" id="statusCard2">선택 색상: <span id="statusColors">Royal Blue / Gold</span></div>
+        <div class="status-card" id="statusCard3">저장 프리셋: <span id="statusSaved">0</span></div>
       </div>
     </main>
   </div>
@@ -684,7 +912,25 @@
   <script>
     const canvas = document.getElementById('stage');
     const ctx = canvas.getContext('2d');
+    const stageShell = document.getElementById('stageShell');
 
+    // Navigation & Badges
+    const engineBadge = document.getElementById('engineBadge');
+    const tabCustomEngine = document.getElementById('tabCustomEngine');
+    const tabGrandEngine = document.getElementById('tabGrandEngine');
+    const customEngineControls = document.getElementById('customEngineControls');
+    const grandEngineControls = document.getElementById('grandEngineControls');
+
+    const hudTitle = document.getElementById('hudTitle');
+    const hudDesc = document.getElementById('hudDesc');
+    const legendTitle = document.getElementById('legendTitle');
+    const legendDesc = document.getElementById('legendDesc');
+
+    const statusType = document.getElementById('statusType');
+    const statusColors = document.getElementById('statusColors');
+    const statusSaved = document.getElementById('statusSaved');
+
+    // Custom 2D Engine DOM Elements
     const shellTypeEl = document.getElementById('shellType');
     const fuseDelayEl = document.getElementById('fuseDelay');
     const sizeRangeEl = document.getElementById('sizeRange');
@@ -705,14 +951,38 @@
     const sizeValue = document.getElementById('sizeValue');
     const burstValue = document.getElementById('burstValue');
     const trailValue = document.getElementById('trailValue');
-    const statusType = document.getElementById('statusType');
-    const statusColors = document.getElementById('statusColors');
-    const statusSaved = document.getElementById('statusSaved');
 
     const outerSwatchesEl = document.getElementById('outerSwatches');
     const innerSwatchesEl = document.getElementById('innerSwatches');
     const shapeGridEl = document.getElementById('shapeGrid');
 
+    // Grand Fireworks DOM Elements
+    const gfStyleSelect = document.getElementById('gfStyleSelect');
+    const gfThemeSelect = document.getElementById('gfThemeSelect');
+    const gfSpeedRange = document.getElementById('gfSpeedRange');
+    const gfSpeedValue = document.getElementById('gfSpeedValue');
+    const gfSoundToggle = document.getElementById('gfSoundToggle');
+    const gfVolumeRow = document.getElementById('gfVolumeRow');
+    const gfVolumeRange = document.getElementById('gfVolumeRange');
+    const gfVolumeValue = document.getElementById('gfVolumeValue');
+    const gfLaunchShellBtn = document.getElementById('gfLaunchShellBtn');
+    const gfAutoShowBtn = document.getElementById('gfAutoShowBtn');
+    const gfFinaleBtn = document.getElementById('gfFinaleBtn');
+    const gfWorldEnderBtn = document.getElementById('gfWorldEnderBtn');
+    const gfLuckyBtn = document.getElementById('gfLuckyBtn');
+    const gfClearBtn = document.getElementById('gfClearBtn');
+    const gfTextInput = document.getElementById('gfTextInput');
+    const gfLaunchTextBtn = document.getElementById('gfLaunchTextBtn');
+
+    // === Engine State ===
+    let currentEngine = 'custom'; // 'custom' | 'grand'
+    let gfInstance = null;
+    let gfAutoShowActive = false;
+    let currentGfStyle = 'cinematic';
+    let currentGfTheme = 'default';
+    let gfStatsTimer = null;
+
+    // === Custom 2D Engine State & Chemistry Colors ===
     const colors = [
       { name: 'Crimson', symbol: 'Sr', value: '#ff3258' },
       { name: 'Amber', symbol: 'Ca', value: '#ff9f1f' },
@@ -761,7 +1031,7 @@
     function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
     function lerp(a, b, t) { return a + (b - a) * t; }
 
-    // 색상 데이터 사전 계산 (RGB 문자열 캐싱으로 런타임 파싱 병목 제거)
+    // RGB 사전 계산 (런타임 파싱 병목 제거)
     colors.forEach(c => {
       const h = c.value.replace('#', '');
       const bigint = parseInt(h, 16);
@@ -1073,9 +1343,11 @@
     }
 
     function updateStatus() {
-      statusType.textContent = shellTypeEl.options[shellTypeEl.selectedIndex].text;
-      statusColors.textContent = `${selectedOuter} / ${selectedInner}`;
-      statusSaved.textContent = String(savedPresets.length);
+      if (currentEngine === 'custom') {
+        statusType.textContent = shellTypeEl.options[shellTypeEl.selectedIndex].text;
+        statusColors.textContent = `${selectedOuter} / ${selectedInner}`;
+        statusSaved.textContent = String(savedPresets.length);
+      }
     }
 
     function nearestLaunchX(preferCenter = false) {
@@ -1223,7 +1495,7 @@
         const twinkleBoost = this.twinkle ? (0.75 + 0.25 * Math.sin(performance.now() * 0.02 + this.twinkle)) : 1;
         const currentAlpha = this.alpha * twinkleBoost;
 
-        // 1. 단일 연결 패스로 잔상(Trail) 초고속 렌더링
+        // 1. 잔상(Trail) 연결 패스 렌더링
         if (this.history.length > 1) {
           ctx.lineWidth = this.lineWidth;
           ctx.strokeStyle = `rgba(${this.rgb}, ${currentAlpha * 0.45})`;
@@ -1235,14 +1507,14 @@
           ctx.stroke();
         }
 
-        // 2. 가산 혼합('lighter') 최적화 빛무리 (Halo) 렌더링
+        // 2. 가산 혼합('lighter') 빛무리 (Halo)
         const haloRadius = Math.max(3.5, this.size * 2.8 * this.bloom);
         ctx.fillStyle = `rgba(${this.rgb}, ${currentAlpha * 0.22})`;
         ctx.beginPath();
         ctx.arc(this.x, this.y, haloRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        // 3. 선명한 코어 파티클
+        // 3. 코어 파티클
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
@@ -1257,6 +1529,7 @@
         }
       }
     }
+
     class Flash {
       constructor(x, y, color, maxRadius, life = 18) {
         this.x = x;
@@ -1649,10 +1922,10 @@
     }
 
     function renderBackground(timestamp) {
-      // 1회 사전 렌더링된 정적 배경을 단 1회 드로우콜로 초고속 블릿
+      // 1회 사전 렌더링된 정적 배경을 초고속 블릿
       ctx.drawImage(bgCanvas, 0, 0, stageWidth, stageHeight);
 
-      // 별빛 단일 배칭 렌더링 (60 FPS 완전 무부하)
+      // 별빛 단일 배칭 렌더링
       ctx.fillStyle = 'rgba(235, 245, 255, 0.45)';
       ctx.beginPath();
       for (let i = 0; i < stars.length; i++) {
@@ -1699,7 +1972,7 @@
       }
       flashes.length = fCount;
 
-      // 2. Rockets 인플레이스 갱신 (가비지 컬렉션 제로)
+      // 2. Rockets 인플레이스 갱신
       let rCount = 0;
       for (let i = 0; i < rockets.length; i++) {
         const rocket = rockets[i];
@@ -1711,7 +1984,7 @@
       }
       rockets.length = rCount;
 
-      // 3. Particles 인플레이스 갱신 (가비지 컬렉션 제로)
+      // 3. Particles 인플레이스 갱신
       let pCount = 0;
       for (let i = 0; i < particles.length; i++) {
         const particle = particles[i];
@@ -1725,6 +1998,7 @@
 
       rafId = requestAnimationFrame(step);
     }
+
     function savePresets() {
       localStorage.setItem('fireworks-presets-v1', JSON.stringify(savedPresets));
       updateStatus();
@@ -1860,12 +2134,136 @@
       flashes = [];
     }
 
-    function handleCanvasClick(event) {
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      launch(currentConfig(), clamp(x, 50, stageWidth - 50));
+    // === Grand Fireworks Engine Implementation ===
+    function initGrandFireworks() {
+      if (typeof GrandFireworks === 'undefined') {
+        console.warn('GrandFireworks library is not loaded');
+        return;
+      }
+      try {
+        gfInstance = new GrandFireworks({
+          container: '#stageShell',
+          mode: 'contained',
+          placement: 'overlay',
+          zIndex: 2,
+          clip: true,
+          baseStyle: currentGfStyle,
+          colorTheme: currentGfTheme,
+          performance: { preset: 'high', dprCap: 1.5, adaptive: true },
+          renderer: { preferred: 'webgl2', fallback: 'canvas2d' },
+          autoStart: false,
+          show: { intensity: 0 },
+          sound: { enabled: false, volume: 0.35 }
+        });
+        gfInstance.start();
+      } catch (err) {
+        console.error('Failed to initialize GrandFireworks:', err);
+      }
     }
 
+    function switchEngine(target) {
+      if (currentEngine === target) return;
+      currentEngine = target;
+
+      if (target === 'custom') {
+        tabCustomEngine.classList.add('active');
+        tabGrandEngine.classList.remove('active');
+        customEngineControls.style.display = 'block';
+        grandEngineControls.style.display = 'none';
+        engineBadge.textContent = 'Custom 2D';
+        engineBadge.style.color = '#94d7ff';
+        engineBadge.style.borderColor = 'rgba(124, 192, 255, 0.3)';
+
+        // Stop GrandFireworks activity
+        if (gfInstance) {
+          gfInstance.pause(true);
+          if (gfInstance.root) gfInstance.root.style.display = 'none';
+        }
+        if (gfStatsTimer) {
+          clearInterval(gfStatsTimer);
+          gfStatsTimer = null;
+        }
+
+        // Resume Custom Canvas 2D Loop
+        if (!rafId) {
+          lastTime = performance.now();
+          rafId = requestAnimationFrame(step);
+        }
+
+        hudTitle.textContent = '1920 × 1080 가로형 스테이지';
+        hudDesc.textContent = '클릭한 위치로도 발사됩니다. 밤하늘에서 조합을 테스트하고, 저장한 뒤 여러 발을 섞어 쇼를 구성해보세요.';
+        legendTitle.textContent = '지원 효과';
+        legendDesc.textContent = 'Peony · Chrysanthemum · Willow · Crossette · Palm · Ring · Pistil';
+        updateStatus();
+      } else {
+        tabGrandEngine.classList.add('active');
+        tabCustomEngine.classList.remove('active');
+        customEngineControls.style.display = 'none';
+        grandEngineControls.style.display = 'block';
+        engineBadge.textContent = 'WebGL 2 HDR';
+        engineBadge.style.color = '#c084fc';
+        engineBadge.style.borderColor = 'rgba(192, 132, 252, 0.3)';
+
+        // Custom 2D 루프 정지 (CPU/GPU 자원 100% 절약)
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        // 배경 스카이라인 1회 렌더링 유지
+        ctx.globalCompositeOperation = 'source-over';
+        renderBackground(performance.now());
+
+        // Grand Fireworks 초기화 또는 재개
+        if (!gfInstance) {
+          initGrandFireworks();
+        } else {
+          if (gfInstance.root) gfInstance.root.style.display = 'block';
+          gfInstance.resume(true);
+        }
+
+        hudTitle.textContent = 'Grand Fireworks WebGL 2 HDR 스테이지';
+        hudDesc.textContent = '화면을 클릭하면 해당 위치로 로켓이 솟아올라 폭발합니다. 아래 버튼으로 피날레, 월드엔더, 텍스트 불꽃을 연출해보세요.';
+        legendTitle.textContent = '엔진 상태';
+        updateGrandStatus();
+
+        if (!gfStatsTimer) {
+          gfStatsTimer = setInterval(updateGrandStatus, 600);
+        }
+      }
+    }
+
+    function updateGrandStatus() {
+      if (currentEngine !== 'grand' || !gfInstance) return;
+      const stats = gfInstance.getStats ? gfInstance.getStats() : { fps: 60, particleCount: 0 };
+      const renderer = gfInstance.rendererType === 'webgl2' ? 'WebGL 2 (HDR)' : 'Canvas 2D';
+
+      statusType.textContent = renderer;
+      statusColors.textContent = `${currentGfStyle} / ${currentGfTheme}`;
+      statusSaved.textContent = `${Math.round(stats.fps || 60)} FPS · ${stats.particleCount || 0} pt`;
+      legendDesc.textContent = `렌더러: ${renderer} · 스타일: ${currentGfStyle} · 테마: ${currentGfTheme}`;
+    }
+
+    // === Unified Stage Pointer Action ===
+    function handleStageAction(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      if (currentEngine === 'custom') {
+        launch(currentConfig(), clamp(x, 50, stageWidth - 50));
+      } else if (gfInstance) {
+        const originX = rect.width * 0.5 + (Math.random() - 0.5) * rect.width * 0.5;
+        gfInstance.launchTo({
+          x: originX,
+          y: rect.height,
+          targetX: x,
+          targetY: y,
+          duration: 620
+        });
+      }
+    }
+
+    // === Event Listeners ===
     sizeRangeEl.addEventListener('input', () => { updateRangeLabels(); updateStatus(); });
     burstCountEl.addEventListener('input', updateRangeLabels);
     trailRangeEl.addEventListener('input', updateRangeLabels);
@@ -1883,25 +2281,130 @@
     fireTenBtn.addEventListener('click', () => fireSequence(10));
     clearSkyBtn.addEventListener('click', clearSky);
     demoBtn.addEventListener('click', startDemo);
-    canvas.addEventListener('click', handleCanvasClick);
+
+    // Grand Fireworks Control Listeners
+    gfStyleSelect.addEventListener('change', () => {
+      currentGfStyle = gfStyleSelect.value;
+      if (gfInstance) gfInstance.setStyle(currentGfStyle);
+      updateGrandStatus();
+    });
+
+    gfThemeSelect.addEventListener('change', () => {
+      currentGfTheme = gfThemeSelect.value;
+      if (gfInstance) gfInstance.setColorTheme(currentGfTheme);
+      updateGrandStatus();
+    });
+
+    gfSpeedRange.addEventListener('input', () => {
+      const sp = Number(gfSpeedRange.value) / 100;
+      gfSpeedValue.textContent = `${sp.toFixed(1)}x`;
+      if (gfInstance) gfInstance.setOptions({ speedMultiplier: sp });
+    });
+
+    gfSoundToggle.addEventListener('change', () => {
+      if (!gfInstance) return;
+      if (gfSoundToggle.checked) {
+        gfInstance.enableSound();
+        gfInstance.setOptions({ sound: { enabled: true, volume: Number(gfVolumeRange.value) / 100 } });
+        gfVolumeRow.style.display = 'block';
+      } else {
+        gfInstance.disableSound();
+        gfVolumeRow.style.display = 'none';
+      }
+    });
+
+    gfVolumeRange.addEventListener('input', () => {
+      gfVolumeValue.textContent = `${gfVolumeRange.value}%`;
+      if (gfInstance) gfInstance.setOptions({ sound: { volume: Number(gfVolumeRange.value) / 100 } });
+    });
+
+    gfLaunchShellBtn.addEventListener('click', () => {
+      if (gfInstance) gfInstance.launch();
+    });
+
+    gfAutoShowBtn.addEventListener('click', () => {
+      if (!gfInstance) return;
+      gfAutoShowActive = !gfAutoShowActive;
+      gfInstance.setOptions({ show: { intensity: gfAutoShowActive ? 1 : 0 } });
+      gfAutoShowBtn.textContent = gfAutoShowActive ? '⏸️ 자동 쇼 중지' : '✨ 자동 쇼 시작';
+      gfAutoShowBtn.classList.toggle('primary', gfAutoShowActive);
+      gfAutoShowBtn.classList.toggle('secondary', !gfAutoShowActive);
+    });
+
+    gfFinaleBtn.addEventListener('click', () => {
+      if (gfInstance) gfInstance.launchFinale();
+    });
+
+    gfWorldEnderBtn.addEventListener('click', () => {
+      if (gfInstance) gfInstance.launchWorldEnder();
+    });
+
+    gfLuckyBtn.addEventListener('click', () => {
+      if (!gfInstance) return;
+      const luck = gfInstance.feelingLucky();
+      if (luck.baseStyle) {
+        gfStyleSelect.value = luck.baseStyle;
+        currentGfStyle = luck.baseStyle;
+      }
+      if (luck.colorTheme) {
+        gfThemeSelect.value = luck.colorTheme;
+        currentGfTheme = luck.colorTheme;
+      }
+      updateGrandStatus();
+    });
+
+    gfClearBtn.addEventListener('click', () => {
+      if (gfInstance) gfInstance.clear();
+    });
+
+    gfLaunchTextBtn.addEventListener('click', () => {
+      if (!gfInstance) return;
+      const text = gfTextInput.value.trim() || 'FIREWORKS';
+      gfInstance.launchText(text, { tilt: [-12, 12] });
+    });
+
+    // Engine Mode Tabs
+    tabCustomEngine.addEventListener('click', () => switchEngine('custom'));
+    tabGrandEngine.addEventListener('click', () => switchEngine('grand'));
+
+    // Canvas Stage Interactions
+    canvas.addEventListener('click', (e) => handleStageAction(e.clientX, e.clientY));
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       if (e.touches && e.touches[0]) {
-        handleCanvasClick(e.touches[0]);
+        handleStageAction(e.touches[0].clientX, e.touches[0].clientY);
       }
     }, { passive: false });
 
+    // Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
       if (e.code === 'Space') {
         e.preventDefault();
-        launch(currentConfig(), nearestLaunchX(false));
+        if (currentEngine === 'custom') {
+          launch(currentConfig(), nearestLaunchX(false));
+        } else if (gfInstance) {
+          gfInstance.launch();
+        }
       }
-      if (e.key.toLowerCase() === 'd') startDemo();
-      if (e.key.toLowerCase() === 'c') clearSky();
+      if (e.key.toLowerCase() === 'd') {
+        if (currentEngine === 'custom') startDemo();
+        else if (gfInstance) gfAutoShowBtn.click();
+      }
+      if (e.key.toLowerCase() === 'c') {
+        if (currentEngine === 'custom') clearSky();
+        else if (gfInstance) gfInstance.clear();
+      }
     });
 
-    window.addEventListener('resize', resizeStage);
+    window.addEventListener('resize', () => {
+      resizeStage();
+      if (currentEngine === 'grand') {
+        renderBackground(performance.now());
+      }
+    });
 
+    // Initial Setup
     refreshSwatches();
     renderShapePicker();
     updateRangeLabels();
@@ -1910,6 +2413,5 @@
     resizeStage();
     if (!rafId) rafId = requestAnimationFrame(step);
   </script>
-  
 </body>
 </html>
