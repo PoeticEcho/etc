@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -562,14 +562,14 @@
     <aside class="panel">
       <div class="panel-header">
         <h1 class="title">Fireworks Designer</h1>
-        <p class="subtitle">Peony, Chrysanthemum, Willow, Crossette, Palm, Ring, Pistil�� �����ϰ� �� ���հ� ũ�⸦ �ٲ㺸�� �������� ������ �� �ִ� FHD ������ �Ҳɳ��� �ùķ�����.</p>
+        <p class="subtitle">Peony, Chrysanthemum, Willow, Crossette, Palm, Ring, Pistil을 선택하고 색 조합과 크기를 바꿔보며 시퀀스를 저장할 수 있는 FHD 가로형 불꽃놀이 시뮬레이터.</p>
       </div>
       <div class="scroll">
         <section class="section">
-          <h2>�⺻ ����</h2>
+          <h2>기본 설정</h2>
           <div class="grid-2">
             <div>
-              <label for="shellType">�Ҳ� ���</label>
+              <label for="shellType">불꽃 모양</label>
               <select id="shellType">
                 <option value="peony">Peony</option>
                 <option value="chrysanthemum">Chrysanthemum</option>
@@ -581,11 +581,11 @@
               </select>
             </div>
             <div>
-              <label for="fuseDelay">�߻� ����</label>
+              <label for="fuseDelay">발사 간격</label>
               <select id="fuseDelay">
-                <option value="140">����</option>
-                <option value="260" selected>����</option>
-                <option value="420">����</option>
+                <option value="140">빠름</option>
+                <option value="260" selected>보통</option>
+                <option value="420">느림</option>
               </select>
             </div>
           </div>
@@ -593,68 +593,68 @@
           <div class="shape-grid" id="shapeGrid"></div>
 
           <div style="margin-top: 12px;">
-            <label for="sizeRange">���� ũ��</label>
+            <label for="sizeRange">폭발 크기</label>
             <input id="sizeRange" type="range" min="50" max="180" value="110" />
             <div class="value" id="sizeValue">110</div>
           </div>
 
           <div style="margin-top: 10px;">
-            <label for="burstCount">�е�</label>
+            <label for="burstCount">밀도</label>
             <input id="burstCount" type="range" min="18" max="80" value="42" />
             <div class="value" id="burstValue">42</div>
           </div>
 
           <div style="margin-top: 10px;">
-            <label for="trailRange">�ܻ� ����</label>
+            <label for="trailRange">잔상 길이</label>
             <input id="trailRange" type="range" min="0" max="100" value="64" />
             <div class="value" id="trailValue">64</div>
           </div>
 
           <div class="checkbox-row">
             <input type="checkbox" id="glitterToggle" checked />
-            <label for="glitterToggle" style="margin:0; color:var(--text);">��¦�� �߰�</label>
+            <label for="glitterToggle" style="margin:0; color:var(--text);">반짝임 추가</label>
           </div>
         </section>
 
         <section class="section">
-          <h2>�� ����</h2>
-          <label>�ܰ� ����</label>
+          <h2>색 조합</h2>
+          <label>외곽 색상</label>
           <div class="swatches" id="outerSwatches"></div>
           <div style="height: 12px;"></div>
-          <label>�߽� ����</label>
+          <label>중심 색상</label>
           <div class="swatches" id="innerSwatches"></div>
           <div class="launch-buttons">
-            <button class="primary launch-main" id="launchSelectedBtn">���� ���� �߻�</button>
-            <button class="secondary" id="launchCenterBtn">�߾� �߻�</button>
+            <button class="primary launch-main" id="launchSelectedBtn">선택 조합 발사</button>
+            <button class="secondary" id="launchCenterBtn">중앙 발사</button>
           </div>
-          <div class="preset-hint">����Ĩ���� ��ǥ �߱� ���ұ�ȣ�� �Բ� ǥ�õ˴ϴ�. ���� ������ ������ ������ �ٷ� �߻��� �� �ֽ��ϴ�.</div>
-          <div class="footer-safe">�� �ùķ����ʹ� ���� ȭ�� ���� ���� ����, ������ �ð� �����ο� ���� �����¸� �����մϴ�.</div>
+          <div class="preset-hint">색상칩에는 대표 발광 원소기호가 함께 표시됩니다. 현재 선택한 조합은 언제든 바로 발사할 수 있습니다.</div>
+          <div class="footer-safe">이 시뮬레이터는 실제 화약 제조 정보 없이, 안전한 시각 디자인용 색상 프리셋만 제공합니다.</div>
         </section>
 
         <section class="section">
-          <h2>������ ����</h2>
+          <h2>프리셋 저장</h2>
           <div>
-            <label for="presetName">������ �̸�</label>
-            <input id="presetName" type="text" placeholder="��: �ο� ��� �ǿ���" maxlength="40" />
+            <label for="presetName">프리셋 이름</label>
+            <input id="presetName" type="text" placeholder="예: 로열 블루 피오니" maxlength="40" />
           </div>
           <div class="buttons" style="margin-top: 10px;">
-            <button class="primary" id="savePresetBtn">���� ���� ����</button>
-            <button class="secondary" id="loadCurrentBtn">���� ���� �߻�</button>
+            <button class="primary" id="savePresetBtn">현재 조합 저장</button>
+            <button class="secondary" id="loadCurrentBtn">선택 조합 발사</button>
           </div>
         </section>
 
         <section class="section">
-          <h2>����� ������</h2>
+          <h2>저장된 프리셋</h2>
           <div class="saved-list" id="savedList"></div>
           <div class="buttons" style="margin-top: 12px;">
-            <button class="primary" id="fireFiveBtn">���� ������ 5��</button>
-            <button class="primary" id="fireTenBtn">���� ������ 10��</button>
+            <button class="primary" id="fireFiveBtn">선택 프리셋 5발</button>
+            <button class="primary" id="fireTenBtn">선택 프리셋 10발</button>
           </div>
           <div class="buttons" style="margin-top: 10px;">
-            <button class="secondary" id="demoBtn">�ڵ� �� ����</button>
-            <button class="danger" id="clearSkyBtn">�ϴ� ����</button>
+            <button class="secondary" id="demoBtn">자동 쇼 데모</button>
+            <button class="danger" id="clearSkyBtn">하늘 정리</button>
           </div>
-          <p class="note" style="margin-top: 10px;">�����º��� üũ�� �׸� ����/���� �߻翡 ���Ե˴ϴ�. ���ù߻� ������ ���� ª�� �������� ���� ��ġ���� �ڵ� �߻�˴ϴ�.</p>
+          <p class="note" style="margin-top: 10px;">프리셋별로 체크한 항목만 동시/연속 발사에 포함됩니다. 동시발사 느낌을 위해 짧은 간격으로 여러 위치에서 자동 발사됩니다.</p>
         </section>
       </div>
     </aside>
@@ -662,21 +662,21 @@
     <main class="stage-shell">
       <div class="stage-header">
         <div class="hud">
-          <strong>1920 �� 1080 ������ ��������</strong>
-          <p>Ŭ���� ��ġ�ε� �߻�˴ϴ�. ���ϴÿ��� ������ �׽�Ʈ�ϰ�, ������ �� ���� ���� ���� � �����غ�����.</p>
+          <strong>1920 × 1080 가로형 스테이지</strong>
+          <p>클릭한 위치로도 발사됩니다. 밤하늘에서 조합을 테스트하고, 저장한 뒤 여러 발을 섞어 쇼를 구성해보세요.</p>
         </div>
         <div class="legend">
-          <strong>���� ȿ��</strong>
-          <p>Peony �� Chrysanthemum �� Willow �� Crossette �� Palm �� Ring �� Pistil</p>
+          <strong>지원 효과</strong>
+          <p>Peony · Chrysanthemum · Willow · Crossette · Palm · Ring · Pistil</p>
         </div>
       </div>
 
       <canvas id="stage" width="1920" height="1080"></canvas>
 
       <div class="status-bar">
-        <div class="status-card">���� ���: <span id="statusType">Peony</span></div>
-        <div class="status-card">���� ����: <span id="statusColors">Blue / Gold</span></div>
-        <div class="status-card">���� ������: <span id="statusSaved">0</span></div>
+        <div class="status-card">현재 모양: <span id="statusType">Peony</span></div>
+        <div class="status-card">선택 색상: <span id="statusColors">Blue / Gold</span></div>
+        <div class="status-card">저장 프리셋: <span id="statusSaved">0</span></div>
       </div>
     </main>
   </div>
@@ -729,13 +729,13 @@
     ];
 
     const shapeOptions = [
-      { value: 'peony', label: 'Peony', desc: '�ձ۰� ǳ���ϰ� ������ �⺻��' },
-      { value: 'chrysanthemum', label: 'Chrysanthemum', desc: '��� ������ ������ ����' },
-      { value: 'willow', label: 'Willow', desc: 'õõ�� �Ʒ��� �帣�� ���峪����' },
-      { value: 'crossette', label: 'Crossette', desc: '���� �� ���� �������� ���ȭ' },
-      { value: 'palm', label: 'Palm', desc: '���� �ٱ�� ���ڼ� �� ����' },
-      { value: 'ring', label: 'Ring', desc: '��� �ִ� ���� �׵θ�' },
-      { value: 'pistil', label: 'Pistil', desc: '�ܰ��� �߽��� �������� ���̴� ��' },
+      { value: 'peony', label: 'Peony', desc: '둥글고 풍성하게 퍼지는 기본형' },
+      { value: 'chrysanthemum', label: 'Chrysanthemum', desc: '길고 촘촘한 꽃잎형 꼬리' },
+      { value: 'willow', label: 'Willow', desc: '천천히 아래로 흐르는 버드나무형' },
+      { value: 'crossette', label: 'Crossette', desc: '터진 뒤 십자 방향으로 재분화' },
+      { value: 'palm', label: 'Palm', desc: '굵은 줄기와 야자수 잎 연출' },
+      { value: 'ring', label: 'Ring', desc: '비어 있는 원형 테두리' },
+      { value: 'pistil', label: 'Pistil', desc: '외곽과 중심이 이중으로 보이는 형' },
     ];
 
     let selectedOuter = 'Royal Blue';
@@ -1664,7 +1664,7 @@
       if (savedPresets.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'note';
-        empty.textContent = '���� ����� �������� �����ϴ�. ������ ����� �����غ�����.';
+        empty.textContent = '아직 저장된 프리셋이 없습니다. 조합을 만들고 저장해보세요.';
         savedListEl.appendChild(empty);
         updateStatus();
         return;
@@ -1682,11 +1682,11 @@
             <div class="mini" style="background:${byName(preset.outer).value}" title="${preset.outer}"></div>
             <div class="mini" style="background:${byName(preset.inner).value}" title="${preset.inner}"></div>
           </div>
-          <div class="preset-meta">${preset.outer} / ${preset.inner} �� ũ�� ${preset.size} �� �е� ${preset.density} �� �ܻ� ${preset.trail}</div>
+          <div class="preset-meta">${preset.outer} / ${preset.inner} · 크기 ${preset.size} · 밀도 ${preset.density} · 잔상 ${preset.trail}</div>
           <div class="preset-actions">
-            <button class="secondary" data-action="toggle">${preset.selected ? '���õ�' : '����'}</button>
-            <button class="secondary" data-action="launch">�߻�</button>
-            <button class="danger" data-action="delete">����</button>
+            <button class="secondary" data-action="toggle">${preset.selected ? '선택됨' : '선택'}</button>
+            <button class="secondary" data-action="launch">발사</button>
+            <button class="danger" data-action="delete">삭제</button>
           </div>
         `;
 
@@ -1813,6 +1813,12 @@
     clearSkyBtn.addEventListener('click', clearSky);
     demoBtn.addEventListener('click', startDemo);
     canvas.addEventListener('click', handleCanvasClick);
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (e.touches && e.touches[0]) {
+        handleCanvasClick(e.touches[0]);
+      }
+    }, { passive: false });
 
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
@@ -1833,44 +1839,6 @@
     resizeStage();
     if (!rafId) rafId = requestAnimationFrame(step);
   </script>
-  <!-- Showcase Portal Navigation Button -->
-  <a href="../../index.html" class="showcase-nav-btn" title="쇼케이스 포털로 돌아가기">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-    <span>Showcase</span>
-  </a>
-  <style>
-    .showcase-nav-btn {
-      position: fixed;
-      top: 14px;
-      left: 14px;
-      z-index: 99999;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 13px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      color: #f1f5f9;
-      background: rgba(15, 23, 42, 0.82);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 9999px;
-      text-decoration: none;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      opacity: 0.85;
-      user-select: none;
-    }
-    .showcase-nav-btn:hover {
-      opacity: 1;
-      color: #ffffff;
-      background: rgba(15, 23, 42, 0.96);
-      border-color: rgba(255, 255, 255, 0.4);
-      transform: translateY(-1px) scale(1.02);
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-    }
-  </style>
+  
 </body>
 </html>
