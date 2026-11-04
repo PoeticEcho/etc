@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -47,8 +47,8 @@
       display: grid;
       grid-template-columns: repeat(15, 1fr);
       grid-template-rows: repeat(15, 1fr);
-      width: min(88vw, calc(100dvh - 185px), 420px);
-      height: min(88vw, calc(100dvh - 185px), 420px);
+      width: min(92vw, calc(100dvh - 215px), 430px);
+      height: min(92vw, calc(100dvh - 215px), 430px);
       aspect-ratio: 1 / 1;
       touch-action: none;
       user-select: none;
@@ -58,15 +58,22 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #cbd5e1;
       cursor: pointer;
       font-weight: 800;
-      font-size: clamp(8px, 2.2vw, 13px);
+      font-size: clamp(9px, 2.7vw, 14px);
       user-select: none;
       -webkit-user-select: none;
-      transition: background-color 0.08s ease-out;
+      transition: background-color 0.08s ease-out, box-shadow 0.08s ease-out;
       background-color: #f8fafc;
+      color: #1e293b;
       line-height: 1;
+    }
+    .grid-cell.cell-highlight {
+      background-color: #e0e7ff !important;
+      color: #312e81 !important;
+      font-weight: 900 !important;
+      box-shadow: inset 0 0 0 1.5px #6366f1;
     }
     .color-item {
       width: 2.35rem;
@@ -87,10 +94,10 @@
     }
     @media (min-width: 640px) {
       .color-item {
-        width: 2.75rem;
-        height: 2.75rem;
+        width: 2.65rem;
+        height: 2.65rem;
         border-radius: 0.85rem;
-        font-size: 1rem;
+        font-size: 0.95rem;
       }
     }
     .color-item.selected {
@@ -103,15 +110,21 @@
       background-color: #f1f5f9;
       color: #475569;
       border: 1.5px dashed #94a3b8;
-      font-size: 0.75rem;
-      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .color-item[data-code="bg"] {
+      background-color: #ffffff;
+      color: #1e293b;
+      border: 1.5px solid #94a3b8;
+      font-size: 0.72rem;
+      font-weight: 800;
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen h-[100dvh] flex flex-col justify-between items-center px-2 py-1 sm:py-2.5 overflow-hidden select-none">
+<body class="bg-slate-50 text-slate-800 h-screen h-[100dvh] flex flex-col justify-between items-center px-2 py-1.5 sm:py-2.5 overflow-hidden select-none">
 
   <!-- 상단 네비게이션 & 헤더 (한 줄 컴팩트) -->
-  <header class="w-full max-w-lg flex items-center justify-between px-1.5 pt-1">
+  <header class="w-full max-w-md flex items-center justify-between px-1 flex-shrink-0">
     <a href="../../index.html" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition" title="쇼케이스로 돌아가기">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
       <span>Showcase</span>
@@ -130,20 +143,35 @@
     </div>
   </header>
 
-  <!-- 색상 팔레트 바 (가로 스크롤 가능, 컴팩트) -->
-  <div class="w-full max-w-lg px-1">
-    <div id="color-palette" class="flex items-center justify-center gap-2 p-1.5 sm:p-2 bg-white/95 backdrop-blur shadow-sm border border-slate-200/80 rounded-2xl overflow-x-auto scrollbar-none"></div>
+  <!-- 진행 상황 & 배경 채우기 바 (상단 여백 활용 및 편의 기능) -->
+  <div class="w-full max-w-md px-1 flex-shrink-0">
+    <div class="flex items-center justify-between text-xs mb-1">
+      <span id="progress-text" class="text-slate-600 font-bold">진행도: 0%</span>
+      <button id="fill-bg-button" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 active:scale-95 transition shadow-xs" title="배경 전체를 흰색으로 채우기">
+        <span>🪄</span>
+        <span>배경 채우기</span>
+      </button>
+    </div>
+    <div class="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
+      <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-300 w-0"></div>
+    </div>
   </div>
 
-  <!-- 그리드 캔버스 영역 (화면에 맞춰 1:1 자동 조절, 스크롤 절대 없음) -->
-  <main class="flex-1 min-h-0 w-full flex items-center justify-center px-2 py-1">
-    <div id="coloring-grid-wrapper" class="p-1 sm:p-2 bg-white shadow-xl border border-slate-200/80 rounded-2xl flex items-center justify-center touch-none">
+  <!-- 중앙 게임 작업 공간: 팔레트 + 그리드 캔버스가 밀착되어 빈 공간 제거 -->
+  <main class="flex-1 min-h-0 w-full max-w-md flex flex-col items-center justify-center px-1 py-1">
+    <!-- 색상 팔레트 (캔버스 바로 위에 위치하여 상단 빈틈 완전 제거) -->
+    <div class="w-full mb-1.5 sm:mb-2 flex-shrink-0">
+      <div id="color-palette" class="flex items-center justify-center gap-1.5 sm:gap-2 p-1.5 bg-white/95 backdrop-blur shadow-sm border border-slate-200/90 rounded-2xl overflow-x-auto scrollbar-none"></div>
+    </div>
+
+    <!-- 그리드 캔버스 영역 -->
+    <div id="coloring-grid-wrapper" class="p-1 sm:p-1.5 bg-white shadow-xl border border-slate-200/90 rounded-2xl flex items-center justify-center touch-none">
       <div id="coloring-grid" class="grid-container"></div>
     </div>
   </main>
 
-  <!-- 하단 액션 버튼 바 (한 화면에 모두 노출) -->
-  <footer class="w-full max-w-lg px-2 pb-1 sm:pb-2">
+  <!-- 하단 액션 버튼 바 (한 화면에 모두 고정 노출) -->
+  <footer class="w-full max-w-md px-1 pb-1 sm:pb-2 flex-shrink-0">
     <div class="grid grid-cols-4 gap-1.5 sm:gap-2">
       <button id="previous-picture-button" class="flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition shadow-sm" title="이전 그림">
         <span>◀</span>
@@ -765,6 +793,8 @@ const ALL_PATTERNS = [
     // ----------------------------------------------
     // 2. 공통 유틸리티 및 UI 로직 (모바일 무스크롤 & 터치 드래그 지원)
     // ----------------------------------------------
+    const BG_CODE = 'bg';
+    const BG_HEX = '#ffffff';
 
     function showMessage(text) {
       const msgBox = document.getElementById('message-box');
@@ -794,6 +824,7 @@ const ALL_PATTERNS = [
         
         const previousSelectedCode = selectedColorCode;
 
+        // 1. 도안 지정 색상 목록
         Object.keys(COLOR_PALETTE).forEach(codeStr => {
           const code = parseInt(codeStr);
           if (code === ERASER_CODE) return;
@@ -817,7 +848,19 @@ const ALL_PATTERNS = [
           paletteContainer.appendChild(item);
         });
 
-        // 지우개 아이템
+        // 2. 배경색 (흰색) 칩
+        const bgItem = document.createElement('div');
+        bgItem.classList.add('color-item');
+        bgItem.dataset.code = BG_CODE;
+        bgItem.title = '배경색 (흰색)';
+        bgItem.innerHTML = '<span>배경</span>';
+        if (BG_CODE === previousSelectedCode) {
+          bgItem.classList.add('selected');
+        }
+        bgItem.addEventListener('click', () => selectColor(BG_CODE));
+        paletteContainer.appendChild(bgItem);
+
+        // 3. 지우개 아이템
         const eraserItem = document.createElement('div');
         eraserItem.classList.add('color-item');
         eraserItem.innerHTML = '<span>🧹</span>';
@@ -830,6 +873,57 @@ const ALL_PATTERNS = [
         
         eraserItem.addEventListener('click', () => selectColor(ERASER_CODE));
         paletteContainer.appendChild(eraserItem);
+      }
+
+      function updateHighlights() {
+        if (isSolutionMode) return;
+        const cells = document.querySelectorAll('.grid-cell');
+        cells.forEach(cell => {
+          const r = parseInt(cell.dataset.row);
+          const c = parseInt(cell.dataset.col);
+          const userCode = userPattern[r][c];
+          const solCode = SOLUTION_PATTERN[r][c];
+          
+          cell.classList.remove('cell-highlight');
+          
+          if (userCode === EMPTY_CELL) {
+            if (selectedColorCode === BG_CODE) {
+              if (solCode === EMPTY_CELL) {
+                cell.classList.add('cell-highlight');
+              }
+            } else if (selectedColorCode !== ERASER_CODE && solCode === selectedColorCode) {
+              cell.classList.add('cell-highlight');
+            }
+          }
+        });
+      }
+
+      function updateProgress() {
+        let targetCount = 0;
+        let correctCount = 0;
+        
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const sol = SOLUTION_PATTERN[r][c];
+            if (sol !== EMPTY_CELL) {
+              targetCount++;
+              if (userPattern[r][c] === sol) {
+                correctCount++;
+              }
+            }
+          }
+        }
+        
+        const percent = targetCount > 0 ? Math.floor((correctCount / targetCount) * 100) : 0;
+        const progressText = document.getElementById('progress-text');
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        
+        if (progressText) {
+          progressText.textContent = `진행도: ${percent}% (${correctCount}/${targetCount})`;
+        }
+        if (progressBarFill) {
+          progressBarFill.style.width = `${percent}%`;
+        }
       }
 
       function renderGrid(patternToShow = userPattern) {
@@ -846,17 +940,23 @@ const ALL_PATTERNS = [
             const code = patternToShow[r][c];
             
             if (code !== EMPTY_CELL) {
-              const color = COLOR_PALETTE[code];
-              if (color) {
-                cell.style.backgroundColor = color.hex;
+              if (code === BG_CODE) {
+                cell.style.backgroundColor = BG_HEX;
                 cell.textContent = '';
+              } else {
+                const color = COLOR_PALETTE[code];
+                if (color) {
+                  cell.style.backgroundColor = color.hex;
+                  cell.textContent = '';
+                }
               }
             } else {
               cell.style.backgroundColor = '#f8fafc';
               const solutionCode = SOLUTION_PATTERN[r][c];
               if (solutionCode !== EMPTY_CELL) {
                 cell.textContent = solutionCode;
-                cell.style.color = COLOR_PALETTE[solutionCode] ? COLOR_PALETTE[solutionCode].hex : '#475569'; 
+                // 명확하고 시인성 높은 진한 색상 (#1e293b) 적용
+                cell.style.color = '#1e293b'; 
               } else {
                 cell.textContent = '';
               }
@@ -879,6 +979,8 @@ const ALL_PATTERNS = [
             gridContainer.appendChild(cell);
           }
         }
+        updateHighlights();
+        updateProgress();
       }
       
       // 모바일 터치 드래그 연속 그리기 지원
@@ -945,6 +1047,7 @@ const ALL_PATTERNS = [
         if (newSelectedItem) {
           newSelectedItem.classList.add('selected');
         }
+        updateHighlights();
       }
 
       function colorCell(r, c, code) {
@@ -959,15 +1062,25 @@ const ALL_PATTERNS = [
         
         const cell = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
         if (cell) {
+          cell.classList.remove('cell-highlight');
           if (colorToApply === EMPTY_CELL) {
             cell.style.backgroundColor = '#f8fafc';
             const solutionCode = SOLUTION_PATTERN[r][c];
             if (solutionCode !== EMPTY_CELL) {
               cell.textContent = solutionCode;
-              cell.style.color = COLOR_PALETTE[solutionCode] ? COLOR_PALETTE[solutionCode].hex : '#475569';
+              cell.style.color = '#1e293b';
+              if (selectedColorCode === solutionCode) {
+                cell.classList.add('cell-highlight');
+              }
             } else {
               cell.textContent = '';
+              if (selectedColorCode === BG_CODE) {
+                cell.classList.add('cell-highlight');
+              }
             }
+          } else if (colorToApply === BG_CODE) {
+            cell.style.backgroundColor = BG_HEX;
+            cell.textContent = '';
           } else {
             const color = COLOR_PALETTE[colorToApply];
             if (color) {
@@ -976,6 +1089,7 @@ const ALL_PATTERNS = [
             }
           }
         }
+        updateProgress();
       }
       
       function checkCompletion() {
@@ -984,9 +1098,20 @@ const ALL_PATTERNS = [
         let isComplete = true;
         for (let r = 0; r < GRID_SIZE; r++) {
           for (let c = 0; c < GRID_SIZE; c++) {
-            if (userPattern[r][c] !== SOLUTION_PATTERN[r][c]) {
-              isComplete = false;
-              break;
+            const sol = SOLUTION_PATTERN[r][c];
+            const user = userPattern[r][c];
+            
+            if (sol === EMPTY_CELL) {
+              // 배경 셀은 비어있거나 흰색 배경으로 채워진 경우 모두 정답으로 인정
+              if (user !== EMPTY_CELL && user !== BG_CODE && user !== BG_HEX) {
+                isComplete = false;
+                break;
+              }
+            } else {
+              if (user !== sol) {
+                isComplete = false;
+                break;
+              }
             }
           }
           if (!isComplete) break;
@@ -996,6 +1121,28 @@ const ALL_PATTERNS = [
           setTimeout(() => showMessage("🎉 축하합니다! 그림을 멋지게 완성했어요!"), 120);
         }
       }
+
+      // 배경 전체 흰색 채우기 기능
+      document.getElementById('fill-bg-button').addEventListener('click', () => {
+        if (isSolutionMode) return;
+        
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (SOLUTION_PATTERN[r][c] === EMPTY_CELL) {
+              userPattern[r][c] = BG_CODE;
+              const cell = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
+              if (cell) {
+                cell.style.backgroundColor = BG_HEX;
+                cell.textContent = '';
+                cell.classList.remove('cell-highlight');
+              }
+            }
+          }
+        }
+        updateHighlights();
+        checkCompletion();
+        showMessage("배경이 흰색으로 채워졌습니다! ✨");
+      });
 
       function loadPicture(index) {
         if (index < 0 || index >= ALL_PATTERNS.length) {
