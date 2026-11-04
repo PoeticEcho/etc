@@ -761,19 +761,39 @@
     function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
     function lerp(a, b, t) { return a + (b - a) * t; }
 
+    // 색상 데이터 사전 계산 (RGB 문자열 캐싱으로 런타임 파싱 병목 제거)
+    colors.forEach(c => {
+      const h = c.value.replace('#', '');
+      const bigint = parseInt(h, 16);
+      c.r = (bigint >> 16) & 255;
+      c.g = (bigint >> 8) & 255;
+      c.b = bigint & 255;
+      c.rgb = `${c.r}, ${c.g}, ${c.b}`;
+    });
+
+    const colorLookup = new Map();
+    colors.forEach(c => {
+      colorLookup.set(c.name, c);
+      colorLookup.set(c.value, c);
+    });
+
+    function byName(name) {
+      return colorLookup.get(name) || colors[0];
+    }
+
     function hexToRgb(hex) {
+      const c = colorLookup.get(hex);
+      if (c) return { r: c.r, g: c.g, b: c.b };
       const h = hex.replace('#', '');
       const bigint = parseInt(h, 16);
       return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
     }
 
     function rgbaFromHex(hex, alpha = 1) {
+      const c = colorLookup.get(hex);
+      if (c) return `rgba(${c.rgb}, ${alpha})`;
       const { r, g, b } = hexToRgb(hex);
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
-
-    function byName(name) {
-      return colors.find(c => c.name === name) || colors[0];
     }
 
     function createStars() {
@@ -813,10 +833,65 @@
       }));
     }
 
+    const bgCanvas = document.createElement('canvas');
+    const bgCtx = bgCanvas.getContext('2d');
+
+    function drawStaticBackground() {
+      bgCanvas.width = canvas.width;
+      bgCanvas.height = canvas.height;
+      bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      bgCtx.clearRect(0, 0, stageWidth, stageHeight);
+
+      // 밤하늘 배경 그라데이션
+      const sky = bgCtx.createLinearGradient(0, 0, 0, stageHeight);
+      sky.addColorStop(0, '#040b16');
+      sky.addColorStop(0.42, '#081220');
+      sky.addColorStop(1, '#03070d');
+      bgCtx.fillStyle = sky;
+      bgCtx.fillRect(0, 0, stageWidth, stageHeight);
+
+      // 하단 지면 은은한 연무
+      const haze = bgCtx.createRadialGradient(stageWidth * 0.5, stageHeight * 0.84, 0, stageWidth * 0.5, stageHeight * 0.84, stageWidth * 0.45);
+      haze.addColorStop(0, 'rgba(40,75,130,0.18)');
+      haze.addColorStop(1, 'rgba(40,75,130,0)');
+      bgCtx.fillStyle = haze;
+      bgCtx.fillRect(0, 0, stageWidth, stageHeight);
+
+      // 지평선 그라데이션
+      const horizon = bgCtx.createLinearGradient(0, stageHeight * 0.76, 0, stageHeight);
+      horizon.addColorStop(0, 'rgba(10,18,30,0)');
+      horizon.addColorStop(1, 'rgba(9,16,28,0.96)');
+      bgCtx.fillStyle = horizon;
+      bgCtx.fillRect(0, stageHeight * 0.76, stageWidth, stageHeight * 0.24);
+
+      // 스카이라인 베이스 실루엣
+      bgCtx.fillStyle = 'rgba(8,12,18,0.98)';
+      bgCtx.beginPath();
+      bgCtx.moveTo(0, stageHeight);
+      bgCtx.lineTo(0, stageHeight * 0.9 - 14);
+      for (let x = 0; x <= stageWidth; x += 120) {
+        bgCtx.lineTo(x, stageHeight * 0.9 - 14);
+      }
+      bgCtx.lineTo(stageWidth, stageHeight);
+      bgCtx.closePath();
+      bgCtx.fill();
+
+      // 빌딩 및 창문 실루엣
+      buildings.forEach(building => {
+        bgCtx.fillStyle = 'rgba(6,10,16,0.98)';
+        bgCtx.fillRect(building.x, building.y, building.width, building.height);
+        building.windows.forEach(win => {
+          bgCtx.fillStyle = `rgba(255,214,112,${win.alpha})`;
+          bgCtx.fillRect(win.x, win.y, win.w, win.h);
+        });
+      });
+    }
+
     function resizeStage() {
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       stageWidth = rect.width;
       stageHeight = rect.height;
       canvas.width = Math.round(rect.width * dpr);
@@ -824,6 +899,7 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       createStars();
       createSkyline();
+      drawStaticBackground();
     }
 
     function renderSwatches(container, activeName, onSelect) {
@@ -958,6 +1034,7 @@
       shapeOptions.forEach(shape => {
         const card = document.createElement('button');
         card.type = 'button';
+        card.dataset.value = shape.value;
         card.className = `shape-card ${shellTypeEl.value === shape.value ? 'active' : ''}`;
         card.innerHTML = `
           <canvas width="160" height="110"></canvas>
@@ -966,7 +1043,7 @@
         `;
         card.addEventListener('click', () => {
           shellTypeEl.value = shape.value;
-          renderShapePicker();
+          document.querySelectorAll('.shape-card').forEach(c => c.classList.toggle('active', c.dataset.value === shape.value));
           updateStatus();
         });
         drawPreviewBurst(card.querySelector('canvas'), shape.value);
@@ -1034,6 +1111,9 @@
         this.config = config;
         this.alive = true;
         this.sparkTimer = 0;
+        const cData = byName(this.config.outer);
+        this.colorValue = cData.value;
+        this.colorRgb = cData.rgb;
       }
 
       update(frame) {
@@ -1046,13 +1126,12 @@
 
         if (this.sparkTimer > 1.35) {
           this.sparkTimer = 0;
-          const liftColor = byName(this.config.outer).value;
           spawnParticle({
             x: this.x,
             y: this.y,
             vx: rand(-0.35, 0.35),
             vy: rand(0.5, 1.6),
-            color: liftColor,
+            color: this.colorValue,
             life: rand(18, 26),
             maxLife: 26,
             size: rand(1.1, 1.8),
@@ -1072,19 +1151,22 @@
       }
 
       draw() {
-        const c = byName(this.config.outer).value;
-        ctx.save();
-        ctx.strokeStyle = rgbaFromHex(c, 0.9);
-        ctx.lineWidth = 1.8;
-        ctx.lineCap = 'round';
-        ctx.shadowBlur = 18;
-        ctx.shadowColor = c;
+        ctx.strokeStyle = `rgba(${this.colorRgb}, 0.85)`;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(this.lastX, this.lastY);
         ctx.lineTo(this.x, this.y);
         ctx.stroke();
-        glowCircle(this.x, this.y, 12, c, 0.65);
-        ctx.restore();
+
+        ctx.fillStyle = `rgba(${this.colorRgb}, 0.3)`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 9, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
@@ -1112,11 +1194,16 @@
           bloom: 0.8,
           twinkle: 0,
         }, opts);
+
+        const cData = byName(this.color);
+        this.rgb = cData.rgb;
       }
 
       update(frame) {
-        this.history.unshift({ x: this.x, y: this.y, alpha: this.alpha });
-        if (this.history.length > this.historyLength) this.history.pop();
+        this.history.push({ x: this.x, y: this.y });
+        if (this.history.length > this.historyLength) {
+          this.history.shift();
+        }
 
         this.x += this.vx * frame;
         this.y += this.vy * frame;
@@ -1133,48 +1220,43 @@
       }
 
       draw() {
+        const twinkleBoost = this.twinkle ? (0.75 + 0.25 * Math.sin(performance.now() * 0.02 + this.twinkle)) : 1;
+        const currentAlpha = this.alpha * twinkleBoost;
+
+        // 1. 단일 연결 패스로 잔상(Trail) 초고속 렌더링
         if (this.history.length > 1) {
-          ctx.save();
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          for (let i = 0; i < this.history.length - 1; i++) {
-            const p1 = this.history[i];
-            const p2 = this.history[i + 1];
-            const t = 1 - i / this.history.length;
-            ctx.strokeStyle = rgbaFromHex(this.color, this.alpha * t * 0.55);
-            ctx.lineWidth = Math.max(0.6, this.lineWidth * t);
-            ctx.shadowBlur = 8 * t;
-            ctx.shadowColor = this.color;
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
+          ctx.lineWidth = this.lineWidth;
+          ctx.strokeStyle = `rgba(${this.rgb}, ${currentAlpha * 0.45})`;
+          ctx.beginPath();
+          ctx.moveTo(this.history[0].x, this.history[0].y);
+          for (let i = 1; i < this.history.length; i++) {
+            ctx.lineTo(this.history[i].x, this.history[i].y);
           }
-          ctx.restore();
+          ctx.stroke();
         }
 
-        const twinkleBoost = this.twinkle ? (0.75 + 0.25 * Math.sin(performance.now() * 0.02 + this.twinkle)) : 1;
-        glowCircle(this.x, this.y, Math.max(5, this.size * 5.2 * this.bloom), this.color, this.alpha * 0.32 * twinkleBoost);
+        // 2. 가산 혼합('lighter') 최적화 빛무리 (Halo) 렌더링
+        const haloRadius = Math.max(3.5, this.size * 2.8 * this.bloom);
+        ctx.fillStyle = `rgba(${this.rgb}, ${currentAlpha * 0.22})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, haloRadius, 0, Math.PI * 2);
+        ctx.fill();
 
-        ctx.save();
-        ctx.globalAlpha = this.alpha * twinkleBoost;
+        // 3. 선명한 코어 파티클
         ctx.fillStyle = this.color;
-        ctx.shadowBlur = this.glitter ? 26 : 14;
-        ctx.shadowColor = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
 
-        if (this.glitter && Math.random() < 0.16) {
+        // 4. 반짝임 스파크
+        if (this.glitter && Math.random() < 0.18) {
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(this.x + rand(-2.4, 2.4), this.y + rand(-2.4, 2.4), rand(0.4, 1.3), 0, Math.PI * 2);
+          ctx.arc(this.x + rand(-2.2, 2.2), this.y + rand(-2.2, 2.2), rand(0.5, 1.2), 0, Math.PI * 2);
           ctx.fill();
         }
-        ctx.restore();
       }
     }
-
     class Flash {
       constructor(x, y, color, maxRadius, life = 18) {
         this.x = x;
@@ -1567,60 +1649,32 @@
     }
 
     function renderBackground(timestamp) {
-      ctx.clearRect(0, 0, stageWidth, stageHeight);
+      // 1회 사전 렌더링된 정적 배경을 단 1회 드로우콜로 초고속 블릿
+      ctx.drawImage(bgCanvas, 0, 0, stageWidth, stageHeight);
 
-      const sky = ctx.createLinearGradient(0, 0, 0, stageHeight);
-      sky.addColorStop(0, '#040b16');
-      sky.addColorStop(0.42, '#081220');
-      sky.addColorStop(1, '#03070d');
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, stageWidth, stageHeight);
-
-      const haze = ctx.createRadialGradient(stageWidth * 0.5, stageHeight * 0.84, 0, stageWidth * 0.5, stageHeight * 0.84, stageWidth * 0.45);
-      haze.addColorStop(0, 'rgba(40,75,130,0.18)');
-      haze.addColorStop(1, 'rgba(40,75,130,0)');
-      ctx.fillStyle = haze;
-      ctx.fillRect(0, 0, stageWidth, stageHeight);
-
-      stars.forEach(star => {
-        const twinkle = star.alpha + Math.sin(timestamp * 0.001 * star.speed + star.phase) * 0.14;
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `${star.tint}${clamp(twinkle, 0.06, 0.65)})`;
-        ctx.fill();
-      });
-
-      const horizon = ctx.createLinearGradient(0, stageHeight * 0.76, 0, stageHeight);
-      horizon.addColorStop(0, 'rgba(10,18,30,0)');
-      horizon.addColorStop(1, 'rgba(9,16,28,0.96)');
-      ctx.fillStyle = horizon;
-      ctx.fillRect(0, stageHeight * 0.76, stageWidth, stageHeight * 0.24);
-
-      ctx.fillStyle = 'rgba(8,12,18,0.98)';
+      // 별빛 단일 배칭 렌더링 (60 FPS 완전 무부하)
+      ctx.fillStyle = 'rgba(235, 245, 255, 0.45)';
       ctx.beginPath();
-      ctx.moveTo(0, stageHeight);
-      ctx.lineTo(0, stageHeight * 0.9);
-      for (let x = 0; x <= stageWidth; x += 120) {
-        const y = stageHeight * 0.9 - (14 + Math.sin((x * 0.012) + timestamp * 0.00025) * 4);
-        ctx.lineTo(x, y);
+      for (let i = 0; i < stars.length; i++) {
+        const star = stars[i];
+        ctx.moveTo(star.x + star.radius, star.y);
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
       }
-      ctx.lineTo(stageWidth, stageHeight);
-      ctx.closePath();
       ctx.fill();
 
-      buildings.forEach(building => {
-        ctx.fillStyle = 'rgba(6,10,16,0.98)';
-        ctx.fillRect(building.x, building.y, building.width, building.height);
-        building.windows.forEach(win => {
-          ctx.fillStyle = `rgba(255,214,112,${win.alpha})`;
-          ctx.fillRect(win.x, win.y, win.w, win.h);
-        });
-      });
-
-      launchPads.forEach((pad, idx) => {
-        const pulse = 0.06 + Math.sin(timestamp * 0.0018 + idx) * 0.02;
-        glowCircle(pad.x, pad.y + 4, 18, idx % 2 === 0 ? '#8ac6ff' : '#ffd77c', pulse);
-      });
+      // 발사대 발광 효과
+      for (let idx = 0; idx < launchPads.length; idx++) {
+        const pad = launchPads[idx];
+        const isCyan = idx % 2 === 0;
+        ctx.fillStyle = isCyan ? 'rgba(138, 198, 255, 0.22)' : 'rgba(255, 215, 124, 0.22)';
+        ctx.beginPath();
+        ctx.arc(pad.x, pad.y + 4, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = isCyan ? '#8ac6ff' : '#ffd77c';
+        ctx.beginPath();
+        ctx.arc(pad.x, pad.y + 4, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     function step(timestamp) {
@@ -1633,27 +1687,44 @@
       renderBackground(timestamp);
       ctx.globalCompositeOperation = 'lighter';
 
-      flashes = flashes.filter(flash => {
+      // 1. Flashes 인플레이스 갱신 (가비지 컬렉션 제로)
+      let fCount = 0;
+      for (let i = 0; i < flashes.length; i++) {
+        const flash = flashes[i];
         flash.update(frame);
-        flash.draw();
-        return flash.life > 0;
-      });
+        if (flash.life > 0) {
+          flash.draw();
+          flashes[fCount++] = flash;
+        }
+      }
+      flashes.length = fCount;
 
-      rockets = rockets.filter(rocket => {
+      // 2. Rockets 인플레이스 갱신 (가비지 컬렉션 제로)
+      let rCount = 0;
+      for (let i = 0; i < rockets.length; i++) {
+        const rocket = rockets[i];
         rocket.update(frame);
-        rocket.draw();
-        return rocket.alive;
-      });
+        if (rocket.alive) {
+          rocket.draw();
+          rockets[rCount++] = rocket;
+        }
+      }
+      rockets.length = rCount;
 
-      particles = particles.filter(particle => {
+      // 3. Particles 인플레이스 갱신 (가비지 컬렉션 제로)
+      let pCount = 0;
+      for (let i = 0; i < particles.length; i++) {
+        const particle = particles[i];
         particle.update(frame);
-        particle.draw();
-        return particle.life > 0.5;
-      });
+        if (particle.life > 0.5) {
+          particle.draw();
+          particles[pCount++] = particle;
+        }
+      }
+      particles.length = pCount;
 
       rafId = requestAnimationFrame(step);
     }
-
     function savePresets() {
       localStorage.setItem('fireworks-presets-v1', JSON.stringify(savedPresets));
       updateStatus();
@@ -1800,7 +1871,7 @@
     trailRangeEl.addEventListener('input', updateRangeLabels);
 
     shellTypeEl.addEventListener('change', () => {
-      renderShapePicker();
+      document.querySelectorAll('.shape-card').forEach(c => c.classList.toggle('active', c.dataset.value === shellTypeEl.value));
       updateStatus();
     });
 
