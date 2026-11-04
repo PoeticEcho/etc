@@ -88,9 +88,8 @@
       color:var(--muted);
       font-size:1.05rem;
       line-height:1.35;
-    
+    }
 
- 
     .controls{
       display:flex;
       gap:10px;
@@ -159,12 +158,14 @@
 
     /* 주기율표 그리드 */
     .periodic-wrap{
-      width:min(1400px, 100%);
+      width:min(1500px, 100%);
       background:#fff;
       border:1px solid #eee;
       border-radius:22px;
-      padding:12px;
-      box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+      padding:14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .periodic-table{
@@ -173,6 +174,7 @@
       grid-template-rows: repeat(10, 1fr);
       gap:8px;
       width:100%;
+      min-width: 1100px;
       aspect-ratio: 18 / 10;
       min-height: 520px;
     }
@@ -436,6 +438,96 @@
     .quizStatus{ margin-top:12px; color:#555; line-height:1.35; }
     .quizStatus b{ color:#111; }
 
+
+    /* =====================================================
+       A3 가로 인쇄 최적화 (@media print)
+       ===================================================== */
+    @media print {
+      @page {
+        size: A3 landscape;
+        margin: 10mm 12mm;
+      }
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      html, body {
+        background: #ffffff !important;
+        color: #111111 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
+      }
+      /* 불필요한 UI 숨김 */
+      .showcase-nav-btn,
+      .controls,
+      .titleRow > div:last-child,
+      #btnPrint,
+      #btnOpenDeck,
+      #btnQuiz,
+      #toast,
+      #cardModal,
+      #quizModal {
+        display: none !important;
+      }
+      header {
+        width: 100% !important;
+        margin-bottom: 5mm !important;
+      }
+      .titleRow {
+        justify-content: center !important;
+        text-align: center !important;
+      }
+      h1 {
+        font-size: 2.2rem !important;
+        color: #222 !important;
+        text-shadow: none !important;
+        margin: 0 !important;
+      }
+      .subtitle {
+        color: #555 !important;
+        font-size: 1rem !important;
+        margin-top: 4px !important;
+      }
+      .periodic-wrap {
+        width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        background: transparent !important;
+        overflow: visible !important;
+      }
+      .periodic-table {
+        width: 100% !important;
+        min-width: 0 !important;
+        aspect-ratio: 18 / 10 !important;
+        min-height: auto !important;
+        gap: 3mm !important;
+      }
+      .element {
+        box-shadow: none !important;
+        border: 1.5px solid rgba(0, 0, 0, 0.25) !important;
+        border-radius: 6px !important;
+        padding: 3px 5px !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      .at-num { font-size: 0.75rem !important; font-weight: 700 !important; }
+      .symbol { font-size: 1.7rem !important; font-weight: 800 !important; line-height: 1 !important; }
+      .name-ko { font-size: 0.85rem !important; font-weight: 700 !important; }
+      .name-en { font-size: 0.62rem !important; }
+      .mass { font-size: 0.65rem !important; padding: 1px 5px !important; background: rgba(255,255,255,0.85) !important; }
+      .legend {
+        width: 100% !important;
+        margin-top: 6mm !important;
+        justify-content: center !important;
+      }
+      .legend-item {
+        font-size: 0.9rem !important;
+      }
+    }
 </style>
 </head>
 <body>
@@ -448,7 +540,7 @@
     </div>
     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
       <button class="btn" id="btnOpenDeck" title="1~118 카드 모아보기">🃏 카드 모아보기</button>
-      <button class="btn" id="btnPrint" title="인쇄">🖨️ 인쇄</button>
+      <button class="btn" id="btnPrint" title="A3 가로 인쇄 / PDF 저장">🖨️ A3 인쇄 / PDF</button>
       <button class="btn primary" id="btnQuiz" title="퀴즈 모드">🧩 퀴즈</button>
     </div>
   </div>
@@ -1735,6 +1827,96 @@
       transform: translateY(-1px) scale(1.02);
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
     }
-  </style>
+  
+    /* =====================================================
+       A3 가로 인쇄 최적화 (@media print)
+       ===================================================== */
+    @media print {
+      @page {
+        size: A3 landscape;
+        margin: 10mm 12mm;
+      }
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      html, body {
+        background: #ffffff !important;
+        color: #111111 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
+      }
+      /* 불필요한 UI 숨김 */
+      .showcase-nav-btn,
+      .controls,
+      .titleRow > div:last-child,
+      #btnPrint,
+      #btnOpenDeck,
+      #btnQuiz,
+      #toast,
+      #cardModal,
+      #quizModal {
+        display: none !important;
+      }
+      header {
+        width: 100% !important;
+        margin-bottom: 5mm !important;
+      }
+      .titleRow {
+        justify-content: center !important;
+        text-align: center !important;
+      }
+      h1 {
+        font-size: 2.2rem !important;
+        color: #222 !important;
+        text-shadow: none !important;
+        margin: 0 !important;
+      }
+      .subtitle {
+        color: #555 !important;
+        font-size: 1rem !important;
+        margin-top: 4px !important;
+      }
+      .periodic-wrap {
+        width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        background: transparent !important;
+        overflow: visible !important;
+      }
+      .periodic-table {
+        width: 100% !important;
+        min-width: 0 !important;
+        aspect-ratio: 18 / 10 !important;
+        min-height: auto !important;
+        gap: 3mm !important;
+      }
+      .element {
+        box-shadow: none !important;
+        border: 1.5px solid rgba(0, 0, 0, 0.25) !important;
+        border-radius: 6px !important;
+        padding: 3px 5px !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      .at-num { font-size: 0.75rem !important; font-weight: 700 !important; }
+      .symbol { font-size: 1.7rem !important; font-weight: 800 !important; line-height: 1 !important; }
+      .name-ko { font-size: 0.85rem !important; font-weight: 700 !important; }
+      .name-en { font-size: 0.62rem !important; }
+      .mass { font-size: 0.65rem !important; padding: 1px 5px !important; background: rgba(255,255,255,0.85) !important; }
+      .legend {
+        width: 100% !important;
+        margin-top: 6mm !important;
+        justify-content: center !important;
+      }
+      .legend-item {
+        font-size: 0.9rem !important;
+      }
+    }
+</style>
 </body>
 </html>
