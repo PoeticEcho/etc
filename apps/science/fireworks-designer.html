@@ -266,148 +266,311 @@
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
     }
 
-    /* Shape Carousel (Horizontal 1-row scroll) */
-    .shape-carousel-wrap {
-      position: relative;
-      margin-top: 6px;
-    }
-    .shape-grid {
+    /* Shape Chips (Horizontal Scroll Strip) */
+    .shape-chips-scroll {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
-      padding: 4px 2px 8px;
+      padding: 2px 2px 8px;
       -webkit-overflow-scrolling: touch;
+      margin-top: 4px;
     }
-    .shape-grid::-webkit-scrollbar {
-      height: 5px;
+    .shape-chips-scroll::-webkit-scrollbar {
+      height: 4px;
     }
-    .shape-grid::-webkit-scrollbar-track {
+    .shape-chips-scroll::-webkit-scrollbar-track {
       background: rgba(255, 255, 255, 0.04);
       border-radius: 999px;
     }
-    .shape-grid::-webkit-scrollbar-thumb {
+    .shape-chips-scroll::-webkit-scrollbar-thumb {
       background: rgba(124, 192, 255, 0.28);
       border-radius: 999px;
     }
-    .shape-grid::-webkit-scrollbar-thumb:hover {
-      background: rgba(124, 192, 255, 0.5);
-    }
-
-    .shape-card {
-      position: relative;
-      flex: 0 0 108px;
+    .shape-chip {
+      flex: 0 0 auto;
       scroll-snap-align: start;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px;
-      padding: 7px;
-      background: rgba(255,255,255,0.035);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 11px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
       cursor: pointer;
-      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-      overflow: hidden;
-      text-align: left;
-      color: var(--text);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
     }
-
-    .shape-card:hover {
+    .shape-chip:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
       transform: translateY(-1px);
-      border-color: rgba(124,192,255,0.32);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-      background: rgba(255,255,255,0.06);
     }
-
-    .shape-card.active {
-      border-color: rgba(148, 215, 255, 0.7);
-      box-shadow: 0 0 0 2px rgba(148,215,255,0.18), 0 8px 18px rgba(0,0,0,0.22);
-      background: linear-gradient(180deg, rgba(148,215,255,0.14), rgba(255,255,255,0.04));
+    .shape-chip.active {
+      background: linear-gradient(135deg, rgba(124, 192, 255, 0.24), rgba(179, 143, 255, 0.2));
+      border-color: rgba(124, 192, 255, 0.65);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(124, 192, 255, 0.25);
     }
-
-    .shape-card canvas {
-      width: 100%;
-      height: 48px;
-      display: block;
-      border-radius: 9px;
-      background: radial-gradient(circle at 50% 52%, rgba(18,34,58,0.85), rgba(3,8,16,0.98));
-      border: 1px solid rgba(255,255,255,0.06);
-      margin-bottom: 5px;
+    .shape-chip .shape-icon {
+      font-size: 1rem;
+      line-height: 1;
     }
-
-    .shape-card-title {
+    .shape-chip .shape-name {
       font-size: 0.78rem;
       font-weight: 800;
-      color: #f5f9ff;
       letter-spacing: -0.01em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
-    .shape-card-desc {
-      display: none;
-    }
-
-    .shape-card-colors {
+    /* Concentric Double Circle Firework Shell Designer */
+    .concentric-control-wrap {
       display: flex;
       align-items: center;
-      gap: 4px;
-      margin-top: 4px;
-      padding-top: 4px;
-      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      gap: 14px;
+      margin: 10px 0;
+      padding: 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    .shape-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    .concentric-widget-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
       flex-shrink: 0;
     }
 
-    .shape-card-tag {
-      font-size: 0.65rem;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Color Layer Switcher */
-    .color-layer-switch {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-    .color-switch-btn {
+    .concentric-shell-disc {
+      position: relative;
+      width: 104px;
+      height: 104px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 7px 10px;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .concentric-shell-disc:hover {
+      transform: scale(1.03);
+    }
+
+    /* 외곽 고리 (Outer Ring) */
+    .concentric-outer-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 14px solid #3f6fff;
+      box-shadow: 0 0 16px rgba(63, 111, 255, 0.45), inset 0 0 8px rgba(0, 0, 0, 0.5);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+      cursor: pointer;
+    }
+    .concentric-outer-ring.active-layer {
+      box-shadow: 0 0 0 3px #ffffff, 0 0 22px rgba(124, 192, 255, 0.95), inset 0 0 10px rgba(0, 0, 0, 0.4);
+      animation: pulse-ring 2.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-ring {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+
+    /* 중심 코어 원 (Inner Core Disc) */
+    .concentric-inner-core {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #ffd232;
+      box-shadow: 0 0 14px rgba(255, 210, 50, 0.55), inset 0 0 6px rgba(0, 0, 0, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+      cursor: pointer;
+    }
+    .concentric-inner-core.active-layer {
+      box-shadow: 0 0 0 3px #ffffff, 0 0 20px rgba(255, 220, 80, 0.95);
+      animation: pulse-core 2.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-core {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    .concentric-center-glyph {
+      font-size: 1.35rem;
+      line-height: 1;
+      pointer-events: none;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.7));
+    }
+
+    .concentric-guide-text {
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .guide-tag {
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-size: 0.68rem;
+    }
+    .guide-tag.outer-tag {
+      color: #9cd5ff;
+      background: rgba(124, 192, 255, 0.15);
+    }
+    .guide-tag.inner-tag {
+      color: #ffe082;
+      background: rgba(255, 210, 50, 0.15);
+    }
+
+    /* Layer Selector Cards */
+    .layer-selector-cards {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .layer-card {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 11px;
+      border-radius: 12px;
       background: rgba(255, 255, 255, 0.035);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
       cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--muted);
+      text-align: left;
       transition: all 0.2s ease;
-    }
-    .color-switch-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
       color: var(--text);
     }
-    .color-switch-btn.active {
-      background: rgba(124, 192, 255, 0.16);
-      border-color: rgba(124, 192, 255, 0.5);
-      color: #fff;
-      box-shadow: 0 0 12px rgba(124, 192, 255, 0.15);
+    .layer-card:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(124, 192, 255, 0.3);
     }
-    .color-dot-live {
-      width: 13px;
-      height: 13px;
+    .layer-card.active {
+      background: rgba(124, 192, 255, 0.16);
+      border-color: rgba(124, 192, 255, 0.6);
+      box-shadow: 0 0 12px rgba(124, 192, 255, 0.18);
+    }
+    .layer-card-dot {
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.4), inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
       flex-shrink: 0;
+      box-shadow: 0 0 6px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.4);
+    }
+    .layer-card-info {
+      min-width: 0;
+      flex: 1;
+    }
+    .layer-card-label {
+      display: block;
+      font-size: 0.67rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .layer-card-val {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .swap-colors-btn {
+      width: 100%;
+      padding: 5px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .swap-colors-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent);
+    }
+
+    /* Chemical Color Palette Grid */
+    .palette-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      margin-bottom: 6px;
+    }
+    .palette-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .palette-active-hint {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #9cd5ff;
+    }
+
+    .concentric-palette-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+    .palette-swatch {
+      position: relative;
+      height: 38px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 2px 6px rgba(0,0,0,0.3);
+      padding: 0;
+    }
+    .palette-swatch:hover {
+      transform: translateY(-2px) scale(1.05);
+      z-index: 2;
+    }
+    .palette-swatch.active {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35), 0 4px 12px rgba(0,0,0,0.4);
+      transform: scale(1.04);
+    }
+    .palette-swatch-symbol {
+      font-size: 0.78rem;
+      font-weight: 900;
+      line-height: 1;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    }
+    .palette-swatch-name {
+      font-size: 0.6rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-top: 2px;
+      opacity: 0.9;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
     }
 
     .reset-shape-btn {
@@ -422,7 +585,6 @@
       cursor: pointer;
       transition: all 0.15s ease;
     }
-
     .reset-shape-btn:hover {
       color: #fff;
       background: rgba(255, 255, 255, 0.12);
@@ -720,36 +882,7 @@
     }
 
     .stage-header {
-      position: absolute;
-      z-index: 5;
-      inset: 16px 16px auto 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      pointer-events: none;
-    }
-
-    .hud, .legend {
-      padding: 12px 14px;
-      background: rgba(5, 10, 18, 0.5);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px;
-      backdrop-filter: blur(10px);
-      pointer-events: auto;
-    }
-
-    .hud strong, .legend strong {
-      display: block;
-      font-size: 0.96rem;
-      margin-bottom: 5px;
-    }
-
-    .hud p, .legend p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.82rem;
-      line-height: 1.45;
+      display: none !important;
     }
 
     #stage {
@@ -862,60 +995,21 @@
         height: 100%;
       }
 
-      /* Compact Stage HUD on mobile */
       .stage-header {
-        inset: 12px 12px auto 12px;
-        gap: 8px;
-      }
-      .hud, .legend {
-        padding: 8px 12px;
-        border-radius: 12px;
-      }
-      .hud strong {
-        font-size: 0.86rem;
-        margin-bottom: 3px;
-      }
-      .hud p {
-        font-size: 0.74rem;
-        line-height: 1.35;
-      }
-      .legend {
-        display: none;
+        display: none !important;
       }
 
-      /* Status bar positioned cleanly above collapsed bottom sheet */
+      /* Clean sky: hide status bar on mobile */
       .status-bar {
-        left: 10px;
-        right: 10px;
-        bottom: 72px;
-        gap: 6px;
-        transition: opacity 0.25s ease, transform 0.25s ease;
-      }
-      .status-card {
-        padding: 5px 8px;
-        font-size: 0.72rem;
-        border-radius: 10px;
+        display: none !important;
       }
 
-      /* Dim backdrop when bottom sheet is expanded */
+      /* No screen-dimming backdrop on mobile so sky stays clear and directly interactive */
       .panel-backdrop {
-        display: block;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        backdrop-filter: blur(3px);
-        -webkit-backdrop-filter: blur(3px);
-        z-index: 40;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s ease;
-      }
-      .panel-backdrop.active {
-        opacity: 1;
-        pointer-events: auto;
+        display: none !important;
       }
 
-      /* Collapsible Bottom Sheet Panel */
+      /* Collapsible Bottom Half-Sheet Panel (max 48vh) */
       .panel {
         position: fixed;
         left: 0;
@@ -923,23 +1017,23 @@
         bottom: 0;
         width: 100%;
         min-width: 0;
-        max-height: 82vh;
-        max-height: 82dvh;
-        border-radius: 22px 22px 0 0;
+        max-height: 48vh;
+        max-height: 48dvh;
+        border-radius: 20px 20px 0 0;
         border: 1px solid rgba(255, 255, 255, 0.12);
         border-bottom: none;
-        box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.75);
+        box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.85);
         z-index: 50;
         transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         display: flex;
         flex-direction: column;
-        background: rgba(10, 18, 32, 0.95);
+        background: rgba(10, 18, 32, 0.94);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
       }
 
       .panel.collapsed {
-        transform: translateY(calc(100% - 62px));
+        transform: translateY(calc(100% - 56px));
       }
 
       .panel-header {
@@ -968,22 +1062,20 @@
         margin-bottom: 0;
       }
 
+      /* Hide redundant large title & subtitle on mobile to conserve maximum sky view */
       .panel-title-wrap {
-        margin-top: 10px;
-        transition: opacity 0.2s ease;
-      }
-
-      .panel.collapsed .panel-title-wrap {
-        display: none;
+        display: none !important;
       }
 
       .mobile-quick-launch-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 5px 12px;
-        font-size: 0.78rem;
-        font-weight: 700;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        padding: 6px 14px;
+        font-size: 0.82rem;
+        font-weight: 800;
         border-radius: 999px;
         background: linear-gradient(135deg, #78b9ff, #9b85ff);
         color: #06101b;
@@ -991,6 +1083,7 @@
         box-shadow: 0 4px 12px rgba(120, 185, 255, 0.25);
         cursor: pointer;
         transition: transform 0.15s ease;
+        line-height: 1;
       }
       .mobile-quick-launch-btn:active {
         transform: scale(0.95);
@@ -1019,7 +1112,7 @@
         flex: 1;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        padding: 14px;
+        padding: 12px;
       }
     }
   </style>
@@ -1084,88 +1177,105 @@
 
           <!-- A. 불꽃 디자인 & 연출 탭 -->
           <div id="tabContentDesign">
-            <section class="section" style="padding: 14px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-                <h2 style="margin:0; font-size: 0.92rem;">불꽃 모양 선택 (7종)</h2>
-                <button type="button" id="resetShapeBtn" class="reset-shape-btn" title="현재 불꽃 모양의 수치를 기본값으로 복원">↺ 현재 모양 초기화</button>
+            <!-- 1. 메인 섹션: 모양 칩 + 이중원 조작기 + 컬러 팔레트 -->
+            <section class="section" style="padding: 12px 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+                <h2 style="margin:0; font-size: 0.88rem; font-weight:800;">불꽃 모양 선택 (7종)</h2>
+                <button type="button" id="resetShapeBtn" class="reset-shape-btn" title="현재 불꽃 모양의 수치를 기본값으로 복원">↺ 초기화</button>
               </div>
 
-              <!-- 가로 스크롤 캐러셀 -->
-              <div class="shape-carousel-wrap">
-                <div class="shape-grid" id="shapeGrid"></div>
-              </div>
-
-              <div class="grid-2" style="margin-top: 10px;">
-                <div>
-                  <label for="shellType" style="margin-bottom: 4px; font-size: 0.78rem;">선택 목록</label>
-                  <select id="shellType" style="padding: 8px 10px; font-size: 0.85rem;">
-                    <option value="peony">Peony</option>
-                    <option value="chrysanthemum">Chrysanthemum</option>
-                    <option value="willow">Willow</option>
-                    <option value="crossette">Crossette</option>
-                    <option value="palm">Palm</option>
-                    <option value="ring">Ring</option>
-                    <option value="pistil">Pistil</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="fuseDelay" style="margin-bottom: 4px; font-size: 0.78rem;">발사 간격</label>
-                  <select id="fuseDelay" style="padding: 8px 10px; font-size: 0.85rem;">
-                    <option value="140">빠름</option>
-                    <option value="260" selected>보통</option>
-                    <option value="420">느림</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style="margin-top: 10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <label for="sizeRange" style="margin:0; font-size: 0.8rem;">폭발 크기</label>
-                  <div class="value" id="sizeValue" style="margin:0; font-weight:700;">110</div>
-                </div>
-                <input id="sizeRange" type="range" min="50" max="180" value="110" />
-              </div>
-
-              <div style="margin-top: 4px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <label for="burstCount" style="margin:0; font-size: 0.8rem;">밀도</label>
-                  <div class="value" id="burstValue" style="margin:0; font-weight:700;">42</div>
-                </div>
-                <input id="burstCount" type="range" min="18" max="80" value="42" />
-              </div>
-
-              <div style="margin-top: 4px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <label for="trailRange" style="margin:0; font-size: 0.8rem;">잔상 길이</label>
-                  <div class="value" id="trailValue" style="margin:0; font-weight:700;">64</div>
-                </div>
-                <input id="trailRange" type="range" min="0" max="100" value="64" />
-              </div>
-
-              <div class="checkbox-row" style="padding-top: 4px;">
-                <input type="checkbox" id="glitterToggle" checked />
-                <label for="glitterToggle" style="margin:0; color:var(--text); cursor:pointer; font-size:0.85rem;">반짝임 추가</label>
-              </div>
-              <div class="preset-hint" style="margin-top: 8px; font-size: 0.73rem;">
-                💾 각 불꽃 모양별 설정(크기·밀도·잔상·색상)이 브라우저에 자동 기억됩니다.
-              </div>
-            </section>
-
-            <section class="section" style="padding: 14px;">
-              <h2 style="margin: 0 0 8px; font-size: 0.92rem;">화학 불꽃색 선택 (12원소)</h2>
-              <div class="color-layer-switch">
-                <button type="button" class="color-switch-btn active" id="btnColorOuter">
-                  <span class="color-dot-live" id="dotColorOuter"></span>
-                  <span>외곽 색상</span>
+              <!-- 7종 모양 가로 칩 스트립 -->
+              <div class="shape-chips-scroll" id="shapeChipsContainer">
+                <button type="button" class="shape-chip active" data-shape="peony">
+                  <span class="shape-icon">🌸</span>
+                  <span class="shape-name">Peony</span>
                 </button>
-                <button type="button" class="color-switch-btn" id="btnColorInner">
-                  <span class="color-dot-live" id="dotColorInner"></span>
-                  <span>중심 색상</span>
+                <button type="button" class="shape-chip" data-shape="chrysanthemum">
+                  <span class="shape-icon">🌼</span>
+                  <span class="shape-name">Chrys.</span>
+                </button>
+                <button type="button" class="shape-chip" data-shape="willow">
+                  <span class="shape-icon">🌿</span>
+                  <span class="shape-name">Willow</span>
+                </button>
+                <button type="button" class="shape-chip" data-shape="crossette">
+                  <span class="shape-icon">➕</span>
+                  <span class="shape-name">Cross</span>
+                </button>
+                <button type="button" class="shape-chip" data-shape="palm">
+                  <span class="shape-icon">🌴</span>
+                  <span class="shape-name">Palm</span>
+                </button>
+                <button type="button" class="shape-chip" data-shape="ring">
+                  <span class="shape-icon">⭕</span>
+                  <span class="shape-name">Ring</span>
+                </button>
+                <button type="button" class="shape-chip" data-shape="pistil">
+                  <span class="shape-icon">🎯</span>
+                  <span class="shape-name">Pistil</span>
                 </button>
               </div>
 
-              <div class="swatches" id="activeSwatches"></div>
+              <!-- 숨김 셀렉트 (기존 로직 호환용) -->
+              <select id="shellType" style="display: none;">
+                <option value="peony">Peony</option>
+                <option value="chrysanthemum">Chrysanthemum</option>
+                <option value="willow">Willow</option>
+                <option value="crossette">Crossette</option>
+                <option value="palm">Palm</option>
+                <option value="ring">Ring</option>
+                <option value="pistil">Pistil</option>
+              </select>
 
+              <!-- 2. 이중원 불꽃 쉘 조작기 (Concentric Double Circle) -->
+              <div class="concentric-control-wrap">
+                <!-- 좌측 인터랙티브 이중원 -->
+                <div class="concentric-widget-area">
+                  <div class="concentric-shell-disc" id="concentricShellDisc" title="외곽링 클릭: 외곽색 | 중심원 클릭: 중심색">
+                    <div class="concentric-outer-ring active-layer" id="concentricOuterRing" title="외곽 불꽃색 (클릭하여 선택)"></div>
+                    <div class="concentric-inner-core" id="concentricInnerCore" title="중심 코어색 (클릭하여 선택)">
+                      <div class="concentric-center-glyph" id="concentricCenterGlyph">🌸</div>
+                    </div>
+                  </div>
+                  <div class="concentric-guide-text">
+                    <span class="guide-tag outer-tag">외곽 고리</span>
+                    <span class="guide-sep">•</span>
+                    <span class="guide-tag inner-tag">중심 코어</span>
+                  </div>
+                </div>
+
+                <!-- 우측 선택 카드 & 반전 버튼 -->
+                <div class="layer-selector-cards">
+                  <button type="button" class="layer-card active" id="btnLayerOuter">
+                    <div class="layer-card-dot" id="dotLayerOuter"></div>
+                    <div class="layer-card-info">
+                      <span class="layer-card-label">외곽 불꽃색</span>
+                      <strong class="layer-card-val" id="textLayerOuter">Royal Blue (Cu)</strong>
+                    </div>
+                  </button>
+
+                  <button type="button" class="layer-card" id="btnLayerInner">
+                    <div class="layer-card-dot" id="dotLayerInner"></div>
+                    <div class="layer-card-info">
+                      <span class="layer-card-label">중심 코어색</span>
+                      <strong class="layer-card-val" id="textLayerInner">Gold (Na)</strong>
+                    </div>
+                  </button>
+
+                  <button type="button" class="swap-colors-btn" id="btnSwapColors" title="외곽색과 중심색을 맞바꿉니다">
+                    ⇄ 외곽/중심 색상 반전
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3. 원형 화학색상 팔레트 -->
+              <div class="palette-header">
+                <span class="palette-title">화학 발광 원소 팔레트 (12종)</span>
+                <span class="palette-active-hint" id="paletteActiveHint">외곽 불꽃색 칠하는 중</span>
+              </div>
+              <div class="concentric-palette-grid" id="concentricPalette"></div>
+
+              <!-- 4. 발사 버튼군 -->
               <div class="launch-buttons" style="margin-top: 10px;">
                 <button class="primary launch-main" id="launchSelectedBtn">🚀 조합 발사</button>
                 <button class="secondary" id="launchRandomBtn" style="font-weight:800; background: linear-gradient(135deg, rgba(124,192,255,0.18), rgba(255,210,50,0.18)); border-color: rgba(124,192,255,0.35);">🎲 랜덤 발사 (1/8 크기)</button>
@@ -1174,12 +1284,42 @@
                 <button class="secondary" id="launchCenterBtn">중앙 발사</button>
                 <button class="danger" id="clearSkyBtn">하늘 정리</button>
               </div>
-              <div class="preset-hint" style="margin-top: 8px; font-size: 0.73rem;">
-                💡 1초에 최대 3발까지 발사되며, 밤하늘 클릭/터치 시 해당 위치로 즉시 솟아오릅니다.
+            </section>
+
+            <!-- 세부 물리 역학 조절 슬라이더 -->
+            <section class="section" style="padding: 10px 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                <h3 style="margin:0; font-size: 0.82rem; color: var(--muted); font-weight:700;">세부 물리 수치 (모양별 자동 기억)</h3>
+                <label style="display:inline-flex; align-items:center; gap:5px; margin:0; cursor:pointer; font-size:0.75rem; color:var(--text);">
+                  <input type="checkbox" id="glitterToggle" checked style="width:14px; height:14px; accent-color:#7cc0ff;" />
+                  <span>반짝임 추가</span>
+                </label>
               </div>
-              <div class="footer-safe" style="margin-top: 8px; padding: 8px 10px; font-size: 0.74rem;">
-                안전한 시각 디자인용 화학색상(Sr, Ba, Cu, Na) 프리셋입니다.
+
+              <div style="display: grid; gap: 4px;">
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--muted);">
+                    <span>폭발 크기</span><span id="sizeValue" style="color:var(--text); font-weight:700;">110</span>
+                  </div>
+                  <input id="sizeRange" type="range" min="50" max="180" value="110" />
+                </div>
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--muted);">
+                    <span>입자 밀도</span><span id="burstValue" style="color:var(--text); font-weight:700;">42</span>
+                  </div>
+                  <input id="burstCount" type="range" min="18" max="80" value="42" />
+                </div>
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--muted);">
+                    <span>잔상 길이</span><span id="trailValue" style="color:var(--text); font-weight:700;">64</span>
+                  </div>
+                  <input id="trailRange" type="range" min="0" max="100" value="64" />
+                </div>
               </div>
+
+              <select id="fuseDelay" style="display: none;">
+                <option value="260" selected>보통</option>
+              </select>
             </section>
           </div>
 
@@ -1308,17 +1448,6 @@
     </aside>
 
     <main class="stage-shell" id="stageShell">
-      <div class="stage-header">
-        <div class="hud" id="hudBox">
-          <strong id="hudTitle">1920 × 1080 가로형 스테이지</strong>
-          <p id="hudDesc">클릭한 위치로도 발사됩니다. 밤하늘에서 조합을 테스트하고, 저장한 뒤 여러 발을 섞어 쇼를 구성해보세요.</p>
-        </div>
-        <div class="legend" id="legendBox">
-          <strong id="legendTitle">지원 효과</strong>
-          <p id="legendDesc">Peony · Chrysanthemum · Willow · Crossette · Palm · Ring · Pistil</p>
-        </div>
-      </div>
-
       <canvas id="stage" width="1920" height="1080"></canvas>
 
       <div class="status-bar">
@@ -1340,11 +1469,6 @@
     const tabGrandEngine = document.getElementById('tabGrandEngine');
     const customEngineControls = document.getElementById('customEngineControls');
     const grandEngineControls = document.getElementById('grandEngineControls');
-
-    const hudTitle = document.getElementById('hudTitle');
-    const hudDesc = document.getElementById('hudDesc');
-    const legendTitle = document.getElementById('legendTitle');
-    const legendDesc = document.getElementById('legendDesc');
 
     const statusType = document.getElementById('statusType');
     const statusColors = document.getElementById('statusColors');
@@ -1379,12 +1503,20 @@
     const tabContentDesign = document.getElementById('tabContentDesign');
     const tabContentPresets = document.getElementById('tabContentPresets');
 
-    const btnColorOuter = document.getElementById('btnColorOuter');
-    const btnColorInner = document.getElementById('btnColorInner');
-    const dotColorOuter = document.getElementById('dotColorOuter');
-    const dotColorInner = document.getElementById('dotColorInner');
-    const activeSwatchesEl = document.getElementById('activeSwatches');
-    const shapeGridEl = document.getElementById('shapeGrid');
+    // Concentric Shell & Palette Elements
+    const concentricOuterRing = document.getElementById('concentricOuterRing');
+    const concentricInnerCore = document.getElementById('concentricInnerCore');
+    const concentricCenterGlyph = document.getElementById('concentricCenterGlyph');
+    const btnLayerOuter = document.getElementById('btnLayerOuter');
+    const btnLayerInner = document.getElementById('btnLayerInner');
+    const dotLayerOuter = document.getElementById('dotLayerOuter');
+    const dotLayerInner = document.getElementById('dotLayerInner');
+    const textLayerOuter = document.getElementById('textLayerOuter');
+    const textLayerInner = document.getElementById('textLayerInner');
+    const btnSwapColors = document.getElementById('btnSwapColors');
+    const paletteActiveHint = document.getElementById('paletteActiveHint');
+    const concentricPalette = document.getElementById('concentricPalette');
+    const shapeChipsContainer = document.getElementById('shapeChipsContainer');
 
     // Grand Fireworks DOM Elements
     const gfStyleSelect = document.getElementById('gfStyleSelect');
@@ -1689,54 +1821,96 @@
       drawStaticBackground();
     }
 
-    function renderSwatches(container, activeName, onSelect) {
-      container.innerHTML = '';
-      colors.forEach(color => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `swatch ${activeName === color.name ? 'active' : ''}`;
-        btn.style.background = `linear-gradient(135deg, ${color.value}, rgba(255,255,255,0.12))`;
-        btn.title = `${color.name} (${color.symbol})`;
-        btn.innerHTML = `
-          <span class="swatch-name">${color.name}</span>
-          <span class="swatch-symbol">${color.symbol}</span>
-        `;
-        btn.addEventListener('click', () => onSelect(color.name));
-        container.appendChild(btn);
-      });
-    }
+    const shapeIcons = {
+      peony: '🌸',
+      chrysanthemum: '🌼',
+      willow: '🌿',
+      crossette: '➕',
+      palm: '🌴',
+      ring: '⭕',
+      pistil: '🎯'
+    };
 
     let activeColorLayer = 'outer'; // 'outer' | 'inner'
 
-    function updateColorSwitchUI() {
-      if (btnColorOuter && btnColorInner) {
-        btnColorOuter.classList.toggle('active', activeColorLayer === 'outer');
-        btnColorInner.classList.toggle('active', activeColorLayer === 'inner');
-      }
-      if (dotColorOuter) {
-        dotColorOuter.style.background = byName(selectedOuter).value;
-        dotColorOuter.title = `외곽: ${selectedOuter}`;
-      }
-      if (dotColorInner) {
-        dotColorInner.style.background = byName(selectedInner).value;
-        dotColorInner.title = `중심: ${selectedInner}`;
-      }
+    function setLayerMode(layer) {
+      activeColorLayer = layer;
+      refreshConcentricUI();
     }
 
-    function refreshSwatches() {
-      updateColorSwitchUI();
-      if (!activeSwatchesEl) return;
-      const currentActiveName = activeColorLayer === 'outer' ? selectedOuter : selectedInner;
-      renderSwatches(activeSwatchesEl, currentActiveName, (name) => {
-        if (activeColorLayer === 'outer') {
-          selectedOuter = name;
-        } else {
-          selectedInner = name;
-        }
-        saveCurrentShapeConfig();
-        refreshSwatches();
-        updateStatus();
-      });
+    function refreshConcentricUI() {
+      const outerColorData = byName(selectedOuter);
+      const innerColorData = byName(selectedInner);
+      const curShape = shellTypeEl ? shellTypeEl.value : 'peony';
+
+      // 1. Concentric Ring & Core Visuals
+      if (concentricOuterRing) {
+        concentricOuterRing.style.borderColor = outerColorData.value;
+        concentricOuterRing.classList.toggle('active-layer', activeColorLayer === 'outer');
+      }
+
+      if (concentricInnerCore) {
+        concentricInnerCore.style.backgroundColor = innerColorData.value;
+        concentricInnerCore.classList.toggle('active-layer', activeColorLayer === 'inner');
+      }
+
+      if (concentricCenterGlyph) {
+        concentricCenterGlyph.textContent = shapeIcons[curShape] || '🌸';
+      }
+
+      // 2. Layer Cards & Status
+      if (btnLayerOuter && btnLayerInner) {
+        btnLayerOuter.classList.toggle('active', activeColorLayer === 'outer');
+        btnLayerInner.classList.toggle('active', activeColorLayer === 'inner');
+      }
+      if (dotLayerOuter) dotLayerOuter.style.background = outerColorData.value;
+      if (dotLayerInner) dotLayerInner.style.background = innerColorData.value;
+      if (textLayerOuter) textLayerOuter.textContent = `${outerColorData.name} (${outerColorData.symbol})`;
+      if (textLayerInner) textLayerInner.textContent = `${innerColorData.name} (${innerColorData.symbol})`;
+
+      if (paletteActiveHint) {
+        paletteActiveHint.textContent = activeColorLayer === 'outer'
+          ? `외곽 고리 (${outerColorData.name}) 칠하는 중`
+          : `중심 코어 (${innerColorData.name}) 칠하는 중`;
+        paletteActiveHint.style.color = activeColorLayer === 'outer' ? '#9cd5ff' : '#ffe082';
+      }
+
+      // 3. Render 12 Jewel Swatches in Palette Grid
+      if (concentricPalette) {
+        concentricPalette.innerHTML = '';
+        const currentActiveName = activeColorLayer === 'outer' ? selectedOuter : selectedInner;
+
+        colors.forEach(c => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isSelected = c.name === currentActiveName;
+          btn.className = `palette-swatch ${isSelected ? 'active' : ''}`;
+          btn.style.background = c.value;
+          btn.title = `${c.name} (${c.symbol})`;
+
+          const isLight = ['Gold', 'Amber', 'Lime', 'Silver', 'White', 'Ice'].includes(c.name);
+          const textColor = isLight ? '#06101b' : '#ffffff';
+
+          btn.innerHTML = `
+            <span class="palette-swatch-symbol" style="color: ${textColor}">${c.symbol}</span>
+            <span class="palette-swatch-name" style="color: ${textColor}">${c.name}</span>
+          `;
+
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (activeColorLayer === 'outer') {
+              selectedOuter = c.name;
+            } else {
+              selectedInner = c.name;
+            }
+            saveCurrentShapeConfig();
+            refreshConcentricUI();
+            updateStatus();
+          });
+
+          concentricPalette.appendChild(btn);
+        });
+      }
     }
 
     function drawPreviewBurst(previewCanvas, type) {
@@ -1837,7 +2011,7 @@
     }
 
     function saveCurrentShapeConfig() {
-      const type = shellTypeEl.value;
+      const type = shellTypeEl ? shellTypeEl.value : 'peony';
       if (!shapeConfigs[type]) {
         shapeConfigs[type] = {};
       }
@@ -1848,22 +2022,21 @@
         glitter: glitterToggleEl.checked,
         outer: selectedOuter,
         inner: selectedInner,
-        delay: Number(fuseDelayEl.value)
+        delay: fuseDelayEl ? Number(fuseDelayEl.value) : 260
       };
       saveShapeMemory();
-      updateShapeCardBadge(type);
       updateStatus();
     }
 
     function selectShape(type, shouldSaveLast = true) {
       if (!shapeConfigs[type]) type = 'peony';
-      shellTypeEl.value = type;
+      if (shellTypeEl) shellTypeEl.value = type;
 
-      document.querySelectorAll('.shape-card').forEach(c => {
-        const isTarget = c.dataset.value === type;
-        c.classList.toggle('active', isTarget);
-        if (isTarget) {
-          c.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+      document.querySelectorAll('.shape-chip').forEach(chip => {
+        const isMatch = chip.dataset.shape === type;
+        chip.classList.toggle('active', isMatch);
+        if (isMatch) {
+          chip.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
         }
       });
 
@@ -1872,12 +2045,12 @@
       burstCountEl.value = cfg.density;
       trailRangeEl.value = cfg.trail;
       glitterToggleEl.checked = Boolean(cfg.glitter);
-      if (cfg.delay !== undefined) fuseDelayEl.value = String(cfg.delay);
+      if (cfg.delay !== undefined && fuseDelayEl) fuseDelayEl.value = String(cfg.delay);
 
       selectedOuter = cfg.outer;
       selectedInner = cfg.inner;
 
-      refreshSwatches();
+      refreshConcentricUI();
       updateRangeLabels();
       updateStatus();
 
@@ -1888,47 +2061,8 @@
       }
     }
 
-    function updateShapeCardBadge(type) {
-      const card = document.querySelector(`.shape-card[data-value="${type}"]`);
-      if (!card || !shapeConfigs[type]) return;
-      const cfg = shapeConfigs[type];
-      const tag = card.querySelector('.shape-card-tag');
-      if (tag) tag.textContent = `${cfg.size}px`;
-      const dots = card.querySelectorAll('.shape-dot');
-      if (dots.length >= 2) {
-        dots[0].style.background = byName(cfg.outer).value;
-        dots[0].title = `외곽: ${cfg.outer}`;
-        dots[1].style.background = byName(cfg.inner).value;
-        dots[1].title = `중심: ${cfg.inner}`;
-      }
-    }
-
     function renderShapePicker() {
-      shapeGridEl.innerHTML = '';
-      shapeOptions.forEach(shape => {
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.dataset.value = shape.value;
-        card.className = `shape-card ${shellTypeEl.value === shape.value ? 'active' : ''}`;
-        card.title = `${shape.label}: ${shape.desc}`;
-        
-        const cfg = shapeConfigs[shape.value] || defaultShapeConfigs[shape.value] || { size: 110, density: 42, outer: 'Royal Blue', inner: 'Gold' };
-
-        card.innerHTML = `
-          <canvas width="140" height="70"></canvas>
-          <div class="shape-card-title">${shape.label}</div>
-          <div class="shape-card-colors">
-            <span class="shape-dot" style="background:${byName(cfg.outer).value}" title="외곽: ${cfg.outer}"></span>
-            <span class="shape-dot" style="background:${byName(cfg.inner).value}" title="중심: ${cfg.inner}"></span>
-            <span class="shape-card-tag">${cfg.size}px</span>
-          </div>
-        `;
-        card.addEventListener('click', () => {
-          selectShape(shape.value);
-        });
-        drawPreviewBurst(card.querySelector('canvas'), shape.value);
-        shapeGridEl.appendChild(card);
-      });
+      // Shape chips are declared in HTML and initialized with click events
     }
 
     function updateRangeLabels() {
@@ -2747,8 +2881,7 @@
       glitterToggleEl.checked = preset.glitter;
       fuseDelayEl.value = preset.delay;
       saveCurrentShapeConfig();
-      refreshSwatches();
-      renderShapePicker();
+      refreshConcentricUI();
       updateRangeLabels();
       updateStatus();
     }
@@ -2857,10 +2990,6 @@
           rafId = requestAnimationFrame(step);
         }
 
-        hudTitle.textContent = '1920 × 1080 가로형 스테이지';
-        hudDesc.textContent = '클릭한 위치로도 발사됩니다. 밤하늘에서 조합을 테스트하고, 저장한 뒤 여러 발을 섞어 쇼를 구성해보세요.';
-        legendTitle.textContent = '지원 효과';
-        legendDesc.textContent = 'Peony · Chrysanthemum · Willow · Crossette · Palm · Ring · Pistil';
         updateStatus();
       } else {
         tabGrandEngine.classList.add('active');
@@ -2888,9 +3017,6 @@
           gfInstance.resume(true);
         }
 
-        hudTitle.textContent = 'Grand Fireworks WebGL 2 HDR 스테이지';
-        hudDesc.textContent = '화면을 클릭하면 해당 위치로 로켓이 솟아올라 폭발합니다. 아래 버튼으로 피날레, 월드엔더, 텍스트 불꽃을 연출해보세요.';
-        legendTitle.textContent = '엔진 상태';
         updateGrandStatus();
 
         if (!gfStatsTimer) {
@@ -2907,7 +3033,6 @@
       statusType.textContent = renderer;
       statusColors.textContent = `${currentGfStyle} / ${currentGfTheme}`;
       statusSaved.textContent = `${Math.round(stats.fps || 60)} FPS · ${stats.particleCount || 0} pt`;
-      legendDesc.textContent = `렌더러: ${renderer} · 스타일: ${currentGfStyle} · 테마: ${currentGfTheme}`;
     }
 
     // === Mobile Collapsible Drawer Controls ===
@@ -3028,19 +3153,47 @@
       });
     }
 
-    if (btnColorOuter) {
-      btnColorOuter.addEventListener('click', () => {
-        activeColorLayer = 'outer';
-        refreshSwatches();
+    // Concentric Ring & Core Click Interactions
+    if (concentricOuterRing) {
+      concentricOuterRing.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setLayerMode('outer');
       });
     }
 
-    if (btnColorInner) {
-      btnColorInner.addEventListener('click', () => {
-        activeColorLayer = 'inner';
-        refreshSwatches();
+    if (concentricInnerCore) {
+      concentricInnerCore.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setLayerMode('inner');
       });
     }
+
+    if (btnLayerOuter) {
+      btnLayerOuter.addEventListener('click', () => setLayerMode('outer'));
+    }
+
+    if (btnLayerInner) {
+      btnLayerInner.addEventListener('click', () => setLayerMode('inner'));
+    }
+
+    if (btnSwapColors) {
+      btnSwapColors.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tmp = selectedOuter;
+        selectedOuter = selectedInner;
+        selectedInner = tmp;
+        saveCurrentShapeConfig();
+        refreshConcentricUI();
+        updateStatus();
+      });
+    }
+
+    // Shape Chips Click Interactions
+    document.querySelectorAll('.shape-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        selectShape(chip.dataset.shape);
+      });
+    });
 
     sizeRangeEl.addEventListener('input', () => {
       updateRangeLabels();
@@ -3057,23 +3210,26 @@
     glitterToggleEl.addEventListener('change', () => {
       saveCurrentShapeConfig();
     });
-    fuseDelayEl.addEventListener('change', () => {
-      saveCurrentShapeConfig();
-    });
+    if (fuseDelayEl) {
+      fuseDelayEl.addEventListener('change', () => {
+        saveCurrentShapeConfig();
+      });
+    }
 
-    shellTypeEl.addEventListener('change', () => {
-      selectShape(shellTypeEl.value);
-    });
+    if (shellTypeEl) {
+      shellTypeEl.addEventListener('change', () => {
+        selectShape(shellTypeEl.value);
+      });
+    }
 
     const resetShapeBtn = document.getElementById('resetShapeBtn');
     if (resetShapeBtn) {
       resetShapeBtn.addEventListener('click', () => {
-        const currentType = shellTypeEl.value;
+        const currentType = shellTypeEl ? shellTypeEl.value : 'peony';
         if (defaultShapeConfigs[currentType]) {
           shapeConfigs[currentType] = Object.assign({}, defaultShapeConfigs[currentType]);
           saveShapeMemory();
           selectShape(currentType, false);
-          renderShapePicker();
         }
       });
     }
