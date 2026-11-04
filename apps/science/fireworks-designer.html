@@ -286,6 +286,51 @@
       color: var(--muted);
     }
 
+    .shape-card-colors {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .shape-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+      flex-shrink: 0;
+    }
+
+    .shape-card-tag {
+      font-size: 0.68rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .reset-shape-btn {
+      width: auto;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .reset-shape-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
     label {
       display: block;
       font-size: 0.82rem;
@@ -701,7 +746,10 @@
         <!-- 1. 커스텀 물리 랩 컨트롤 패널 (Custom 2D) -->
         <div id="customEngineControls">
           <section class="section">
-            <h2>기본 설정</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+              <h2 style="margin:0;">기본 설정</h2>
+              <button type="button" id="resetShapeBtn" class="reset-shape-btn" title="현재 불꽃 모양의 수치를 기본값으로 복원">↺ 현재 모양 초기화</button>
+            </div>
             <div class="grid-2">
               <div>
                 <label for="shellType">불꽃 모양</label>
@@ -748,6 +796,9 @@
             <div class="checkbox-row">
               <input type="checkbox" id="glitterToggle" checked />
               <label for="glitterToggle" style="margin:0; color:var(--text); cursor:pointer;">반짝임 추가</label>
+            </div>
+            <div class="preset-hint" style="margin-top:10px; font-size:0.75rem;">
+              💾 각 불꽃 모양별로 폭발 크기, 밀도, 잔상, 반짝임 및 색상이 자동 저장되어 기억됩니다.
             </div>
           </section>
 
@@ -1008,8 +1059,95 @@
       { value: 'pistil', label: 'Pistil', desc: '외곽과 중심이 이중으로 보이는 형' },
     ];
 
-    let selectedOuter = 'Royal Blue';
-    let selectedInner = 'Gold';
+    const defaultShapeConfigs = {
+      peony: {
+        size: 110,
+        density: 42,
+        trail: 64,
+        glitter: true,
+        outer: 'Royal Blue',
+        inner: 'Gold',
+        delay: 260
+      },
+      chrysanthemum: {
+        size: 120,
+        density: 52,
+        trail: 78,
+        glitter: true,
+        outer: 'Amber',
+        inner: 'Gold',
+        delay: 260
+      },
+      willow: {
+        size: 135,
+        density: 36,
+        trail: 92,
+        glitter: true,
+        outer: 'Gold',
+        inner: 'Amber',
+        delay: 360
+      },
+      crossette: {
+        size: 115,
+        density: 32,
+        trail: 54,
+        glitter: false,
+        outer: 'Rose',
+        inner: 'White',
+        delay: 260
+      },
+      palm: {
+        size: 130,
+        density: 38,
+        trail: 72,
+        glitter: true,
+        outer: 'Emerald',
+        inner: 'Gold',
+        delay: 280
+      },
+      ring: {
+        size: 110,
+        density: 46,
+        trail: 42,
+        glitter: false,
+        outer: 'Sky Blue',
+        inner: 'Ice',
+        delay: 260
+      },
+      pistil: {
+        size: 105,
+        density: 48,
+        trail: 58,
+        glitter: true,
+        outer: 'Crimson',
+        inner: 'Ice',
+        delay: 260
+      }
+    };
+
+    const STORAGE_KEY_SHAPES = 'fireworks-shape-memory-v2';
+    const STORAGE_KEY_LAST_SHAPE = 'fireworks-last-shape-v2';
+
+    let shapeConfigs = {};
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY_SHAPES) || '{}');
+      for (const [key, def] of Object.entries(defaultShapeConfigs)) {
+        shapeConfigs[key] = Object.assign({}, def, saved[key] || {});
+      }
+    } catch (e) {
+      shapeConfigs = JSON.parse(JSON.stringify(defaultShapeConfigs));
+    }
+
+    function saveShapeMemory() {
+      try {
+        localStorage.setItem(STORAGE_KEY_SHAPES, JSON.stringify(shapeConfigs));
+      } catch (e) {
+        console.warn('Failed to save shape configs:', e);
+      }
+    }
+
+    let selectedOuter = shapeConfigs.peony ? shapeConfigs.peony.outer : 'Royal Blue';
+    let selectedInner = shapeConfigs.peony ? shapeConfigs.peony.inner : 'Gold';
     let savedPresets = JSON.parse(localStorage.getItem('fireworks-presets-v1') || '[]');
 
     let stageWidth = 1920;
@@ -1192,11 +1330,13 @@
     function refreshSwatches() {
       renderSwatches(outerSwatchesEl, selectedOuter, (name) => {
         selectedOuter = name;
+        saveCurrentShapeConfig();
         refreshSwatches();
         updateStatus();
       });
       renderSwatches(innerSwatchesEl, selectedInner, (name) => {
         selectedInner = name;
+        saveCurrentShapeConfig();
         refreshSwatches();
         updateStatus();
       });
@@ -1299,6 +1439,69 @@
       dot(cx, cy, 2.2, '#ffffff', 0.9);
     }
 
+    function saveCurrentShapeConfig() {
+      const type = shellTypeEl.value;
+      if (!shapeConfigs[type]) {
+        shapeConfigs[type] = {};
+      }
+      shapeConfigs[type] = {
+        size: Number(sizeRangeEl.value),
+        density: Number(burstCountEl.value),
+        trail: Number(trailRangeEl.value),
+        glitter: glitterToggleEl.checked,
+        outer: selectedOuter,
+        inner: selectedInner,
+        delay: Number(fuseDelayEl.value)
+      };
+      saveShapeMemory();
+      updateShapeCardBadge(type);
+      updateStatus();
+    }
+
+    function selectShape(type, shouldSaveLast = true) {
+      if (!shapeConfigs[type]) type = 'peony';
+      shellTypeEl.value = type;
+
+      document.querySelectorAll('.shape-card').forEach(c => {
+        c.classList.toggle('active', c.dataset.value === type);
+      });
+
+      const cfg = shapeConfigs[type];
+      sizeRangeEl.value = cfg.size;
+      burstCountEl.value = cfg.density;
+      trailRangeEl.value = cfg.trail;
+      glitterToggleEl.checked = Boolean(cfg.glitter);
+      if (cfg.delay !== undefined) fuseDelayEl.value = String(cfg.delay);
+
+      selectedOuter = cfg.outer;
+      selectedInner = cfg.inner;
+
+      refreshSwatches();
+      updateRangeLabels();
+      updateStatus();
+
+      if (shouldSaveLast) {
+        try {
+          localStorage.setItem(STORAGE_KEY_LAST_SHAPE, type);
+        } catch(e) {}
+      }
+    }
+
+    function updateShapeCardBadge(type) {
+      const card = document.querySelector(`.shape-card[data-value="${type}"]`);
+      if (!card || !shapeConfigs[type]) return;
+      const cfg = shapeConfigs[type];
+      const tag = card.querySelector('.shape-card-tag');
+      if (tag) tag.textContent = `${cfg.size}px · 밀도 ${cfg.density}`;
+      const dots = card.querySelectorAll('.shape-dot');
+      if (dots.length >= 2) {
+        dots[0].style.background = byName(cfg.outer).value;
+        dots[0].title = `외곽: ${cfg.outer}`;
+        dots[1].style.background = byName(cfg.inner).value;
+        dots[1].title = `중심: ${cfg.inner}`;
+      }
+    }
+
     function renderShapePicker() {
       shapeGridEl.innerHTML = '';
       shapeOptions.forEach(shape => {
@@ -1306,15 +1509,21 @@
         card.type = 'button';
         card.dataset.value = shape.value;
         card.className = `shape-card ${shellTypeEl.value === shape.value ? 'active' : ''}`;
+        
+        const cfg = shapeConfigs[shape.value] || defaultShapeConfigs[shape.value] || { size: 110, density: 42, outer: 'Royal Blue', inner: 'Gold' };
+
         card.innerHTML = `
           <canvas width="160" height="110"></canvas>
           <div class="shape-card-title">${shape.label}</div>
           <div class="shape-card-desc">${shape.desc}</div>
+          <div class="shape-card-colors">
+            <span class="shape-dot" style="background:${byName(cfg.outer).value}" title="외곽: ${cfg.outer}"></span>
+            <span class="shape-dot" style="background:${byName(cfg.inner).value}" title="중심: ${cfg.inner}"></span>
+            <span class="shape-card-tag">${cfg.size}px · 밀도 ${cfg.density}</span>
+          </div>
         `;
         card.addEventListener('click', () => {
-          shellTypeEl.value = shape.value;
-          document.querySelectorAll('.shape-card').forEach(c => c.classList.toggle('active', c.dataset.value === shape.value));
-          updateStatus();
+          selectShape(shape.value);
         });
         drawPreviewBurst(card.querySelector('canvas'), shape.value);
         shapeGridEl.appendChild(card);
@@ -2085,6 +2294,7 @@
       trailRangeEl.value = preset.trail;
       glitterToggleEl.checked = preset.glitter;
       fuseDelayEl.value = preset.delay;
+      saveCurrentShapeConfig();
       refreshSwatches();
       renderShapePicker();
       updateRangeLabels();
@@ -2264,14 +2474,41 @@
     }
 
     // === Event Listeners ===
-    sizeRangeEl.addEventListener('input', () => { updateRangeLabels(); updateStatus(); });
-    burstCountEl.addEventListener('input', updateRangeLabels);
-    trailRangeEl.addEventListener('input', updateRangeLabels);
+    sizeRangeEl.addEventListener('input', () => {
+      updateRangeLabels();
+      saveCurrentShapeConfig();
+    });
+    burstCountEl.addEventListener('input', () => {
+      updateRangeLabels();
+      saveCurrentShapeConfig();
+    });
+    trailRangeEl.addEventListener('input', () => {
+      updateRangeLabels();
+      saveCurrentShapeConfig();
+    });
+    glitterToggleEl.addEventListener('change', () => {
+      saveCurrentShapeConfig();
+    });
+    fuseDelayEl.addEventListener('change', () => {
+      saveCurrentShapeConfig();
+    });
 
     shellTypeEl.addEventListener('change', () => {
-      document.querySelectorAll('.shape-card').forEach(c => c.classList.toggle('active', c.dataset.value === shellTypeEl.value));
-      updateStatus();
+      selectShape(shellTypeEl.value);
     });
+
+    const resetShapeBtn = document.getElementById('resetShapeBtn');
+    if (resetShapeBtn) {
+      resetShapeBtn.addEventListener('click', () => {
+        const currentType = shellTypeEl.value;
+        if (defaultShapeConfigs[currentType]) {
+          shapeConfigs[currentType] = Object.assign({}, defaultShapeConfigs[currentType]);
+          saveShapeMemory();
+          selectShape(currentType, false);
+          renderShapePicker();
+        }
+      });
+    }
 
     savePresetBtn.addEventListener('click', saveCurrentPreset);
     loadCurrentBtn.addEventListener('click', () => launchCurrentSelection(false));
@@ -2405,11 +2642,10 @@
     });
 
     // Initial Setup
-    refreshSwatches();
     renderShapePicker();
-    updateRangeLabels();
+    const initialShape = localStorage.getItem(STORAGE_KEY_LAST_SHAPE) || 'peony';
+    selectShape(initialShape, false);
     renderSavedList();
-    updateStatus();
     resizeStage();
     if (!rafId) rafId = requestAnimationFrame(step);
   </script>
