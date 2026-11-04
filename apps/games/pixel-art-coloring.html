@@ -1,9 +1,10 @@
 ﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>픽셀 아트 컬러링 북 - 인터랙티브 드로잉 툴</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>픽셀 아트 컬러링 북 - 인터랙티브 드로잉 툴</title>
+  
   <!-- SEO & Primary Meta Tags -->
   <meta name="description" content="격자 캔버스 위에서 펼쳐지는 인터랙티브 픽셀 드로잉 및 컬러링 웹 애플리케이션" />
   <meta name="keywords" content="픽셀아트, 컬러링북, Tailwind CSS, 웹아트, 드로잉툴" />
@@ -25,394 +26,162 @@
   <meta name="twitter:title" content="픽셀 아트 컬러링 북 - 인터랙티브 드로잉 툴" />
   <meta name="twitter:description" content="격자 캔버스 위에서 펼쳐지는 인터랙티브 픽셀 드로잉 및 컬러링 웹 애플리케이션" />
   <meta name="twitter:image" content="../../assets/og/og-pixel-art-coloring.png" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* 폰트 설정을 포함하여 스타일 정리 */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(15, 1fr);
-            grid-template-rows: repeat(15, 1fr);
-            aspect-ratio: 1 / 1;
-            max-width: 500px;
-            margin: auto;
-        }
-        .grid-cell {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 1px solid #e5e7eb;
-            cursor: pointer;
-            font-weight: 700;
-            user-select: none;
-            transition: background-color 0.1s ease-out;
-            background-color: #f9fafb;
-        }
-        .color-item {
-            width: 3rem;
-            height: 3rem;
-            border-radius: 1rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            margin: 0.5rem;
-            transition: all 0.2s ease;
-            font-size: 0.75rem; /* 텍스트 크기 조정 */
-            font-weight: 600;
-            text-align: center;
-        }
-        .color-item.selected {
-            border: 4px solid #f97316;
-            transform: scale(1.05);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        /* 지우개 스타일 */
-        .color-item[data-code="-1"] {
-            background-color: #e5e7eb;
-            color: #4b5563;
-        }
-    </style>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      touch-action: manipulation;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
+      background-color: #f8fafc;
+    }
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(15, 1fr);
+      grid-template-rows: repeat(15, 1fr);
+      /* 모바일 화면에서 상/하단 UI를 제외하고 1:1 정사각형으로 딱 맞게 자동 계산 */
+      width: min(88vw, calc(100dvh - 190px), 420px);
+      height: min(88vw, calc(100dvh - 190px), 420px);
+      aspect-ratio: 1 / 1;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .grid-cell {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: clamp(8px, 2.3vw, 13px);
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background-color 0.08s ease-out;
+      background-color: #f8fafc;
+      line-height: 1;
+    }
+    .color-item {
+      width: 2.35rem;
+      height: 2.35rem;
+      border-radius: 0.75rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-align: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      user-select: none;
+    }
+    @media (min-width: 640px) {
+      .color-item {
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 0.85rem;
+        font-size: 1rem;
+      }
+    }
+    .color-item.selected {
+      border: 3.5px solid #f97316;
+      transform: scale(1.12);
+      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+      z-index: 10;
+    }
+    .color-item[data-code="-1"] {
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1.5px dashed #94a3b8;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+<body class="bg-slate-50 text-slate-800 h-screen h-[100dvh] flex flex-col justify-between items-center px-2 py-1 sm:py-2.5 overflow-hidden select-none">
 
-    <div class="max-w-3xl w-full">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-extrabold text-blue-600 mb-2">?? 픽셀 컬러링 북 ??</h1>
-            <p class="text-xl text-gray-700">숫자를 따라 칸을 색칠하며 숨겨진 그림을 완성해 보세요!</p>
-        </header>
+  <!-- 상단 네비게이션 & 헤더 (한 줄 컴팩트) -->
+  <header class="w-full max-w-lg flex items-center justify-between px-1.5 pt-1">
+    <a href="../../index.html" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition" title="쇼케이스로 돌아가기">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      <span>Showcase</span>
+    </a>
 
-        <!-- 색상 팔레트 -->
-        <div id="color-palette" class="flex flex-wrap justify-center gap-3 p-4 bg-white shadow-lg rounded-xl mb-8"></div>
-        
-        <!-- 그리드 -->
-        <div id="coloring-grid-wrapper" class="p-2 sm:p-4 bg-white shadow-2xl rounded-2xl">
-            <div id="coloring-grid" class="grid-container"></div>
-        </div>
-
-        <!-- 버튼 -->
-        <div class="mt-8 flex justify-center space-x-4">
-            <button id="previous-picture-button" class="bg-purple-500 hover:bg-purple-600 text-white py-2 px-6 rounded-lg transition duration-150 shadow-md">?? 이전 그림</button>
-            <button id="reset-button" class="bg-red-500 hover:bg-red-600 text-white py-2 px-6 rounded-lg transition duration-150 shadow-md">?? 다시 시작</button>
-            <button id="solution-button" class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg transition duration-150 shadow-md">? 정답 보기</button>
-            <button id="next-picture-button" class="bg-purple-500 hover:bg-purple-600 text-white py-2 px-6 rounded-lg transition duration-150 shadow-md">?? 다음 그림</button>
-        </div>
-        
-        <!-- 메시지 박스 (Alert 대체) -->
-        <div id="message-box" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4">
-            <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
-                <p id="message-text" class="text-lg font-semibold text-gray-800 mb-4"></p>
-                <button id="close-message" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">확인</button>
-            </div>
-        </div>
+    <div class="text-center flex-1 px-2">
+      <h1 class="text-sm sm:text-base font-extrabold text-indigo-700 tracking-tight flex items-center justify-center gap-1.5">
+        <span>🎨</span>
+        <span id="title-text">픽셀 컬러링 북</span>
+      </h1>
+      <p id="picture-counter" class="text-[11px] text-slate-500 font-medium">1 / 20</p>
     </div>
 
-    <script>
-        // ----------------------------------------------
-        // 1. 공통 유틸리티 및 UI 로직 (메인 애플리케이션)
-        // ----------------------------------------------
+    <div class="w-[70px] flex justify-end">
+      <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100">15×15</span>
+    </div>
+  </header>
 
-        // 메시지 표시 함수 (alert 대체)
-        function showMessage(text) {
-            const msgBox = document.getElementById('message-box');
-            document.getElementById('message-text').textContent = text;
-            msgBox.classList.remove('hidden');
-            msgBox.classList.add('flex');
-        }
+  <!-- 색상 팔레트 바 (가로 스크롤 가능, 컴팩트) -->
+  <div class="w-full max-w-lg px-1">
+    <div id="color-palette" class="flex items-center justify-center gap-2 p-1.5 sm:p-2 bg-white/95 backdrop-blur shadow-sm border border-slate-200/80 rounded-2xl overflow-x-auto scrollbar-none"></div>
+  </div>
 
-        document.getElementById('close-message').addEventListener('click', () => {
-            const msgBox = document.getElementById('message-box');
-            msgBox.classList.add('hidden');
-            msgBox.classList.remove('flex');
-        });
+  <!-- 그리드 캔버스 영역 (화면에 맞춰 1:1 자동 조절, 스크롤 절대 없음) -->
+  <main class="flex-1 min-h-0 w-full flex items-center justify-center px-2 py-1">
+    <div id="coloring-grid-wrapper" class="p-1 sm:p-2 bg-white shadow-xl border border-slate-200/80 rounded-2xl flex items-center justify-center touch-none">
+      <div id="coloring-grid" class="grid-container"></div>
+    </div>
+  </main>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // 초기화 시 필요한 변수
-            let COLOR_PALETTE = {};
-            let SOLUTION_PATTERN = [];
-            let currentPictureIndex = 0;
-            let selectedColorCode = 1;
-            let userPattern = [];
-            let isSolutionMode = false;
-            let isDrawing = false; // 드래그 상태 관리 변수
+  <!-- 하단 액션 버튼 바 (한 화면에 모두 노출) -->
+  <footer class="w-full max-w-lg px-2 pb-1 sm:pb-2">
+    <div class="grid grid-cols-4 gap-1.5 sm:gap-2">
+      <button id="previous-picture-button" class="flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition shadow-sm" title="이전 그림">
+        <span>◀</span>
+        <span>이전</span>
+      </button>
+      <button id="reset-button" class="flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-xs sm:text-sm font-bold text-white bg-rose-500 hover:bg-rose-600 active:scale-95 transition shadow-sm" title="다시 시작">
+        <span>🔄</span>
+        <span>초기화</span>
+      </button>
+      <button id="solution-button" class="flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition shadow-sm" title="정답 보기">
+        <span>👁️</span>
+        <span>정답</span>
+      </button>
+      <button id="next-picture-button" class="flex items-center justify-center gap-1 py-2 px-1 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition shadow-sm" title="다음 그림">
+        <span>다음</span>
+        <span>▶</span>
+      </button>
+    </div>
+  </footer>
 
-            // 색상 팔레트 렌더링
-            function renderPalette() {
-                const paletteContainer = document.getElementById('color-palette');
-                paletteContainer.innerHTML = '';
-                
-                // 기존 선택 상태 저장
-                const previousSelectedCode = selectedColorCode;
+  <!-- 완료 및 알림 메시지 모달 -->
+  <div id="message-box" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white p-5 rounded-2xl shadow-2xl max-w-xs w-full text-center border border-slate-100">
+      <p id="message-text" class="text-base font-bold text-slate-800 mb-4 whitespace-pre-line"></p>
+      <button id="close-message" class="w-full py-2.5 px-4 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-md active:scale-95 transition">확인</button>
+    </div>
+  </div>
 
-                // 색상 코드 팔레트
-                Object.keys(COLOR_PALETTE).forEach(codeStr => {
-                    const code = parseInt(codeStr);
-                    const colorData = COLOR_PALETTE[code];
-                    const item = document.createElement('div');
-                    item.classList.add('color-item', 'shadow-sm', 'hover:ring-4', 'ring-offset-2', 'ring-opacity-50');
-                    item.style.backgroundColor = colorData.hex;
-                    item.dataset.code = code;
-                    item.title = colorData.label;
+  <script>
+    // ----------------------------------------------
+    // 1. 픽셀 아트 데이터 정의 (20개 패턴 100% 보존)
+    // ----------------------------------------------
+    const GRID_SIZE = 15;
+    const EMPTY_CELL = 0;
+    const ERASER_CODE = -1;
 
-                    // 셀에 코드 번호를 표시합니다.
-                    const textColor = (code === 1) ? 'text-gray-800' : 'text-white';
-                    item.innerHTML = `<span class="${textColor} text-xl">${code}</span>`; 
-                    
-                    if (code === previousSelectedCode) {
-                         item.classList.add('selected');
-                    }
-                    
-                    item.addEventListener('click', () => selectColor(code));
-                    paletteContainer.appendChild(item);
-                });
-
-                // 지우개
-                const eraserItem = document.createElement('div');
-                eraserItem.classList.add('color-item', 'shadow-sm', 'hover:ring-4', 'ring-offset-2', 'ring-opacity-50');
-                eraserItem.textContent = '지우개';
-                eraserItem.dataset.code = ERASER_CODE;
-                
-                if (ERASER_CODE === previousSelectedCode) {
-                    eraserItem.classList.add('selected');
-                }
-                
-                eraserItem.addEventListener('click', () => selectColor(ERASER_CODE));
-                paletteContainer.appendChild(eraserItem);
-            }
-
-            // 그리드 렌더링
-            function renderGrid(patternToShow = userPattern) {
-                const gridContainer = document.getElementById('coloring-grid');
-                gridContainer.innerHTML = '';
-                
-                for (let r = 0; r < GRID_SIZE; r++) {
-                    for (let c = 0; c < GRID_SIZE; c++) {
-                        const cell = document.createElement('div');
-                        cell.classList.add('grid-cell');
-                        cell.dataset.row = r;
-                        cell.dataset.col = c;
-
-                        const code = patternToShow[r][c];
-                        
-                        if (code !== EMPTY_CELL) {
-                            // 셀에 색칠된 경우 (정답 모드이거나 사용자가 칠한 경우)
-                            const color = COLOR_PALETTE[code];
-                            if (color) {
-                                cell.style.backgroundColor = color.hex;
-                                cell.textContent = ''; // 색칠되면 숫자 숨김
-                            }
-                        } else {
-                            // 색칠되지 않은 경우 (정답 패턴의 숫자 표시)
-                            cell.style.backgroundColor = '#f9fafb';
-                            const solutionCode = SOLUTION_PATTERN[r][c];
-                            if (solutionCode !== EMPTY_CELL) {
-                                // 정답 코드 번호를 표시
-                                cell.textContent = solutionCode;
-                                // 힌트 색상은 색상 코드의 헥스 값 또는 기본 회색으로 설정
-                                cell.style.color = COLOR_PALETTE[solutionCode] ? COLOR_PALETTE[solutionCode].hex : '#374151'; 
-                            } else {
-                                cell.textContent = '';
-                            }
-                        }
-                        
-                        // 클릭 이벤트 (마우스 다운: 그리기 시작)
-                        cell.addEventListener('mousedown', (e) => {
-                            isDrawing = true;
-                            e.preventDefault(); // 드래그 방지
-                            colorCell(r, c, selectedColorCode);
-                        });
-
-                        // 마우스 오버 이벤트 (드래그 중일 때 색칠)
-                        cell.addEventListener('mouseover', () => {
-                            if (isDrawing) {
-                                colorCell(r, c, selectedColorCode);
-                            }
-                        });
-
-                        gridContainer.appendChild(cell);
-                    }
-                }
-            }
-            
-            // 마우스/터치 업 이벤트 (그리기 종료)
-            document.addEventListener('mouseup', () => {
-                if (isDrawing) {
-                    isDrawing = false;
-                    checkCompletion();
-                }
-            });
-            // 그리드 밖으로 마우스가 나갈 때 그리기 종료 (PC 환경에서 중요)
-            document.getElementById('coloring-grid-wrapper').addEventListener('mouseleave', () => {
-                if (isDrawing) {
-                    isDrawing = false;
-                    checkCompletion();
-                }
-            });
-
-
-            // 색상 선택
-            function selectColor(code) {
-                // 이전 선택 항목에서 'selected' 클래스 제거
-                document.querySelectorAll('.color-item').forEach(item => {
-                    item.classList.remove('selected');
-                });
-                
-                selectedColorCode = code;
-                
-                // 새 선택 항목에 'selected' 클래스 추가
-                const newSelectedItem = document.querySelector(`.color-item[data-code="${code}"]`);
-                if (newSelectedItem) {
-                    newSelectedItem.classList.add('selected');
-                }
-            }
-
-            // 칸 색칠
-            function colorCell(r, c, code) {
-                // 정답 모드에서는 색칠 불가능
-                if (isSolutionMode) return;
-                
-                let colorToApply = code;
-                
-                if (code === ERASER_CODE) {
-                    colorToApply = EMPTY_CELL;
-                }
-                
-                // 사용자의 패턴 업데이트
-                userPattern[r][c] = colorToApply;
-                
-                // 현재 셀을 즉시 업데이트하여 반응성을 높임
-                const cell = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
-                if (cell) {
-                    if (colorToApply === EMPTY_CELL) {
-                        cell.style.backgroundColor = '#f9fafb'; // 기본 배경색 (지우개)
-                        const solutionCode = SOLUTION_PATTERN[r][c];
-                        if (solutionCode !== EMPTY_CELL) {
-                            cell.textContent = solutionCode;
-                            cell.style.color = COLOR_PALETTE[solutionCode] ? COLOR_PALETTE[solutionCode].hex : '#374151';
-                        } else {
-                             cell.textContent = '';
-                        }
-                    } else {
-                        const color = COLOR_PALETTE[colorToApply];
-                        if (color) {
-                            cell.style.backgroundColor = color.hex;
-                            cell.textContent = ''; // 색칠되면 숫자 숨김
-                        }
-                    }
-                }
-            }
-            
-            // 정답 확인
-            function checkCompletion() {
-                if (isSolutionMode) return;
-                
-                let isComplete = true;
-                for (let r = 0; r < GRID_SIZE; r++) {
-                    for (let c = 0; c < GRID_SIZE; c++) {
-                        // 사용자가 칠한 색상과 정답의 색상이 다르면 미완성
-                        if (userPattern[r][c] !== SOLUTION_PATTERN[r][c]) {
-                            isComplete = false;
-                            break;
-                        }
-                    }
-                    if (!isComplete) break;
-                }
-                
-                if (isComplete) {
-                    // 약간의 지연 후 메시지 표시 (마우스 뗄 때 바로 뜨는 것을 방지)
-                    setTimeout(() => showMessage("?? 축하합니다! 그림을 완성했어요!"), 100);
-                }
-            }
-
-
-            // 그림 로드 및 초기화
-            function loadPicture(index) {
-                if (index < 0 || index >= ALL_PATTERNS.length) {
-                    showMessage("더 이상 그림이 없습니다.");
-                    return;
-                }
-                
-                currentPictureIndex = index;
-                const currentPatternData = ALL_PATTERNS[currentPictureIndex];
-
-                // 헤더 업데이트
-                document.querySelector('header h1').textContent = `?? 픽셀 컬러링 북 - ${currentPatternData.name} ??`;
-                
-                COLOR_PALETTE = currentPatternData.palette;
-                SOLUTION_PATTERN = currentPatternData.pattern;
-                
-                // 사용자 패턴 초기화: 전부 EMPTY_CELL (0)로 채움
-                userPattern = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(EMPTY_CELL));
-                
-                isSolutionMode = false;
-                
-                // 정답 버튼 텍스트와 스타일 초기화
-                const button = document.getElementById('solution-button');
-                button.textContent = '? 정답 보기';
-                button.classList.remove('bg-orange-500', 'hover:bg-orange-600');
-                button.classList.add('bg-green-500', 'hover:bg-green-600');
-                
-                renderPalette();
-                // 초기 색상을 첫 번째 색상 코드로 설정 (1)
-                selectColor(1); 
-                renderGrid();
-            }
-
-            // 이벤트 리스너 설정
-            document.getElementById('reset-button').addEventListener('click', () => {
-                // 현재 그림을 다시 로드하여 초기화 효과
-                loadPicture(currentPictureIndex);
-                showMessage("그림이 초기화되었습니다.");
-            });
-            
-            document.getElementById('solution-button').addEventListener('click', () => {
-                isSolutionMode = !isSolutionMode;
-                const button = document.getElementById('solution-button');
-
-                if (isSolutionMode) {
-                    // 정답 패턴으로 그리드 렌더링
-                    renderGrid(SOLUTION_PATTERN); 
-                    button.textContent = '숨기기';
-                    button.classList.remove('bg-green-500', 'hover:bg-green-600');
-                    button.classList.add('bg-orange-500', 'hover:bg-orange-600');
-                    showMessage("정답 모드가 활성화되었습니다. 정답을 확인하세요.");
-                } else {
-                    // 사용자 패턴으로 그리드 렌더링
-                    renderGrid(userPattern); 
-                    button.textContent = '? 정답 보기';
-                    button.classList.remove('bg-orange-500', 'hover:bg-orange-600');
-                    button.classList.add('bg-green-500', 'hover:bg-green-600');
-                    showMessage("정답 모드가 비활성화되었습니다. 다시 색칠해 보세요!");
-                }
-            });
-
-            document.getElementById('next-picture-button').addEventListener('click', () => {
-                loadPicture(currentPictureIndex + 1);
-            });
-
-            document.getElementById('previous-picture-button').addEventListener('click', () => {
-                loadPicture(currentPictureIndex - 1);
-            });
-            
-            // 초기 로드
-            loadPicture(currentPictureIndex);
-            
-            // 초기 선택 색상에 'selected' 클래스 적용
-            selectColor(selectedColorCode);
-        });
-
-        // ----------------------------------------------
-        // 2. 픽셀 아트 데이터 정의 (데이터베이스화 예정 영역)
-        // ----------------------------------------------
-        // 이 부분은 나중에 별도 파일(data.js)이나 DB로 분리될 수 있습니다.
-        
-        const GRID_SIZE = 15;
-        const EMPTY_CELL = 0;
-        const ERASER_CODE = -1;
-
-        const ALL_PATTERNS = [
+const ALL_PATTERNS = [
             // 1. 상어 (Shark)
             {
                 name: '상어',
@@ -993,45 +762,308 @@
                 ]
             }
         ];
-    </script>
-  <!-- Showcase Portal Navigation Button -->
-  <a href="../../index.html" class="showcase-nav-btn" title="쇼케이스 포털로 돌아가기">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-    <span>Showcase</span>
-  </a>
-  <style>
-    .showcase-nav-btn {
-      position: fixed;
-      top: 14px;
-      left: 14px;
-      z-index: 99999;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 13px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      color: #f1f5f9;
-      background: rgba(15, 23, 42, 0.82);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 9999px;
-      text-decoration: none;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      opacity: 0.85;
-      user-select: none;
+    
+  
+
+    // ----------------------------------------------
+    // 2. 공통 유틸리티 및 UI 로직 (모바일 무스크롤 & 터치 드래그 지원)
+    // ----------------------------------------------
+
+    function showMessage(text) {
+      const msgBox = document.getElementById('message-box');
+      document.getElementById('message-text').textContent = text;
+      msgBox.classList.remove('hidden');
+      msgBox.classList.add('flex');
     }
-    .showcase-nav-btn:hover {
-      opacity: 1;
-      color: #ffffff;
-      background: rgba(15, 23, 42, 0.96);
-      border-color: rgba(255, 255, 255, 0.4);
-      transform: translateY(-1px) scale(1.02);
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-    }
-  </style>
+
+    document.getElementById('close-message').addEventListener('click', () => {
+      const msgBox = document.getElementById('message-box');
+      msgBox.classList.add('hidden');
+      msgBox.classList.remove('flex');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      let COLOR_PALETTE = {};
+      let SOLUTION_PATTERN = [];
+      let currentPictureIndex = 0;
+      let selectedColorCode = 1;
+      let userPattern = [];
+      let isSolutionMode = false;
+      let isDrawing = false;
+
+      function renderPalette() {
+        const paletteContainer = document.getElementById('color-palette');
+        paletteContainer.innerHTML = '';
+        
+        const previousSelectedCode = selectedColorCode;
+
+        Object.keys(COLOR_PALETTE).forEach(codeStr => {
+          const code = parseInt(codeStr);
+          if (code === ERASER_CODE) return;
+
+          const colorData = COLOR_PALETTE[code];
+          const item = document.createElement('div');
+          item.classList.add('color-item');
+          item.style.backgroundColor = colorData.hex;
+          item.dataset.code = code;
+          item.title = colorData.label || ${code}번 색상;
+
+          const isLight = (code === 1 || colorData.hex === '#e0f2fe' || colorData.hex === '#ffffff' || colorData.hex === '#fef08a');
+          const textColor = isLight ? 'text-slate-800' : 'text-white';
+          item.innerHTML = <span class=""></span>; 
+          
+          if (code === previousSelectedCode) {
+            item.classList.add('selected');
+          }
+          
+          item.addEventListener('click', () => selectColor(code));
+          paletteContainer.appendChild(item);
+        });
+
+        // 지우개 아이템
+        const eraserItem = document.createElement('div');
+        eraserItem.classList.add('color-item');
+        eraserItem.innerHTML = '<span>🧹</span>';
+        eraserItem.dataset.code = ERASER_CODE;
+        eraserItem.title = '지우개';
+        
+        if (ERASER_CODE === previousSelectedCode) {
+          eraserItem.classList.add('selected');
+        }
+        
+        eraserItem.addEventListener('click', () => selectColor(ERASER_CODE));
+        paletteContainer.appendChild(eraserItem);
+      }
+
+      function renderGrid(patternToShow = userPattern) {
+        const gridContainer = document.getElementById('coloring-grid');
+        gridContainer.innerHTML = '';
+        
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const cell = document.createElement('div');
+            cell.classList.add('grid-cell');
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+
+            const code = patternToShow[r][c];
+            
+            if (code !== EMPTY_CELL) {
+              const color = COLOR_PALETTE[code];
+              if (color) {
+                cell.style.backgroundColor = color.hex;
+                cell.textContent = '';
+              }
+            } else {
+              cell.style.backgroundColor = '#f8fafc';
+              const solutionCode = SOLUTION_PATTERN[r][c];
+              if (solutionCode !== EMPTY_CELL) {
+                cell.textContent = solutionCode;
+                cell.style.color = COLOR_PALETTE[solutionCode] ? COLOR_PALETTE[solutionCode].hex : '#475569'; 
+              } else {
+                cell.textContent = '';
+              }
+            }
+            
+            // 마우스 클릭 (PC)
+            cell.addEventListener('mousedown', (e) => {
+              isDrawing = true;
+              e.preventDefault();
+              colorCell(r, c, selectedColorCode);
+            });
+
+            // 마우스 오버 드래그 (PC)
+            cell.addEventListener('mouseover', () => {
+              if (isDrawing) {
+                colorCell(r, c, selectedColorCode);
+              }
+            });
+
+            gridContainer.appendChild(cell);
+          }
+        }
+      }
+      
+      // 모바일 터치 드래그 연속 그리기 지원
+      const gridWrapper = document.getElementById('coloring-grid-wrapper');
+      
+      function getCellFromTouch(touch) {
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        return el && el.classList.contains('grid-cell') ? el : null;
+      }
+
+      gridWrapper.addEventListener('touchstart', (e) => {
+        isDrawing = true;
+        const touch = e.touches[0];
+        const cell = getCellFromTouch(touch);
+        if (cell) {
+          const r = parseInt(cell.dataset.row);
+          const c = parseInt(cell.dataset.col);
+          colorCell(r, c, selectedColorCode);
+        }
+      }, { passive: false });
+
+      gridWrapper.addEventListener('touchmove', (e) => {
+        if (!isDrawing) return;
+        e.preventDefault(); // 드래그 중 화면 스크롤 절대 방지
+        const touch = e.touches[0];
+        const cell = getCellFromTouch(touch);
+        if (cell) {
+          const r = parseInt(cell.dataset.row);
+          const c = parseInt(cell.dataset.col);
+          colorCell(r, c, selectedColorCode);
+        }
+      }, { passive: false });
+
+      document.addEventListener('touchend', () => {
+        if (isDrawing) {
+          isDrawing = false;
+          checkCompletion();
+        }
+      });
+
+      // 마우스 업
+      document.addEventListener('mouseup', () => {
+        if (isDrawing) {
+          isDrawing = false;
+          checkCompletion();
+        }
+      });
+
+      gridWrapper.addEventListener('mouseleave', () => {
+        if (isDrawing) {
+          isDrawing = false;
+          checkCompletion();
+        }
+      });
+
+      function selectColor(code) {
+        document.querySelectorAll('.color-item').forEach(item => {
+          item.classList.remove('selected');
+        });
+        
+        selectedColorCode = code;
+        
+        const newSelectedItem = document.querySelector(.color-item[data-code=""]);
+        if (newSelectedItem) {
+          newSelectedItem.classList.add('selected');
+        }
+      }
+
+      function colorCell(r, c, code) {
+        if (isSolutionMode) return;
+        
+        let colorToApply = code;
+        if (code === ERASER_CODE) {
+          colorToApply = EMPTY_CELL;
+        }
+        
+        userPattern[r][c] = colorToApply;
+        
+        const cell = document.querySelector(.grid-cell[data-row=""][data-col=""]);
+        if (cell) {
+          if (colorToApply === EMPTY_CELL) {
+            cell.style.backgroundColor = '#f8fafc';
+            const solutionCode = SOLUTION_PATTERN[r][c];
+            if (solutionCode !== EMPTY_CELL) {
+              cell.textContent = solutionCode;
+              cell.style.color = COLOR_PALETTE[solutionCode] ? COLOR_PALETTE[solutionCode].hex : '#475569';
+            } else {
+              cell.textContent = '';
+            }
+          } else {
+            const color = COLOR_PALETTE[colorToApply];
+            if (color) {
+              cell.style.backgroundColor = color.hex;
+              cell.textContent = '';
+            }
+          }
+        }
+      }
+      
+      function checkCompletion() {
+        if (isSolutionMode) return;
+        
+        let isComplete = true;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (userPattern[r][c] !== SOLUTION_PATTERN[r][c]) {
+              isComplete = false;
+              break;
+            }
+          }
+          if (!isComplete) break;
+        }
+        
+        if (isComplete) {
+          setTimeout(() => showMessage("🎉 축하합니다! 그림을 멋지게 완성했어요!"), 120);
+        }
+      }
+
+      function loadPicture(index) {
+        if (index < 0 || index >= ALL_PATTERNS.length) {
+          showMessage("더 이상 그림이 없습니다.");
+          return;
+        }
+        
+        currentPictureIndex = index;
+        const currentPatternData = ALL_PATTERNS[currentPictureIndex];
+
+        document.getElementById('title-text').textContent = currentPatternData.name;
+        document.getElementById('picture-counter').textContent = ${index + 1} / ;
+        
+        COLOR_PALETTE = currentPatternData.palette;
+        SOLUTION_PATTERN = currentPatternData.pattern;
+        
+        userPattern = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(EMPTY_CELL));
+        isSolutionMode = false;
+        
+        const button = document.getElementById('solution-button');
+        button.innerHTML = '<span>👁️</span><span>정답</span>';
+        button.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+        button.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+        
+        renderPalette();
+        selectColor(1); 
+        renderGrid();
+      }
+
+      document.getElementById('reset-button').addEventListener('click', () => {
+        loadPicture(currentPictureIndex);
+        showMessage("그림이 초기화되었습니다.");
+      });
+      
+      document.getElementById('solution-button').addEventListener('click', () => {
+        isSolutionMode = !isSolutionMode;
+        const button = document.getElementById('solution-button');
+
+        if (isSolutionMode) {
+          renderGrid(SOLUTION_PATTERN); 
+          button.innerHTML = '<span>🙈</span><span>숨기기</span>';
+          button.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+          button.classList.add('bg-amber-500', 'hover:bg-amber-600');
+          showMessage("정답 모드가 활성화되었습니다.");
+        } else {
+          renderGrid(userPattern); 
+          button.innerHTML = '<span>👁️</span><span>정답</span>';
+          button.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+          button.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+          showMessage("다시 색칠을 시작해 보세요!");
+        }
+      });
+
+      document.getElementById('next-picture-button').addEventListener('click', () => {
+        loadPicture(currentPictureIndex + 1);
+      });
+
+      document.getElementById('previous-picture-button').addEventListener('click', () => {
+        loadPicture(currentPictureIndex - 1);
+      });
+      
+      // 첫 그림 로드
+      loadPicture(currentPictureIndex);
+      selectColor(selectedColorCode);
+    });
+  </script>
 </body>
 </html>
