@@ -1,4 +1,4 @@
-﻿# 🚀 Interactive Web Apps Showcase
+﻿# 🚀 etc - Interactive Web Apps Showcase
 
 > **브라우저에서 즉시 실행되는 7종의 독립형(Single-File) 인터랙티브 웹 시뮬레이터 & 교육용 웹앱 컬렉션**
 
@@ -43,7 +43,7 @@
 ## 📂 디렉토리 구조 (Repository Layout)
 
 ```text
-interactive-web-apps/
+etc/
 ├── index.html                   # 메인 쇼케이스 랜딩 포털 (카탈로그 & 검색 & 필터)
 ├── README.md                    # 프로젝트 문서
 ├── .gitignore                   # Git 제외 설정
@@ -75,8 +75,8 @@ interactive-web-apps/
 
 1. 저장소를 클론하거나 다운로드합니다:
    ```bash
-   git clone https://github.com/<your-username>/interactive-web-apps.git
-   cd interactive-web-apps
+   git clone https://github.com/PoeticEcho/etc.git
+   cd etc
    ```
 2. 최상위의 **`index.html`** 파일을 더블 클릭하여 웹 브라우저(Chrome, Edge, Safari 등)에서 엽니다.
 3. 원하는 앱의 **🚀 실행하기** 버튼을 클릭하여 즉시 체험할 수 있습니다. 각 앱 상단의 **← Showcase** 버튼을 누르면 언제든지 메인 포털로 돌아옵니다.
@@ -90,7 +90,7 @@ GitHub Pages를 켜면 단 1분 만에 웹 호스팅이 완료됩니다:
 1. GitHub에서 새로운 공개(Public) 저장소를 생성합니다.
 2. 로컬 저장소를 GitHub에 푸시합니다:
    ```bash
-   git remote add origin https://github.com/<your-username>/interactive-web-apps.git
+   git remote add origin https://github.com/PoeticEcho/etc.git
    git branch -M main
    git push -u origin main
    ```
@@ -98,7 +98,7 @@ GitHub Pages를 켜면 단 1분 만에 웹 호스팅이 완료됩니다:
 4. **Build and deployment** 항목에서:
    - **Source**: `Deploy from a branch`
    - **Branch**: `main` / `/ (root)` 선택 후 **Save** 클릭
-5. 1~2분 후 생성되는 `https://<your-username>.github.io/interactive-web-apps/` 주소로 접속하면 전 세계 어디서든 라이브 데모를 이용할 수 있습니다!
+5. 1~2분 후 생성되는 `https://poeticecho.github.io/etc/` 주소로 접속하면 전 세계 어디서든 라이브 데모를 이용할 수 있습니다!
 
 ---
 
