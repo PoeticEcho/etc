@@ -696,30 +696,254 @@
       line-height: 1.45;
     }
 
+    /* Header sub-elements (Desktop defaults) */
+    .panel-backdrop {
+      display: none;
+    }
+    .panel-drag-handle {
+      display: none;
+    }
+    .panel-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .panel-top-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-top-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mobile-quick-launch-btn {
+      display: none;
+    }
+    .panel-toggle-btn {
+      display: none;
+    }
+
     @media (max-width: 1280px) {
       .app { grid-template-columns: 360px 1fr; }
     }
 
-    @media (max-width: 1080px) {
+    /* Mobile & Tablet Full-screen Immersive Sky with Collapsible Bottom Sheet */
+    @media (max-width: 1024px) {
       .app {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        padding: 0;
+        margin: 0;
+        gap: 0;
+        position: relative;
+        overflow: hidden;
       }
-      .panel { min-width: 0; }
-      .stage-shell { min-height: 55vh; }
+
+      .stage-shell {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        border: none;
+        z-index: 1;
+      }
+
+      #stage {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Compact Stage HUD on mobile */
+      .stage-header {
+        inset: 12px 12px auto 12px;
+        gap: 8px;
+      }
+      .hud, .legend {
+        padding: 8px 12px;
+        border-radius: 12px;
+      }
+      .hud strong {
+        font-size: 0.86rem;
+        margin-bottom: 3px;
+      }
+      .hud p {
+        font-size: 0.74rem;
+        line-height: 1.35;
+      }
+      .legend {
+        display: none;
+      }
+
+      /* Status bar positioned cleanly above collapsed bottom sheet */
+      .status-bar {
+        left: 10px;
+        right: 10px;
+        bottom: 72px;
+        gap: 6px;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+      }
+      .status-card {
+        padding: 5px 8px;
+        font-size: 0.72rem;
+        border-radius: 10px;
+      }
+
+      /* Dim backdrop when bottom sheet is expanded */
+      .panel-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        z-index: 40;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+      .panel-backdrop.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      /* Collapsible Bottom Sheet Panel */
+      .panel {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        min-width: 0;
+        max-height: 82vh;
+        max-height: 82dvh;
+        border-radius: 22px 22px 0 0;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-bottom: none;
+        box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.75);
+        z-index: 50;
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+        background: rgba(10, 18, 32, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+
+      .panel.collapsed {
+        transform: translateY(calc(100% - 62px));
+      }
+
+      .panel-header {
+        padding: 8px 14px 10px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        flex-shrink: 0;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .panel-drag-handle {
+        display: block;
+        width: 38px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 999px;
+        margin: 0 auto 8px;
+        transition: background 0.2s ease;
+      }
+      .panel-header:hover .panel-drag-handle {
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      .panel-top-row {
+        margin-bottom: 0;
+      }
+
+      .panel-title-wrap {
+        margin-top: 10px;
+        transition: opacity 0.2s ease;
+      }
+
+      .panel.collapsed .panel-title-wrap {
+        display: none;
+      }
+
+      .mobile-quick-launch-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px 12px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #78b9ff, #9b85ff);
+        color: #06101b;
+        border: none;
+        box-shadow: 0 4px 12px rgba(120, 185, 255, 0.25);
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+      .mobile-quick-launch-btn:active {
+        transform: scale(0.95);
+      }
+
+      .panel-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 11px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #d6e9ff;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .panel-toggle-btn:hover {
+        background: rgba(255, 255, 255, 0.16);
+        color: #fff;
+      }
+
+      .scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 14px;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="panel-backdrop" id="panelBackdrop"></div>
   <div class="app">
-    <aside class="panel">
-      <div class="panel-header">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <a href="../../index.html" class="showcase-btn">‹ Showcase</a>
-          <span class="engine-badge" id="engineBadge">Custom 2D</span>
+    <aside class="panel" id="mainPanel">
+      <div class="panel-header" id="panelHeader">
+        <div class="panel-drag-handle" id="panelDragHandle"></div>
+        <div class="panel-top-row">
+          <div class="panel-top-left">
+            <a href="../../index.html" class="showcase-btn">‹ Showcase</a>
+            <span class="engine-badge" id="engineBadge">Custom 2D</span>
+          </div>
+          <div class="panel-top-right">
+            <button type="button" class="mobile-quick-launch-btn" id="mobileQuickLaunchBtn">🚀 발사</button>
+            <button type="button" class="panel-toggle-btn" id="panelToggleBtn" aria-label="메뉴 열기/닫기">
+              <span class="toggle-icon">▴</span>
+              <span class="toggle-text">설정</span>
+            </button>
+          </div>
         </div>
-        <h1 class="title">Fireworks Designer</h1>
-        <p class="subtitle">Peony, Willow 등 커스텀 물리 랩과 Grand Fireworks WebGL 2 엔진을 자유롭게 전환하는 불꽃놀이 시뮬레이터.</p>
+        <div class="panel-title-wrap">
+          <h1 class="title">Fireworks Designer</h1>
+          <p class="subtitle">Peony, Willow 등 커스텀 물리 랩과 Grand Fireworks WebGL 2 엔진을 자유롭게 전환하는 불꽃놀이 시뮬레이터.</p>
+        </div>
       </div>
       <div class="scroll">
         <!-- 0. 시뮬레이션 엔진 선택 탭 -->
@@ -2453,8 +2677,86 @@
       legendDesc.textContent = `렌더러: ${renderer} · 스타일: ${currentGfStyle} · 테마: ${currentGfTheme}`;
     }
 
+    // === Mobile Collapsible Drawer Controls ===
+    const mainPanel = document.getElementById('mainPanel');
+    const panelHeader = document.getElementById('panelHeader');
+    const panelToggleBtn = document.getElementById('panelToggleBtn');
+    const panelDragHandle = document.getElementById('panelDragHandle');
+    const panelBackdrop = document.getElementById('panelBackdrop');
+    const mobileQuickLaunchBtn = document.getElementById('mobileQuickLaunchBtn');
+    const toggleIcon = panelToggleBtn ? panelToggleBtn.querySelector('.toggle-icon') : null;
+    const toggleText = panelToggleBtn ? panelToggleBtn.querySelector('.toggle-text') : null;
+
+    function isMobile() {
+      return window.innerWidth <= 1024;
+    }
+
+    function toggleMobilePanel(forceState) {
+      if (!isMobile() || !mainPanel) return;
+      const willCollapse = typeof forceState === 'boolean'
+        ? !forceState
+        : !mainPanel.classList.contains('collapsed');
+
+      if (willCollapse) {
+        mainPanel.classList.add('collapsed');
+        if (panelBackdrop) panelBackdrop.classList.remove('active');
+        if (toggleIcon) toggleIcon.textContent = '▴';
+        if (toggleText) toggleText.textContent = '설정';
+      } else {
+        mainPanel.classList.remove('collapsed');
+        if (panelBackdrop) panelBackdrop.classList.add('active');
+        if (toggleIcon) toggleIcon.textContent = '▾';
+        if (toggleText) toggleText.textContent = '닫기';
+      }
+    }
+
+    if (panelToggleBtn) {
+      panelToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMobilePanel();
+      });
+    }
+
+    if (panelDragHandle) {
+      panelDragHandle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMobilePanel();
+      });
+    }
+
+    if (panelHeader) {
+      panelHeader.addEventListener('click', (e) => {
+        if (!isMobile()) return;
+        if (e.target.closest('a') || e.target.closest('button')) return;
+        if (mainPanel.classList.contains('collapsed')) {
+          toggleMobilePanel(true);
+        }
+      });
+    }
+
+    if (panelBackdrop) {
+      panelBackdrop.addEventListener('click', () => {
+        toggleMobilePanel(false);
+      });
+    }
+
+    if (mobileQuickLaunchBtn) {
+      mobileQuickLaunchBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentEngine === 'custom') {
+          launchCurrentSelection(true);
+        } else if (gfInstance) {
+          gfInstance.launch();
+        }
+      });
+    }
+
     // === Unified Stage Pointer Action ===
     function handleStageAction(clientX, clientY) {
+      if (isMobile() && mainPanel && !mainPanel.classList.contains('collapsed')) {
+        toggleMobilePanel(false);
+      }
+
       const rect = canvas.getBoundingClientRect();
       const x = clientX - rect.left;
       const y = clientY - rect.top;
@@ -2636,12 +2938,19 @@
 
     window.addEventListener('resize', () => {
       resizeStage();
+      if (!isMobile() && mainPanel) {
+        mainPanel.classList.remove('collapsed');
+        if (panelBackdrop) panelBackdrop.classList.remove('active');
+      }
       if (currentEngine === 'grand') {
         renderBackground(performance.now());
       }
     });
 
     // Initial Setup
+    if (isMobile() && mainPanel) {
+      mainPanel.classList.add('collapsed');
+    }
     renderShapePicker();
     const initialShape = localStorage.getItem(STORAGE_KEY_LAST_SHAPE) || 'peony';
     selectShape(initialShape, false);
