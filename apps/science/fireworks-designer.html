@@ -229,18 +229,78 @@
     .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-    .shape-grid {
+    /* Custom Lab Subtabs (Compact PC menu) */
+    .custom-subtabs {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 12px;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 12px;
+      background: rgba(0, 0, 0, 0.28);
+      padding: 4px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .custom-subtab {
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .custom-subtab:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .custom-subtab.active {
+      background: linear-gradient(135deg, rgba(124, 192, 255, 0.22), rgba(179, 143, 255, 0.18));
+      color: #bce1ff;
+      border-color: rgba(124, 192, 255, 0.45);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Shape Carousel (Horizontal 1-row scroll) */
+    .shape-carousel-wrap {
+      position: relative;
+      margin-top: 6px;
+    }
+    .shape-grid {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding: 4px 2px 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .shape-grid::-webkit-scrollbar {
+      height: 5px;
+    }
+    .shape-grid::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 999px;
+    }
+    .shape-grid::-webkit-scrollbar-thumb {
+      background: rgba(124, 192, 255, 0.28);
+      border-radius: 999px;
+    }
+    .shape-grid::-webkit-scrollbar-thumb:hover {
+      background: rgba(124, 192, 255, 0.5);
     }
 
     .shape-card {
       position: relative;
+      flex: 0 0 108px;
+      scroll-snap-align: start;
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px;
-      padding: 10px;
+      border-radius: 14px;
+      padding: 7px;
       background: rgba(255,255,255,0.035);
       cursor: pointer;
       transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -251,64 +311,103 @@
 
     .shape-card:hover {
       transform: translateY(-1px);
-      border-color: rgba(124,192,255,0.28);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.16);
-      background: rgba(255,255,255,0.05);
+      border-color: rgba(124,192,255,0.32);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      background: rgba(255,255,255,0.06);
     }
 
     .shape-card.active {
-      border-color: rgba(148, 215, 255, 0.65);
-      box-shadow: 0 0 0 3px rgba(148,215,255,0.10), 0 14px 24px rgba(0,0,0,0.18);
-      background: linear-gradient(180deg, rgba(148,215,255,0.10), rgba(255,255,255,0.03));
+      border-color: rgba(148, 215, 255, 0.7);
+      box-shadow: 0 0 0 2px rgba(148,215,255,0.18), 0 8px 18px rgba(0,0,0,0.22);
+      background: linear-gradient(180deg, rgba(148,215,255,0.14), rgba(255,255,255,0.04));
     }
 
     .shape-card canvas {
       width: 100%;
-      height: 84px;
+      height: 48px;
       display: block;
-      border-radius: 12px;
+      border-radius: 9px;
       background: radial-gradient(circle at 50% 52%, rgba(18,34,58,0.85), rgba(3,8,16,0.98));
       border: 1px solid rgba(255,255,255,0.06);
-      margin-bottom: 8px;
+      margin-bottom: 5px;
     }
 
     .shape-card-title {
-      font-size: 0.85rem;
+      font-size: 0.78rem;
       font-weight: 800;
       color: #f5f9ff;
       letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .shape-card-desc {
-      margin-top: 4px;
-      font-size: 0.73rem;
-      line-height: 1.4;
-      color: var(--muted);
+      display: none;
     }
 
     .shape-card-colors {
       display: flex;
       align-items: center;
-      gap: 5px;
-      margin-top: 6px;
-      padding-top: 6px;
+      gap: 4px;
+      margin-top: 4px;
+      padding-top: 4px;
       border-top: 1px solid rgba(255, 255, 255, 0.07);
     }
 
     .shape-dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       box-shadow: 0 0 4px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
       flex-shrink: 0;
     }
 
     .shape-card-tag {
-      font-size: 0.68rem;
+      font-size: 0.65rem;
       color: var(--muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    /* Color Layer Switcher */
+    .color-layer-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .color-switch-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--muted);
+      transition: all 0.2s ease;
+    }
+    .color-switch-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+    .color-switch-btn.active {
+      background: rgba(124, 192, 255, 0.16);
+      border-color: rgba(124, 192, 255, 0.5);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(124, 192, 255, 0.15);
+    }
+    .color-dot-live {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.4), inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
+      flex-shrink: 0;
     }
 
     .reset-shape-btn {
@@ -388,18 +487,18 @@
     .swatches {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px;
+      gap: 6px;
     }
 
     .swatch {
       position: relative;
-      min-height: 64px;
-      border-radius: 16px;
+      min-height: 44px;
+      border-radius: 12px;
       border: 2px solid transparent;
       cursor: pointer;
       transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
-      padding: 8px 10px;
+      padding: 5px 8px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -423,17 +522,21 @@
     }
 
     .swatch-name {
-      font-size: 0.76rem;
+      font-size: 0.72rem;
       font-weight: 800;
       color: #f8fbff;
       letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .swatch-symbol {
-      font-size: 0.92rem;
+      font-size: 0.82rem;
       font-weight: 900;
       color: rgba(255,255,255,0.95);
       align-self: flex-end;
+      line-height: 1;
     }
 
     .swatch:hover { transform: translateY(-1px); }
@@ -969,103 +1072,145 @@
 
         <!-- 1. 커스텀 물리 랩 컨트롤 패널 (Custom 2D) -->
         <div id="customEngineControls">
-          <section class="section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
-              <h2 style="margin:0;">기본 설정</h2>
-              <button type="button" id="resetShapeBtn" class="reset-shape-btn" title="현재 불꽃 모양의 수치를 기본값으로 복원">↺ 현재 모양 초기화</button>
-            </div>
-            <div class="grid-2">
-              <div>
-                <label for="shellType">불꽃 모양</label>
-                <select id="shellType">
-                  <option value="peony">Peony</option>
-                  <option value="chrysanthemum">Chrysanthemum</option>
-                  <option value="willow">Willow</option>
-                  <option value="crossette">Crossette</option>
-                  <option value="palm">Palm</option>
-                  <option value="ring">Ring</option>
-                  <option value="pistil">Pistil</option>
-                </select>
+          <!-- 1-0. 커스텀 랩 하위 탭 (디자인 vs 프리셋) -->
+          <div class="custom-subtabs">
+            <button type="button" class="custom-subtab active" id="subtabDesign">
+              <span>🎨 불꽃 디자인 & 연출</span>
+            </button>
+            <button type="button" class="custom-subtab" id="subtabPresets">
+              <span>💾 프리셋 & 연속 쇼</span>
+            </button>
+          </div>
+
+          <!-- A. 불꽃 디자인 & 연출 탭 -->
+          <div id="tabContentDesign">
+            <section class="section" style="padding: 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                <h2 style="margin:0; font-size: 0.92rem;">불꽃 모양 선택 (7종)</h2>
+                <button type="button" id="resetShapeBtn" class="reset-shape-btn" title="현재 불꽃 모양의 수치를 기본값으로 복원">↺ 현재 모양 초기화</button>
               </div>
-              <div>
-                <label for="fuseDelay">발사 간격</label>
-                <select id="fuseDelay">
-                  <option value="140">빠름</option>
-                  <option value="260" selected>보통</option>
-                  <option value="420">느림</option>
-                </select>
+
+              <!-- 가로 스크롤 캐러셀 -->
+              <div class="shape-carousel-wrap">
+                <div class="shape-grid" id="shapeGrid"></div>
               </div>
-            </div>
 
-            <div class="shape-grid" id="shapeGrid"></div>
+              <div class="grid-2" style="margin-top: 10px;">
+                <div>
+                  <label for="shellType" style="margin-bottom: 4px; font-size: 0.78rem;">선택 목록</label>
+                  <select id="shellType" style="padding: 8px 10px; font-size: 0.85rem;">
+                    <option value="peony">Peony</option>
+                    <option value="chrysanthemum">Chrysanthemum</option>
+                    <option value="willow">Willow</option>
+                    <option value="crossette">Crossette</option>
+                    <option value="palm">Palm</option>
+                    <option value="ring">Ring</option>
+                    <option value="pistil">Pistil</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="fuseDelay" style="margin-bottom: 4px; font-size: 0.78rem;">발사 간격</label>
+                  <select id="fuseDelay" style="padding: 8px 10px; font-size: 0.85rem;">
+                    <option value="140">빠름</option>
+                    <option value="260" selected>보통</option>
+                    <option value="420">느림</option>
+                  </select>
+                </div>
+              </div>
 
-            <div style="margin-top: 12px;">
-              <label for="sizeRange">폭발 크기</label>
-              <input id="sizeRange" type="range" min="50" max="180" value="110" />
-              <div class="value" id="sizeValue">110</div>
-            </div>
+              <div style="margin-top: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <label for="sizeRange" style="margin:0; font-size: 0.8rem;">폭발 크기</label>
+                  <div class="value" id="sizeValue" style="margin:0; font-weight:700;">110</div>
+                </div>
+                <input id="sizeRange" type="range" min="50" max="180" value="110" />
+              </div>
 
-            <div style="margin-top: 10px;">
-              <label for="burstCount">밀도</label>
-              <input id="burstCount" type="range" min="18" max="80" value="42" />
-              <div class="value" id="burstValue">42</div>
-            </div>
+              <div style="margin-top: 4px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <label for="burstCount" style="margin:0; font-size: 0.8rem;">밀도</label>
+                  <div class="value" id="burstValue" style="margin:0; font-weight:700;">42</div>
+                </div>
+                <input id="burstCount" type="range" min="18" max="80" value="42" />
+              </div>
 
-            <div style="margin-top: 10px;">
-              <label for="trailRange">잔상 길이</label>
-              <input id="trailRange" type="range" min="0" max="100" value="64" />
-              <div class="value" id="trailValue">64</div>
-            </div>
+              <div style="margin-top: 4px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <label for="trailRange" style="margin:0; font-size: 0.8rem;">잔상 길이</label>
+                  <div class="value" id="trailValue" style="margin:0; font-weight:700;">64</div>
+                </div>
+                <input id="trailRange" type="range" min="0" max="100" value="64" />
+              </div>
 
-            <div class="checkbox-row">
-              <input type="checkbox" id="glitterToggle" checked />
-              <label for="glitterToggle" style="margin:0; color:var(--text); cursor:pointer;">반짝임 추가</label>
-            </div>
-            <div class="preset-hint" style="margin-top:10px; font-size:0.75rem;">
-              💾 각 불꽃 모양별로 폭발 크기, 밀도, 잔상, 반짝임 및 색상이 자동 저장되어 기억됩니다.
-            </div>
-          </section>
+              <div class="checkbox-row" style="padding-top: 4px;">
+                <input type="checkbox" id="glitterToggle" checked />
+                <label for="glitterToggle" style="margin:0; color:var(--text); cursor:pointer; font-size:0.85rem;">반짝임 추가</label>
+              </div>
+              <div class="preset-hint" style="margin-top: 8px; font-size: 0.73rem;">
+                💾 각 불꽃 모양별 설정(크기·밀도·잔상·색상)이 브라우저에 자동 기억됩니다.
+              </div>
+            </section>
 
-          <section class="section">
-            <h2>화학 불꽃색 조합</h2>
-            <label>외곽 색상</label>
-            <div class="swatches" id="outerSwatches"></div>
-            <div style="height: 12px;"></div>
-            <label>중심 색상</label>
-            <div class="swatches" id="innerSwatches"></div>
-            <div class="launch-buttons">
-              <button class="primary launch-main" id="launchSelectedBtn">선택 조합 발사</button>
-              <button class="secondary" id="launchCenterBtn">중앙 발사</button>
-            </div>
-            <div class="preset-hint">색상칩에는 대표 발광 원소기호(Sr, Ba, Cu, Na 등)가 함께 표시됩니다. 밤하늘을 클릭해도 해당 위치로 발사됩니다.</div>
-            <div class="footer-safe">이 시뮬레이터는 실제 화약 제조 정보 없이, 안전한 시각 디자인용 화학색상 프리셋만 제공합니다.</div>
-          </section>
+            <section class="section" style="padding: 14px;">
+              <h2 style="margin: 0 0 8px; font-size: 0.92rem;">화학 불꽃색 선택 (12원소)</h2>
+              <div class="color-layer-switch">
+                <button type="button" class="color-switch-btn active" id="btnColorOuter">
+                  <span class="color-dot-live" id="dotColorOuter"></span>
+                  <span>외곽 색상</span>
+                </button>
+                <button type="button" class="color-switch-btn" id="btnColorInner">
+                  <span class="color-dot-live" id="dotColorInner"></span>
+                  <span>중심 색상</span>
+                </button>
+              </div>
 
-          <section class="section">
-            <h2>프리셋 저장</h2>
-            <div>
-              <label for="presetName">프리셋 이름</label>
-              <input id="presetName" type="text" placeholder="예: 로열 블루 피오니" maxlength="40" />
-            </div>
-            <div class="buttons" style="margin-top: 10px;">
-              <button class="primary" id="savePresetBtn">현재 조합 저장</button>
-              <button class="secondary" id="loadCurrentBtn">선택 조합 발사</button>
-            </div>
-          </section>
+              <div class="swatches" id="activeSwatches"></div>
 
-          <section class="section">
-            <h2>저장된 프리셋</h2>
-            <div class="saved-list" id="savedList"></div>
-            <div class="buttons" style="margin-top: 12px;">
-              <button class="primary" id="fireFiveBtn">선택 프리셋 5발</button>
-              <button class="primary" id="fireTenBtn">선택 프리셋 10발</button>
-            </div>
-            <div class="buttons" style="margin-top: 10px;">
-              <button class="secondary" id="demoBtn">자동 쇼 데모</button>
-              <button class="danger" id="clearSkyBtn">하늘 정리</button>
-            </div>
-            <p class="note" style="margin-top: 10px;">프리셋별로 체크한 항목만 동시/연속 발사에 포함됩니다. 스페이스바로도 즉시 발사할 수 있습니다.</p>
-          </section>
+              <div class="launch-buttons" style="margin-top: 10px;">
+                <button class="primary launch-main" id="launchSelectedBtn">🚀 조합 발사</button>
+                <button class="secondary" id="launchRandomBtn" style="font-weight:800; background: linear-gradient(135deg, rgba(124,192,255,0.18), rgba(255,210,50,0.18)); border-color: rgba(124,192,255,0.35);">🎲 랜덤 발사 (1/8 크기)</button>
+              </div>
+              <div class="buttons" style="margin-top: 8px;">
+                <button class="secondary" id="launchCenterBtn">중앙 발사</button>
+                <button class="danger" id="clearSkyBtn">하늘 정리</button>
+              </div>
+              <div class="preset-hint" style="margin-top: 8px; font-size: 0.73rem;">
+                💡 1초에 최대 3발까지 발사되며, 밤하늘 클릭/터치 시 해당 위치로 즉시 솟아오릅니다.
+              </div>
+              <div class="footer-safe" style="margin-top: 8px; padding: 8px 10px; font-size: 0.74rem;">
+                안전한 시각 디자인용 화학색상(Sr, Ba, Cu, Na) 프리셋입니다.
+              </div>
+            </section>
+          </div>
+
+          <!-- B. 프리셋 & 연속 쇼 탭 -->
+          <div id="tabContentPresets" style="display: none;">
+            <section class="section">
+              <h2>프리셋 저장</h2>
+              <div>
+                <label for="presetName">프리셋 이름</label>
+                <input id="presetName" type="text" placeholder="예: 로열 블루 피오니" maxlength="40" />
+              </div>
+              <div class="buttons" style="margin-top: 10px;">
+                <button class="primary" id="savePresetBtn">현재 조합 저장</button>
+                <button class="secondary" id="loadCurrentBtn">선택 조합 발사</button>
+              </div>
+            </section>
+
+            <section class="section">
+              <h2>저장된 프리셋</h2>
+              <div class="saved-list" id="savedList"></div>
+              <div class="buttons" style="margin-top: 12px;">
+                <button class="primary" id="fireFiveBtn">선택 프리셋 5발</button>
+                <button class="primary" id="fireTenBtn">선택 프리셋 10발</button>
+              </div>
+              <div class="buttons" style="margin-top: 10px;">
+                <button class="secondary" id="demoBtn">자동 쇼 데모</button>
+                <button class="danger" id="clearSkyBtn2">하늘 정리</button>
+              </div>
+              <p class="note" style="margin-top: 10px;">프리셋별로 체크한 항목만 동시/연속 발사에 포함됩니다. 스페이스바로도 즉시 발사할 수 있습니다.</p>
+            </section>
+          </div>
         </div>
 
         <!-- 2. Grand Fireworks 컨트롤 패널 (WebGL 2 HDR) -->
@@ -1218,17 +1363,27 @@
     const fireFiveBtn = document.getElementById('fireFiveBtn');
     const fireTenBtn = document.getElementById('fireTenBtn');
     const clearSkyBtn = document.getElementById('clearSkyBtn');
+    const clearSkyBtn2 = document.getElementById('clearSkyBtn2');
     const demoBtn = document.getElementById('demoBtn');
     const savedListEl = document.getElementById('savedList');
     const launchSelectedBtn = document.getElementById('launchSelectedBtn');
+    const launchRandomBtn = document.getElementById('launchRandomBtn');
     const launchCenterBtn = document.getElementById('launchCenterBtn');
 
     const sizeValue = document.getElementById('sizeValue');
     const burstValue = document.getElementById('burstValue');
     const trailValue = document.getElementById('trailValue');
 
-    const outerSwatchesEl = document.getElementById('outerSwatches');
-    const innerSwatchesEl = document.getElementById('innerSwatches');
+    const subtabDesign = document.getElementById('subtabDesign');
+    const subtabPresets = document.getElementById('subtabPresets');
+    const tabContentDesign = document.getElementById('tabContentDesign');
+    const tabContentPresets = document.getElementById('tabContentPresets');
+
+    const btnColorOuter = document.getElementById('btnColorOuter');
+    const btnColorInner = document.getElementById('btnColorInner');
+    const dotColorOuter = document.getElementById('dotColorOuter');
+    const dotColorInner = document.getElementById('dotColorInner');
+    const activeSwatchesEl = document.getElementById('activeSwatches');
     const shapeGridEl = document.getElementById('shapeGrid');
 
     // Grand Fireworks DOM Elements
@@ -1551,15 +1706,33 @@
       });
     }
 
+    let activeColorLayer = 'outer'; // 'outer' | 'inner'
+
+    function updateColorSwitchUI() {
+      if (btnColorOuter && btnColorInner) {
+        btnColorOuter.classList.toggle('active', activeColorLayer === 'outer');
+        btnColorInner.classList.toggle('active', activeColorLayer === 'inner');
+      }
+      if (dotColorOuter) {
+        dotColorOuter.style.background = byName(selectedOuter).value;
+        dotColorOuter.title = `외곽: ${selectedOuter}`;
+      }
+      if (dotColorInner) {
+        dotColorInner.style.background = byName(selectedInner).value;
+        dotColorInner.title = `중심: ${selectedInner}`;
+      }
+    }
+
     function refreshSwatches() {
-      renderSwatches(outerSwatchesEl, selectedOuter, (name) => {
-        selectedOuter = name;
-        saveCurrentShapeConfig();
-        refreshSwatches();
-        updateStatus();
-      });
-      renderSwatches(innerSwatchesEl, selectedInner, (name) => {
-        selectedInner = name;
+      updateColorSwitchUI();
+      if (!activeSwatchesEl) return;
+      const currentActiveName = activeColorLayer === 'outer' ? selectedOuter : selectedInner;
+      renderSwatches(activeSwatchesEl, currentActiveName, (name) => {
+        if (activeColorLayer === 'outer') {
+          selectedOuter = name;
+        } else {
+          selectedInner = name;
+        }
         saveCurrentShapeConfig();
         refreshSwatches();
         updateStatus();
@@ -1687,7 +1860,11 @@
       shellTypeEl.value = type;
 
       document.querySelectorAll('.shape-card').forEach(c => {
-        c.classList.toggle('active', c.dataset.value === type);
+        const isTarget = c.dataset.value === type;
+        c.classList.toggle('active', isTarget);
+        if (isTarget) {
+          c.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+        }
       });
 
       const cfg = shapeConfigs[type];
@@ -1716,7 +1893,7 @@
       if (!card || !shapeConfigs[type]) return;
       const cfg = shapeConfigs[type];
       const tag = card.querySelector('.shape-card-tag');
-      if (tag) tag.textContent = `${cfg.size}px · 밀도 ${cfg.density}`;
+      if (tag) tag.textContent = `${cfg.size}px`;
       const dots = card.querySelectorAll('.shape-dot');
       if (dots.length >= 2) {
         dots[0].style.background = byName(cfg.outer).value;
@@ -1733,17 +1910,17 @@
         card.type = 'button';
         card.dataset.value = shape.value;
         card.className = `shape-card ${shellTypeEl.value === shape.value ? 'active' : ''}`;
+        card.title = `${shape.label}: ${shape.desc}`;
         
         const cfg = shapeConfigs[shape.value] || defaultShapeConfigs[shape.value] || { size: 110, density: 42, outer: 'Royal Blue', inner: 'Gold' };
 
         card.innerHTML = `
-          <canvas width="160" height="110"></canvas>
+          <canvas width="140" height="70"></canvas>
           <div class="shape-card-title">${shape.label}</div>
-          <div class="shape-card-desc">${shape.desc}</div>
           <div class="shape-card-colors">
             <span class="shape-dot" style="background:${byName(cfg.outer).value}" title="외곽: ${cfg.outer}"></span>
             <span class="shape-dot" style="background:${byName(cfg.inner).value}" title="중심: ${cfg.inner}"></span>
-            <span class="shape-card-tag">${cfg.size}px · 밀도 ${cfg.density}</span>
+            <span class="shape-card-tag">${cfg.size}px</span>
           </div>
         `;
         card.addEventListener('click', () => {
@@ -1789,7 +1966,58 @@
       return pick(launchPads).x + rand(-22, 22);
     }
 
+    // === 1초 최대 3발 제한 (Rate Limiting: ~320ms 간격) ===
+    const MIN_LAUNCH_INTERVAL = 320;
+    let lastLaunchTimestamp = 0;
+
+    function canLaunchNow() {
+      const now = performance.now();
+      if (now - lastLaunchTimestamp < MIN_LAUNCH_INTERVAL) {
+        return false;
+      }
+      lastLaunchTimestamp = now;
+      return true;
+    }
+
+    // === 화면 1/8 크기 연동 및 랜덤 불꽃 연출 ===
+    function getScreenOptimalBurstSize() {
+      // 보여지는 화면 단축(width/height 중 작은 쪽)의 약 1/8 크기 (±10% 자연스러운 폭발 오차)
+      const base = Math.min(stageWidth, stageHeight) / 8;
+      return Math.round(base * rand(0.9, 1.12));
+    }
+
+    function createRandomConfig() {
+      const types = ['peony', 'chrysanthemum', 'willow', 'crossette', 'palm', 'ring', 'pistil'];
+      const colorNames = colors.map(c => c.name);
+      const chosenType = pick(types);
+      const outerColor = pick(colorNames);
+      let innerColor = pick(colorNames);
+      if (innerColor === outerColor) {
+        innerColor = pick(colorNames.filter(c => c !== outerColor));
+      }
+
+      return {
+        id: crypto.randomUUID(),
+        name: `랜덤 ${chosenType}`,
+        type: chosenType,
+        outer: outerColor,
+        inner: innerColor,
+        size: getScreenOptimalBurstSize(),
+        density: Math.round(rand(36, 48)),  // 과하지 않고 선명한 파티클 밀도
+        trail: Math.round(rand(50, 72)),    // 우아하게 감쇄하는 잔상 길이
+        glitter: Math.random() > 0.3,       // 70% 확률로 영롱한 반짝임
+        delay: 260
+      };
+    }
+
+    function launchRandomFirework() {
+      if (!canLaunchNow()) return;
+      const cfg = createRandomConfig();
+      launch(cfg, nearestLaunchX(false));
+    }
+
     function launchCurrentSelection(center = false) {
+      if (!canLaunchNow()) return;
       launch(currentConfig(), nearestLaunchX(center));
     }
 
@@ -2532,34 +2760,39 @@
     function fireSequence(count) {
       const presets = selectedPresets();
       const source = presets.length ? presets : [currentConfig()];
-      const spacing = Number(fuseDelayEl.value);
+      const interval = 333; // 1초에 최대 3발 (~333ms 리듬)
 
       for (let i = 0; i < count; i++) {
         const preset = source[i % source.length];
         const lane = i % launchPads.length;
         const x = launchPads.length ? launchPads[lane].x + rand(-18, 18) : nearestLaunchX(false);
-        setTimeout(() => launch(preset, x), i * Math.max(65, spacing * 0.68));
+        setTimeout(() => launch(preset, x), i * interval);
       }
     }
 
     function startDemo() {
       const types = ['peony', 'chrysanthemum', 'willow', 'crossette', 'palm', 'ring', 'pistil'];
       const colorNames = colors.map(c => c.name);
+      const interval = 333; // 1초에 최대 3발
+
       for (let i = 0; i < 14; i++) {
+        const chosenType = types[i % types.length];
         const config = {
-          ...currentConfig(),
-          type: types[i % types.length],
+          id: crypto.randomUUID(),
+          name: `데모 ${chosenType}`,
+          type: chosenType,
           outer: pick(colorNames),
           inner: pick(colorNames),
-          size: rand(84, 168),
-          density: rand(26, 70),
-          trail: rand(48, 100),
-          glitter: Math.random() > 0.2,
+          size: getScreenOptimalBurstSize(),
+          density: Math.round(rand(36, 48)),
+          trail: Math.round(rand(50, 72)),
+          glitter: Math.random() > 0.25,
+          delay: 260,
         };
         const x = launchPads.length ? launchPads[i % launchPads.length].x + rand(-24, 24) : nearestLaunchX(false);
-        setTimeout(() => launch(config, x), i * 210);
+        setTimeout(() => launch(config, x), i * interval);
       }
-      setTimeout(() => fireSequence(10), 1500);
+      setTimeout(() => fireSequence(8), 14 * interval + 600);
     }
 
     function clearSky() {
@@ -2743,6 +2976,7 @@
     if (mobileQuickLaunchBtn) {
       mobileQuickLaunchBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (!canLaunchNow()) return;
         if (currentEngine === 'custom') {
           launchCurrentSelection(true);
         } else if (gfInstance) {
@@ -2756,6 +2990,9 @@
       if (isMobile() && mainPanel && !mainPanel.classList.contains('collapsed')) {
         toggleMobilePanel(false);
       }
+
+      // 1초에 최대 3발 제한 (Rate Limiter: ~320ms 쿨다운)
+      if (!canLaunchNow()) return;
 
       const rect = canvas.getBoundingClientRect();
       const x = clientX - rect.left;
@@ -2776,6 +3013,35 @@
     }
 
     // === Event Listeners ===
+    if (subtabDesign && subtabPresets) {
+      subtabDesign.addEventListener('click', () => {
+        subtabDesign.classList.add('active');
+        subtabPresets.classList.remove('active');
+        tabContentDesign.style.display = 'block';
+        tabContentPresets.style.display = 'none';
+      });
+      subtabPresets.addEventListener('click', () => {
+        subtabPresets.classList.add('active');
+        subtabDesign.classList.remove('active');
+        tabContentDesign.style.display = 'none';
+        tabContentPresets.style.display = 'block';
+      });
+    }
+
+    if (btnColorOuter) {
+      btnColorOuter.addEventListener('click', () => {
+        activeColorLayer = 'outer';
+        refreshSwatches();
+      });
+    }
+
+    if (btnColorInner) {
+      btnColorInner.addEventListener('click', () => {
+        activeColorLayer = 'inner';
+        refreshSwatches();
+      });
+    }
+
     sizeRangeEl.addEventListener('input', () => {
       updateRangeLabels();
       saveCurrentShapeConfig();
@@ -2815,10 +3081,12 @@
     savePresetBtn.addEventListener('click', saveCurrentPreset);
     loadCurrentBtn.addEventListener('click', () => launchCurrentSelection(false));
     launchSelectedBtn.addEventListener('click', () => launchCurrentSelection(false));
+    if (launchRandomBtn) launchRandomBtn.addEventListener('click', launchRandomFirework);
     launchCenterBtn.addEventListener('click', () => launchCurrentSelection(true));
     fireFiveBtn.addEventListener('click', () => fireSequence(5));
     fireTenBtn.addEventListener('click', () => fireSequence(10));
     clearSkyBtn.addEventListener('click', clearSky);
+    if (clearSkyBtn2) clearSkyBtn2.addEventListener('click', clearSky);
     demoBtn.addEventListener('click', startDemo);
 
     // Grand Fireworks Control Listeners
@@ -2920,6 +3188,7 @@
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
       if (e.code === 'Space') {
         e.preventDefault();
+        if (!canLaunchNow()) return;
         if (currentEngine === 'custom') {
           launch(currentConfig(), nearestLaunchX(false));
         } else if (gfInstance) {
