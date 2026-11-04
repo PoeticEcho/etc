@@ -1,0 +1,1037 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>픽셀 아트 컬러링 북 - 인터랙티브 드로잉 툴</title>
+  <!-- SEO & Primary Meta Tags -->
+  <meta name="description" content="격자 캔버스 위에서 펼쳐지는 인터랙티브 픽셀 드로잉 및 컬러링 웹 애플리케이션" />
+  <meta name="keywords" content="픽셀아트, 컬러링북, Tailwind CSS, 웹아트, 드로잉툴" />
+  <meta name="author" content="Interactive Web Apps Collection" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicons/favicon-pixel-art-coloring.svg" />
+  <link rel="alternate icon" type="image/png" href="../../assets/favicons/favicon-pixel-art-coloring.png" />
+
+  <!-- Open Graph / Facebook / Kakao -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="픽셀 아트 컬러링 북 - 인터랙티브 드로잉 툴" />
+  <meta property="og:description" content="격자 캔버스 위에서 펼쳐지는 인터랙티브 픽셀 드로잉 및 컬러링 웹 애플리케이션" />
+  <meta property="og:image" content="../../assets/og/og-pixel-art-coloring.png" />
+  <meta property="og:site_name" content="Interactive Web Apps Showcase" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="픽셀 아트 컬러링 북 - 인터랙티브 드로잉 툴" />
+  <meta name="twitter:description" content="격자 캔버스 위에서 펼쳐지는 인터랙티브 픽셀 드로잉 및 컬러링 웹 애플리케이션" />
+  <meta name="twitter:image" content="../../assets/og/og-pixel-art-coloring.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 폰트 설정을 포함하여 스타일 정리 */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            aspect-ratio: 1 / 1;
+            max-width: 500px;
+            margin: auto;
+        }
+        .grid-cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            font-weight: 700;
+            user-select: none;
+            transition: background-color 0.1s ease-out;
+            background-color: #f9fafb;
+        }
+        .color-item {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            margin: 0.5rem;
+            transition: all 0.2s ease;
+            font-size: 0.75rem; /* 텍스트 크기 조정 */
+            font-weight: 600;
+            text-align: center;
+        }
+        .color-item.selected {
+            border: 4px solid #f97316;
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* 지우개 스타일 */
+        .color-item[data-code="-1"] {
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+
+    <div class="max-w-3xl w-full">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-blue-600 mb-2">?? 픽셀 컬러링 북 ??</h1>
+            <p class="text-xl text-gray-700">숫자를 따라 칸을 색칠하며 숨겨진 그림을 완성해 보세요!</p>
+        </header>
+
+        <!-- 색상 팔레트 -->
+        <div id="color-palette" class="flex flex-wrap justify-center gap-3 p-4 bg-white shadow-lg rounded-xl mb-8"></div>
+        
+        <!-- 그리드 -->
+        <div id="coloring-grid-wrapper" class="p-2 sm:p-4 bg-white shadow-2xl rounded-2xl">
+            <div id="coloring-grid" class="grid-container"></div>
+        </div>
+
+        <!-- 버튼 -->
+        <div class="mt-8 flex justify-center space-x-4">
+            <button id="previous-picture-button" class="bg-purple-500 hover:bg-purple-600 text-white py-2 px-6 rounded-lg transition duration-150 shadow-md">?? 이전 그림</button>
+            <button id="reset-button" class="bg-red-500 hover:bg-red-600 text-white py-2 px-6 rounded-lg transition duration-150 shadow-md">?? 다시 시작</button>
+            <button id="solution-button" class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg transition duration-150 shadow-md">? 정답 보기</button>
+            <button id="next-picture-button" class="bg-purple-500 hover:bg-purple-600 text-white py-2 px-6 rounded-lg transition duration-150 shadow-md">?? 다음 그림</button>
+        </div>
+        
+        <!-- 메시지 박스 (Alert 대체) -->
+        <div id="message-box" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4">
+            <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+                <p id="message-text" class="text-lg font-semibold text-gray-800 mb-4"></p>
+                <button id="close-message" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ----------------------------------------------
+        // 1. 공통 유틸리티 및 UI 로직 (메인 애플리케이션)
+        // ----------------------------------------------
+
+        // 메시지 표시 함수 (alert 대체)
+        function showMessage(text) {
+            const msgBox = document.getElementById('message-box');
+            document.getElementById('message-text').textContent = text;
+            msgBox.classList.remove('hidden');
+            msgBox.classList.add('flex');
+        }
+
+        document.getElementById('close-message').addEventListener('click', () => {
+            const msgBox = document.getElementById('message-box');
+            msgBox.classList.add('hidden');
+            msgBox.classList.remove('flex');
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 초기화 시 필요한 변수
+            let COLOR_PALETTE = {};
+            let SOLUTION_PATTERN = [];
+            let currentPictureIndex = 0;
+            let selectedColorCode = 1;
+            let userPattern = [];
+            let isSolutionMode = false;
+            let isDrawing = false; // 드래그 상태 관리 변수
+
+            // 색상 팔레트 렌더링
+            function renderPalette() {
+                const paletteContainer = document.getElementById('color-palette');
+                paletteContainer.innerHTML = '';
+                
+                // 기존 선택 상태 저장
+                const previousSelectedCode = selectedColorCode;
+
+                // 색상 코드 팔레트
+                Object.keys(COLOR_PALETTE).forEach(codeStr => {
+                    const code = parseInt(codeStr);
+                    const colorData = COLOR_PALETTE[code];
+                    const item = document.createElement('div');
+                    item.classList.add('color-item', 'shadow-sm', 'hover:ring-4', 'ring-offset-2', 'ring-opacity-50');
+                    item.style.backgroundColor = colorData.hex;
+                    item.dataset.code = code;
+                    item.title = colorData.label;
+
+                    // 셀에 코드 번호를 표시합니다.
+                    const textColor = (code === 1) ? 'text-gray-800' : 'text-white';
+                    item.innerHTML = `<span class="${textColor} text-xl">${code}</span>`; 
+                    
+                    if (code === previousSelectedCode) {
+                         item.classList.add('selected');
+                    }
+                    
+                    item.addEventListener('click', () => selectColor(code));
+                    paletteContainer.appendChild(item);
+                });
+
+                // 지우개
+                const eraserItem = document.createElement('div');
+                eraserItem.classList.add('color-item', 'shadow-sm', 'hover:ring-4', 'ring-offset-2', 'ring-opacity-50');
+                eraserItem.textContent = '지우개';
+                eraserItem.dataset.code = ERASER_CODE;
+                
+                if (ERASER_CODE === previousSelectedCode) {
+                    eraserItem.classList.add('selected');
+                }
+                
+                eraserItem.addEventListener('click', () => selectColor(ERASER_CODE));
+                paletteContainer.appendChild(eraserItem);
+            }
+
+            // 그리드 렌더링
+            function renderGrid(patternToShow = userPattern) {
+                const gridContainer = document.getElementById('coloring-grid');
+                gridContainer.innerHTML = '';
+                
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('grid-cell');
+                        cell.dataset.row = r;
+                        cell.dataset.col = c;
+
+                        const code = patternToShow[r][c];
+                        
+                        if (code !== EMPTY_CELL) {
+                            // 셀에 색칠된 경우 (정답 모드이거나 사용자가 칠한 경우)
+                            const color = COLOR_PALETTE[code];
+                            if (color) {
+                                cell.style.backgroundColor = color.hex;
+                                cell.textContent = ''; // 색칠되면 숫자 숨김
+                            }
+                        } else {
+                            // 색칠되지 않은 경우 (정답 패턴의 숫자 표시)
+                            cell.style.backgroundColor = '#f9fafb';
+                            const solutionCode = SOLUTION_PATTERN[r][c];
+                            if (solutionCode !== EMPTY_CELL) {
+                                // 정답 코드 번호를 표시
+                                cell.textContent = solutionCode;
+                                // 힌트 색상은 색상 코드의 헥스 값 또는 기본 회색으로 설정
+                                cell.style.color = COLOR_PALETTE[solutionCode] ? COLOR_PALETTE[solutionCode].hex : '#374151'; 
+                            } else {
+                                cell.textContent = '';
+                            }
+                        }
+                        
+                        // 클릭 이벤트 (마우스 다운: 그리기 시작)
+                        cell.addEventListener('mousedown', (e) => {
+                            isDrawing = true;
+                            e.preventDefault(); // 드래그 방지
+                            colorCell(r, c, selectedColorCode);
+                        });
+
+                        // 마우스 오버 이벤트 (드래그 중일 때 색칠)
+                        cell.addEventListener('mouseover', () => {
+                            if (isDrawing) {
+                                colorCell(r, c, selectedColorCode);
+                            }
+                        });
+
+                        gridContainer.appendChild(cell);
+                    }
+                }
+            }
+            
+            // 마우스/터치 업 이벤트 (그리기 종료)
+            document.addEventListener('mouseup', () => {
+                if (isDrawing) {
+                    isDrawing = false;
+                    checkCompletion();
+                }
+            });
+            // 그리드 밖으로 마우스가 나갈 때 그리기 종료 (PC 환경에서 중요)
+            document.getElementById('coloring-grid-wrapper').addEventListener('mouseleave', () => {
+                if (isDrawing) {
+                    isDrawing = false;
+                    checkCompletion();
+                }
+            });
+
+
+            // 색상 선택
+            function selectColor(code) {
+                // 이전 선택 항목에서 'selected' 클래스 제거
+                document.querySelectorAll('.color-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                selectedColorCode = code;
+                
+                // 새 선택 항목에 'selected' 클래스 추가
+                const newSelectedItem = document.querySelector(`.color-item[data-code="${code}"]`);
+                if (newSelectedItem) {
+                    newSelectedItem.classList.add('selected');
+                }
+            }
+
+            // 칸 색칠
+            function colorCell(r, c, code) {
+                // 정답 모드에서는 색칠 불가능
+                if (isSolutionMode) return;
+                
+                let colorToApply = code;
+                
+                if (code === ERASER_CODE) {
+                    colorToApply = EMPTY_CELL;
+                }
+                
+                // 사용자의 패턴 업데이트
+                userPattern[r][c] = colorToApply;
+                
+                // 현재 셀을 즉시 업데이트하여 반응성을 높임
+                const cell = document.querySelector(`.grid-cell[data-row="${r}"][data-col="${c}"]`);
+                if (cell) {
+                    if (colorToApply === EMPTY_CELL) {
+                        cell.style.backgroundColor = '#f9fafb'; // 기본 배경색 (지우개)
+                        const solutionCode = SOLUTION_PATTERN[r][c];
+                        if (solutionCode !== EMPTY_CELL) {
+                            cell.textContent = solutionCode;
+                            cell.style.color = COLOR_PALETTE[solutionCode] ? COLOR_PALETTE[solutionCode].hex : '#374151';
+                        } else {
+                             cell.textContent = '';
+                        }
+                    } else {
+                        const color = COLOR_PALETTE[colorToApply];
+                        if (color) {
+                            cell.style.backgroundColor = color.hex;
+                            cell.textContent = ''; // 색칠되면 숫자 숨김
+                        }
+                    }
+                }
+            }
+            
+            // 정답 확인
+            function checkCompletion() {
+                if (isSolutionMode) return;
+                
+                let isComplete = true;
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        // 사용자가 칠한 색상과 정답의 색상이 다르면 미완성
+                        if (userPattern[r][c] !== SOLUTION_PATTERN[r][c]) {
+                            isComplete = false;
+                            break;
+                        }
+                    }
+                    if (!isComplete) break;
+                }
+                
+                if (isComplete) {
+                    // 약간의 지연 후 메시지 표시 (마우스 뗄 때 바로 뜨는 것을 방지)
+                    setTimeout(() => showMessage("?? 축하합니다! 그림을 완성했어요!"), 100);
+                }
+            }
+
+
+            // 그림 로드 및 초기화
+            function loadPicture(index) {
+                if (index < 0 || index >= ALL_PATTERNS.length) {
+                    showMessage("더 이상 그림이 없습니다.");
+                    return;
+                }
+                
+                currentPictureIndex = index;
+                const currentPatternData = ALL_PATTERNS[currentPictureIndex];
+
+                // 헤더 업데이트
+                document.querySelector('header h1').textContent = `?? 픽셀 컬러링 북 - ${currentPatternData.name} ??`;
+                
+                COLOR_PALETTE = currentPatternData.palette;
+                SOLUTION_PATTERN = currentPatternData.pattern;
+                
+                // 사용자 패턴 초기화: 전부 EMPTY_CELL (0)로 채움
+                userPattern = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(EMPTY_CELL));
+                
+                isSolutionMode = false;
+                
+                // 정답 버튼 텍스트와 스타일 초기화
+                const button = document.getElementById('solution-button');
+                button.textContent = '? 정답 보기';
+                button.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+                button.classList.add('bg-green-500', 'hover:bg-green-600');
+                
+                renderPalette();
+                // 초기 색상을 첫 번째 색상 코드로 설정 (1)
+                selectColor(1); 
+                renderGrid();
+            }
+
+            // 이벤트 리스너 설정
+            document.getElementById('reset-button').addEventListener('click', () => {
+                // 현재 그림을 다시 로드하여 초기화 효과
+                loadPicture(currentPictureIndex);
+                showMessage("그림이 초기화되었습니다.");
+            });
+            
+            document.getElementById('solution-button').addEventListener('click', () => {
+                isSolutionMode = !isSolutionMode;
+                const button = document.getElementById('solution-button');
+
+                if (isSolutionMode) {
+                    // 정답 패턴으로 그리드 렌더링
+                    renderGrid(SOLUTION_PATTERN); 
+                    button.textContent = '숨기기';
+                    button.classList.remove('bg-green-500', 'hover:bg-green-600');
+                    button.classList.add('bg-orange-500', 'hover:bg-orange-600');
+                    showMessage("정답 모드가 활성화되었습니다. 정답을 확인하세요.");
+                } else {
+                    // 사용자 패턴으로 그리드 렌더링
+                    renderGrid(userPattern); 
+                    button.textContent = '? 정답 보기';
+                    button.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+                    button.classList.add('bg-green-500', 'hover:bg-green-600');
+                    showMessage("정답 모드가 비활성화되었습니다. 다시 색칠해 보세요!");
+                }
+            });
+
+            document.getElementById('next-picture-button').addEventListener('click', () => {
+                loadPicture(currentPictureIndex + 1);
+            });
+
+            document.getElementById('previous-picture-button').addEventListener('click', () => {
+                loadPicture(currentPictureIndex - 1);
+            });
+            
+            // 초기 로드
+            loadPicture(currentPictureIndex);
+            
+            // 초기 선택 색상에 'selected' 클래스 적용
+            selectColor(selectedColorCode);
+        });
+
+        // ----------------------------------------------
+        // 2. 픽셀 아트 데이터 정의 (데이터베이스화 예정 영역)
+        // ----------------------------------------------
+        // 이 부분은 나중에 별도 파일(data.js)이나 DB로 분리될 수 있습니다.
+        
+        const GRID_SIZE = 15;
+        const EMPTY_CELL = 0;
+        const ERASER_CODE = -1;
+
+        const ALL_PATTERNS = [
+            // 1. 상어 (Shark)
+            {
+                name: '상어',
+                palette: {
+                    1: { hex: '#e0f2fe', label: '하얀색 (1)' }, 
+                    2: { hex: '#9ca3af', label: '회색 (2)' },   
+                    3: { hex: '#4b5563', label: '짙은 회색 (3)' }, 
+                    4: { hex: '#ef4444', label: '빨간색 (4)' }, 
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent', r: 255, g: 255, b: 255, text: 'text-gray-500' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],
+                    [0,0,0,0,1,1,1,1,1,1,1,1,1,0,1],
+                    [0,0,1,1,1,1,1,1,1,1,1,1,1,0,1],
+                    [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,3],
+                    [1,1,1,1,1,4,1,1,1,1,1,3,3,3,3], // 눈: 4
+                    [1,1,1,1,1,1,1,1,1,3,3,3,3,3,3],
+                    [0,1,1,1,1,1,1,1,1,3,3,3,3,3,3],
+                    [0,0,1,1,1,1,1,3,3,3,3,3,3,0,0],
+                    [0,0,0,0,1,1,1,3,3,3,3,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 2. 버섯 (Mushroom)
+            {
+                name: '버섯',
+                palette: {
+                    1: { hex: '#ef4444', label: '빨간색 (1)' },
+                    2: { hex: '#ffffff', label: '흰색 (2)' },
+                    3: { hex: '#d2b48c', label: '옅은 갈색 (3)' },
+                    4: { hex: '#a0522d', label: '어두운 갈색 (4)' },
+                    5: { hex: '#1f2937', label: '검정 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],
+                    [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0],
+                    [0,0,0,1,1,5,1,5,1,1,1,1,0,0,0], // 점: 5
+                    [0,0,1,1,1,1,1,1,1,1,1,1,1,0,0],
+                    [0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+                    [0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+                    [0,0,0,0,0,0,3,3,3,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,3,3,3,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,3,3,3,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,3,3,3,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,4,4,4,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,4,4,4,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 3. 구름 (Cloud)
+            {
+                name: '구름',
+                palette: {
+                    1: { hex: '#ffffff', label: '흰색 (1)'},
+                    2: { hex: '#bae6fd', label: '하늘색 (2)'},
+                    3: { hex: '#1f2937', label: '검정 (3)'},
+                    4: { hex: '#f472b6', label: '분홍 (4)'},
+                    5: { hex: '#60a5fa', label: '파랑 (5)'},
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,2,2,2,0,0,0,2,2,0,0,0],
+                    [0,0,0,2,1,1,1,2,0,2,1,1,2,0,0],
+                    [0,0,2,1,1,1,1,1,2,1,1,1,1,2,0],
+                    [0,2,1,1,3,1,1,1,1,1,1,3,1,1,2],
+                    [0,2,1,1,1,1,1,1,1,1,1,1,1,1,2],
+                    [0,2,1,1,4,1,1,1,1,1,1,4,1,1,2],
+                    [0,0,2,1,1,1,1,1,1,1,1,1,1,2,0],
+                    [0,0,0,2,2,2,2,2,2,2,2,2,2,0,0],
+                    [0,0,5,0,0,0,5,0,0,0,0,5,0,0,0],
+                    [0,5,0,0,0,5,0,0,0,0,5,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 4. 우산 (Umbrella)
+            {
+                name: '우산',
+                palette: {
+                    1: { hex: '#3b82f6', label: '파랑 (1)' },
+                    2: { hex: '#ef4444', label: '빨강 (2)' },
+                    3: { hex: '#facc15', label: '노랑 (3)' },
+                    4: { hex: '#a0522d', label: '갈색 (4)' },
+                    5: { hex: '#1f2937', label: '검정 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,5,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],
+                    [0,0,0,0,0,1,1,2,1,1,0,0,0,0,0],
+                    [0,0,0,0,1,1,2,2,2,1,1,0,0,0,0],
+                    [0,0,0,1,1,2,2,3,2,2,1,1,0,0,0],
+                    [0,0,1,1,2,2,3,3,3,2,2,1,1,0,0],
+                    [0,1,1,2,2,3,3,3,3,3,2,2,1,1,0],
+                    [1,1,1,2,2,2,3,3,3,2,2,2,1,1,1],
+                    [0,0,0,0,0,0,0,4,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,4,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,4,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,4,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,4,0,4,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,4,4,4,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 5. 다람쥐 (Squirrel)
+            {
+                name: '다람쥐',
+                palette: {
+                    1: { hex: '#d97706', label: '주황갈색 (1)'},
+                    2: { hex: '#fef3c7', label: '크림색 (2)'},
+                    3: { hex: '#78350f', label: '고동색 (3)'},
+                    4: { hex: '#1f2937', label: '검정 (4)'},
+                    5: { hex: '#f472b6', label: '분홍 (5)'},
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,1,1,1,1,0,0,1,1,1,0],
+                    [0,0,0,0,1,1,1,1,1,0,1,1,1,1,0],
+                    [0,0,0,0,1,4,1,1,1,0,1,1,3,1,0],
+                    [0,0,0,0,1,5,1,1,1,1,1,3,3,1,0],
+                    [0,0,0,0,1,1,1,2,2,1,1,1,3,1,0],
+                    [0,0,0,0,1,1,2,2,2,2,1,1,1,1,0],
+                    [0,0,0,1,1,1,2,2,2,2,1,1,1,0,0],
+                    [0,0,1,1,1,1,1,2,2,1,1,1,0,0,0],
+                    [0,0,1,1,1,1,1,1,1,1,1,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 6. 불곰 (Grizzly Bear)
+            {
+                name: '불곰',
+                palette: {
+                    1: { hex: '#5a3a2a', label: '진한 갈색 (1)' },
+                    2: { hex: '#c59d7b', label: '옅은 갈색 (2)' },
+                    3: { hex: '#e2d3bb', label: '베이지 (3)' },
+                    4: { hex: '#1f2937', label: '검정 (4)' },
+                    5: { hex: '#ffffff', label: '흰색 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,1,1,0,0,0,1,1,0,0,0,0],
+                    [0,0,0,1,2,1,0,0,0,1,2,1,0,0,0],
+                    [0,0,1,2,2,1,1,1,1,1,2,2,1,0,0],
+                    [0,1,2,2,2,2,2,2,2,2,2,2,2,1,0],
+                    [0,1,2,2,4,2,2,2,2,2,4,2,2,1,0], // 눈: 4
+                    [0,1,2,2,2,3,2,2,2,3,2,2,2,1,0], // 코: 3
+                    [0,1,2,2,2,2,2,4,2,2,2,2,2,1,0],
+                    [0,1,2,2,2,2,3,4,3,2,2,2,2,1,0],
+                    [0,0,1,2,2,3,4,3,4,3,2,2,1,0,0],
+                    [0,0,0,1,2,4,3,3,3,4,2,1,0,0,0],
+                    [0,0,0,0,1,1,2,2,2,1,1,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 7. 아기곰 (Teddy Bear)
+            {
+                name: '아기곰',
+                palette: {
+                    1: { hex: '#d4a373', label: '베이지 (1)' },
+                    2: { hex: '#faedcd', label: '크림 (2)' },
+                    3: { hex: '#e63946', label: '빨강 (3)' },
+                    4: { hex: '#1f2937', label: '검정 (4)' },
+                    5: { hex: '#ffffff', label: '흰색 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,1,1,0,0,0,0,0,1,1,0,0,0],
+                    [0,0,1,2,2,1,0,0,0,1,2,2,1,0,0],
+                    [0,0,1,1,1,1,1,1,1,1,1,1,1,0,0],
+                    [0,0,1,1,4,1,1,1,1,1,4,1,1,0,0],
+                    [0,0,1,1,1,1,2,2,2,1,1,1,1,0,0],
+                    [0,0,1,1,1,1,2,4,2,1,1,1,1,0,0],
+                    [0,0,0,1,1,1,1,1,1,1,1,1,0,0,0],
+                    [0,0,0,0,1,3,3,1,3,3,1,0,0,0,0],
+                    [0,0,0,1,1,3,3,3,3,3,1,1,0,0,0],
+                    [0,0,0,1,1,1,1,1,1,1,1,1,0,0,0],
+                    [0,0,0,1,1,0,0,0,0,0,1,1,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 8. 전화기 (Phone) - 스마트폰
+            {
+                name: '전화기',
+                palette: {
+					1: { hex: '#f472b6', label: '분홍 (1)' },
+					2: { hex: '#fb7185', label: '진한 분홍 (2)' },
+					3: { hex: '#1f2937', label: '검정 (3)' },
+					4: { hex: '#ffffff', label: '흰색 (4)' },
+					5: { hex: '#60a5fa', label: '파랑 (5)' },
+					[ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,2,2,2,2,2,2,2,2,2,2,2,0,0],
+                    [0,0,2,5,5,5,5,5,5,5,5,5,2,0,0],
+                    [0,0,2,5,4,5,4,5,4,5,4,5,2,0,0],
+                    [0,0,2,5,5,5,5,5,5,5,5,5,2,0,0],
+                    [0,0,2,1,1,1,1,1,1,1,1,1,2,0,0],
+                    [0,0,2,1,3,1,3,1,3,1,1,1,2,0,0],
+                    [0,0,2,1,3,1,3,1,3,1,1,1,2,0,0],
+                    [0,0,2,1,3,1,3,1,3,1,1,1,2,0,0],
+                    [0,0,2,1,1,1,1,1,1,1,3,1,2,0,0],
+                    [0,0,2,2,2,2,2,2,2,2,2,2,2,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 9. 개구리 (Frog)
+            {
+                name: '개구리',
+                palette: {
+					1: { hex: '#4ade80', label: '연두색 (1)' },
+					2: { hex: '#16a34a', label: '초록 (2)' },
+					3: { hex: '#fef08a', label: '연노랑 (3)' },
+					4: { hex: '#f472b6', label: '분홍 (4)' },
+					5: { hex: '#1f2937', label: '검정 (5)' },
+					[ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,1,1,1,0,0,0,1,1,1,0,0,0],
+                    [0,0,1,5,1,1,1,0,1,1,5,1,1,0,0],
+                    [0,0,1,1,1,1,1,1,1,1,1,1,1,0,0],
+                    [0,0,1,1,4,1,1,1,1,1,4,1,1,0,0],
+                    [0,0,1,1,1,1,1,5,1,1,1,1,1,0,0],
+                    [0,0,1,1,1,1,1,1,1,1,1,1,1,0,0],
+                    [0,0,1,1,3,3,3,3,3,3,3,1,1,0,0],
+                    [0,0,1,1,3,3,3,3,3,3,3,1,1,0,0],
+                    [0,0,2,2,1,1,1,1,1,1,1,2,2,0,0],
+                    [0,2,2,2,2,0,0,0,0,0,2,2,2,2,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 10. 물고기 (Fish)
+            {
+                name: '물고기',
+                palette: {
+                    1: { hex: '#f97316', label: '주황 (1)' },
+                    2: { hex: '#facc15', label: '노랑 (2)' },
+                    3: { hex: '#fb923c', label: '밝은 주황 (3)' },
+                    4: { hex: '#1f2937', label: '검정 (4)' },
+                    5: { hex: '#ffffff', label: '흰색 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,1,0,0,0,0,0,0], // 꼬리: 1
+                    [0,0,0,0,0,1,3,3,3,1,0,0,0,0,0],
+                    [0,0,0,0,1,3,3,3,3,3,1,0,0,0,2],
+                    [0,0,0,1,3,3,3,3,3,3,3,1,2,0,2], // 몸통: 3, 지느러미: 2
+                    [0,0,1,3,3,3,3,3,3,3,3,1,2,2,2],
+                    [0,1,3,3,4,3,3,3,3,3,3,1,2,2,2], // 눈: 4
+                    [0,0,1,3,3,3,3,3,3,3,3,1,2,2,2],
+                    [0,0,0,1,3,3,3,3,3,3,1,2,2,0,2],
+                    [0,0,0,0,1,3,3,3,3,1,0,0,0,0,2],
+                    [0,0,0,0,0,1,1,1,1,0,0,0,0,0,2],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 11. 무지개 (Rainbow)
+            {
+                name: '무지개',
+                palette: {
+					1: { hex: '#fca5a5', label: '연빨강 (1)' },
+					2: { hex: '#fdba74', label: '연주황 (2)' },
+					3: { hex: '#fde047', label: '연노랑 (3)' },
+					4: { hex: '#86efac', label: '연초록 (4)' },
+					5: { hex: '#ffffff', label: '흰색 (5)' },
+					[ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],
+                    [0,0,0,1,1,2,2,2,2,2,1,1,0,0,0],
+                    [0,0,1,2,2,3,3,3,3,3,2,2,1,0,0],
+                    [0,1,2,3,3,4,4,4,4,4,3,3,2,1,0],
+                    [1,2,3,4,4,0,0,0,0,0,4,4,3,2,1],
+                    [1,2,3,4,0,0,0,0,0,0,0,4,3,2,1],
+                    [1,2,3,4,0,0,0,0,0,0,0,4,3,2,1],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,5,5,0,0,0,0,0,0,0,0,0,5,5,0],
+                    [5,5,5,5,0,0,0,0,0,0,0,5,5,5,5],
+                    [5,5,5,5,0,0,0,0,0,0,0,5,5,5,5],
+                    [0,5,5,0,0,0,0,0,0,0,0,0,5,5,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 12. 자동차 (Car)
+            {
+                name: '자동차',
+                palette: {
+                    1: { hex: '#f87171', label: '빨강 (1)' },
+                    2: { hex: '#bae6fd', label: '유리색 (2)' },
+                    3: { hex: '#1f2937', label: '검정 (3)' },
+                    4: { hex: '#facc15', label: '노랑 (4)' },
+                    5: { hex: '#9ca3af', label: '회색 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }                    
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
+                    [0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
+                    [0,0,1,2,2,2,2,2,2,2,2,1,0,0,0],
+                    [0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+                    [0,4,1,1,1,1,1,1,1,1,1,1,1,0,0],
+                    [0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+                    [0,0,1,3,3,1,1,1,1,3,3,1,0,0,0],
+                    [0,0,1,3,5,3,1,1,3,5,3,1,0,0,0],
+                    [0,0,0,3,3,0,0,0,0,3,3,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 13. 산 (Mountain)
+            {
+                name: '산',
+                palette: {
+                    1: { hex: '#60a5fa', label: '하늘색 (1)' },
+                    2: { hex: '#ffffff', label: '흰색 (2)' },
+                    3: { hex: '#4b5563', label: '회색 (3)' },
+                    4: { hex: '#16a34a', label: '초록 (4)' },
+                    5: { hex: '#facc15', label: '노랑 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,5,5,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,5,5,5,5],
+                    [0,0,0,0,0,0,0,2,0,0,0,0,5,5,0],
+                    [0,0,0,0,0,0,2,2,2,0,0,0,0,0,0],
+                    [0,0,0,0,0,2,2,2,2,2,0,0,0,0,0],
+                    [0,0,0,0,2,2,3,2,3,2,2,0,0,0,0],
+                    [0,0,0,3,3,3,3,3,3,3,3,3,0,0,0],
+                    [0,0,3,3,3,3,3,3,3,3,3,3,3,0,0],
+                    [0,3,3,3,3,3,3,3,3,3,3,3,3,3,0],
+                    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+                    [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+                    [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 14. 분수대 (Fountain)
+            {
+                name: '분수대',
+                palette: {
+                    1: { hex: '#93c5fd', label: '물색 (1)' },
+                    2: { hex: '#3b82f6', label: '파랑 (2)' },
+                    3: { hex: '#9ca3af', label: '돌색 (3)' },
+                    4: { hex: '#ffffff', label: '흰색 (4)' },
+                    5: { hex: '#4ade80', label: '풀색 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,2,1,0,0,0,0,0,0],
+                    [0,0,0,0,0,1,2,2,2,1,0,0,0,0,0],
+                    [0,0,0,0,1,2,2,2,2,2,1,0,0,0,0],
+                    [0,0,0,0,0,0,3,3,3,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,3,3,3,0,0,0,0,0,0],
+                    [0,0,0,0,0,3,3,3,3,3,0,0,0,0,0],
+                    [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0],
+                    [0,0,0,1,1,1,1,1,1,1,1,1,0,0,0],
+                    [0,0,1,1,1,1,1,1,1,1,1,1,1,0,0],
+                    [0,3,3,3,3,3,3,3,3,3,3,3,3,3,0],
+                    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+                    [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 15. 단풍나무 (Maple Tree)
+            {
+                name: '단풍나무',
+                palette: {
+                    1: { hex: '#fbbf24', label: '노랑 (1)' },
+                    2: { hex: '#f97316', label: '주황 (2)' },
+                    3: { hex: '#ef4444', label: '빨강 (3)' },
+                    4: { hex: '#78350f', label: '갈색 (4)' },
+                    5: { hex: '#4ade80', label: '잔디 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,2,2,2,0,0,0,0,0,0],
+                    [0,0,0,0,2,2,3,3,3,2,2,0,0,0,0],
+                    [0,0,0,2,3,3,3,3,3,3,3,2,0,0,0],
+                    [0,0,1,2,3,3,1,3,1,3,3,2,1,0,0],
+                    [0,0,1,1,2,3,1,1,1,3,2,1,1,0,0],
+                    [0,0,1,1,1,2,1,1,1,2,1,1,1,0,0],
+                    [0,0,0,1,1,1,1,1,1,1,1,1,0,0,0],
+                    [0,0,0,0,0,0,4,4,4,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,4,4,4,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,4,4,4,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,4,4,4,0,0,0,0,0,0],
+                    [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 16. 스마일 (Smile)
+            {
+                name: '스마일',
+                palette: {
+                    1: { hex: '#facc15', label: '노랑 (1)' },
+                    2: { hex: '#1f2937', label: '검정 (2)' },
+                    3: { hex: '#ffffff', label: '흰색 (3)' },
+                    4: { hex: '#ef4444', label: '빨강 (4)' },
+                    5: { hex: '#b45309', label: '노랑 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,2,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,2,2,2,0,0,0,0,0,0],
+                    [0,0,0,0,0,2,1,1,1,2,0,0,0,0,0],
+                    [0,0,0,0,2,1,1,1,1,1,2,0,0,0,0],
+                    [0,0,0,2,1,1,1,1,1,1,1,2,0,0,0],
+                    [0,0,2,1,1,3,1,1,1,3,1,1,2,0,0],
+                    [0,2,1,1,1,1,1,1,1,1,1,1,1,2,0],
+                    [2,2,1,1,4,1,1,1,1,1,4,1,1,2,2],
+                    [0,2,1,1,1,3,3,3,3,3,1,1,1,2,0],
+                    [0,0,2,1,1,1,1,1,1,1,1,1,2,0,0],
+                    [0,0,0,2,1,1,1,1,1,1,1,2,0,0,0],
+                    [0,0,0,0,2,1,1,1,1,1,2,0,0,0,0],
+                    [0,0,0,0,0,2,1,1,1,2,0,0,0,0,0],
+                    [0,0,0,0,0,0,2,2,2,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,2,0,0,0,0,0,0,0]
+                ]
+            },
+            // 17. 펭귄 (Penguin)
+            {
+                name: '펭귄',
+                palette: {
+                    1: { hex: '#1f2937', label: '검정 (1)' },
+                    2: { hex: '#ffffff', label: '흰색 (2)' },
+                    3: { hex: '#f97316', label: '주황 (3)' },
+                    4: { hex: '#f472b6', label: '분홍 (4)' },
+                    5: { hex: '#3b82f6', label: '파랑 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],
+                    [0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],
+                    [0,0,0,0,1,1,2,1,2,1,1,0,0,0,0],
+                    [0,0,0,0,1,1,1,3,1,1,1,0,0,0,0],
+                    [0,0,0,1,1,2,2,2,2,2,1,1,0,0,0],
+                    [0,0,1,1,2,4,2,2,2,4,2,1,1,0,0],
+                    [0,0,1,2,2,2,2,2,2,2,2,2,1,0,0],
+                    [0,0,1,2,2,2,2,2,2,2,2,2,1,0,0],
+                    [0,1,1,1,2,2,2,2,2,2,2,1,1,1,0],
+                    [0,0,0,1,1,1,1,1,1,1,1,1,0,0,0],
+                    [0,0,0,0,1,1,1,1,1,1,1,0,0,0,0],
+                    [0,0,0,0,3,3,0,0,0,3,3,0,0,0,0],
+                    [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 18. 사람 (Person)
+            {
+                name: '사람',
+                palette: {
+                    1: { hex: '#fcd34d', label: '살구색 (1)' },
+                    2: { hex: '#78350f', label: '갈색 (2)' },
+                    3: { hex: '#3b82f6', label: '파랑 (3)' },
+                    4: { hex: '#1e3a8a', label: '남색 (4)' },
+                    5: { hex: '#1f2937', label: '검정 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,2,2,2,2,2,0,0,0,0,0],
+                    [0,0,0,0,2,2,2,2,2,2,2,0,0,0,0],
+                    [0,0,0,0,2,1,1,1,1,1,2,0,0,0,0],
+                    [0,0,0,0,2,1,4,1,4,1,2,0,0,0,0],
+                    [0,0,0,0,2,1,1,1,1,1,2,0,0,0,0],
+                    [0,0,0,0,0,1,1,2,1,1,0,0,0,0,0],
+                    [0,1,4,4,3,3,3,3,3,3,3,4,4,1,0],
+                    [0,0,0,3,3,3,3,3,3,3,3,3,0,0,0],
+                    [0,0,0,3,3,3,3,3,3,3,3,3,0,0,0],
+                    [0,0,0,0,3,3,3,3,3,3,3,0,0,0,0],
+                    [0,0,0,0,4,4,0,0,0,4,4,0,0,0,0],
+                    [0,0,0,0,4,4,0,0,0,4,4,0,0,0,0],
+                    [0,0,0,0,5,5,0,0,0,5,5,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 19. 다이아몬드 (Diamond)
+            {
+                name: '다이아몬드',
+                palette: {
+                    1: { hex: '#60a5fa', label: '파랑 (1)' },
+                    2: { hex: '#bfdbfe', label: '하늘 (2)' },
+                    3: { hex: '#ffffff', label: '흰색 (3)' },
+                    4: { hex: '#1e3a8a', label: '남색 (4)' },
+                    5: { hex: '#fef08a', label: '반짝 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,5,0,0,0,0,0],
+                    [0,0,5,0,0,0,0,0,5,5,5,0,0,0,0],
+                    [0,5,5,5,0,0,0,0,0,5,0,0,0,0,0],
+                    [0,0,5,0,0,0,2,2,2,0,0,0,0,0,0],
+                    [0,0,0,0,0,2,2,3,2,2,0,0,0,0,0],
+                    [0,0,0,0,2,1,1,3,1,1,2,0,0,0,0],
+                    [0,0,0,2,1,1,1,1,1,1,1,2,0,0,0],
+                    [0,0,0,2,1,1,1,1,1,1,1,2,0,0,0],
+                    [0,0,0,0,4,1,1,1,1,1,4,0,0,0,0],
+                    [0,0,0,0,0,4,1,1,1,4,0,0,0,0,0],
+                    [0,0,0,0,0,0,4,1,4,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,4,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            },
+            // 20. 열기구 (Hot Air Balloon)
+            {
+                name: '열기구',
+                palette: {
+                    1: { hex: '#dc2626', label: '빨강 (1)' },
+                    2: { hex: '#facc15', label: '노랑 (2)' },
+                    3: { hex: '#3b82f6', label: '파랑 (3)' },
+                    4: { hex: '#78350f', label: '갈색 (4)' },
+                    5: { hex: '#e0f2fe', label: '하늘 (5)' },
+                    [ERASER_CODE]: { name: '지우개', hex: 'transparent' }
+                },
+                pattern: [
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],
+                    [0,0,0,0,1,1,2,2,2,1,1,0,0,0,0],
+                    [0,0,0,1,1,2,3,3,3,2,1,1,0,0,0],
+                    [0,0,1,1,2,2,3,3,3,2,2,1,1,0,0],
+                    [0,0,1,1,2,2,3,3,3,2,2,1,1,0,0],
+                    [0,0,1,1,2,2,3,3,3,2,2,1,1,0,0],
+                    [0,0,0,1,1,2,3,3,3,2,1,1,0,0,0],
+                    [0,0,0,0,1,1,2,2,2,1,1,0,0,0,0],
+                    [0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,4,4,4,0,0,0,0,0,0],
+                    [0,0,0,0,0,4,4,4,4,4,0,0,0,0,0],
+                    [0,0,0,0,0,0,4,4,4,0,0,0,0,0,0],
+                    [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
+                    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                ]
+            }
+        ];
+    </script>
+  <!-- Showcase Portal Navigation Button -->
+  <a href="../../index.html" class="showcase-nav-btn" title="쇼케이스 포털로 돌아가기">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    <span>Showcase</span>
+  </a>
+  <style>
+    .showcase-nav-btn {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 99999;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0.85;
+      user-select: none;
+    }
+    .showcase-nav-btn:hover {
+      opacity: 1;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.96);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+  </style>
+</body>
+</html>

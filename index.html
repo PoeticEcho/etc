@@ -1,0 +1,496 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive Web Apps Showcase - 인터랙티브 웹 앱 컬렉션</title>
+
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="브라우저에서 즉시 실행되는 7종의 독립형 웹 시뮬레이터, 게임, 교육용 인터랙티브 웹 애플리케이션 쇼케이스" />
+  <meta name="keywords" content="웹 시뮬레이터, HTML5 캔버스, 물리 시뮬레이션, 인터랙티브 웹, GitHub Pages, 웹게임" />
+  <meta name="author" content="Interactive Web Apps Collection" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicons/favicon.svg" />
+  <link rel="alternate icon" type="image/png" href="assets/favicons/favicon.png" />
+
+  <!-- Open Graph / Facebook / Kakao -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Interactive Web Apps Showcase" />
+  <meta property="og:description" content="브라우저에서 즉시 실행되는 7종의 독립형 웹 시뮬레이터 & 인터랙티브 앱 컬렉션" />
+  <meta property="og:image" content="assets/og/og-main.png" />
+  <meta property="og:site_name" content="Interactive Web Apps Showcase" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Interactive Web Apps Showcase" />
+  <meta name="twitter:description" content="7종의 독립형 웹 시뮬레이터 & 인터랙티브 앱 컬렉션" />
+  <meta name="twitter:image" content="assets/og/og-main.png" />
+
+  <!-- Google Fonts & Tailwind Play CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.10) 0%, transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+    .glass-panel {
+      background: rgba(18, 24, 38, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), 0 0 25px rgba(99, 102, 241, 0.15);
+    }
+    .card-thumb {
+      transition: transform 0.4s ease;
+    }
+    .glass-card:hover .card-thumb {
+      transform: scale(1.03);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-50 glass-panel border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+          <span class="text-white font-bold text-base">✨</span>
+        </div>
+        <div>
+          <span class="font-bold text-base sm:text-lg tracking-tight text-white">Interactive Web Apps</span>
+          <span class="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Showcase</span>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          7 Standalone Apps
+        </span>
+        <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white transition border border-white/10">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 w-full">
+    <div class="text-center max-w-3xl mx-auto mb-10">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 text-indigo-300 mb-4">
+        <span>🚀 100% Client-Side Web Apps</span>
+        <span>•</span>
+        <span>Zero Backend Needed</span>
+      </div>
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-4 leading-tight">
+        인터랙티브 웹 시뮬레이터 & 앱 컬렉션
+      </h1>
+      <p class="text-base sm:text-lg text-slate-300 leading-relaxed">
+        별도의 설치나 백엔드 서버 없이 브라우저에서 즉시 실행되는 7개의 독립형(Single-File) 웹 애플리케이션 쇼케이스입니다.
+      </p>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="glass-panel rounded-2xl p-4 sm:p-5 mb-10 shadow-xl">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <!-- Category Tabs -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none" id="categoryTabs">
+          <button data-cat="all" class="cat-btn active px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition bg-indigo-600 text-white shadow-md shadow-indigo-600/30 whitespace-nowrap">
+            전체 보기 (7)
+          </button>
+          <button data-cat="games" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white whitespace-nowrap">
+            🎮 게임 & 크리에이티브 (2)
+          </button>
+          <button data-cat="science" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white whitespace-nowrap">
+            🔬 과학 & 시뮬레이션 (3)
+          </button>
+          <button data-cat="education" class="cat-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white whitespace-nowrap">
+            📚 교육 & 인터랙티브 (2)
+          </button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative w-full sm:w-72">
+          <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="앱 이름 또는 태그 검색... (/)" 
+            class="w-full pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm bg-slate-900/80 border border-white/10 text-slate-200 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- App Cards Grid -->
+    <div id="appsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+
+      <!-- 1. Skyscraper Diving -->
+      <article class="glass-card rounded-2xl overflow-hidden flex flex-col app-card" data-cat="games" data-tags="스카이스크래퍼 다이빙 게임 캔버스 낙하 물리 canvas physics game">
+        <div class="relative aspect-[16/9] overflow-hidden bg-slate-900 border-b border-white/5">
+          <img src="assets/og/og-skyscraper-diving.png" alt="스카이스크래퍼 다이빙 850m" class="w-full h-full object-cover card-thumb" loading="lazy" />
+          <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/85 backdrop-blur-md text-white shadow-md">
+            🎮 게임 & 시뮬레이션
+          </span>
+        </div>
+        <div class="p-5 flex-grow flex flex-col">
+          <h2 class="text-lg font-bold text-white mb-1.5 flex items-center justify-between">
+            <span>스카이스크래퍼 다이빙 850m</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4 flex-grow">
+            850m 초고층 빌딩에서의 아찔한 낙하 물리 시뮬레이션 게임. 타이밍과 낙하 제어를 시험해보세요.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mb-5">
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#Canvas2D</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#PhysicsEngine</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#GameLoop</span>
+          </div>
+          <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+            <a href="apps/games/skyscraper-diving.html" class="flex-grow inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition shadow-md shadow-indigo-600/30">
+              <span>🚀 실행하기</span>
+            </a>
+            <a href="apps/games/skyscraper-diving.html" target="_blank" rel="noopener noreferrer" title="새 탭에서 열기" class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 active:scale-[0.98] transition border border-white/5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2. Pixel Art Coloring -->
+      <article class="glass-card rounded-2xl overflow-hidden flex flex-col app-card" data-cat="games" data-tags="픽셀 아트 컬러링 북 드로잉 그림 tailwind pixel art drawing">
+        <div class="relative aspect-[16/9] overflow-hidden bg-slate-900 border-b border-white/5">
+          <img src="assets/og/og-pixel-art-coloring.png" alt="픽셀 아트 컬러링 북" class="w-full h-full object-cover card-thumb" loading="lazy" />
+          <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/85 backdrop-blur-md text-white shadow-md">
+            🎨 크리에이티브 & 아트
+          </span>
+        </div>
+        <div class="p-5 flex-grow flex flex-col">
+          <h2 class="text-lg font-bold text-white mb-1.5 flex items-center justify-between">
+            <span>픽셀 아트 컬러링 북</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4 flex-grow">
+            격자 캔버스 위에서 펼쳐지는 인터랙티브 픽셀 드로잉 도구. 나만의 도트 그래픽을 색칠하고 완성하세요.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mb-5">
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#TailwindCSS</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#GridSystem</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#Palette</span>
+          </div>
+          <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+            <a href="apps/games/pixel-art-coloring.html" class="flex-grow inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition shadow-md shadow-indigo-600/30">
+              <span>🚀 실행하기</span>
+            </a>
+            <a href="apps/games/pixel-art-coloring.html" target="_blank" rel="noopener noreferrer" title="새 탭에서 열기" class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 active:scale-[0.98] transition border border-white/5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3. Orbit Simulator -->
+      <article class="glass-card rounded-2xl overflow-hidden flex flex-col app-card" data-cat="science" data-tags="orbit simulator 궤도 시뮬레이터 중력 천체 우주 물리 n-body space physics gravity">
+        <div class="relative aspect-[16/9] overflow-hidden bg-slate-900 border-b border-white/5">
+          <img src="assets/og/og-orbit-simulator.png" alt="Orbit Simulator" class="w-full h-full object-cover card-thumb" loading="lazy" />
+          <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-500/85 backdrop-blur-md text-white shadow-md">
+            🪐 물리 & 천체 시뮬레이션
+          </span>
+        </div>
+        <div class="p-5 flex-grow flex flex-col">
+          <h2 class="text-lg font-bold text-white mb-1.5 flex items-center justify-between">
+            <span>Orbit Simulator 3D/2D</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4 flex-grow">
+            태양-지구-달의 만유인력과 공전 궤도 방정식을 정밀하게 계산하는 천체물리학 시뮬레이터입니다.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mb-5">
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#N-BodyPhysics</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#VectorMath</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#Astronomy</span>
+          </div>
+          <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+            <a href="apps/science/orbit-simulator.html" class="flex-grow inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition shadow-md shadow-indigo-600/30">
+              <span>🚀 실행하기</span>
+            </a>
+            <a href="apps/science/orbit-simulator.html" target="_blank" rel="noopener noreferrer" title="새 탭에서 열기" class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 active:scale-[0.98] transition border border-white/5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 4. Fireworks Designer -->
+      <article class="glass-card rounded-2xl overflow-hidden flex flex-col app-card" data-cat="science" data-tags="불꽃놀이 시뮬레이터 파티클 물리 fireworks particles simulation">
+        <div class="relative aspect-[16/9] overflow-hidden bg-slate-900 border-b border-white/5">
+          <img src="assets/og/og-fireworks-designer.png" alt="Fireworks Designer" class="w-full h-full object-cover card-thumb" loading="lazy" />
+          <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-pink-500/85 backdrop-blur-md text-white shadow-md">
+            🎆 파티클 & 비주얼 랩
+          </span>
+        </div>
+        <div class="p-5 flex-grow flex flex-col">
+          <h2 class="text-lg font-bold text-white mb-1.5 flex items-center justify-between">
+            <span>Fireworks Designer Simulator</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4 flex-grow">
+            중력, 저항, 광채 효과를 커스텀하여 밤하늘을 수놓는 화려한 불꽃놀이 파티클 연출 랩입니다.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mb-5">
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#ParticleSystem</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#GlowFX</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#Physics</span>
+          </div>
+          <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+            <a href="apps/science/fireworks-designer.html" class="flex-grow inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition shadow-md shadow-indigo-600/30">
+              <span>🚀 실행하기</span>
+            </a>
+            <a href="apps/science/fireworks-designer.html" target="_blank" rel="noopener noreferrer" title="새 탭에서 열기" class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 active:scale-[0.98] transition border border-white/5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 5. Molecule Playground -->
+      <article class="glass-card rounded-2xl overflow-hidden flex flex-col app-card" data-cat="science" data-tags="분자놀이터 화학 분자 결합 molecule chemistry simulation">
+        <div class="relative aspect-[16/9] overflow-hidden bg-slate-900 border-b border-white/5">
+          <img src="assets/og/og-molecule-playground.png" alt="Molecule Playground" class="w-full h-full object-cover card-thumb" loading="lazy" />
+          <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-500/85 backdrop-blur-md text-white shadow-md">
+            🧪 화학 & 분자 결합
+          </span>
+        </div>
+        <div class="p-5 flex-grow flex flex-col">
+          <h2 class="text-lg font-bold text-white mb-1.5 flex items-center justify-between">
+            <span>분자놀이터 Molecule Playground</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4 flex-grow">
+            원소를 배치하고 화학 결합을 형성하며 분자 구조의 안정성과 결합 원리를 탐구합니다.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mb-5">
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#Chemistry</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#MolecularBonds</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#InteractiveGraph</span>
+          </div>
+          <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+            <a href="apps/science/molecule-playground.html" class="flex-grow inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition shadow-md shadow-indigo-600/30">
+              <span>🚀 실행하기</span>
+            </a>
+            <a href="apps/science/molecule-playground.html" target="_blank" rel="noopener noreferrer" title="새 탭에서 열기" class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 active:scale-[0.98] transition border border-white/5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 6. Element Explorer -->
+      <article class="glass-card rounded-2xl overflow-hidden flex flex-col app-card" data-cat="education" data-tags="신나는 원소 탐험 꼬마 연금술사 주기율표 퀴즈 화학 periodic table chemistry quiz">
+        <div class="relative aspect-[16/9] overflow-hidden bg-slate-900 border-b border-white/5">
+          <img src="assets/og/og-element-explorer.png" alt="신나는 원소 탐험" class="w-full h-full object-cover card-thumb" loading="lazy" />
+          <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-500/85 backdrop-blur-md text-white shadow-md">
+            🚀 교육 & 게임화
+          </span>
+        </div>
+        <div class="p-5 flex-grow flex flex-col">
+          <h2 class="text-lg font-bold text-white mb-1.5 flex items-center justify-between">
+            <span>신나는 원소 탐험 & 꼬마 연금술사</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4 flex-grow">
+            주기율표 카드와 퀴즈를 통해 재미있게 원소를 발견하고 연금술을 완성하는 인터랙티브 교육 게임입니다.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mb-5">
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#PeriodicTable</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#Gamification</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#SoundEffects</span>
+          </div>
+          <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+            <a href="apps/education/element-explorer.html" class="flex-grow inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition shadow-md shadow-indigo-600/30">
+              <span>🚀 실행하기</span>
+            </a>
+            <a href="apps/education/element-explorer.html" target="_blank" rel="noopener noreferrer" title="새 탭에서 열기" class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 active:scale-[0.98] transition border border-white/5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 7. Periodic Table Cards -->
+      <article class="glass-card rounded-2xl overflow-hidden flex flex-col app-card" data-cat="education" data-tags="원소 탐험 a3 주기율표 카드 인쇄 도감 periodic table cards print">
+        <div class="relative aspect-[16/9] overflow-hidden bg-slate-900 border-b border-white/5">
+          <img src="assets/og/og-periodic-table-cards.png" alt="A3 주기율표 카드 도감" class="w-full h-full object-cover card-thumb" loading="lazy" />
+          <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/85 backdrop-blur-md text-white shadow-md">
+            📚 교육 & 도감 뷰어
+          </span>
+        </div>
+        <div class="p-5 flex-grow flex flex-col">
+          <h2 class="text-lg font-bold text-white mb-1.5 flex items-center justify-between">
+            <span>원소 탐험 A3 주기율표 카드 도감</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4 flex-grow">
+            A3 대형 인쇄 출력 및 대화형 카드 학습에 최적화된 고해상도 주기율표 시각 도감 뷰어입니다.
+          </p>
+          <div class="flex flex-wrap gap-1.5 mb-5">
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#A3Landscape</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#PrintCSS</span>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-slate-300 border border-white/5">#DataCards</span>
+          </div>
+          <div class="flex items-center gap-2 pt-2 border-t border-white/5">
+            <a href="apps/education/periodic-table-cards.html" class="flex-grow inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition shadow-md shadow-indigo-600/30">
+              <span>🚀 실행하기</span>
+            </a>
+            <a href="apps/education/periodic-table-cards.html" target="_blank" rel="noopener noreferrer" title="새 탭에서 열기" class="p-2.5 rounded-xl text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 active:scale-[0.98] transition border border-white/5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- No results state -->
+    <div id="noResults" class="hidden text-center py-16">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center text-2xl">🔍</div>
+      <p class="text-base font-semibold text-slate-300">검색 결과가 없습니다.</p>
+      <p class="text-xs text-slate-400 mt-1">다른 검색어나 카테고리를 선택해 보세요.</p>
+    </div>
+
+    <!-- Features Overview -->
+    <section class="mt-20 pt-12 border-t border-white/5">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass-panel p-6 rounded-2xl">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-lg mb-4 border border-indigo-500/20">⚡</div>
+          <h3 class="text-base font-bold text-white mb-2">100% 클라이언트 사이드</h3>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            별도의 백엔드 서버나 복잡한 빌드 과정 없이, 브라우저만 있으면 언제 어디서나 즉시 실행됩니다.
+          </p>
+        </div>
+        <div class="glass-panel p-6 rounded-2xl">
+          <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold text-lg mb-4 border border-purple-500/20">📦</div>
+          <h3 class="text-base font-bold text-white mb-2">단일 파일 자급자족 구조</h3>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            각 앱은 HTML, CSS, JavaScript가 단일 파일에 내장되어 다운로드나 공유가 매우 간편합니다.
+          </p>
+        </div>
+        <div class="glass-panel p-6 rounded-2xl">
+          <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-lg mb-4 border border-sky-500/20">🌐</div>
+          <h3 class="text-base font-bold text-white mb-2">GitHub Pages 완벽 호환</h3>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            Open Graph 메타데이터, Favicon, 반응형 네비게이션이 완비되어 배포 즉시 라이브 데모 웹사이트가 완성됩니다.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5 py-8 mt-12 bg-slate-950/60 text-center text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p>© 2026 Interactive Web Apps Collection • Single-File HTML Project</p>
+      <div class="flex items-center gap-4 text-slate-400">
+        <span>Press <kbd class="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[10px] text-slate-300 border border-white/10">/</kbd> to search</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive Filtering Script -->
+  <script>
+    const searchInput = document.getElementById('searchInput');
+    const categoryTabs = document.getElementById('categoryTabs');
+    const appCards = document.querySelectorAll('.app-card');
+    const noResults = document.getElementById('noResults');
+
+    let currentCategory = 'all';
+
+    function filterApps() {
+      const query = searchInput.value.toLowerCase().trim();
+      let visibleCount = 0;
+
+      appCards.forEach(card => {
+        const cat = card.getAttribute('data-cat');
+        const tags = card.getAttribute('data-tags').toLowerCase();
+        const text = card.textContent.toLowerCase();
+
+        const matchesCat = (currentCategory === 'all' || cat === currentCategory);
+        const matchesQuery = (!query || text.includes(query) || tags.includes(query));
+
+        if (matchesCat && matchesQuery) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    categoryTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cat-btn');
+      if (!btn) return;
+
+      categoryTabs.querySelectorAll('.cat-btn').forEach(b => {
+        b.classList.remove('bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-600/30');
+        b.classList.add('bg-white/5', 'text-slate-300');
+      });
+
+      btn.classList.remove('bg-white/5', 'text-slate-300');
+      btn.classList.add('bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-600/30');
+
+      currentCategory = btn.getAttribute('data-cat');
+      filterApps();
+    });
+
+    searchInput.addEventListener('input', filterApps);
+
+    // Keyboard shortcut '/' to focus search
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+      }
+    });
+  </script>
+</body>
+</html>

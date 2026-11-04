@@ -1,0 +1,1955 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Orbit Simulator 3D/2D - 천체 궤도 물리 시뮬레이터</title>
+  <!-- SEO & Primary Meta Tags -->
+  <meta name="description" content="태양, 지구, 달의 천체 중력과 공전 궤도를 정밀하게 시뮬레이션하는 천문학 랩" />
+  <meta name="keywords" content="Orbit Simulator, 궤도 시뮬레이터, 중력 시뮬레이션, 천체물리학, N-Body" />
+  <meta name="author" content="Interactive Web Apps Collection" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicons/favicon-orbit-simulator.svg" />
+  <link rel="alternate icon" type="image/png" href="../../assets/favicons/favicon-orbit-simulator.png" />
+
+  <!-- Open Graph / Facebook / Kakao -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Orbit Simulator 3D/2D - 천체 궤도 물리 시뮬레이터" />
+  <meta property="og:description" content="태양, 지구, 달의 천체 중력과 공전 궤도를 정밀하게 시뮬레이션하는 천문학 랩" />
+  <meta property="og:image" content="../../assets/og/og-orbit-simulator.png" />
+  <meta property="og:site_name" content="Interactive Web Apps Showcase" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Orbit Simulator 3D/2D - 천체 궤도 물리 시뮬레이터" />
+  <meta name="twitter:description" content="태양, 지구, 달의 천체 중력과 공전 궤도를 정밀하게 시뮬레이션하는 천문학 랩" />
+  <meta name="twitter:image" content="../../assets/og/og-orbit-simulator.png" />
+  <style>
+    :root{
+      --panel-bg: rgba(0,0,0,0.65);
+      --panel-border: rgba(255,255,255,0.12);
+      --text: #fff;
+      --muted: rgba(255,255,255,0.75);
+      --btn-bg: rgba(255,255,255,0.10);
+      --btn-bg-hover: rgba(255,255,255,0.16);
+      --accent: #7dd3fc;
+      --danger: #fb7185;
+      --success: #86efac;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    canvas{
+      display:block;
+      width:100vw;
+      height:100vh;
+      touch-action:none; /* we implement our own pan/zoom */
+      background:#000;
+    }
+    #ui{
+      position:absolute;
+      top:10px;
+      left:10px;
+      width: 320px;
+      max-width: calc(100vw - 20px);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 10px;
+      z-index: 10;
+      backdrop-filter: blur(6px);
+    }
+    .row{ margin-bottom: 8px; }
+    label{ color: var(--muted); font-size: 13px; }
+    select, button, input[type=range]{
+      width:100%;
+      margin-top: 4px;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: rgba(0,0,0,0.35);
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+    button{
+      cursor:pointer;
+      background: var(--btn-bg);
+    }
+    button:hover{ background: var(--btn-bg-hover); }
+    .btnRow{ display:flex; gap:8px; }
+    .btnRow button{ width:auto; flex:1; }
+    #status{
+      white-space: pre-line;
+      font-size: 13px;
+      color: var(--muted);
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px dashed rgba(255,255,255,0.15);
+    }
+    #tiny{
+      font-size:12px;
+      color: rgba(255,255,255,0.55);
+      margin-top: 6px;
+      line-height: 1.25;
+    }
+
+    /* Modal */
+    #modalBackdrop{
+      position:absolute;
+      inset:0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index: 50;
+    }
+    #modal{
+      width: min(560px, calc(100vw - 40px));
+      background: rgba(0,0,0,0.85);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    #modalTitle{ font-size: 18px; margin-bottom: 6px; }
+    #modalBody{ white-space: pre-line; color: var(--muted); line-height: 1.35; }
+    #modalActions{ display:flex; gap:10px; margin-top: 12px; }
+    #modalActions button{ flex: 1; }
+    .primary{ border-color: rgba(125,211,252,0.45); }
+    .danger{ border-color: rgba(251,113,133,0.45); }
+    .success{ border-color: rgba(134,239,172,0.45); }
+
+    /* Small badge */
+    .badge{
+      display:inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      margin-left: 6px;
+      color: rgba(255,255,255,0.85);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div id="ui">
+    <div class="row">
+      <label for="projectileType">Tool</label>
+      <select id="projectileType">
+        <option value="asteroid">Launch: Asteroid</option>
+        <option value="rocket">Launch: Rocket</option>
+        <option value="select">Select projectile</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="mode">Mode</label>
+      <select id="mode">
+        <option value="full">Full Solar System (heliocentric)</option>
+        <option value="lab">Earth–Moon Lab (Earth-centered)</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="warp">Time Warp <span id="warpLabel" class="badge">x1</span></label>
+      <input id="warp" type="range" min="1" max="100" step="1" value="1" />
+    </div>
+
+    <div class="row">
+      <label>View</label>
+      <div class="btnRow">
+        <button id="viewOverview">Overview</button>
+        <button id="viewEarth">Earth</button>
+        <button id="viewMoon">Moon</button>
+        <button id="viewSun">Sun</button>
+      </div>
+      <div id="tiny">Pan: middle-mouse drag (PC) / two-finger drag (iPad). Zoom: wheel / pinch.</div>
+    </div>
+
+    <div class="row">
+      <label for="mission">Mission</label>
+      <select id="mission">
+        <option value="">— Select a mission —</option>
+        <option value="m1">1) Make a Sun-orbiting rocket</option>
+        <option value="m2">2) Make an Earth-orbiting rocket</option>
+        <option value="m3">3) Enter a Moon orbit (elliptic)</option>
+        <option value="m4">4) Land on Earth (impact)</option>
+        <option value="m5">5) Escape the Solar System (hyperbolic)</option>
+      </select>
+    </div>
+
+    <div class="row btnRow">
+      <button id="reset" class="danger">Reset</button>
+      <button id="why" class="primary">Why?</button>
+    </div>
+
+    <div class="row">
+      <div id="status">Tip: drag on the canvas to launch. Use “Select projectile” to inspect orbit and predicted path.</div>
+    </div>
+  </div>
+
+  <div id="modalBackdrop">
+    <div id="modal">
+      <div id="modalTitle">Title</div>
+      <div id="modalBody">Body</div>
+      <div id="modalActions"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // =====================
+  // Canvas + DPI
+  // =====================
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  function resize(){
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = Math.floor(window.innerWidth * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // =====================
+  // UI
+  // =====================
+  const projectileType = document.getElementById('projectileType');
+  const modeSel = document.getElementById('mode');
+  const warp = document.getElementById('warp');
+  const warpLabel = document.getElementById('warpLabel');
+  const missionSel = document.getElementById('mission');
+  const status = document.getElementById('status');
+  const btnReset = document.getElementById('reset');
+  const btnWhy = document.getElementById('why');
+  const viewOverview = document.getElementById('viewOverview');
+  const viewEarth = document.getElementById('viewEarth');
+  const viewMoon = document.getElementById('viewMoon');
+  const viewSun = document.getElementById('viewSun');
+
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalBody = document.getElementById('modalBody');
+  const modalActions = document.getElementById('modalActions');
+
+  warp.addEventListener('input', () => {
+    warpLabel.textContent = 'x' + warp.value;
+  });
+
+  function showModal({title, body, actions}){
+    modalTitle.textContent = title;
+    modalBody.textContent = body;
+    modalActions.innerHTML = '';
+    for (const a of actions){
+      const b = document.createElement('button');
+      b.textContent = a.label;
+      if (a.variant) b.classList.add(a.variant);
+      b.addEventListener('click', () => {
+        hideModal();
+        a.onClick && a.onClick();
+      });
+      modalActions.appendChild(b);
+    }
+    modalBackdrop.style.display = 'flex';
+  }
+  function hideModal(){
+    modalBackdrop.style.display = 'none';
+  }
+
+  btnWhy.addEventListener('click', () => {
+    showModal({
+      title: 'Why do orbits happen?',
+      body:
+        'If a projectile moves sideways fast enough, it keeps “missing” the planet and falls around it — that is an orbit.\n\n' +
+        'Too slow → it falls and impacts.\nToo fast → it escapes on a hyperbolic path.',
+      actions: [{ label: 'Got it', variant:'primary' }]
+    });
+  });
+
+  // =====================
+  // Physics constants (km, s, km^3/s^2)
+  // =====================
+  const MU = {
+    Sun: 1.327124400412794e11,
+    Earth: 3.986004e5,
+    Moon: 4.902800118e3,
+    Mercury: 2.2031868551e4,
+    Venus: 3.248590e5,
+    Mars: 4.282837e4,
+    Jupiter: 1.267127641e8,
+    Saturn: 3.793998e7,
+    Uranus: 5.794556e6,
+    Neptune: 6.836530e6,
+  };
+  const RADIUS = {
+    Sun: 695700,
+    Earth: 6371,
+    Moon: 1737.4,
+    Mercury: 2439.7,
+    Venus: 6051.8,
+    Mars: 3389.5,
+    Jupiter: 69911,
+    Saturn: 58232,
+    Uranus: 25362,
+    Neptune: 24622,
+  };
+
+  // Full-mode simple circular ephemeris
+  const FULL_BODIES = [
+    { name:'Sun', color:'#ffcc00', parent:null, orbitalRadius:0, orbitalPeriod:Infinity },
+    { name:'Mercury', color:'#8a8a8a', parent:'Sun', orbitalRadius:57.9e6, orbitalPeriod:88*24*3600 },
+    { name:'Venus', color:'#ffd166', parent:'Sun', orbitalRadius:108.2e6, orbitalPeriod:225*24*3600 },
+    { name:'Earth', color:'#3aa0ff', parent:'Sun', orbitalRadius:149.6e6, orbitalPeriod:365.25*24*3600 },
+    { name:'Moon', color:'#cfcfcf', parent:'Earth', orbitalRadius:384400, orbitalPeriod:27.32*24*3600 },
+    { name:'Mars', color:'#ff6b6b', parent:'Sun', orbitalRadius:227.9e6, orbitalPeriod:687*24*3600 },
+    { name:'Jupiter', color:'#d6a77a', parent:'Sun', orbitalRadius:778.5e6, orbitalPeriod:4333*24*3600 },
+    { name:'Saturn', color:'#d9c7a3', parent:'Sun', orbitalRadius:1.433e9, orbitalPeriod:10759*24*3600 },
+    { name:'Uranus', color:'#67d5ff', parent:'Sun', orbitalRadius:2.871e9, orbitalPeriod:30687*24*3600 },
+    { name:'Neptune', color:'#3b7cff', parent:'Sun', orbitalRadius:4.495e9, orbitalPeriod:60190*24*3600 },
+  ];
+
+  // Earth–Moon Lab settings
+  const LAB_MOON_RADIUS_SCALE = 50; // exaggerate moon distance for visibility
+  const LAB_MOON_ORBIT_R = 384400 * LAB_MOON_RADIUS_SCALE;
+  const LAB_MOON_ORBIT_T = 27.32*24*3600;
+
+  // =====================
+  // Camera (pan/zoom)
+  // =====================
+  let camX = 0, camY = 0;         // world km
+  let worldScale = 1e7;           // km per screen px
+
+  function centerX(){ return window.innerWidth/2; }
+  function centerY(){ return window.innerHeight/2; }
+
+  function worldToScreen(wx, wy){
+    return {
+      x: centerX() + (wx - camX)/worldScale,
+      y: centerY() + (wy - camY)/worldScale,
+    };
+  }
+  function screenToWorld(sx, sy){
+    return {
+      x: camX + (sx - centerX())*worldScale,
+      y: camY + (sy - centerY())*worldScale,
+    };
+  }
+
+  function zoomAroundScreenPoint(ax, ay, zoomFactor){
+    const before = screenToWorld(ax, ay);
+    worldScale *= zoomFactor;
+    // clamp zoom
+    worldScale = Math.min(Math.max(worldScale, 1e2), 1e10);
+    const after = screenToWorld(ax, ay);
+    camX += (before.x - after.x);
+    camY += (before.y - after.y);
+  }
+
+  // PC: wheel zoom (anchor at pointer)
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const ax = e.clientX - rect.left;
+    const ay = e.clientY - rect.top;
+    const zoomFactor = Math.exp(e.deltaY * 0.001);
+    zoomAroundScreenPoint(ax, ay, zoomFactor);
+  }, { passive:false });
+
+  // PC: middle mouse drag pan
+  let isPan = false;
+  let panLast = null;
+  canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 1){
+      isPan = true;
+      panLast = { x: e.clientX, y: e.clientY };
+      e.preventDefault();
+    }
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!isPan) return;
+    const dx = e.clientX - panLast.x;
+    const dy = e.clientY - panLast.y;
+    camX -= dx * worldScale;
+    camY -= dy * worldScale;
+    panLast = { x: e.clientX, y: e.clientY };
+  });
+  window.addEventListener('mouseup', () => {
+    isPan = false;
+    panLast = null;
+  });
+
+  // iPad: two-finger pan + pinch
+  let pinchStartDist = null;
+  let twoFingerStart = null;
+  function touchDist(t1,t2){
+    const dx = t2.clientX - t1.clientX;
+    const dy = t2.clientY - t1.clientY;
+    return Math.hypot(dx,dy);
+  }
+  function touchCenter(t1,t2){
+    return { x:(t1.clientX+t2.clientX)/2, y:(t1.clientY+t2.clientY)/2 };
+  }
+
+  // =====================
+  // Mode + body positions
+  // =====================
+  let mode = modeSel.value; // 'full' or 'lab'
+  let simT = 0;
+
+  function getBodyPosition(bodyName, t){
+    if (mode === 'lab'){
+      if (bodyName === 'Earth') return { x:0, y:0 };
+      if (bodyName === 'Moon'){
+        const w = 2*Math.PI/LAB_MOON_ORBIT_T;
+        const a = w*t;
+        return { x: LAB_MOON_ORBIT_R*Math.cos(a), y: LAB_MOON_ORBIT_R*Math.sin(a) };
+      }
+      if (bodyName === 'Sun'){
+        // Sun is not in lab physics. Position is irrelevant.
+        return { x: -1e9, y: 0 };
+      }
+      return { x:0, y:0 };
+    }
+
+    // full mode: recursive parent circular motion
+    const map = new Map(FULL_BODIES.map(b => [b.name, b]));
+    function rec(name){
+      const b = map.get(name);
+      if (!b || b.orbitalRadius === 0 || !isFinite(b.orbitalPeriod)) return { x:0, y:0 };
+      const parentPos = b.parent ? rec(b.parent) : { x:0, y:0 };
+      const w = 2*Math.PI/b.orbitalPeriod;
+      const a = w*t;
+      return { x: parentPos.x + b.orbitalRadius*Math.cos(a), y: parentPos.y + b.orbitalRadius*Math.sin(a) };
+    }
+    return rec(bodyName);
+  }
+
+  function getBodyVelocity(bodyName, t){
+    // numerical derivative (small dt)
+    const dt = 5; // seconds
+    const p1 = getBodyPosition(bodyName, t);
+    const p2 = getBodyPosition(bodyName, t + dt);
+    return { vx:(p2.x-p1.x)/dt, vy:(p2.y-p1.y)/dt };
+  }
+
+  function physicsBodies(){
+    if (mode === 'lab') return ['Earth','Moon'];
+    // full mode includes all planets + moon + sun
+    return FULL_BODIES.map(b => b.name);
+  }
+
+  // =====================
+  // Projectiles
+  // =====================
+  const COLORS = ['#00ff00','#ff00ff','#00ffff','#ff9900','#66ff00','#9900ff','#00ff66','#ff0066','#ffcc00','#00ccff'];
+  let launchCount = 0;
+  const MAX_TRAIL = 300;
+  const projectiles = []; // {x,y,vx,vy,color,path,active,lastEvent,selectionData...}
+  let selected = null;
+
+  // Explosions (simple particle/flash animation)
+  // Each explosion: {x,y,age,duration,color}
+  const explosions = [];
+  function spawnExplosion(x, y, color){
+    explosions.push({ x, y, age: 0, duration: 0.8, color: color || '#ffaa00' });
+  }
+
+  // =====================
+  // Acceleration
+  // =====================
+  // Effective mu for lab mode. We exaggerate the Earth–Moon distance for visibility;
+  // without compensation, the Moon's gravity becomes too weak at the larger distance.
+  // Scaling mu by (distance_scale^2) keeps the lunar gravity feel plausible.
+  function muEffective(name){
+    if (mode === 'lab' && name === 'Moon') {
+      return MU.Moon * LAB_MOON_RADIUS_SCALE * LAB_MOON_RADIUS_SCALE;
+    }
+    return MU[name];
+  }
+  function computeAcceleration(px, py, t){
+    let ax=0, ay=0;
+    for (const name of physicsBodies()){
+      const mu = muEffective(name);
+      const bp = getBodyPosition(name, t);
+      const dx = px - bp.x;
+      const dy = py - bp.y;
+      const r2 = dx*dx + dy*dy;
+      if (r2 < 1) continue;
+      const r = Math.sqrt(r2);
+      // Use a physics-only minimum radius (in km) so camera zooming never
+      // changes the simulation. (A prior version tied min radius to the
+      // drawn pixel size, which caused orbits to change or false impacts when
+      // zooming in/out.)
+      const minR = physicsRadiusWorld(name);
+      const rr = Math.max(r, minR);
+      const denom = rr*rr*rr;
+      ax += (-mu * dx) / denom;
+      ay += (-mu * dy) / denom;
+    }
+    return { ax, ay };
+  }
+
+  // Visual sizing helper (in pixels) so the "hit area" can match what the user sees.
+  // This prevents the common confusion where a projectile appears to pass through an
+  // exaggerated body that is drawn larger than its physical radius.
+  function visualBodyRadiusPx(name){
+    const earthMu = MU.Earth;
+    let influence = Math.pow(MU[name]/earthMu, 0.2);
+    influence = Math.min(Math.max(influence, 0.6), 3.0);
+    const physicalPx = RADIUS[name]/worldScale;
+    let minPx = 6;
+    if (mode === 'lab') {
+      // Larger minimum sizes in Lab so Earth/Moon are usable.
+      minPx = (name === 'Earth') ? 22 : 12;
+    }
+    return Math.max(minPx, physicalPx*1.6*influence);
+  }
+
+  // Physics radius in world-km (independent of camera zoom). We intentionally
+  // keep this separate from the drawn pixel size so zooming doesn't alter
+  // collisions or gravity.
+  function physicsRadiusWorld(name){
+    return RADIUS[name];
+  }
+
+  // Robust collision detection:
+  // 1) Uses a collision radius consistent with the drawn body in Lab mode.
+  // 2) Uses segment-sphere intersection to prevent "tunneling" at high time warp.
+  function checkCollisionSegment(proj, x0, y0, x1, y1, t){
+    for (const name of physicsBodies()){
+      const c = getBodyPosition(name, t);
+      const R = physicsRadiusWorld(name);
+      const dx = x1 - x0;
+      const dy = y1 - y0;
+      const fx = x0 - c.x;
+      const fy = y0 - c.y;
+      const a = dx*dx + dy*dy;
+      if (a < 1e-12) continue;
+      const b = 2*(fx*dx + fy*dy);
+      const cc = (fx*fx + fy*fy) - R*R;
+      const disc = b*b - 4*a*cc;
+      if (disc < 0) continue;
+      const s = Math.sqrt(disc);
+      const u1 = (-b - s)/(2*a);
+      const u2 = (-b + s)/(2*a);
+      const u = (u1 >= 0 && u1 <= 1) ? u1 : ((u2 >= 0 && u2 <= 1) ? u2 : null);
+      if (u === null) continue;
+
+      // Collision occurred
+      proj.active = false;
+      proj.x = x0 + u*dx;
+      proj.y = y0 + u*dy;
+      proj.lastEvent = { type:'impact', body:name, time:t };
+      // Start explosion animation and begin fading the trail.
+      proj.fade = 1;
+      proj.fadeOut = true;
+      spawnExplosion(proj.x, proj.y, proj.color);
+      setStatus(`Impact! Collided with ${name}.`);
+      return proj.lastEvent;
+    }
+    return null;
+  }
+
+  // =====================
+  // Orbit analysis relative to a body
+  // =====================
+  function computeInfluences(proj, t){
+    const list = [];
+    for (const name of physicsBodies()){
+      const bp = getBodyPosition(name, t);
+      const dx = proj.x - bp.x;
+      const dy = proj.y - bp.y;
+      const r2 = dx*dx + dy*dy;
+      if (r2 <= 1) continue;
+      const mag = muEffective(name)/r2;
+      list.push({ name, mag });
+    }
+    list.sort((a,b)=>b.mag-a.mag);
+    return list;
+  }
+
+  function orbitElementsRelativeTo(bodyName, proj, t){
+    const mu = muEffective(bodyName);
+    const bp = getBodyPosition(bodyName, t);
+    const bv = getBodyVelocity(bodyName, t);
+
+    const rx = proj.x - bp.x;
+    const ry = proj.y - bp.y;
+    const vx = proj.vx - bv.vx;
+    const vy = proj.vy - bv.vy;
+
+    const r = Math.hypot(rx,ry);
+    const v2 = vx*vx + vy*vy;
+    const energy = 0.5*v2 - mu/r;
+    const h = rx*vy - ry*vx;
+    const e = Math.sqrt(Math.max(0, 1 + (2*energy*h*h)/(mu*mu)));
+
+    let type = 'Hyperbolic';
+    let period = null;
+    if (energy < 0) {
+      type = 'Elliptic';
+      const a = -mu/(2*energy);
+      if (a > 0 && isFinite(a)) period = 2*Math.PI*Math.sqrt(a*a*a/mu);
+    } else if (Math.abs(energy) < 1e-9) {
+      type = 'Parabolic';
+    }
+
+    return { body: bodyName, type, period, e };
+  }
+
+  // Predicted path integration (does not change real state)
+  function predictedPathFor(proj, t0, secondsTotal){
+    const pts = [];
+    const segments = 400;
+    const dt = secondsTotal/segments;
+    let x=proj.x, y=proj.y, vx=proj.vx, vy=proj.vy;
+    let t=t0;
+    for (let i=0;i<=segments;i++){
+      pts.push({x,y});
+      const a1 = computeAcceleration(x,y,t);
+      vx += 0.5*a1.ax*dt; vy += 0.5*a1.ay*dt;
+      x += vx*dt; y += vy*dt;
+      const a2 = computeAcceleration(x,y,t+dt);
+      vx += 0.5*a2.ax*dt; vy += 0.5*a2.ay*dt;
+      t += dt;
+    }
+    return pts;
+  }
+
+  function updateSelectionInfo(proj){
+    const infl = computeInfluences(proj, simT);
+    const primary = infl.length ? infl[0].name : (mode==='lab'?'Earth':'Sun');
+    const elems = orbitElementsRelativeTo(primary, proj, simT);
+
+    // Predicted duration:
+    let predT = 2*365.25*24*3600; // fallback
+    if (elems.type === 'Elliptic' && elems.period && isFinite(elems.period)){
+      predT = Math.min(elems.period, 2*365.25*24*3600);
+    }
+
+    proj.selection = {
+      influences: infl.slice(0,3).map(x=>x.name),
+      primary,
+      orbitType: elems.type,
+      period: elems.period,
+      e: elems.e,
+      predicted: predictedPathFor(proj, simT, predT)
+    };
+
+    // Render status
+    let s = `Orbit (about ${proj.selection.primary}): ${proj.selection.orbitType} (e=${proj.selection.e.toFixed(2)})\n`;
+    s += `Top gravity sources: ${proj.selection.influences.join(', ')}\n`;
+    if (proj.selection.orbitType === 'Elliptic' && proj.selection.period){
+      const P = proj.selection.period;
+      if (P >= 86400) s += `Orbital period: ${(P/86400).toFixed(2)} days\n`;
+      else s += `Orbital period: ${(P/3600).toFixed(2)} hours\n`;
+    } else {
+      s += `Orbital period: none\n`;
+    }
+    status.textContent = s + "\nTip: Click the projectile again (Select tool) to update predicted path.";
+  }
+
+  // =====================
+  // Missions
+  // =====================
+  const missions = {
+    m1: {
+      title: 'Mission 1 — Sun orbit (Rocket)',
+      guide:
+        'Goal: Create an elliptic orbit around the Sun using a ROCKET.\n\n' +
+        'How:\n' +
+        '1) Switch to Full Solar System mode.\n' +
+        '2) Launch: Rocket. Drag to set sideways speed.\n' +
+        '3) Use Select tool to inspect orbit type.\n\n' +
+        'Success: Orbit about Sun = Elliptic for a short time (stable).',
+      mode: 'full',
+      focus: 'sun',
+      lockProjectile: 'rocket',
+      holdSeconds: 3*24*3600,
+      check: (proj) => {
+        const infl = computeInfluences(proj, simT);
+        const primary = infl.length ? infl[0].name : 'Sun';
+        const el = orbitElementsRelativeTo('Sun', proj, simT);
+        return proj.active && el.type==='Elliptic' && primary==='Sun';
+      }
+    },
+    m2: {
+      title: 'Mission 2 — Earth orbit (Rocket)',
+      guide:
+        'Goal: Create an elliptic orbit around Earth using a ROCKET.\n\n' +
+        'We will use the Earth–Moon Lab (Earth is fixed in the center).\n\n' +
+        'Success: Orbit about Earth = Elliptic and Earth is the top gravity source.',
+      mode: 'lab',
+      focus: 'earth',
+      lockProjectile: 'rocket',
+      holdSeconds: 2*3600,
+      check: (proj) => {
+        const infl = computeInfluences(proj, simT);
+        const primary = infl.length ? infl[0].name : 'Earth';
+        const el = orbitElementsRelativeTo('Earth', proj, simT);
+        return proj.active && el.type==='Elliptic' && primary==='Earth';
+      }
+    },
+    m3: {
+      title: 'Mission 3 — Moon orbit (Elliptic)',
+      guide:
+        'Goal: Enter an elliptic orbit around the Moon.\n\n' +
+        'Tip: In the Earth–Moon Lab, zoom to the Moon and launch near it.\n\n' +
+        'Success: Orbit about Moon = Elliptic and Moon is the top gravity source.\n' +
+        'After success, inspect the predicted path to see one full orbit time.',
+      mode: 'lab',
+      focus: 'moon',
+      lockProjectile: 'rocket',
+      holdSeconds: 1*3600,
+      check: (proj) => {
+        const infl = computeInfluences(proj, simT);
+        const primary = infl.length ? infl[0].name : 'Moon';
+        const el = orbitElementsRelativeTo('Moon', proj, simT);
+        return proj.active && el.type==='Elliptic' && primary==='Moon';
+      }
+    },
+    m4: {
+      title: 'Mission 4 — Land on Earth (Impact)',
+      guide:
+        'Goal: Make a projectile hit Earth (impact).\n\n' +
+        'In Earth–Moon Lab, Earth stays at the center.\n' +
+        'Drag carefully so it collides with Earth.',
+      mode: 'lab',
+      focus: 'earth',
+      lockProjectile: 'asteroid',
+      holdSeconds: 0,
+      check: (proj) => {
+        return !!(proj.lastEvent && proj.lastEvent.type==='impact' && proj.lastEvent.body==='Earth');
+      }
+    },
+    m5: {
+      title: 'Mission 5 — Escape the Solar System',
+      guide:
+        'Goal: Create a hyperbolic (escape) path relative to the Sun.\n\n' +
+        'Use Full Solar System mode. Launch fast enough that the orbit about Sun becomes Hyperbolic.\n' +
+        'In Select tool, you should see: Orbit (about Sun) = Hyperbolic and “Orbital period: none”.',
+      mode: 'full',
+      focus: 'overview',
+      lockProjectile: 'rocket',
+      holdSeconds: 0,
+      check: (proj) => {
+        const el = orbitElementsRelativeTo('Sun', proj, simT);
+        return proj.active && el.type==='Hyperbolic';
+      }
+    },
+  };
+
+  const missionOrder = ['m1','m2','m3','m4','m5'];
+  let activeMissionId = '';
+  let missionRunning = false;
+  let missionHold = new Map(); // projectile -> seconds met
+
+  function setStatus(msg){ status.textContent = msg; }
+
+  function startMission(mid){
+    const m = missions[mid];
+    if (!m) return;
+
+    // apply mode
+    if (mode !== m.mode){
+      modeSel.value = m.mode;
+      setMode(m.mode);
+    }
+
+    // lock projectile type for mission
+    if (m.lockProjectile){
+      projectileType.value = m.lockProjectile;
+    }
+
+    // reset state
+    resetSimulation();
+
+    // focus camera
+    focus(m.focus);
+
+    activeMissionId = mid;
+    missionRunning = true;
+    missionHold = new Map();
+
+    setStatus(`Mission started: ${m.title}\n\nDrag on canvas to launch. Switch to Select tool to inspect orbit.`);
+  }
+
+  function completeMission({summaryLines}){
+    const m = missions[activeMissionId];
+    missionRunning = false;
+
+    const nextId = nextMissionId(activeMissionId);
+    const body = `${m.title}\n\n${summaryLines.join('\n')}\n\nGo to the next mission?`;
+
+    showModal({
+      title: 'Mission Complete! \u2705',
+      body,
+      actions: [
+        {
+          label: nextId ? 'Next mission' : 'Done',
+          variant:'success',
+          onClick: () => {
+            if (nextId){
+              missionSel.value = nextId;
+              // show guide then start
+              showMissionGuide(nextId);
+            } else {
+              setStatus('All missions complete! Feel free to experiment.');
+            }
+          }
+        },
+        {
+          label: 'Keep practicing',
+          variant:'primary',
+          onClick: () => {
+            setStatus('Nice! Keep experimenting. You can restart the mission from the Mission menu.');
+          }
+        }
+      ]
+    });
+  }
+
+  function nextMissionId(current){
+    const idx = missionOrder.indexOf(current);
+    if (idx < 0) return '';
+    return missionOrder[idx+1] || '';
+  }
+
+  function showMissionGuide(mid){
+    const m = missions[mid];
+    if (!m) return;
+    showModal({
+      title: m.title,
+      body: m.guide + "\n\nWhen you're ready, press Start.",
+      actions: [
+        { label: 'Start', variant:'primary', onClick: () => startMission(mid) },
+        { label: 'Cancel', variant:'danger', onClick: () => { missionSel.value = ''; } }
+      ]
+    });
+  }
+
+  missionSel.addEventListener('change', () => {
+    const mid = missionSel.value;
+    if (!mid) return;
+    showMissionGuide(mid);
+  });
+
+  // =====================
+  // Mode switching
+  // =====================
+  function setMode(newMode){
+    mode = newMode;
+    resetSimulation();
+    if (mode === 'lab'){
+      // Earth centered by default
+      focus('earth');
+    } else {
+      focus('overview');
+    }
+  }
+  modeSel.addEventListener('change', () => setMode(modeSel.value));
+
+  // =====================
+  // View focus
+  // =====================
+  function focus(which){
+    if (mode === 'lab'){
+      if (which === 'earth' || which === 'overview'){
+        camX = 0; camY = 0;
+        // show moon orbit comfortably
+        const radius = LAB_MOON_ORBIT_R * 1.4;
+        const minDim = Math.min(window.innerWidth, window.innerHeight);
+        worldScale = (radius*2) / (0.70*minDim);
+        return;
+      }
+      if (which === 'moon'){
+        const mp = getBodyPosition('Moon', simT);
+        camX = mp.x; camY = mp.y;
+        const radius = 250000; // km (zoom-in around moon)
+        const minDim = Math.min(window.innerWidth, window.innerHeight);
+        worldScale = (radius*2) / (0.70*minDim);
+        return;
+      }
+      if (which === 'sun'){
+        // in lab, sun marker only; overview is better
+        focus('earth');
+        return;
+      }
+      return;
+    }
+
+    // full mode
+    if (which === 'sun'){
+      camX = 0; camY = 0;
+      const radius = 1.6e8; // around Earth's orbit scale
+      const minDim = Math.min(window.innerWidth, window.innerHeight);
+      worldScale = (radius*2)/(0.70*minDim);
+      return;
+    }
+    if (which === 'earth'){
+      const ep = getBodyPosition('Earth', simT);
+      camX = ep.x; camY = ep.y;
+      const radius = 1.2e6; // show Moon neighborhood
+      const minDim = Math.min(window.innerWidth, window.innerHeight);
+      worldScale = (radius*2)/(0.70*minDim);
+      return;
+    }
+    if (which === 'moon'){
+      const mp = getBodyPosition('Moon', simT);
+      camX = mp.x; camY = mp.y;
+      const radius = 2.0e5;
+      const minDim = Math.min(window.innerWidth, window.innerHeight);
+      worldScale = (radius*2)/(0.70*minDim);
+      return;
+    }
+    // overview
+    camX = 0; camY = 0;
+    const maxR = 4.495e9;
+    const minDim = Math.min(window.innerWidth, window.innerHeight);
+    worldScale = (maxR*2)/(0.55*minDim);
+  }
+
+  viewOverview.addEventListener('click', () => focus('overview'));
+  viewEarth.addEventListener('click', () => focus('earth'));
+  viewMoon.addEventListener('click', () => focus('moon'));
+  viewSun.addEventListener('click', () => focus('sun'));
+
+  // =====================
+  // Reset
+  // =====================
+  function resetSimulation(){
+    projectiles.length = 0;
+    selected = null;
+    launchCount = 0;
+    missionHold = new Map();
+    simT = 0;
+    setStatus('Tip: drag on the canvas to launch. Use “Select projectile” to inspect orbit and predicted path.');
+  }
+  btnReset.addEventListener('click', () => {
+    missionRunning = false;
+    activeMissionId = '';
+    missionSel.value = '';
+    resetSimulation();
+    focus(mode === 'lab' ? 'earth' : 'overview');
+  });
+
+  // =====================
+  // Launch + Select interactions
+  // =====================
+  let dragStart = null;
+  let dragNow = null;
+
+  function selectProjectileAt(sx, sy){
+    let best=null, bestD=1e9;
+    for (const p of projectiles){
+      const sp = worldToScreen(p.x,p.y);
+      const d = Math.hypot(sp.x - sx, sp.y - sy);
+      if (d < 12 && d < bestD){ best=p; bestD=d; }
+    }
+    selected = best;
+    if (selected){
+      updateSelectionInfo(selected);
+    }
+  }
+
+  function pointerDown(clientX, clientY, isTouch){
+    const rect = canvas.getBoundingClientRect();
+    const sx = clientX - rect.left;
+    const sy = clientY - rect.top;
+
+    if (projectileType.value === 'select'){
+      selectProjectileAt(sx, sy);
+      dragStart = null;
+      dragNow = null;
+      return;
+    }
+
+    dragStart = { x:sx, y:sy };
+    dragNow = { ...dragStart };
+  }
+
+  function pointerMove(clientX, clientY){
+    if (!dragStart) return;
+    if (projectileType.value === 'select') return;
+    const rect = canvas.getBoundingClientRect();
+    dragNow = { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  function pointerUp(clientX, clientY){
+    if (!dragStart) return;
+    if (projectileType.value === 'select'){
+      dragStart = null;
+      dragNow = null;
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    const end = { x: clientX - rect.left, y: clientY - rect.top };
+
+    const p0 = screenToWorld(dragStart.x, dragStart.y);
+    const p1 = screenToWorld(end.x, end.y);
+    // Use pixel-based launch sensitivity so Earth/Moon orbits are achievable
+    // regardless of current zoom. (World-based scaling can become too strong
+    // when zoomed out.)
+    const pxDx = end.x - dragStart.x;
+    const pxDy = end.y - dragStart.y;
+    // Pixel-based launch sensitivity (km/s per pixel). Tuned so that:
+    // - In Lab mode, you can comfortably make Earth/Moon orbits.
+    // - In Full mode, you can orbit planets if you launch near them.
+    const vPerPixel = (mode === 'lab') ? 0.06 : 0.08;
+
+    // Base velocity is relative to the *current view frame*.
+    // In Full mode the planets are moving around the Sun; to make planet-centric
+    // orbits achievable, we automatically add the orbital velocity of the nearest
+    // nearby body (within a threshold) so the launch is effectively in that
+    // body's local co-moving frame.
+    let vx0 = pxDx * vPerPixel;
+    let vy0 = pxDy * vPerPixel;
+
+    if (mode === 'full') {
+      let nearest = null;
+      let nearestD = 1e99;
+      for (const name of physicsBodies()) {
+        if (name === 'Sun') continue;
+        const bp = getBodyPosition(name, simT);
+        const d = Math.hypot(p0.x - bp.x, p0.y - bp.y);
+        const R = physicsRadiusWorld(name);
+        const thresh = 40 * R;
+        if (d < thresh && d < nearestD) {
+          nearest = name;
+          nearestD = d;
+        }
+      }
+      if (nearest) {
+        const bv = getBodyVelocity(nearest, simT);
+        vx0 += bv.vx;
+        vy0 += bv.vy;
+      }
+    }
+
+    const color = COLORS[launchCount % COLORS.length];
+    launchCount++;
+
+    const proj = {
+      x: p0.x,
+      y: p0.y,
+      vx: vx0,
+      vy: vy0,
+      color,
+      path: [],
+      active: true,
+      lastEvent: null,
+      selection: null,
+      fade: 1,
+      fadeOut: false,
+    };
+    projectiles.push(proj);
+    selected = null;
+
+    dragStart = null;
+    dragNow = null;
+  }
+
+  // Mouse launch/select
+  canvas.addEventListener('mousedown', (e) => {
+    // ignore middle button (pan)
+    if (e.button === 1) return;
+    pointerDown(e.clientX, e.clientY, false);
+  });
+  window.addEventListener('mousemove', (e) => pointerMove(e.clientX, e.clientY));
+  window.addEventListener('mouseup', (e) => {
+    // ignore middle
+    if (e.button === 1) return;
+    pointerUp(e.clientX, e.clientY);
+  });
+
+  // Touch: one finger = launch/select, two fingers = pan+pinch
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1){
+      const t = e.touches[0];
+      pointerDown(t.clientX, t.clientY, true);
+    }
+    if (e.touches.length === 2){
+      pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+      twoFingerStart = touchCenter(e.touches[0], e.touches[1]);
+      // stop any launch drag
+      dragStart = null;
+      dragNow = null;
+    }
+  }, { passive:false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1){
+      const t = e.touches[0];
+      pointerMove(t.clientX, t.clientY);
+    }
+    if (e.touches.length === 2 && pinchStartDist && twoFingerStart){
+      const c = touchCenter(e.touches[0], e.touches[1]);
+      const dxPx = c.x - twoFingerStart.x;
+      const dyPx = c.y - twoFingerStart.y;
+      camX -= dxPx * worldScale;
+      camY -= dyPx * worldScale;
+      twoFingerStart = c;
+
+      const d = touchDist(e.touches[0], e.touches[1]);
+      const ratio = d / pinchStartDist;
+      // fingers apart => ratio>1 => zoom in => worldScale smaller => factor 1/ratio
+      zoomAroundScreenPoint(c.x, c.y, 1/ratio);
+      pinchStartDist = d;
+      e.preventDefault();
+    }
+  }, { passive:false });
+
+  canvas.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0){
+      // end launch drag if it existed
+      if (dragStart) {
+        // use changedTouches[0] if available
+        const t = e.changedTouches[0];
+        if (t) pointerUp(t.clientX, t.clientY);
+      }
+      dragStart = null;
+      dragNow = null;
+    }
+    if (e.touches.length < 2){
+      pinchStartDist = null;
+      twoFingerStart = null;
+    }
+  });
+
+  // =====================
+  // Mission auto-check
+  // =====================
+  function missionTick(dt){
+    if (!missionRunning || !activeMissionId) return;
+    const m = missions[activeMissionId];
+    if (!m) return;
+
+    // mission success if ANY projectile satisfies
+    for (const p of projectiles){
+      if (!p) continue;
+
+      // condition satisfied?
+      const ok = m.check(p);
+      const prev = missionHold.get(p) || 0;
+      const next = ok ? (prev + dt) : 0;
+      missionHold.set(p, next);
+
+      if (m.holdSeconds <= 0){
+        if (ok){
+          // Provide orbit summary
+          const infl = computeInfluences(p, simT);
+          const primary = infl.length ? infl[0].name : (mode==='lab'?'Earth':'Sun');
+          const el = orbitElementsRelativeTo(primary, p, simT);
+          const lines = [
+            `Primary body: ${primary}`,
+            `Orbit type: ${el.type} (e=${el.e.toFixed(2)})`,
+            (el.type==='Elliptic' && el.period) ? `Period: ${(el.period/3600).toFixed(2)} hours` : 'Period: none',
+          ];
+          completeMission({ summaryLines: lines });
+          return;
+        }
+      } else {
+        if (next >= m.holdSeconds){
+          const infl = computeInfluences(p, simT);
+          const primary = infl.length ? infl[0].name : (mode==='lab'?'Earth':'Sun');
+          const el = orbitElementsRelativeTo(primary, p, simT);
+          const lines = [
+            `Primary body: ${primary}`,
+            `Orbit type: ${el.type} (e=${el.e.toFixed(2)})`,
+            (el.type==='Elliptic' && el.period) ? `Period: ${(el.period/86400).toFixed(2)} days` : 'Period: none',
+            `Stable time: ${(m.holdSeconds/3600).toFixed(1)} hours achieved`,
+          ];
+          completeMission({ summaryLines: lines });
+          return;
+        }
+      }
+    }
+  }
+
+  // =====================
+  // Simulation loop
+  // =====================
+  let lastTs = null;
+
+  function step(ts){
+    if (lastTs === null) lastTs = ts;
+    const realDt = (ts - lastTs)/1000;
+    lastTs = ts;
+
+    const timeFactor = parseFloat(warp.value);
+    // simulation seconds advanced per real second
+    const dt = realDt * timeFactor * 1000; // big warp
+
+    // integrate in substeps for stability
+    let remaining = dt;
+
+    // Adaptive substep size: when a projectile is close to a body, reduce the
+    // step to make gravity/deflection feel correct and to keep orbits stable.
+    function recommendedMaxSub() {
+      let minD = 1e99;
+      for (const p of projectiles) {
+        if (!p.active) continue;
+        for (const name of physicsBodies()) {
+          const bp = getBodyPosition(name, simT);
+          const d = Math.hypot(p.x - bp.x, p.y - bp.y) - physicsRadiusWorld(name);
+          if (d < minD) minD = d;
+        }
+      }
+      // thresholds are in km
+      if (minD < 1e6) return 10;      // very close: 10s
+      if (minD < 5e6) return 60;      // close: 1m
+      if (minD < 2e7) return 300;     // medium: 5m
+      return 3600;                    // far: 1h
+    }
+
+    while (remaining > 0){
+      const h = Math.min(recommendedMaxSub(), remaining);
+
+      // update projectiles
+      for (const p of projectiles){
+        if (!p.active) continue;
+
+        // Save previous position for continuous collision detection
+        const xPrev = p.x;
+        const yPrev = p.y;
+
+        const a1 = computeAcceleration(p.x, p.y, simT);
+        p.vx += 0.5*a1.ax*h; p.vy += 0.5*a1.ay*h;
+        p.x  += p.vx*h;      p.y  += p.vy*h;
+        const a2 = computeAcceleration(p.x, p.y, simT+h);
+        p.vx += 0.5*a2.ax*h; p.vy += 0.5*a2.ay*h;
+
+        // trail
+        p.path.push({x:p.x, y:p.y});
+        if (p.path.length > MAX_TRAIL) p.path.shift();
+
+        // collision (continuous): prevents "tunneling" at high time warp
+        checkCollisionSegment(p, xPrev, yPrev, p.x, p.y, simT);
+
+        // escape detection (helps missions & user feedback)
+        if (p.active) {
+          if (mode === 'full') {
+            const maxR = 4.495e9; // approx Neptune orbital radius (km)
+            if (Math.hypot(p.x, p.y) > 12 * maxR) {
+              p.active = false;
+              p.lastEvent = { type:'escape', body:'SolarSystem', time:simT };
+              p.fadeOut = true;
+              p.fade = 1;
+              setStatus('Escape! The projectile left the Solar System.');
+            }
+          } else {
+            // Lab: leaving Earth–Moon system
+            if (Math.hypot(p.x, p.y) > 60 * LAB_MOON_ORBIT_R) {
+              p.active = false;
+              p.lastEvent = { type:'escape', body:'EarthMoon', time:simT };
+              p.fadeOut = true;
+              p.fade = 1;
+              setStatus('Escape! The projectile left the Earth–Moon system.');
+            }
+          }
+        }
+      }
+
+      // mission check
+      missionTick(h);
+
+      simT += h;
+      remaining -= h;
+    }
+
+    // Update explosion animations (real-time based)
+    for (let i = explosions.length - 1; i >= 0; i--) {
+      explosions[i].age += realDt;
+      if (explosions[i].age > explosions[i].duration) {
+        explosions.splice(i, 1);
+      }
+    }
+
+    // Fade out trails after impact so they gradually disappear
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const p = projectiles[i];
+      if (!p.active && p.fadeOut) {
+        p.fade = Math.max(0, p.fade - realDt * 0.8);
+        // Optionally also shrink the stored trail over time
+        if (p.path.length > 0 && (p.fade < 0.7)) {
+          p.path.shift();
+        }
+        // Remove projectile completely when fully faded
+        if (p.fade <= 0 && p.path.length === 0) {
+          if (selected === p) selected = null;
+          projectiles.splice(i, 1);
+        }
+      }
+    }
+
+    draw();
+    requestAnimationFrame(step);
+  }
+
+  // =====================
+  // Drawing
+  // =====================
+  function drawCircle(x,y,r,color,alpha=1){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+// --- Stylized high-zoom planet details (procedural, no external assets) ---
+function mulberry32(seed){
+  let t = seed >>> 0;
+  return function(){
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Hand-crafted continent silhouettes (normalized to unit circle).
+// Goal: "continent" feeling (large connected masses), not small island blobs.
+// Stylized, not geographically exact.
+// Earth landmasses are drawn in 2 LODs (levels of detail):
+//  - LOD1: medium zoom (reads as multiple continents, not a single "Australia-like" blob)
+//  - LOD2: high zoom (adds East Asia coastline hints, including a Korea-like peninsula)
+const _earthContinentsLOD1 = [
+  // Americas (simplified)
+  [
+    [-0.78,-0.10],[-0.72,-0.35],[-0.55,-0.55],[-0.35,-0.52],[-0.28,-0.38],[-0.34,-0.22],
+    [-0.38,-0.05],[-0.32, 0.08],[-0.28, 0.26],[-0.35, 0.44],[-0.55, 0.55],[-0.70, 0.40]
+  ],
+  // Afro-Eurasia (simplified, big northern landmass)
+  [
+    [-0.10,-0.55],[ 0.20,-0.60],[ 0.50,-0.52],[ 0.72,-0.35],[ 0.82,-0.10],[ 0.72, 0.18],
+    [ 0.55, 0.35],[ 0.30, 0.52],[ 0.00, 0.60],[-0.15, 0.52],[-0.25, 0.38],[-0.20, 0.18],
+    [-0.18, 0.02],[-0.25,-0.18],[-0.22,-0.35]
+  ],
+  // Antarctica band
+  [
+    [-0.45, 0.92],[-0.20, 0.86],[ 0.20, 0.86],[ 0.45, 0.92],[ 0.35, 1.02],[-0.35, 1.02]
+  ]
+];
+
+const _earthContinentsLOD2 = [
+  // Americas (kept simple; LOD2 focuses on East Asia readability)
+  [
+    [-0.86,-0.10],[-0.80,-0.28],[-0.68,-0.48],[-0.54,-0.62],[-0.34,-0.64],[-0.24,-0.46],
+    [-0.30,-0.30],[-0.40,-0.18],[-0.44,-0.02],[-0.38, 0.14],[-0.28, 0.28],[-0.32, 0.44],
+    [-0.44, 0.56],[-0.62, 0.62],[-0.78, 0.48]
+  ],
+
+  // Afro‑Eurasia (large connected landmass) with an embedded Korea peninsula.
+  // The peninsula is part of this outline (not a separate island), so it reads as a peninsula.
+  [
+    [-0.90,-0.30],[-0.74,-0.48],[-0.48,-0.58],[-0.18,-0.62],[ 0.12,-0.60],[ 0.38,-0.52],
+    [ 0.56,-0.38],[ 0.70,-0.18],[ 0.76,-0.02],
+    // East Asia coast and Yellow Sea indentation
+    [ 0.72, 0.10],[ 0.62, 0.18],[ 0.54, 0.16],[ 0.48, 0.10],[ 0.44, 0.06],[ 0.40, 0.02],
+    // Korea peninsula protrusion (embedded)
+    [ 0.46,-0.02],[ 0.58, 0.02],[ 0.68, 0.10],[ 0.74, 0.22],[ 0.72, 0.36],[ 0.64, 0.50],
+    [ 0.54, 0.62],[ 0.40, 0.68],[ 0.24, 0.66],[ 0.10, 0.58],[ 0.02, 0.54],[-0.10, 0.56],
+    [-0.30, 0.52],[-0.48, 0.44],[-0.64, 0.32],[-0.78, 0.12],[-0.86,-0.08]
+  ],
+
+  // South Korea highlight region (subtle overlay on the peninsula)
+  [
+    [ 0.58, 0.22],[ 0.64, 0.26],[ 0.66, 0.36],[ 0.62, 0.48],[ 0.54, 0.54],[ 0.48, 0.48],[ 0.50, 0.32]
+  ],
+
+  // Jeju (small island just south of Korea)
+  [
+    [ 0.54, 0.60],[ 0.58, 0.59],[ 0.60, 0.62],[ 0.56, 0.64]
+  ],
+
+  // Japan (clearly below/southeast of the peninsula)
+  [
+    [ 0.78, 0.42],[ 0.92, 0.44],[ 0.96, 0.58],[ 0.86, 0.68],[ 0.74, 0.62],[ 0.72, 0.50]
+  ],
+  [
+    [ 0.76, 0.70],[ 0.88, 0.70],[ 0.92, 0.78],[ 0.84, 0.86],[ 0.72, 0.82]
+  ],
+  [
+    [ 0.84, 0.30],[ 0.94, 0.32],[ 0.96, 0.40],[ 0.90, 0.46],[ 0.82, 0.40]
+  ],
+
+  // Antarctica band
+  [
+    [-0.55, 0.90],[-0.20, 0.84],[ 0.20, 0.84],[ 0.55, 0.90],[ 0.45, 1.02],[-0.45, 1.02]
+  ]
+];
+
+function drawSmoothShape(cx, cy, r, pts){
+  // Quadratic smoothing through midpoints
+  if (!pts || pts.length < 2) return;
+  ctx.beginPath();
+  const n = pts.length;
+  const p0 = pts[0];
+  ctx.moveTo(cx + p0[0]*r, cy + p0[1]*r);
+  for (let i=1;i<=n;i++){
+    const pPrev = pts[(i-1)%n];
+    const pCur  = pts[i % n];
+    const midX = (pPrev[0] + pCur[0]) / 2;
+    const midY = (pPrev[1] + pCur[1]) / 2;
+    ctx.quadraticCurveTo(cx + pPrev[0]*r, cy + pPrev[1]*r, cx + midX*r, cy + midY*r);
+  }
+  ctx.closePath();
+}
+
+const _moonCraters = (() => {
+  const rnd = mulberry32(54321);
+  const cr = [];
+  for (let i=0;i<18;i++){
+    cr.push({
+      a: rnd()*Math.PI*2,
+      rr: 0.10 + rnd()*0.75,
+      r: 0.04 + rnd()*0.12,
+      d: 0.12 + rnd()*0.18
+    });
+  }
+  return cr;
+})();
+
+// Stylized lunar maria patches (normalized, simple flat-design shapes)
+const _moonMaria = [
+  [
+    [-0.55,-0.10],[-0.35,-0.25],[-0.10,-0.18],[0.02,-0.02],[-0.08,0.18],[-0.30,0.28],[-0.52,0.12]
+  ],
+  [
+    [0.10,-0.35],[0.32,-0.42],[0.48,-0.26],[0.42,-0.05],[0.22,0.00],[0.08,-0.15]
+  ],
+  [
+    [0.22,0.25],[0.45,0.18],[0.55,0.35],[0.42,0.52],[0.20,0.48],[0.12,0.34]
+  ]
+];
+
+function drawEarthDetailed(cx, cy, rPx, t){
+  // Flat-design Earth details: clean coast lines, subtle shading, minimal clouds.
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, rPx, 0, Math.PI*2);
+  ctx.clip();
+
+  // Spherical shading
+  const grad = ctx.createRadialGradient(cx - rPx*0.35, cy - rPx*0.35, rPx*0.15, cx, cy, rPx*1.25);
+  grad.addColorStop(0, 'rgba(255,255,255,0.20)');
+  grad.addColorStop(0.55, 'rgba(0,0,0,0.06)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.28)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(cx-rPx*1.3, cy-rPx*1.3, rPx*2.6, rPx*2.6);
+
+  // Continents are drawn in 2 LODs.
+  // LOD1 (medium zoom): readable multi-continent layout.
+  // LOD2 (high zoom): adds East Asia coastline hints (incl. Korea-like peninsula).
+  // Switch to the Korea-focused high-detail map earlier so users can actually see it
+  // without having to zoom excessively.
+  const hiDetail = rPx >= 105;
+  const continents = hiDetail ? _earthContinentsLOD2 : _earthContinentsLOD1;
+  // Keep LOD2 mostly fixed so Korea stays visible; allow gentle rotation only in LOD1.
+  const rot = hiDetail ? 0 : ((t * 0.00003) % (Math.PI*2));
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot);
+  ctx.translate(-cx, -cy);
+
+  const landFill = 'rgba(130, 235, 160, 0.92)';
+  const landOutline = 'rgba(35, 160, 90, 0.55)';
+  const landEdge = 'rgba(25, 120, 65, 0.35)';
+  const landShadow = 'rgba(20, 95, 55, 0.22)';
+
+  for (let i = 0; i < continents.length; i++){
+    const pts = continents[i];
+    // In LOD2, the Korea peninsula is a separate shape for readability.
+    // To avoid it reading like a detached "island" (a dark seam where it overlaps
+    // the continent), we fill it without stroking its outline. It then visually
+    // merges into the Eurasian landmass while still protruding as a peninsula.
+    const isKoreaHighlight = hiDetail && i === 2;
+
+    // Soft shadow offset for a cleaner "sticker" look (skip for the peninsula to avoid seams)
+    if (!isKoreaHighlight) {
+      const off = rPx * 0.028;
+      ctx.save();
+      ctx.translate(off, off);
+      drawSmoothShape(cx, cy, rPx, pts);
+      ctx.fillStyle = landShadow;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    drawSmoothShape(cx, cy, rPx, pts);
+    const fill = isKoreaHighlight ? 'rgba(110, 225, 150, 0.96)' : landFill;
+    ctx.fillStyle = fill;
+    ctx.fill();
+
+    if (!isKoreaHighlight) {
+      ctx.lineWidth = Math.max(2, rPx*0.018);
+      ctx.strokeStyle = landOutline;
+      ctx.stroke();
+
+      // inner edge for a crisp “lined” look
+      ctx.lineWidth = Math.max(1, rPx*0.010);
+      ctx.strokeStyle = landEdge;
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+
+  // Subtle cloud highlight (one soft arc)
+  ctx.save();
+  ctx.globalAlpha = 0.10;
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = Math.max(2, rPx*0.05);
+  ctx.beginPath();
+  ctx.arc(cx - rPx*0.10, cy - rPx*0.05, rPx*0.85, -0.2, 1.4);
+  ctx.stroke();
+  ctx.restore();
+
+  // Gloss highlight
+  ctx.save();
+  const gloss = ctx.createRadialGradient(cx - rPx*0.35, cy - rPx*0.35, rPx*0.05, cx - rPx*0.20, cy - rPx*0.20, rPx*0.9);
+  gloss.addColorStop(0, 'rgba(255,255,255,0.18)');
+  gloss.addColorStop(1, 'rgba(255,255,255,0.00)');
+  ctx.fillStyle = gloss;
+  ctx.fillRect(cx-rPx, cy-rPx, rPx*2, rPx*2);
+  ctx.restore();
+
+  ctx.restore();
+
+  // Atmosphere rim
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = 'rgba(170, 220, 255, 0.30)';
+  ctx.lineWidth = Math.max(2, rPx*0.05);
+  ctx.beginPath();
+  ctx.arc(cx, cy, rPx*1.015, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawMoonDetailed(cx, cy, rPx){
+  // Base with gentle shading
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, rPx, 0, Math.PI*2);
+  ctx.clip();
+
+  const grad = ctx.createRadialGradient(cx - rPx*0.25, cy - rPx*0.25, rPx*0.15, cx, cy, rPx*1.1);
+  grad.addColorStop(0, 'rgba(255,255,255,0.10)');
+  grad.addColorStop(0.7, 'rgba(0,0,0,0.08)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.22)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(cx-rPx*1.2, cy-rPx*1.2, rPx*2.4, rPx*2.4);
+
+  // Maria patches (flat-design, outlined)
+  for (const pts of _moonMaria){
+    drawSmoothShape(cx, cy, rPx, pts);
+    ctx.fillStyle = 'rgba(205, 214, 232, 0.65)';
+    ctx.fill();
+    ctx.lineWidth = Math.max(2, rPx*0.016);
+    ctx.strokeStyle = 'rgba(150, 160, 180, 0.45)';
+    ctx.stroke();
+  }
+
+  // Craters (clean outlined style)
+  for (const c of _moonCraters){
+    const x = cx + Math.cos(c.a) * rPx * c.rr;
+    const y = cy + Math.sin(c.a) * rPx * c.rr;
+    const rr = rPx * c.r;
+
+    // soft inner fill
+    ctx.fillStyle = 'rgba(185, 195, 212, 0.35)';
+    ctx.beginPath();
+    ctx.arc(x, y, rr, 0, Math.PI*2);
+    ctx.fill();
+
+    // crisp rim
+    ctx.strokeStyle = 'rgba(135, 145, 165, 0.55)';
+    ctx.lineWidth = Math.max(2, rPx*0.012);
+    ctx.stroke();
+
+    // subtle shadow to bottom-right
+    ctx.fillStyle = 'rgba(90, 100, 120, 0.10)';
+    ctx.beginPath();
+    ctx.arc(x + rr*0.22, y + rr*0.22, rr*0.82, 0, Math.PI*2);
+    ctx.fill();
+
+    // tiny highlight to top-left
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = Math.max(1, rPx*0.007);
+    ctx.beginPath();
+    ctx.arc(x - rr*0.18, y - rr*0.18, rr*0.55, -0.2, 1.6);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+  // Draw part of an ellipse ring around a planet (for rings). We draw the
+  // back half first (behind the planet), then the planet, then the front half.
+  function drawRingArc(cx, cy, rx, ry, rotationRad, startAng, endAng, stroke, lineW, alpha){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotationRad);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineW;
+    ctx.beginPath();
+    // ellipse rotation is handled by ctx.rotate, so ellipse rotation=0
+    ctx.ellipse(0, 0, rx, ry, 0, startAng, endAng);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Jupiter's Great Red Spot (simple stylized oval)
+  function drawGreatRedSpot(cx, cy, rPx, rotationRad){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotationRad);
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#c84b3a';
+    ctx.beginPath();
+    // Place the spot in the southern hemisphere area
+    ctx.ellipse(0.35 * rPx, 0.20 * rPx, 0.28 * rPx, 0.18 * rPx, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Jupiter banding (light horizontal strokes)
+  function drawJupiterBands(cx, cy, rPx, rotationRad){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotationRad);
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = '#8b5a3c';
+    ctx.lineWidth = Math.max(1, rPx * 0.08);
+    const bands = [-0.55, -0.25, 0.0, 0.25, 0.55];
+    for (const by of bands){
+      ctx.beginPath();
+      ctx.moveTo(-0.95 * rPx, by * rPx);
+      ctx.lineTo( 0.95 * rPx, by * rPx);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
+
+    // Orbits (full mode only): draw heliocentric orbit rings
+    if (mode === 'full'){
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+      ctx.lineWidth = 1;
+      for (const b of FULL_BODIES){
+        if (b.parent === 'Sun' && b.orbitalRadius > 0){
+          const c = worldToScreen(0,0);
+          const r = b.orbitalRadius/worldScale;
+          ctx.beginPath();
+          ctx.arc(c.x,c.y,r,0,Math.PI*2);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    } else {
+      // Lab mode: draw Moon orbit ring around Earth
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+      ctx.lineWidth = 1;
+      const c = worldToScreen(0,0);
+      const r = LAB_MOON_ORBIT_R/worldScale;
+      ctx.beginPath();
+      ctx.arc(c.x,c.y,r,0,Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Bodies
+    const bodiesToDraw = (mode === 'full') ? FULL_BODIES.map(b=>b.name) : ['Earth','Moon'];
+    // Cache drawn body screen positions and radii for occluding trails/dots.
+    const bodyMeta = [];
+
+    for (const name of bodiesToDraw){
+      const bp = getBodyPosition(name, simT);
+      const sp = worldToScreen(bp.x, bp.y);
+
+      // show size exaggerated by mu influence
+      const earthMu = MU.Earth;
+      let influence = Math.pow(MU[name]/earthMu, 0.2);
+      influence = Math.min(Math.max(influence, 0.6), 3.0);
+
+      // physical size in px
+      const physicalPx = RADIUS[name]/worldScale;
+      // In Earth–Moon Lab, the camera is typically zoomed to show the Moon's orbit,
+      // which makes the real Earth radius tiny in pixels. Use a larger minimum size
+      // so Earth doesn't look smaller than the Moon.
+      let minPx = 6;
+      if (mode === 'lab') {
+        // Make bodies clearly visible in the Earth–Moon Lab (Earth should not look tiny).
+        minPx = (name === 'Earth') ? 22 : 12;
+      }
+      const rPx = Math.max(minPx, physicalPx*1.6*influence);
+      bodyMeta.push({ name, x: sp.x, y: sp.y, rPx });
+
+      const color = (mode==='full') ? (FULL_BODIES.find(b=>b.name===name)?.color || '#fff') : (name==='Earth' ? '#3aa0ff' : '#cfcfcf');
+
+      // Ring specs (draw back half -> planet -> front half) so the planet occludes the ring.
+      let rings = null;
+      if (mode === 'full') {
+        if (name === 'Saturn') {
+          const tilt = -0.35;
+          rings = [
+            { rx: 2.4, ry: 1.0,  rot: tilt, stroke: 'rgba(220,200,160,0.9)', lw: 0.20, alpha: 0.35 },
+            { rx: 2.0, ry: 0.85, rot: tilt, stroke: 'rgba(245,230,190,0.9)', lw: 0.10, alpha: 0.45 },
+            { rx: 1.7, ry: 0.72, rot: tilt, stroke: 'rgba(180,160,120,0.9)', lw: 0.08, alpha: 0.25 },
+          ];
+        } else if (name === 'Uranus') {
+          const tilt = Math.PI / 2;
+          rings = [
+            { rx: 1.9, ry: 0.75, rot: tilt, stroke: 'rgba(210,245,255,0.9)', lw: 0.10, alpha: 0.35 },
+            { rx: 1.6, ry: 0.62, rot: tilt, stroke: 'rgba(160,220,230,0.9)', lw: 0.07, alpha: 0.25 },
+          ];
+        } else if (name === 'Neptune') {
+          const tilt = 0.55;
+          rings = [
+            { rx: 1.55, ry: 0.60, rot: tilt, stroke: 'rgba(180,200,255,0.9)', lw: 0.06, alpha: 0.18 },
+          ];
+        }
+      }
+
+      // Back half rings (behind the planet)
+      if (rings) {
+        for (const r of rings) {
+          drawRingArc(sp.x, sp.y, rPx*r.rx, rPx*r.ry, r.rot, Math.PI, Math.PI*2, r.stroke, Math.max(1, rPx*r.lw), r.alpha);
+        }
+      }
+
+      // Planet disk (with extra detail at high zoom for Earth/Moon)
+      drawCircle(sp.x, sp.y, rPx, color, 1.0);
+      const detailThreshold = 70; // px radius
+      if (name === 'Earth' && rPx >= detailThreshold) {
+        drawEarthDetailed(sp.x, sp.y, rPx, simT);
+      }
+      if (name === 'Moon' && rPx >= detailThreshold) {
+        drawMoonDetailed(sp.x, sp.y, rPx);
+      }
+
+      // Planet-specific decorations (full mode)
+      if (mode === 'full') {
+        const rot = (simT * 0.00002) % (Math.PI * 2);
+
+        if (name === 'Jupiter') {
+          // Clip all details to the planet disk so bands/spot never stick out.
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(sp.x, sp.y, rPx, 0, Math.PI*2);
+          ctx.clip();
+          drawJupiterBands(sp.x, sp.y, rPx, rot);
+          drawGreatRedSpot(sp.x, sp.y, rPx, rot);
+          ctx.restore();
+        }
+      }
+
+      // Front half rings (in front of the planet)
+      if (rings) {
+        for (const r of rings) {
+          drawRingArc(sp.x, sp.y, rPx*r.rx, rPx*r.ry, r.rot, 0, Math.PI, r.stroke, Math.max(1, rPx*r.lw), r.alpha);
+        }
+      }
+    }
+
+    // Lab mode: faint Sun marker (not physics)
+    if (mode === 'lab'){
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '12px system-ui';
+      // draw in top-right
+      const x = window.innerWidth - 110;
+      const y = 24;
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillText('Sun (direction)', x+12, y+4);
+      ctx.restore();
+    }
+
+    // Explosions (simple expanding flash)
+    for (const ex of explosions){
+      const s = worldToScreen(ex.x, ex.y);
+      const t = Math.min(1, ex.age / ex.duration);
+      const r1 = 6 + 40 * t;
+      const r2 = 3 + 22 * t;
+      drawCircle(s.x, s.y, r1, '#ffaa00', (1 - t) * 0.55);
+      drawCircle(s.x, s.y, r2, '#ffffff', (1 - t) * 0.65);
+    }
+
+    // Helper: is a screen point inside any drawn body disk?
+    function insideAnyBodyDisk(sx, sy){
+      for (const b of bodyMeta){
+        const dx = sx - b.x;
+        const dy = sy - b.y;
+        if (dx*dx + dy*dy <= b.rPx*b.rPx) return true;
+      }
+      return false;
+    }
+
+    // Projectiles: trails (fade out after impact)
+    for (const p of projectiles){
+      if (p.path.length > 1){
+        ctx.save();
+        ctx.lineWidth = 1;
+        for (let i=1;i<p.path.length;i++){
+          const a = (i/p.path.length) * (p.fade ?? 1);
+          const p0 = worldToScreen(p.path[i-1].x, p.path[i-1].y);
+          const p1 = worldToScreen(p.path[i].x, p.path[i].y);
+          // If a segment passes behind a planet disk, don't draw it.
+          if (insideAnyBodyDisk(p0.x, p0.y) || insideAnyBodyDisk(p1.x, p1.y)) continue;
+          ctx.globalAlpha = a;
+          ctx.strokeStyle = p.color;
+          ctx.beginPath();
+          ctx.moveTo(p0.x,p0.y);
+          ctx.lineTo(p1.x,p1.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    // Projectiles: dots + selection (hide dots when inactive)
+    for (const p of projectiles){
+      if (!p.active) continue;
+      const sp = worldToScreen(p.x,p.y);
+      // Hide the dot when it is behind/inside a drawn planet disk.
+      if (insideAnyBodyDisk(sp.x, sp.y)) continue;
+      const r = (p===selected) ? 5 : 3;
+      drawCircle(sp.x, sp.y, r, p.color, 1.0);
+      if (p===selected){
+        ctx.save();
+        ctx.globalAlpha = 0.8;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, r+4, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Predicted path (dashed) for selected
+    if (selected && selected.selection && selected.selection.predicted && selected.selection.predicted.length > 1){
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = selected.color;
+      ctx.setLineDash([6,4]);
+      ctx.lineWidth = 1;
+      for (let i=1;i<selected.selection.predicted.length;i++){
+        const a = selected.selection.predicted[i-1];
+        const b = selected.selection.predicted[i];
+        const sa = worldToScreen(a.x,a.y);
+        const sb = worldToScreen(b.x,b.y);
+        ctx.beginPath();
+        ctx.moveTo(sa.x,sa.y);
+        ctx.lineTo(sb.x,sb.y);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    // Launch arrow
+    if (dragStart && dragNow){
+      ctx.save();
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(dragStart.x, dragStart.y);
+      ctx.lineTo(dragNow.x, dragNow.y);
+      ctx.stroke();
+      // arrow head
+      const ang = Math.atan2(dragNow.y-dragStart.y, dragNow.x-dragStart.x);
+      const L = 10;
+      const h1 = { x: dragNow.x - L*Math.cos(ang - Math.PI/6), y: dragNow.y - L*Math.sin(ang - Math.PI/6) };
+      const h2 = { x: dragNow.x - L*Math.cos(ang + Math.PI/6), y: dragNow.y - L*Math.sin(ang + Math.PI/6) };
+      ctx.fillStyle = '#00ff00';
+      ctx.beginPath();
+      ctx.moveTo(dragNow.x, dragNow.y);
+      ctx.lineTo(h1.x, h1.y);
+      ctx.lineTo(h2.x, h2.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // =====================
+  // Init
+  // =====================
+  function init(){
+    setMode(modeSel.value);
+    warpLabel.textContent = 'x' + warp.value;
+    requestAnimationFrame(step);
+  }
+
+  init();
+})();
+</script>
+  <!-- Showcase Portal Navigation Button -->
+  <a href="../../index.html" class="showcase-nav-btn" title="쇼케이스 포털로 돌아가기">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    <span>Showcase</span>
+  </a>
+  <style>
+    .showcase-nav-btn {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 99999;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0.85;
+      user-select: none;
+    }
+    .showcase-nav-btn:hover {
+      opacity: 1;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.96);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+  </style>
+</body>
+</html>

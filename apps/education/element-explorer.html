@@ -1,0 +1,1161 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신나는 원소 탐험 & 꼬마 연금술사 - 주기율표 인터랙티브 앱</title>
+  <!-- SEO & Primary Meta Tags -->
+  <meta name="description" content="주기율표 카드와 퀴즈를 통해 재미있게 배우는 신비한 화학 원소 탐구 교육 웹앱" />
+  <meta name="keywords" content="원소 탐험, 꼬마 연금술사, 주기율표, 과학 퀴즈, 교육용 웹앱" />
+  <meta name="author" content="Interactive Web Apps Collection" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicons/favicon-element-explorer.svg" />
+  <link rel="alternate icon" type="image/png" href="../../assets/favicons/favicon-element-explorer.png" />
+
+  <!-- Open Graph / Facebook / Kakao -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="신나는 원소 탐험 & 꼬마 연금술사 - 주기율표 인터랙티브 앱" />
+  <meta property="og:description" content="주기율표 카드와 퀴즈를 통해 재미있게 배우는 신비한 화학 원소 탐구 교육 웹앱" />
+  <meta property="og:image" content="../../assets/og/og-element-explorer.png" />
+  <meta property="og:site_name" content="Interactive Web Apps Showcase" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="신나는 원소 탐험 & 꼬마 연금술사 - 주기율표 인터랙티브 앱" />
+  <meta name="twitter:description" content="주기율표 카드와 퀴즈를 통해 재미있게 배우는 신비한 화학 원소 탐구 교육 웹앱" />
+  <meta name="twitter:image" content="../../assets/og/og-element-explorer.png" />
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg: #fdfdfd;
+        --text-main: #4a4a4a;
+        --card-bg: #fff;
+        /* 파스텔 톤 색상 팔레트 */
+        --s-bg: #FFD1DC; --s-bd: #ffb7b2;
+        --p-bg: #FFFACD; --p-bd: #ffe680;
+        --d-bg: #ADD8E6; --d-bd: #87CEFA;
+        --f-bg: #C1E1C1; --f-bd: #98FB98;
+        
+        --correct: #d4edda; --wrong: #f8d7da;
+    }
+
+    /* === 1. 기본 레이아웃 === */
+    body {
+        font-family: 'Jua', 'Noto Sans KR', sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0; padding: 20px;
+        display: flex; flex-direction: column; align-items: center;
+        user-select: none; /* 드래그 방지 */
+        overflow-x: hidden;
+    }
+
+    header {
+        display: flex; justify-content: space-between; align-items: center;
+        width: 100%; max-width: 1200px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+    }
+
+    h1 { margin: 0; font-size: 2rem; color: #333; text-shadow: 2px 2px 0px #eee; display: flex; align-items: center; gap: 10px; }
+    
+    .secret-btn { font-size: 1.5rem; cursor: pointer; opacity: 0.5; transition: 0.3s; }
+    .secret-btn:hover { opacity: 1; transform: rotate(90deg); }
+
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+        padding: 8px 16px; border: none; border-radius: 20px;
+        background: #eee; cursor: pointer; font-family: 'Jua'; font-size: 1rem;
+        transition: transform 0.2s, background 0.2s;
+        box-shadow: 0 4px 0 #ccc; display: flex; align-items: center; gap: 5px;
+    }
+    .btn:active { transform: translateY(4px); box-shadow: none; }
+    .btn.primary { background: #FFAFBD; color: white; box-shadow: 0 4px 0 #ff8fa3; }
+    .btn.alchemy { background: #e67e22; color: white; box-shadow: 0 4px 0 #d35400; }
+    
+    .search-box { padding: 8px 12px; border-radius: 20px; border: 2px solid #ddd; font-family: 'Jua'; }
+
+    /* === 2. 주기율표 그리드 === */
+    .table-container {
+        display: grid;
+        grid-template-columns: repeat(18, 1fr);
+        grid-template-rows: repeat(10, 1fr);
+        gap: 6px;
+        max-width: 1400px; width: 100%;
+        margin: 0 auto;
+        padding: 10px;
+        background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+
+    /* 원소 카드 스타일 */
+    .element {
+        aspect-ratio: 4/5;
+        background: var(--card-bg);
+        border-radius: 8px;
+        border: 2px solid transparent;
+        padding: 4px;
+        display: flex; flex-direction: column; justify-content: space-between;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+    .element:hover {
+        transform: scale(1.15) translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        z-index: 100;
+    }
+
+    /* 블록별 색상 적용 */
+    .bg-s { background: var(--s-bg); border-color: var(--s-bd); }
+    .bg-p { background: var(--p-bg); border-color: var(--p-bd); }
+    .bg-d { background: var(--d-bg); border-color: var(--d-bd); }
+    .bg-f { background: var(--f-bg); border-color: var(--f-bd); }
+
+    /* 카드 내부 텍스트 */
+    .at-num { font-size: 0.8rem; opacity: 0.7; font-weight: bold; position: absolute; top: 4px; left: 6px; line-height: 1; }
+    .mass { font-size: 0.7rem; opacity: 0.6; position: absolute; top: 4px; right: 6px; line-height: 1; letter-spacing: -0.5px; }
+    .symbol { 
+        font-size: clamp(1.2rem, 2.5vw, 2.2rem); font-weight: 800; text-align: center; 
+        margin-top: 18px; margin-bottom: 2px; line-height: 1; 
+    }
+    .name-ko { 
+        font-size: clamp(0.7rem, 1vw, 0.95rem); text-align: center; white-space: nowrap; 
+        font-family: 'Noto Sans KR'; overflow: hidden; text-overflow: ellipsis;
+        margin-bottom: 2px;
+    }
+
+    .empty { visibility: hidden; pointer-events: none; }
+    .label-cell { display: flex; align-items: center; justify-content: center; font-size: 0.9rem; text-align: center; cursor: default; }
+
+    /* 범례 */
+    .legend { display: flex; gap: 15px; margin-top: 10px; font-size: 0.9rem; color: #555; flex-wrap: wrap; justify-content: center; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 5px; border: 1px solid rgba(0,0,0,0.1); }
+
+    /* === 3. 가리기(Hide) 모드 & 물음표 시각화 === */
+    .question-mark {
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 2rem; color: rgba(0,0,0,0.2);
+        font-weight: bold; display: none; pointer-events: none;
+    }
+
+    /* 가리기 활성화 시 투명도 0 (공간은 차지함) */
+    body.hide-symbol .symbol,
+    body.hide-ko-name .name-ko,
+    body.hide-num .at-num,
+    body.hide-mass .mass { opacity: 0 !important; }
+
+    /* 물음표 등장 조건 */
+    body.hide-symbol .element .question-mark,
+    body.hide-ko-name .element .question-mark { display: block; }
+
+    /* 까꿍(Peekaboo) 효과: 클릭 중일 때 정답 보이기 */
+    .element:active .symbol, .element:active .name-ko, 
+    .element:active .at-num, .element:active .mass { opacity: 1 !important; }
+    .element:active .question-mark { display: none !important; }
+
+
+    /* === 4. 팝업(Modal) 공통 스타일 === */
+    .overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 998; display: none;
+        backdrop-filter: blur(3px);
+    }
+    .overlay.show { display: block; }
+
+    .popup-base {
+        position: fixed; top: 50%; left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        background: white; padding: 25px; border-radius: 20px;
+        z-index: 999; display: none; flex-direction: column; gap: 15px;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        opacity: 0; transition: all 0.3s;
+        max-height: 90vh; overflow-y: auto;
+    }
+    .popup-base.show { display: flex; transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+    .close-popup-btn {
+        position: absolute; top: 15px; right: 15px;
+        background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999;
+    }
+    
+    .control-title { font-size: 1.2rem; margin-bottom: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    
+    .toggle-btn {
+        width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 12px;
+        background: white; font-family: 'Jua'; font-size: 1rem; cursor: pointer;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .toggle-btn.active { background: #ff6b6b; color: white; border-color: #ff6b6b; }
+    .toggle-btn::after { content: "OFF"; color: #ccc; font-size: 0.8rem; }
+    .toggle-btn.active::after { content: "ON"; color: white; }
+
+    /* === 5. 연금술사(Alchemy) & 애니메이션 === */
+    @keyframes float {
+        0% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-5px) rotate(5deg); }
+        100% { transform: translateY(0px) rotate(0deg); }
+    }
+    @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+    .lab-bench {
+        background: #f4f4f4; border-radius: 15px; padding: 20px;
+        display: flex; gap: 20px; justify-content: center; align-items: flex-end;
+    }
+    .lab-beaker {
+        width: 180px; height: 160px;
+        background: linear-gradient(to bottom, rgba(255,255,255,0.6), rgba(220,240,255,0.8));
+        border: 4px solid #bdc3c7; border-top: none;
+        border-radius: 0 0 30px 30px;
+        position: relative; display: flex; flex-wrap: wrap; 
+        align-content: flex-end; justify-content: center; padding: 10px; gap: 5px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .collection-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 8px; background: #eee; padding: 10px; border-radius: 10px;
+        max-height: 120px; overflow-y: auto;
+    }
+    .collect-item {
+        height: 60px; background: #ccc; border-radius: 8px;
+        display: flex; justify-content: center; align-items: center; font-size: 1.5rem;
+        filter: grayscale(100%); opacity: 0.5; transition: all 0.3s; cursor: pointer;
+    }
+    .collect-item.found {
+        background: white; filter: grayscale(0%); opacity: 1;
+        border: 2px solid #f1c40f; transform: scale(1.05);
+    }
+
+    /* === 6. 인쇄 최적화 === */
+    @media print {
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; padding: 0; }
+        header, .controls, .popup-base, .overlay, #quizToast, .legend { display: none !important; }
+        .table-container { transform: scale(0.95); margin-top: 20px; border: none; box-shadow: none; }
+        .element { border: 1px solid #000 !important; break-inside: avoid; box-shadow: none !important; }
+        .symbol, .name-ko, .at-num, .mass { opacity: 1 !important; color: black !important; display: block !important; }
+        .question-mark { display: none !important; }
+        body::before {
+            content: "✨ 나만의 원소 주기율표 ✨";
+            display: block; text-align: center; font-size: 24pt; font-weight: bold; margin-bottom: 10px; width: 100%;
+        }
+    }
+    
+    /* 퀴즈 정답/오답 스타일 */
+    .choice-btn {
+        width: 100%; padding: 12px; margin: 5px 0; border: 2px solid #eee;
+        background: white; border-radius: 10px; font-family: 'Jua'; font-size: 1.1rem;
+        cursor: pointer; text-align: left; transition: all 0.2s; position: relative;
+    }
+    .choice-btn:hover:not(:disabled) { background: #f9f9f9; transform: translateX(5px); }
+    .choice-btn.correct { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+    .choice-btn.wrong { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+    
+    .quiz-answer-reveal {
+        margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 10px; font-size: 0.9rem; color: #555;
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>🚀 신나는 원소 탐험 <span class="secret-btn" onclick="openSettings()" title="설정">⚙️</span></h1>
+    <div class="controls">
+        <input type="text" id="searchInput" class="search-box" placeholder="원소 이름, 기호 찾기...">
+        <button class="btn primary" onclick="openQuiz()">🧩 퀴즈 도전</button>
+        <button class="btn alchemy" onclick="openAlchemy()">⚗️ 실험실</button>
+        <button class="btn" onclick="window.print()">🖨️ 인쇄</button>
+    </div>
+</header>
+
+<div class="table-container" id="periodicTable"></div>
+
+<div class="legend">
+    <div><span class="dot bg-s"></span>s-블록</div>
+    <div><span class="dot bg-d"></span>d-블록</div>
+    <div><span class="dot bg-p"></span>p-블록</div>
+    <div><span class="dot bg-f"></span>f-블록</div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeAllPopups()"></div>
+
+<div class="controls-container popup-base" id="settingsPopup">
+    <button class="close-popup-btn" onclick="closeAllPopups()">✕</button>
+    <div class="control-title">📝 학습용 빈칸 설정</div>
+    
+    <button class="toggle-btn" onclick="toggleMode(this, 'hide-symbol')">원소 기호 가리기</button>
+    <button class="toggle-btn" onclick="toggleMode(this, 'hide-ko-name')">한글 이름 가리기</button>
+    <button class="toggle-btn" onclick="toggleMode(this, 'hide-mass')">원자 질량 가리기</button>
+    <button class="toggle-btn" onclick="toggleMode(this, 'hide-num')">원자 번호 가리기</button>
+    <p style="font-size:0.8rem; color:#999; text-align:center; margin:0;">* 가려진 곳을 꾹 누르면 정답이 보여요!</p>
+</div>
+
+<div class="popup-base" id="wikiModal" style="width: 400px; text-align: center;">
+    <button class="close-popup-btn" onclick="closeAllPopups()">✕</button>
+    <div id="wikiContent"></div>
+</div>
+
+<div class="popup-base" id="quizModal" style="width: 500px;">
+    <button class="close-popup-btn" onclick="closeAllPopups()">✕</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #eee; padding-bottom:10px;">
+        <h3 style="margin:0;">🧩 원소 퀴즈왕</h3>
+        <select id="quizLevel" class="search-box" style="width: auto; padding:5px;" onchange="resetQuiz()">
+             <option value="easy">초급 (1~20번 + 주요 원소)</option> 
+             <option value="hard">고급 (설명 보고 맞히기)</option>
+        </select>
+    </div>
+    <div class="quiz-score" style="margin-top:10px; font-size:0.9rem;">
+        점수: <b id="scoreVal" style="color:#6c5ce7; font-size:1.2rem;">0</b>
+        <span id="comboBadge" style="background:#ff7675; color:white; padding:2px 8px; border-radius:10px; font-size:0.8rem; display:none; margin-left:5px;">🔥 3연속!</span>
+    </div>
+    <div id="quizArea" style="margin-top:15px;"></div>
+    <button class="btn primary" id="nextBtn" style="width:100%; margin-top:15px; justify-content:center; display:none;" onclick="nextQuestion()">다음 문제 ▶</button>
+</div>
+
+<div class="popup-base" id="alchemyPopup" style="min-width: 600px; background: #fffdf5;">
+    <button class="close-popup-btn" onclick="closeAlchemy()">✕</button>
+    <div style="display:flex; justify-content:space-between; border-bottom:2px solid #eee; padding-bottom:10px;">
+        <h3 style="margin:0; color:#d35400;">⚗️ 꼬마 연금술사</h3>
+        <span style="color:#777;">도감: <b id="foundCount" style="color:#d35400;">0</b> / 14</span>
+    </div>
+    <p style="text-align:center; color:#666; font-size:0.9rem; margin:10px 0;">
+        주기율표에서 원소를 클릭해 비커에 넣고 <b>가열</b>해보세요!<br>
+        (예: 수소 2개 + 산소 1개 = ?)
+    </p>
+
+    <div class="lab-bench">
+        <div class="lab-beaker" id="beaker">
+            <div style="position: absolute; top: -25px; color:#aaa; font-size:0.8rem; width:100%; text-align:center;">🧪 반응 용기</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <button class="btn alchemy" onclick="mixElements()" style="height:60px; font-size:1.2rem;">🔥 가열하기</button>
+            <button class="btn" onclick="clearBeaker()">비우기 🗑️</button>
+        </div>
+        <div id="resultArea" style="width:140px; height:140px; border:3px dashed #ccc; border-radius:15px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:white;">
+            <span style="font-size:2rem; opacity:0.3;">✨</span>
+            <span style="font-size:0.8rem; color:#aaa;">결과물</span>
+        </div>
+    </div>
+
+    <div style="margin-top:15px;">
+        <div style="font-size:0.9rem; font-weight:bold; color:#555; margin-bottom:5px;">📖 발견한 화합물 도감</div>
+        <div class="collection-grid" id="collectionGrid"></div>
+    </div>
+</div>
+
+<script>
+    // =====================================================
+    // 1. 데이터 베이스 (ALL: 물리정보 / ELEMENT_DESC: 설명)
+    // =====================================================
+   const ALL = [
+    {n:1,  s:"H",  ko:"수소",     en:"Hydrogen",      aw:"1.0080",  p:1, g:1,  b:"s"},
+    {n:2,  s:"He", ko:"헬륨",     en:"Helium",        aw:"4.0026",  p:1, g:18, b:"s"},
+
+    {n:3,  s:"Li", ko:"리튬",     en:"Lithium",       aw:"6.94",    p:2, g:1,  b:"s"},
+    {n:4,  s:"Be", ko:"베릴륨",   en:"Beryllium",     aw:"9.0122",  p:2, g:2,  b:"s"},
+    {n:5,  s:"B",  ko:"붕소",     en:"Boron",         aw:"10.81",   p:2, g:13, b:"p"},
+    {n:6,  s:"C",  ko:"탄소",     en:"Carbon",        aw:"12.011",  p:2, g:14, b:"p"},
+    {n:7,  s:"N",  ko:"질소",     en:"Nitrogen",      aw:"14.007",  p:2, g:15, b:"p"},
+    {n:8,  s:"O",  ko:"산소",     en:"Oxygen",        aw:"15.999",  p:2, g:16, b:"p"},
+    {n:9,  s:"F",  ko:"플루오린", en:"Fluorine",      aw:"18.998",  p:2, g:17, b:"p"},
+    {n:10, s:"Ne", ko:"네온",     en:"Neon",          aw:"20.180",  p:2, g:18, b:"p"},
+
+    {n:11, s:"Na", ko:"나트륨",   en:"Sodium",        aw:"22.990",  p:3, g:1,  b:"s"},
+    {n:12, s:"Mg", ko:"마그네슘", en:"Magnesium",     aw:"24.305",  p:3, g:2,  b:"s"},
+    {n:13, s:"Al", ko:"알루미늄", en:"Aluminium",     aw:"26.982",  p:3, g:13, b:"p"},
+    {n:14, s:"Si", ko:"규소",     en:"Silicon",       aw:"28.085",  p:3, g:14, b:"p"},
+    {n:15, s:"P",  ko:"인",       en:"Phosphorus",    aw:"30.974",  p:3, g:15, b:"p"},
+    {n:16, s:"S",  ko:"황",       en:"Sulfur",        aw:"32.06",   p:3, g:16, b:"p"},
+    {n:17, s:"Cl", ko:"염소",     en:"Chlorine",      aw:"35.45",   p:3, g:17, b:"p"},
+    {n:18, s:"Ar", ko:"아르곤",   en:"Argon",         aw:"39.95",   p:3, g:18, b:"p"},
+
+    {n:19, s:"K",  ko:"칼륨",     en:"Potassium",     aw:"39.098",  p:4, g:1,  b:"s"},
+    {n:20, s:"Ca", ko:"칼슘",     en:"Calcium",       aw:"40.078",  p:4, g:2,  b:"s"},
+    {n:21, s:"Sc", ko:"스칸듐",   en:"Scandium",      aw:"44.956",  p:4, g:3,  b:"d"},
+    {n:22, s:"Ti", ko:"티타늄",   en:"Titanium",      aw:"47.867",  p:4, g:4,  b:"d"},
+    {n:23, s:"V",  ko:"바나듐",   en:"Vanadium",      aw:"50.942",  p:4, g:5,  b:"d"},
+    {n:24, s:"Cr", ko:"크로뮴",   en:"Chromium",      aw:"51.996",  p:4, g:6,  b:"d"},
+    {n:25, s:"Mn", ko:"망가니즈", en:"Manganese",     aw:"54.938",  p:4, g:7,  b:"d"},
+    {n:26, s:"Fe", ko:"철",       en:"Iron",          aw:"55.845",  p:4, g:8,  b:"d"},
+    {n:27, s:"Co", ko:"코발트",   en:"Cobalt",        aw:"58.933",  p:4, g:9,  b:"d"},
+    {n:28, s:"Ni", ko:"니켈",     en:"Nickel",        aw:"58.693",  p:4, g:10, b:"d"},
+    {n:29, s:"Cu", ko:"구리",     en:"Copper",        aw:"63.546",  p:4, g:11, b:"d"},
+    {n:30, s:"Zn", ko:"아연",     en:"Zinc",          aw:"65.38",   p:4, g:12, b:"d"},
+    {n:31, s:"Ga", ko:"갈륨",     en:"Gallium",       aw:"69.723",  p:4, g:13, b:"p"},
+    {n:32, s:"Ge", ko:"게르마늄", en:"Germanium",     aw:"72.630",  p:4, g:14, b:"p"},
+    {n:33, s:"As", ko:"비소",     en:"Arsenic",       aw:"74.922",  p:4, g:15, b:"p"},
+    {n:34, s:"Se", ko:"셀레늄",   en:"Selenium",      aw:"78.971",  p:4, g:16, b:"p"},
+    {n:35, s:"Br", ko:"브로민",   en:"Bromine",       aw:"79.904",  p:4, g:17, b:"p"},
+    {n:36, s:"Kr", ko:"크립톤",   en:"Krypton",       aw:"83.798",  p:4, g:18, b:"p"},
+
+    {n:37, s:"Rb", ko:"루비듐",   en:"Rubidium",      aw:"85.468",  p:5, g:1,  b:"s"},
+    {n:38, s:"Sr", ko:"스트론튬", en:"Strontium",     aw:"87.62",   p:5, g:2,  b:"s"},
+    {n:39, s:"Y",  ko:"이트륨",   en:"Yttrium",       aw:"88.906",  p:5, g:3,  b:"d"},
+    {n:40, s:"Zr", ko:"지르코늄", en:"Zirconium",     aw:"91.222",  p:5, g:4,  b:"d"},
+    {n:41, s:"Nb", ko:"나이오븀", en:"Niobium",       aw:"92.906",  p:5, g:5,  b:"d"},
+    {n:42, s:"Mo", ko:"몰리브데넘", en:"Molybdenum",   aw:"95.95",   p:5, g:6,  b:"d"},
+    {n:43, s:"Tc", ko:"테크네튬", en:"Technetium",    aw:"[98]",    p:5, g:7,  b:"d"},
+    {n:44, s:"Ru", ko:"루테늄",   en:"Ruthenium",     aw:"101.07",  p:5, g:8,  b:"d"},
+    {n:45, s:"Rh", ko:"로듐",     en:"Rhodium",       aw:"102.91",  p:5, g:9,  b:"d"},
+    {n:46, s:"Pd", ko:"팔라듐",   en:"Palladium",     aw:"106.42",  p:5, g:10, b:"d"},
+    {n:47, s:"Ag", ko:"은",       en:"Silver",        aw:"107.87",  p:5, g:11, b:"d"},
+    {n:48, s:"Cd", ko:"카드뮴",   en:"Cadmium",       aw:"112.41",  p:5, g:12, b:"d"},
+    {n:49, s:"In", ko:"인듐",     en:"Indium",        aw:"114.82",  p:5, g:13, b:"p"},
+    {n:50, s:"Sn", ko:"주석",     en:"Tin",           aw:"118.71",  p:5, g:14, b:"p"},
+    {n:51, s:"Sb", ko:"안티모니", en:"Antimony",      aw:"121.76",  p:5, g:15, b:"p"},
+    {n:52, s:"Te", ko:"텔루륨",   en:"Tellurium",     aw:"127.60",  p:5, g:16, b:"p"},
+    {n:53, s:"I",  ko:"아이오딘", en:"Iodine",        aw:"126.90",  p:5, g:17, b:"p"},
+    {n:54, s:"Xe", ko:"제논",     en:"Xenon",         aw:"131.29",  p:5, g:18, b:"p"},
+
+    {n:55, s:"Cs", ko:"세슘",     en:"Caesium",       aw:"132.91",  p:6, g:1,  b:"s"},
+    {n:56, s:"Ba", ko:"바륨",     en:"Barium",        aw:"137.33",  p:6, g:2,  b:"s"},
+    // (6주기 3족은 ‘57~71’ 자리표시로 두고, 아래 f-블록 행에 La~Lu를 전부 표시합니다.)
+    {n:72, s:"Hf", ko:"하프늄",   en:"Hafnium",       aw:"178.49",  p:6, g:4,  b:"d"},
+    {n:73, s:"Ta", ko:"탄탈럼",   en:"Tantalum",      aw:"180.95",  p:6, g:5,  b:"d"},
+    {n:74, s:"W",  ko:"텅스텐",   en:"Tungsten",      aw:"183.84",  p:6, g:6,  b:"d"},
+    {n:75, s:"Re", ko:"레늄",     en:"Rhenium",       aw:"186.21",  p:6, g:7,  b:"d"},
+    {n:76, s:"Os", ko:"오스뮴",   en:"Osmium",        aw:"190.23",  p:6, g:8,  b:"d"},
+    {n:77, s:"Ir", ko:"이리듐",   en:"Iridium",       aw:"192.22",  p:6, g:9,  b:"d"},
+    {n:78, s:"Pt", ko:"백금",     en:"Platinum",      aw:"195.08",  p:6, g:10, b:"d"},
+    {n:79, s:"Au", ko:"금",       en:"Gold",          aw:"196.97",  p:6, g:11, b:"d"},
+    {n:80, s:"Hg", ko:"수은",     en:"Mercury",       aw:"200.59",  p:6, g:12, b:"d"},
+    {n:81, s:"Tl", ko:"탈륨",     en:"Thallium",      aw:"204.38",  p:6, g:13, b:"p"},
+    {n:82, s:"Pb", ko:"납",       en:"Lead",          aw:"207.2",   p:6, g:14, b:"p"},
+    {n:83, s:"Bi", ko:"비스무트", en:"Bismuth",       aw:"208.98",  p:6, g:15, b:"p"},
+    {n:84, s:"Po", ko:"폴로늄",   en:"Polonium",      aw:"[209]",  p:6, g:16, b:"p"},
+    {n:85, s:"At", ko:"아스타틴", en:"Astatine",      aw:"[210]",  p:6, g:17, b:"p"},
+    {n:86, s:"Rn", ko:"라돈",     en:"Radon",         aw:"[222]",  p:6, g:18, b:"p"},
+
+    {n:87, s:"Fr", ko:"프랑슘",   en:"Francium",      aw:"[223]",  p:7, g:1,  b:"s"},
+    {n:88, s:"Ra", ko:"라듐",     en:"Radium",        aw:"[226]",  p:7, g:2,  b:"s"},
+    // (7주기 3족은 ‘89~103’ 자리표시로 두고, 아래 f-블록 행에 Ac~Lr를 전부 표시합니다.)
+    {n:104,s:"Rf", ko:"러더포듐", en:"Rutherfordium", aw:"[267]",  p:7, g:4,  b:"d"},
+    {n:105,s:"Db", ko:"더브늄",   en:"Dubnium",       aw:"[268]",  p:7, g:5,  b:"d"},
+    {n:106,s:"Sg", ko:"시보귬",   en:"Seaborgium",    aw:"[269]",  p:7, g:6,  b:"d"},
+    {n:107,s:"Bh", ko:"보륨",     en:"Bohrium",       aw:"[270]",  p:7, g:7,  b:"d"},
+    {n:108,s:"Hs", ko:"하슘",     en:"Hassium",       aw:"[277]",  p:7, g:8,  b:"d"},
+    {n:109,s:"Mt", ko:"마이트너륨",en:"Meitnerium",   aw:"[278]",  p:7, g:9,  b:"d"},
+    {n:110,s:"Ds", ko:"다름슈타튬",en:"Darmstadtium", aw:"[281]",  p:7, g:10, b:"d"},
+    {n:111,s:"Rg", ko:"뢴트게늄", en:"Roentgenium",   aw:"[282]",  p:7, g:11, b:"d"},
+    {n:112,s:"Cn", ko:"코페르니슘",en:"Copernicium",  aw:"[285]",  p:7, g:12, b:"d"},
+    {n:113,s:"Nh", ko:"니호늄",   en:"Nihonium",      aw:"[286]",  p:7, g:13, b:"p"},
+    {n:114,s:"Fl", ko:"플레로븀", en:"Flerovium",     aw:"[289]",  p:7, g:14, b:"p"},
+    {n:115,s:"Mc", ko:"모스코븀", en:"Moscovium",     aw:"[290]",  p:7, g:15, b:"p"},
+    {n:116,s:"Lv", ko:"리버모륨", en:"Livermorium",   aw:"[293]",  p:7, g:16, b:"p"},
+    {n:117,s:"Ts", ko:"테네신",   en:"Tennessine",    aw:"[294]",  p:7, g:17, b:"p"},
+    {n:118,s:"Og", ko:"오가네손", en:"Oganesson",     aw:"[294]",  p:7, g:18, b:"p"},
+
+    // ======= f-블록(표 하단 행 배치용) =======
+    {n:57, s:"La", ko:"란타넘",       en:"Lanthanum",      aw:"138.91",  p:6, g:null, b:"f"},
+    {n:58, s:"Ce", ko:"세륨",         en:"Cerium",         aw:"140.12",  p:6, g:null, b:"f"},
+    {n:59, s:"Pr", ko:"프라세오디뮴", en:"Praseodymium",   aw:"140.91",  p:6, g:null, b:"f"},
+    {n:60, s:"Nd", ko:"네오디뮴",     en:"Neodymium",      aw:"144.24",  p:6, g:null, b:"f"},
+    {n:61, s:"Pm", ko:"프로메튬",     en:"Promethium",     aw:"[145]",   p:6, g:null, b:"f"},
+    {n:62, s:"Sm", ko:"사마륨",       en:"Samarium",       aw:"150.36",  p:6, g:null, b:"f"},
+    {n:63, s:"Eu", ko:"유로퓸",       en:"Europium",       aw:"151.96",  p:6, g:null, b:"f"},
+    {n:64, s:"Gd", ko:"가돌리늄",     en:"Gadolinium",     aw:"157.25",  p:6, g:null, b:"f"},
+    {n:65, s:"Tb", ko:"터븀",         en:"Terbium",        aw:"158.93",  p:6, g:null, b:"f"},
+    {n:66, s:"Dy", ko:"디스프로슘",   en:"Dysprosium",     aw:"162.50",  p:6, g:null, b:"f"},
+    {n:67, s:"Ho", ko:"홀뮴",         en:"Holmium",        aw:"164.93",  p:6, g:null, b:"f"},
+    {n:68, s:"Er", ko:"어븀",         en:"Erbium",         aw:"167.26",  p:6, g:null, b:"f"},
+    {n:69, s:"Tm", ko:"툴륨",         en:"Thulium",        aw:"168.93",  p:6, g:null, b:"f"},
+    {n:70, s:"Yb", ko:"이터븀",       en:"Ytterbium",      aw:"173.05",  p:6, g:null, b:"f"},
+    {n:71, s:"Lu", ko:"루테튬",       en:"Lutetium",       aw:"174.97",  p:6, g:null, b:"f"},
+
+    {n:89, s:"Ac", ko:"악티늄",       en:"Actinium",       aw:"[227]",   p:7, g:null, b:"f"},
+    {n:90, s:"Th", ko:"토륨",         en:"Thorium",        aw:"232.04",  p:7, g:null, b:"f"},
+    {n:91, s:"Pa", ko:"프로트악티늄", en:"Protactinium",   aw:"231.04",  p:7, g:null, b:"f"},
+    {n:92, s:"U",  ko:"우라늄",       en:"Uranium",        aw:"238.03",  p:7, g:null, b:"f"},
+    {n:93, s:"Np", ko:"넵투늄",       en:"Neptunium",      aw:"[237]",   p:7, g:null, b:"f"},
+    {n:94, s:"Pu", ko:"플루토늄",     en:"Plutonium",      aw:"[244]",   p:7, g:null, b:"f"},
+    {n:95, s:"Am", ko:"아메리슘",     en:"Americium",      aw:"[243]",   p:7, g:null, b:"f"},
+    {n:96, s:"Cm", ko:"큐륨",         en:"Curium",         aw:"[247]",   p:7, g:null, b:"f"},
+    {n:97, s:"Bk", ko:"버클륨",       en:"Berkelium",      aw:"[247]",   p:7, g:null, b:"f"},
+    {n:98, s:"Cf", ko:"캘리포늄",     en:"Californium",    aw:"[251]",   p:7, g:null, b:"f"},
+    {n:99, s:"Es", ko:"아인슈타이늄", en:"Einsteinium",    aw:"[252]",   p:7, g:null, b:"f"},
+    {n:100,s:"Fm", ko:"페르뮴",       en:"Fermium",        aw:"[257]",   p:7, g:null, b:"f"},
+    {n:101,s:"Md", ko:"멘델레븀",     en:"Mendelevium",    aw:"[258]",   p:7, g:null, b:"f"},
+    {n:102,s:"No", ko:"노벨륨",       en:"Nobelium",       aw:"[259]",   p:7, g:null, b:"f"},
+    {n:103,s:"Lr", ko:"로렌슘",       en:"Lawrencium",     aw:"[266]",   p:7, g:null, b:"f"},
+  ].sort((a,b)=>a.n-b.n);
+
+  const byN = new Map(ALL.map(e=>[e.n, e]));
+  const MAIN = ALL.filter(e => e.g !== null); // 본표(족이 있는 원소들)
+
+  // =====================================================
+  // 2) 초등학생(초3)용 설명: (업로드 파일 기반)
+  // =====================================================
+  const ELEMENT_DESC = {
+
+  1: "수소는 우주에서 가장 가벼운 원소예요. 물(H₂O)을 만드는 재료이고, 태양과 별들이 빛나는 에너지의 원천이에요. 미래의 친환경 자동차 연료로도 연구되고 있답니다.",
+  
+  2: "헬륨은 풍선을 하늘로 띄우는 가벼운 기체예요. 목소리를 재미있게 변하게 하기도 하지만, 병원의 MRI 기계를 차갑게 유지하는 중요한 역할도 해요. 우주에서 두 번째로 많은 원소랍니다.",
+  
+  3: "리튬은 스마트폰과 노트북 배터리에 들어있는 가벼운 금속이에요. 충전할 수 있는 배터리를 만드는 데 꼭 필요해요. 전기자동차가 달릴 수 있는 것도 리튬 덕분이랍니다.",
+  
+  4: "베릴륨은 가볍지만 아주 단단한 금속이에요. 우주선과 인공위성 같은 특별한 장비를 만들 때 사용해요. X-ray 기계의 창문 재료로도 쓰인답니다.",
+  
+  5: "붕소는 유리를 열에 강하게 만들어줘요. 세제와 비누를 만들 때도 사용하고, 식물이 건강하게 자라는 데도 필요해요. 단단한 세라믹을 만드는 재료이기도 해요.",
+  
+  6: "탄소는 연필심(흑연)과 다이아몬드를 만드는 신기한 원소예요. 우리 몸을 포함한 모든 생명체의 기본 재료예요. 같은 원소인데 배열에 따라 무른 흑연도 되고 단단한 다이아몬드도 된답니다.",
+  
+  7: "질소는 우리가 숨 쉬는 공기의 약 78%를 차지해요. 식물이 자라는 데 꼭 필요한 영양소예요. 과자 봉지를 부풀리는 데도 사용되어 과자가 부서지지 않게 보호해준답니다.",
+  
+  8: "산소는 우리가 숨을 쉬며 살아가는 데 꼭 필요한 기체예요. 공기의 약 21%를 차지하고, 불이 타는 데도 필요해요. 물(H₂O)의 재료이기도 하답니다.",
+  
+  9: "플루오린은 치약에 들어있어서 충치를 예방해줘요. 이를 단단하게 만들어 세균으로부터 보호해요. 프라이팬의 코팅(테프론)을 만드는 데도 사용된답니다.",
+  
+  10: "네온은 밤거리의 화려한 네온사인을 만드는 기체예요. 전기를 통하면 주황빛으로 빛나요. 다른 기체와 거의 반응하지 않는 안전한 원소랍니다.",
+  
+  11: "나트륨은 소금(염화나트륨)의 재료예요. 우리 몸의 신경과 근육이 일하는 데 필요하지만, 너무 많이 먹으면 건강에 안 좋아요. 순수한 나트륨은 물과 만나면 폭발적으로 반응하는 위험한 금속이에요.",
+  
+  12: "마그네슘은 불꽃놀이에서 하얀 빛을 내는 금속이에요. 우리 몸의 뼈와 근육이 제대로 일하는 데 필요해요. 카메라 플래시에도 옛날에 사용되었답니다.",
+  
+  13: "알루미늄은 가볍고 녹슬지 않는 금속이에요. 음료수 캔, 은박지(포일), 비행기를 만드는 데 사용해요. 지구에서 가장 흔한 금속 중 하나랍니다.",
+  
+  14: "규소(실리콘)는 모래의 주요 성분이에요. 컴퓨터 칩과 태양전지를 만드는 중요한 재료예요. 유리를 만들 때도 꼭 필요한 원소랍니다.",
+  
+  15: "인은 우리 몸의 뼈와 이를 튼튼하게 만들어줘요. 성냥과 불꽃놀이에도 사용돼요. DNA와 세포 에너지(ATP)를 만드는 데도 꼭 필요한 원소예요.",
+  
+  16: "황은 계란 썩은 냄새가 나는 노란색 원소예요. 고무를 튼튼하게 만들고(가황), 화약과 성냥을 만드는 데 사용해요. 우리 몸의 단백질에도 들어있답니다.",
+  
+  17: "염소는 수영장 물을 깨끗하게 소독하는 기체예요. 수돗물도 염소로 소독해서 안전하게 마실 수 있어요. 소금(염화나트륨)의 재료이기도 해요.",
+  
+  18: "아르곤은 전구 안에 들어있는 기체예요. 다른 물질과 거의 반응하지 않아서 필라멘트를 보호해줘요. 공기 중에 약 1% 정도 들어있답니다.",
+  
+  19: "칼륨은 바나나에 많이 들어있는 원소예요. 우리 몸의 근육과 심장이 제대로 뛰는 데 꼭 필요해요. 식물이 건강하게 자라는 데도 중요한 영양소랍니다.",
+  
+  20: "칼슘은 뼈와 이를 튼튼하게 만드는 원소예요. 우유, 치즈, 멸치에 많이 들어있어요. 근육이 움직이고 신경이 신호를 전달하는 데도 필요해요.",
+  
+  21: "스칸듐은 가볍고 단단한 금속이에요. 고급 자전거와 야구 배트를 만드는 데 사용해요. 아주 비싸서 특별한 용도로만 쓰인답니다.",
+  
+  22: "티타늄은 강철만큼 강하지만 훨씬 가벼운 금속이에요. 비행기, 우주선, 인공 뼈를 만드는 데 사용해요. 바닷물에도 녹슬지 않는 특별한 금속이랍니다.",
+  
+  23: "바나듐은 강철을 더 단단하고 질기게 만들어줘요. 공구와 자동차 부품에 섞어서 사용해요. 일부 생물의 몸에도 소량 들어있답니다.",
+  
+  24: "크로뮴은 반짝반짝 빛나는 은색 금속이에요. 수도꼭지와 자동차 범퍼를 반짝이게 코팅하는 데 사용해요. 스테인리스 강철을 만드는 중요한 재료예요.",
+  
+  25: "망가니즈는 건전지와 강철을 만드는 데 꼭 필요해요. 알루미늄 캔을 단단하게 만들어줘요. 우리 몸에도 소량 필요한 원소랍니다.",
+  
+  26: "철은 지구에서 가장 많이 사용되는 금속이에요. 건물, 다리, 자동차, 못을 만들어요. 우리 몸의 피(헤모글로빈)에도 들어있어서 산소를 운반해준답니다.",
+  
+  27: "코발트는 아름다운 파란색을 내는 금속이에요. 충전 배터리와 강력한 자석을 만드는 데 사용해요. 도자기와 유리에 파란색을 입히는 데도 쓰인답니다.",
+  
+  28: "니켈은 동전을 만드는 데 사용되는 금속이에요. 스테인리스 강철에 섞어서 녹슬지 않게 해줘요. 충전 배터리에도 들어있답니다.",
+  
+  29: "구리는 전기가 아주 잘 통하는 금속이에요. 전선, 동전, 냄비를 만드는 데 사용해요. 시간이 지나면 초록색으로 변하는데, 이것을 녹청이라고 해요.",
+  
+  30: "아연은 철이 녹슬지 않도록 보호하는 코팅 재료예요. 건전지를 만들고, 우리 몸의 면역 체계에도 필요해요. 상처가 빨리 낫도록 도와주기도 한답니다.",
+  
+  31: "갈륨은 손 위에 올려놓으면 녹아버리는 신기한 금속이에요. 녹는점이 약 30℃로 아주 낮아요. LED 조명과 스마트폰 부품을 만드는 데 사용된답니다.",
+  
+  32: "게르마늄은 반도체를 만드는 데 사용되는 원소예요. 컴퓨터와 광섬유 통신에 쓰여요. 규소와 비슷한 성질을 가지고 있답니다.",
+  
+  33: "비소는 독성이 있어서 아주 조심해야 하는 원소예요. 옛날 이야기에 독약으로 자주 나와요. 지금은 반도체와 일부 약을 만드는 데 조심스럽게 사용해요.",
+  
+  34: "셀레늄은 복사기와 태양전지에 사용되는 원소예요. 빛을 받으면 전기가 잘 통하는 특별한 성질이 있어요. 우리 몸에도 소량 필요한 영양소랍니다.",
+  
+  35: "브로민은 상온에서 액체인 몇 안 되는 원소 중 하나예요. 붉은 갈색을 띠고 냄새가 강해요. 불이 잘 붙지 않게 하는 난연제를 만드는 데 사용된답니다.",
+  
+  36: "크립톤은 밝은 조명과 레이저를 만드는 기체예요. 카메라 플래시에도 사용돼요. 슈퍼맨의 고향 행성 이름이기도 하답니다!",
+  
+  37: "루비듐은 물과 만나면 폭발적으로 반응하는 금속이에요. 아주 정밀한 시계를 만드는 데 사용해요. 실험실에서 아주 조심스럽게 다뤄야 해요.",
+  
+  38: "스트론튬은 불꽃놀이에서 빨간색을 만들어내요. 뼈를 튼튼하게 하는 연구에도 사용돼요. 야광 시계에도 옛날에 쓰였답니다.",
+  
+  39: "이트륨은 TV와 컴퓨터 화면을 밝게 만들어줘요. 강력한 레이저를 만드는 데도 사용해요. LED 조명의 재료이기도 하답니다.",
+  
+  40: "지르코늄은 아주 높은 온도에도 견디는 금속이에요. 원자력 발전소의 연료봉을 감싸는 데 사용해요. 인공 다이아몬드(큐빅 지르코니아)를 만들기도 해요.",
+  
+  41: "나이오븀은 강철을 더욱 강하게 만들어줘요. 초전도 자석과 로켓 엔진에 사용돼요. MRI 기계의 중요한 부품이기도 하답니다.",
+  
+  42: "몰리브데넘은 아주 높은 온도에서도 녹지 않는 금속이에요. 강철을 단단하게 만들고, 전구 필라멘트를 지지하는 데 사용해요. 공구와 기계 부품에도 쓰인답니다.",
+  
+  43: "테크네튬은 자연에서 거의 발견되지 않는 인공 원소예요. 병원에서 몸속을 검사하는 의료 영상에 사용돼요. 방사선을 내지만 금방 사라져서 안전해요.",
+  
+  44: "루테늄은 아주 단단하고 귀한 금속이에요. 컴퓨터 하드디스크와 전자부품을 만드는 데 사용해요. 백금과 섞으면 더욱 단단해져서 특수 장비에 쓰인답니다.",
+  
+  45: "로듐은 세상에서 가장 비싼 금속 중 하나예요. 자동차 배기가스를 깨끗하게 만드는 촉매 변환기에 사용돼요. 은색 장신구를 더 반짝이게 코팅하는 데도 쓰인답니다.",
+  
+  46: "팔라듐은 자동차 배기가스를 정화하는 데 꼭 필요한 금속이에요. 수소를 저장하는 특별한 능력이 있어요. 치과 치료와 전자제품에도 사용된답니다.",
+  
+  47: "은은 반짝반짝 빛나는 귀한 금속이에요. 장신구와 동전을 만들고, 전기가 가장 잘 통하는 금속이에요. 세균을 죽이는 능력이 있어서 항균 제품에도 쓰인답니다.",
+  
+  48: "카드뮴은 충전 배터리에 사용되었지만 독성이 있어요. 지금은 사용을 줄이고 있어요. 노란색 물감과 일부 태양전지를 만드는 데 조심스럽게 사용된답니다.",
+  
+  49: "인듐은 스마트폰과 태블릿 화면을 터치할 수 있게 해주는 원소예요. 투명하면서도 전기가 통하는 특별한 성질이 있어요. LCD와 LED 화면에 꼭 필요한 재료랍니다.",
+  
+  50: "주석은 깡통(양철)을 만드는 데 사용되는 금속이에요. 철이 녹슬지 않도록 코팅해줘요. 땜납을 만들어서 전자제품을 연결하는 데도 쓰인답니다.",
+  
+  51: "안티모니는 물건이 불에 잘 타지 않게 만드는 난연제로 사용돼요. 배터리와 반도체를 만드는 데도 쓰여요. 옛날에는 화장품과 약으로도 사용되었답니다.",
+  
+  52: "텔루륨은 태양전지와 DVD를 만드는 데 사용되는 원소예요. 반도체 성질을 가지고 있어요. 강철에 섞으면 가공하기 쉬워진답니다.",
+  
+  53: "아이오딘은 상처를 소독하는 빨간 약(포비돈)에 들어있어요. 우리 몸의 갑상선이 제대로 일하는 데 꼭 필요해요. 소금에 첨가되어 건강을 지켜준답니다.",
+  
+  54: "제논은 자동차의 밝은 헤드라이트를 만드는 기체예요. 마취제로도 사용되고, 우주선 엔진에도 쓰여요. 공기 중에 아주 조금만 들어있는 귀한 기체랍니다.",
+  
+  55: "세슘은 세상에서 가장 정확한 원자시계를 만드는 데 사용돼요. 1초를 정의하는 기준이 되는 원소예요. 물과 만나면 폭발적으로 반응하는 위험한 금속이랍니다.",
+  
+  56: "바륨은 병원에서 위와 장을 X-ray로 검사할 때 마시는 하얀 액체의 재료예요. 불꽃놀이에서 초록색을 만들어내요. 진흙 속에서 석유를 찾는 데도 도움을 준답니다.",
+  
+  57: "란타넘은 카메라와 망원경 렌즈를 더 선명하게 만들어줘요. 충전 배터리의 성능을 높이는 데도 사용돼요. 희토류 원소 중 하나랍니다.",
+  
+  58: "세륨은 라이터의 부싯돌에 들어있어서 불꽃을 쉽게 만들어줘요. 자동차 배기가스를 깨끗하게 하는 촉매로도 사용돼요. 유리를 연마하는 데도 쓰인답니다.",
+  
+  59: "프라세오디뮴은 용접할 때 눈을 보호하는 고글을 만드는 데 사용돼요. 강력한 자석의 재료이기도 해요. 아름다운 초록색 유리를 만드는 데도 쓰인답니다.",
+  
+  60: "네오디뮴은 세상에서 가장 강력한 영구자석을 만드는 원소예요. 헤드폰, 스피커, 전기자동차 모터에 들어있어요. 레이저를 만드는 데도 사용된답니다.",
+  
+  61: "프로메튬은 자연에서 거의 발견되지 않는 방사성 원소예요. 야광 시계와 두께 측정 장비에 사용돼요. 인공적으로만 만들 수 있는 희귀한 원소랍니다.",
+  
+  62: "사마륨은 강력한 자석과 레이저를 만드는 데 사용되는 원소예요. 암 치료 연구에도 쓰여요. 헤드폰과 전기 기타의 픽업에 들어있는 자석의 재료랍니다.",
+  
+  63: "유로퓸은 TV와 형광등에서 빨간색 빛을 만들어내는 원소예요. 유로 지폐의 위조 방지 잉크에도 사용돼요. LED 조명의 색을 조절하는 데도 쓰인답니다.",
+  
+  64: "가돌리늄은 병원의 MRI 검사를 더 선명하게 만들어주는 조영제예요. 강력한 자석 성질을 가지고 있어요. 원자로를 제어하는 데도 사용된답니다.",
+  
+  65: "터븀은 형광등과 TV 화면에서 초록색 빛을 만들어내요. 강력한 자석을 만드는 데도 사용돼요. 지폐의 위조 방지 기술에도 쓰인답니다.",
+  
+  66: "디스프로슘은 전기자동차와 풍력발전기의 자석을 더 강하게 만들어줘요. 높은 온도에서도 자석 성질을 유지해요. 원자로를 제어하는 데도 사용된답니다.",
+  
+  67: "홀뮴은 자연에서 가장 강한 자기적 성질을 가진 원소예요. 레이저 수술 장비에 사용돼요. 원자로에서 중성자를 흡수하는 역할도 한답니다.",
+  
+  68: "어븀은 광섬유 케이블로 인터넷 신호를 멀리 보내는 데 사용돼요. 분홍색 유리와 선글라스를 만드는 데도 쓰여요. 레이저 피부 치료에도 사용된답니다.",
+  
+  69: "툴륨은 휴대용 X-ray 장비를 만드는 데 사용되는 원소예요. 레이저 수술 도구에도 쓰여요. 희토류 원소 중에서 가장 비싼 원소 중 하나랍니다.",
+  
+  70: "이터븀은 원자시계와 레이저를 만드는 데 사용되는 원소예요. 스테인리스 강철의 성질을 개선하는 데도 쓰여요. 지진을 감지하는 장비에도 들어있답니다.",
+  
+  71: "루테튬은 암을 진단하고 치료하는 의료 영상에 사용돼요. PET 스캔 장비의 중요한 부품이에요. 희토류 원소 중 가장 무겁고 단단한 원소랍니다.",
+  
+  72: "하프늄은 아주 높은 온도에도 견디는 금속이에요. 로켓 노즐과 원자로 제어봉을 만드는 데 사용돼요. 컴퓨터 칩의 성능을 높이는 데도 쓰인답니다.",
+  
+  73: "탄탈럼은 스마트폰과 노트북의 작은 축전기를 만드는 데 꼭 필요해요. 인공 관절과 뼈 이식 재료로도 사용돼요. 산에도 녹지 않는 강한 금속이랍니다.",
+  
+  74: "텅스텐은 모든 금속 중에서 녹는점이 가장 높은 원소예요(3,422℃). 전구의 필라멘트와 용접 전극을 만들어요. 휴대폰 진동 모터의 무게추로도 사용된답니다.",
+  
+  75: "레늄은 제트엔진과 로켓 엔진의 고온 부품을 만드는 데 사용돼요. 아주 비싸고 희귀한 금속이에요. 촉매로 석유를 정제하는 데도 쓰인답니다.",
+  
+  76: "오스뮴은 자연에서 가장 무거운 원소예요(밀도가 가장 높아요). 만년필 펜촉과 전기 접점을 만드는 데 사용돼요. 아주 단단하지만 부서지기 쉬운 금속이랍니다.",
+  
+  77: "이리듐은 6,600만 년 전 공룡을 멸종시킨 운석에서 많이 발견됐어요. 만년필 펜촉과 자동차 점화 플러그를 만들어요. 부식에 아주 강한 귀한 금속이랍니다.",
+  
+  78: "백금은 아주 귀하고 반짝이는 금속이에요. 결혼반지와 자동차 촉매 변환기를 만들어요. 화학 실험 도구와 암 치료 약물에도 사용된답니다.",
+  
+  79: "금은 반짝이고 절대 녹슬지 않는 귀한 금속이에요. 장신구와 동전을 만들고, 스마트폰과 컴퓨터 부품에도 들어있어요. 전기가 아주 잘 통하고 영원히 변하지 않는답니다.",
+  
+  80: "수은은 상온에서 액체인 유일한 금속이에요. 옛날 온도계에 사용되었지만 독성이 있어서 지금은 사용을 줄이고 있어요. 형광등 안에도 아주 조금 들어있답니다.",
+  
+  81: "탈륨은 독성이 강해서 아주 조심해야 하는 원소예요. 옛날 쥐약으로 사용되었어요. 지금은 특수 유리와 의료 영상 검사에 조심스럽게 사용된답니다.",
+  
+  82: "납은 무겁고 부드러운 금속이에요. 옛날 배터리와 페인트에 사용되었지만 독성 때문에 지금은 사용을 줄이고 있어요. X-ray 차폐복과 낚시 추로 사용된답니다.",
+  
+  83: "비스무트는 비교적 안전한 중금속이에요. 배탈 약(펩토비스몰)의 주성분이에요. 아름다운 무지개색 결정을 만들고, 화장품과 합금에도 사용된답니다.",
+  
+  84: "폴로늄은 강한 방사선을 내는 위험한 원소예요. 우주선의 정전기를 제거하는 데 사용돼요. 마리 퀴리가 발견했고, 그녀의 조국 폴란드의 이름을 땄답니다.",
+  
+  85: "아스타틴은 자연에서 가장 희귀한 원소 중 하나예요. 지구 전체에 28g 정도만 존재해요. 암 치료 연구에 사용되지만 금방 사라지는 방사성 원소랍니다.",
+  
+  86: "라돈은 땅속에서 나오는 방사성 기체예요. 집 지하실에 쌓이면 건강에 해로울 수 있어요. 지진을 예측하는 연구에도 사용되는 무겁고 보이지 않는 기체랍니다.",
+  
+  87: "프랑슘은 자연에서 가장 불안정한 원소예요. 지구 전체에 30g 정도만 존재하고 금방 사라져요. 물과 만나면 가장 폭발적으로 반응하는 금속이지만, 너무 희귀해서 실험하기 어렵답니다.",
+  
+  88: "라듐은 어둠 속에서 초록빛으로 빛나는 방사성 원소예요. 마리 퀴리가 발견했고, 옛날 야광 시계에 사용되었어요. 지금은 암 치료 연구에 조심스럽게 사용된답니다.",
+  
+  89: "악티늄은 강한 방사선을 내는 원소예요. 어둠 속에서 푸른빛으로 빛나요. 암 치료 연구와 중성자를 만드는 장치에 사용되는 희귀한 원소랍니다.",
+  
+  90: "토륨은 우라늄보다 3배나 많은 원소예요. 미래의 원자력 발전 연료로 연구되고 있어요. 캠핑용 랜턴의 맨틀(밝게 빛나는 망)에도 사용되었답니다.",
+  
+  91: "프로트악티늄은 자연에서 아주 드물게 발견되는 방사성 원소예요. 은빛을 띠는 금속이에요. 주로 과학 연구용으로만 사용되는 희귀한 원소랍니다.",
+  
+  92: "우라늄은 원자력 발전소에서 전기를 만드는 데 사용되는 원소예요. 아주 무거운 금속이고 방사선을 내요. 지구의 나이를 측정하는 데도 사용된답니다.",
+  
+  93: "넵투늄은 우라늄에 중성자를 쾅 부딪혀서 만든 최초의 인공 원소예요. 해왕성(Neptune)의 이름을 따서 지었어요. 연기 감지기와 과학 연구에 사용되는 방사성 원소랍니다.",
+  
+  94: "플루토늄은 우라늄에 중수소를 충돌시켜 만들어진 인공 원소예요. 원자력 발전과 우주 탐사선의 전력원으로 사용돼요. 명왕성(Pluto)의 이름을 따서 지었답니다.",
+  
+  95: "아메리슘은 플루토늄에 중성자를 계속 쏘아서 만든 인공 원소예요. 가정용 연기 감지기에 들어있어요. 아메리카 대륙의 이름을 따서 지었답니다.",
+  
+  96: "큐륨은 플루토늄에 헬륨 원자핵을 쾅 부딪혀서 만든 원소예요. 마리 퀴리 부부의 이름을 땄어요. 우주 탐사선의 전력원으로 사용되고 어둠 속에서 붉은빛으로 빛난답니다.",
+  
+  97: "버클륨은 아메리슘에 헬륨 원자핵을 충돌시켜 만든 인공 원소예요. 미국 버클리 대학교의 이름을 땄어요. 아주 소량만 만들 수 있는 방사성 원소랍니다.",
+  
+  98: "캘리포늄은 큐륨에 헬륨 원자핵을 쾅 부딪혀서 만든 원소예요. 캘리포니아주의 이름을 땄어요. 암 치료와 금속 탐지에 사용되며, 1g에 수십억 원이 넘는 아주 비싼 원소랍니다.",
+  
+  99: "아인슈타이늄은 최초의 수소폭탄 실험 잔해에서 발견된 원소예요. 우라늄이 엄청난 중성자를 흡수해서 만들어졌어요. 천재 과학자 아인슈타인의 이름을 딴 방사성 원소랍니다.",
+  
+  100: "페르뮴은 수소폭탄 실험에서 우라늄이 여러 중성자를 흡수해 만들어진 원소예요. 원자폭탄을 만든 엔리코 페르미의 이름을 땄어요. 실험실에서 극소량만 만들 수 있답니다.",
+  
+  101: "멘델레븀은 아인슈타이늄에 헬륨 원자핵을 쾅 부딪혀서 만든 원소예요. 주기율표를 만든 멘델레예프의 이름을 땄어요. 한 번에 몇 개 원자만 만들 수 있는 희귀한 원소랍니다.",
+  
+  102: "노벨륨은 큐륨에 탄소 원자핵을 충돌시켜 만든 인공 원소예요. 다이너마이트를 발명한 알프레드 노벨의 이름을 땄어요. 아주 짧은 시간만 존재하는 방사성 원소랍니다.",
+  
+  103: "로렌슘은 캘리포늄에 붕소 원자핵을 쾅 부딪혀서 만든 원소예요. 사이클로트론을 발명한 어니스트 로렌스의 이름을 땄어요. 몇 시간만 존재하는 불안정한 원소랍니다.",
+  
+  104: "러더포듐은 캘리포늄에 탄소 원자핵을 충돌시켜 만든 인공 원소예요. 원자 구조를 발견한 러더퍼드의 이름을 땄어요. 몇 초만 존재하다가 사라지는 초중원소랍니다.",
+  
+  105: "더브늄은 캘리포늄에 질소 원자핵을 쾅 부딪혀서 만든 원소예요. 러시아 두브나 연구소의 이름을 땄어요. 1분도 안 되어 사라지는 불안정한 초중원소랍니다.",
+  
+  106: "시보귬은 캘리포늄에 산소 원자핵을 충돌시켜 만든 인공 원소예요. 미국 물리학자 글렌 시보그의 이름을 땄어요. 살아있을 때 이름이 붙여진 유일한 과학자의 원소랍니다.",
+  
+  107: "보륨은 비스무트에 크로뮴 원자핵을 쾅 부딪혀서 만든 원소예요. 덴마크 물리학자 닐스 보어의 이름을 땄어요. 몇 초만 존재하는 아주 불안정한 초중원소랍니다.",
+  
+  108: "하슘은 납에 철 원자핵을 충돌시켜 만든 인공 원소예요. 독일 헤센주의 이름을 땄어요. 1초도 안 되어 사라지는 불안정한 초중원소랍니다.",
+  
+  109: "마이트너륨은 비스무트에 철 원자핵을 쾅 부딪혀서 만든 원소예요. 여성 물리학자 리제 마이트너의 이름을 땄어요. 몇 밀리초만 존재하는 초중원소랍니다.",
+  
+  110: "다름슈타튬은 납에 니켈 원자핵을 충돌시켜 만든 인공 원소예요. 독일 다름슈타트시의 이름을 땄어요. 몇 초만 존재하다가 분해되는 초중원소랍니다.",
+  
+  111: "뢴트게늄은 비스무트에 니켈 원자핵을 쾅 부딪혀서 만든 원소예요. X-ray를 발견한 빌헬름 뢴트겐의 이름을 땄어요. 몇 밀리초만 존재하는 불안정한 원소랍니다.",
+  
+  112: "코페르니슘은 아연에 납 원자핵을 충돌시켜 만든 인공 원소예요. 천문학자 코페르니쿠스의 이름을 땄어요. 상온에서 기체일 것으로 예측되는 특이한 금속이랍니다.",
+  
+  113: "니호늄은 아연에 비스무트 원자핵을 쾅 부딪혀서 만든 원소예요. 일본(니혼)에서 발견해서 붙여진 이름이에요. 아시아에서 처음 발견한 초중원소로, 9년간의 실험 끝에 겨우 3개 원자를 만들었답니다.",
+  
+  114: "플레로븀은 플루토늄에 칼슘 원자핵을 충돌시켜 만든 인공 원소예요. 러시아 물리학자 플레로프의 이름을 땄어요. 몇 초 동안만 존재하는 초중원소랍니다.",
+  
+  115: "모스코븀은 아메리슘에 칼슘 원자핵을 쾅 부딪혀서 만든 원소예요. 러시아 모스크바의 이름을 땄어요. 몇 밀리초만 존재하는 불안정한 초중원소랍니다.",
+  
+  116: "리버모륨은 큐륨에 칼슘 원자핵을 충돌시켜 만든 인공 원소예요. 미국 리버모어 연구소의 이름을 땄어요. 몇 밀리초만 존재하다가 사라지는 초중원소랍니다.",
+  
+  117: "테네신은 버클륨에 칼슘 원자핵을 쾅 부딪혀서 만든 원소예요. 미국 테네시주의 이름을 땄어요. 할로겐족에 속하지만 금속 성질을 가질 것으로 예측된답니다.",
+  
+  118: "오가네손은 캘리포늄에 칼슘 원자핵을 충돌시켜 만든 가장 무거운 원소예요. 러시아 과학자 오가네시안의 이름을 땄어요. 1000조 번 충돌시켜 겨우 5개 원자를 만들었고, 발견 후 13년 만에 공식 인정받았답니다. 현재까지 발견된 주기율표의 마지막 원소예요."
+
+  };
+
+    // 누락된 데이터 자동 채우기 (렌더링 오류 방지용 가상 데이터 생성)
+    const symbols = ["H","He","Li","Be","B","C","N","O","F","Ne","Na","Mg","Al","Si","P","S","Cl","Ar","K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr","Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd","In","Sn","Sb","Te","I","Xe","Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg","Tl","Pb","Bi","Po","At","Rn","Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr","Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"];
+    const names = ["수소","헬륨","리튬","베릴륨","붕소","탄소","질소","산소","플루오린","네온","나트륨","마그네슘","알루미늄","규소","인","황","염소","아르곤","칼륨","칼슘","스칸듐","타이타늄","바나듐","크로뮴","망가니즈","철","코발트","니켈","구리","아연","갈륨","저마늄","비소","셀레늄","브로민","크립톤","루비듐","스트론튬","이트륨","지르코늄","나이오븀","몰리브데넘","테크네튬","루테늄","로듐","팔라듐","은","카드뮴","인듐","주석","안티모니","텔루륨","아이오딘","제논","세슘","바륨","란타넘","세륨","프라세오디뮴","네오디뮴","프로메튬","사마륨","유로퓸","가돌리늄","터븀","디스프로슘","홀뮴","에르","툴륨","이터븀","루테튬","하프늄","탄탈럼","텅스텐","레늄","오스뮴","이리듐","백금","금","수은","탈륨","납","비스무트","폴로늄","아스타틴","라돈","프란슘","라듐","악티늄","토륨","프로트악티늄","우라늄","넵투늄","플루토늄","아메리슘","퀴륨","버클륨","캘리포늄","아인슈타이늄","페르뮴","멘델레븀","노벨륨","로렌슘","러더포듐","더브늄","시보귬","보륨","하슘","마이트너륨","다름슈타튬","뢴트게늄","코페르니슘","니호늄","플레로븀","모스코븀","리버모륨","테네신","오가네손"];
+
+    for(let i=1; i<=118; i++) {
+        if(!ALL.find(e => e.n === i)) {
+            let b = 'd';
+            if(i>56 && i<72) b='f'; else if(i>88 && i<104) b='f';
+            else if([1,2,3,4,11,12,19,20,37,38,55,56,87,88].includes(i)) b='s';
+            else if([13,14,15,16,17,18,31,32,33,34,35,36].includes(i)) b='p';
+            
+            // 주기(p), 족(g) 대략적 계산
+            let p = 0, g = 0;
+            if(i<=2) p=1; else if(i<=10) p=2; else if(i<=18) p=3; else if(i<=36) p=4;
+            else if(i<=54) p=5; else if(i<=86) p=6; else p=7;
+            
+            ALL.push({n:i, s:symbols[i-1], ko:names[i-1], aw: Math.round(i*2.5), p:p, g:0, b:b});
+        }
+    }
+    ALL.sort((a,b) => a.n - b.n);
+
+    // 연금술 레시피 (확장됨)
+    const recipes = {
+        "H,H,O": { name: "물 (H₂O)", desc: "생명의 근원! 우리 몸의 70%는 물이에요.", icon: "💧", color: "#3498db" },
+        "O,O": { name: "산소 기체 (O₂)", desc: "우리가 숨 쉬는 데 꼭 필요해요!", icon: "🌬️", color: "#ecf0f1" },
+        "H,H": { name: "수소 기체 (H₂)", desc: "우주에서 가장 가벼워요. 폭발하기 쉬워요!", icon: "💥", color: "#bdc3c7" },
+        "Na,Cl": { name: "소금 (NaCl)", desc: "짭짤해요! 바닷물에 많이 들어있죠.", icon: "🧂", color: "#ffffff" },
+        "C,O,O": { name: "이산화탄소 (CO₂)", desc: "우리가 숨을 내쉴 때 나와요. 식물이 좋아해요!", icon: "☁️", color: "#7f8c8d" },
+        "N,N": { name: "질소 기체 (N₂)", desc: "과자 봉지에 빵빵하게 들어있어요.", icon: "🎈", color: "#95a5a6" },
+        "H,Cl": { name: "염산 (HCl)", desc: "위험해요! 우리 위 속에서 소화를 도와주기도 해요.", icon: "🧪", color: "#f1c40f" },
+        "Fe,Fe,O,O,O": { name: "산화철 (Fe₂O₃)", desc: "철이 산소와 만나 녹이 슬었어요.", icon: "🔩", color: "#c0392b" },
+        "N,H,H,H": { name: "암모니아 (NH₃)", desc: "화장실 냄새의 범인! 비료로도 써요.", icon: "🤢", color: "#badc58" },
+        "H,H,O,O": { name: "과산화수소 (H₂O₂)", desc: "상처 났을 때 바르면 거품이 나는 소독약!", icon: "🩹", color: "#dfe6e9" }
+    };
+
+    /* =========================================
+       2. 핵심 기능 로직
+       ========================================= */
+    const mainGrid = document.getElementById('periodicTable');
+    let quizState = { score: 0, combo: 0, currentAnswer: null };
+    let alchemyState = { mix: [], discovered: new Set() };
+
+    // 한글 이름 포맷팅 (줄바꿈)
+    function formatKoreanName(name) {
+        if(name.length === 4) return name.substring(0,2) + "<br>" + name.substring(2);
+        if(name.length >= 6) return name.substring(0,3) + "<br>" + name.substring(3);
+        return name;
+    }
+    
+    function formatAW(aw) {
+        const raw = String(aw).replace(/[\[\]]/g, '');
+        const num = parseFloat(raw);
+        return Number.isFinite(num) ? num.toFixed(1) : String(aw);
+    }
+
+    // 카드 생성
+    function createCard(e) {
+        const div = document.createElement('div');
+        div.className = `element bg-${e.b}`;
+        
+        div.innerHTML = `
+            <div class="at-num">${e.n}</div>
+            <div class="symbol">${e.s}</div>
+            <div class="name-ko">${formatKoreanName(e.ko)}</div>
+            <div class="mass">${formatAW(e.aw)}</div>
+            <div class="question-mark">?</div>
+        `;
+
+        div.onclick = () => {
+            // 실험실 모드면 비커에 추가
+            if(document.getElementById('alchemyPopup').classList.contains('show')) {
+                addToBeaker(e);
+            } else {
+                showWiki(e);
+            }
+        };
+        return div;
+    }
+
+    // 주기율표 그리기
+    function renderTable() {
+        mainGrid.innerHTML = '';
+        
+        // 1~18족, 7주기 좌표 매핑 (간이 로직)
+        // 란타넘/악티늄은 하단(8,9행)으로 배치
+        const getPos = (n) => {
+            if(n==1) return [1,1]; if(n==2) return [1,18];
+            if(n>=3 && n<=4) return [2, n-2]; if(n>=5 && n<=10) return [2, n+8];
+            if(n>=11 && n<=12) return [3, n-10]; if(n>=13 && n<=18) return [3, n];
+            if(n>=19 && n<=36) return [4, n-18];
+            if(n>=37 && n<=54) return [5, n-36];
+            if(n>=55 && n<=56) return [6, n-54];
+            if(n>=57 && n<=71) return [8, n-53]; // 란타넘족
+            if(n>=72 && n<=86) return [6, n-68];
+            if(n>=87 && n<=88) return [7, n-86];
+            if(n>=89 && n<=103) return [9, n-85]; // 악티늄족
+            if(n>=104 && n<=118) return [7, n-100];
+            return [10,1];
+        };
+
+        ALL.forEach(e => {
+            const card = createCard(e);
+            const [r, c] = getPos(e.n);
+            card.style.gridRow = r;
+            card.style.gridColumn = c;
+            mainGrid.appendChild(card);
+        });
+        
+        // 라벨 추가
+        addLabel(6, 3, "57-71<br>란타넘족");
+        addLabel(7, 3, "89-103<br>악티늄족");
+        addLabel(8, 3, "란타넘족 👉", "justify-content:flex-end; padding-right:10px; border:none; background:none; font-weight:bold;");
+        addLabel(9, 3, "악티늄족 👉", "justify-content:flex-end; padding-right:10px; border:none; background:none; font-weight:bold;");
+    }
+    
+    function addLabel(r, c, html, style="") {
+        const div = document.createElement('div');
+        div.className = 'label-cell';
+        div.style.gridRow = r; div.style.gridColumn = c;
+        div.innerHTML = html;
+        if(style) div.style.cssText += style;
+        mainGrid.appendChild(div);
+    }
+
+    // 상세 정보 (위키)
+    function showWiki(e) {
+        const content = document.getElementById('wikiContent');
+        const desc = ELEMENT_DESC[e.n] || "아직 상세 설명이 없지만 신비한 원소랍니다!";
+        
+        content.innerHTML = `
+            <div class="card-symbol bg-${e.b}" style="margin:0 auto 15px auto;">${e.s}</div>
+            <h2 style="margin:0;">${e.ko} (${e.n}번)</h2>
+            <p style="color:#777; font-size:1.1rem; margin-top:5px;">원자량: ${formatAW(e.aw)}</p>
+            <div style="background:#f9f9f9; padding:15px; border-radius:10px; margin-top:15px; line-height:1.5; text-align:left;">
+                ${desc}
+            </div>
+        `;
+        openPopup('wikiModal');
+    }
+    
+    /* =========================================
+       3. 팝업 및 공통 기능
+       ========================================= */
+    function openPopup(id) {
+        document.getElementById('overlay').classList.add('show');
+        document.getElementById(id).classList.add('show');
+    }
+    
+    function closeAllPopups() {
+        document.querySelectorAll('.popup-base, .overlay').forEach(el => el.classList.remove('show'));
+    }
+
+    function toggleMode(btn, className) {
+        const isActive = document.body.classList.toggle(className);
+        if(isActive) btn.classList.add('active'); else btn.classList.remove('active');
+    }
+    function openSettings() { openPopup('settingsPopup'); }
+
+
+    /* =========================================
+       4. 퀴즈 시스템 (업그레이드)
+       ========================================= */
+    function openQuiz() {
+        quizState.score = 0; quizState.combo = 0;
+        document.getElementById('scoreVal').innerText = 0;
+        openPopup('quizModal');
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        const qArea = document.getElementById('quizArea');
+        qArea.innerHTML = '';
+        document.getElementById('nextBtn').style.display = 'none';
+        
+        // 난이도 설정
+        const level = document.getElementById('quizLevel').value;
+        let pool = ALL;
+        if(level === 'easy') pool = ALL.filter(e => e.n<=20 || [26,29,47,79,80].includes(e.n));
+        else pool = ALL.filter(e => ELEMENT_DESC[e.n]); // 설명 있는 것만
+
+        const answer = pool[Math.floor(Math.random() * pool.length)];
+        quizState.currentAnswer = answer;
+        
+        // 문제 유형 (기호 맞히기 vs 이름 맞히기 vs 설명 보고 맞히기)
+        let type = 'symbol';
+        if(level === 'hard') type = 'desc';
+        else type = Math.random() > 0.5 ? 'symbol' : 'name';
+
+        // 질문 생성
+        const qTitle = document.createElement('div');
+        qTitle.style.textAlign = 'center';
+        qTitle.style.fontSize = '1.3rem';
+        
+        if(type === 'desc') {
+            const desc = ELEMENT_DESC[answer.n].replace(answer.ko, 'OO').replace(answer.s, 'X');
+            qTitle.innerHTML = `<span style="font-size:1rem; color:#666;">다음 설명에 맞는 원소는?</span><br>"${desc}"`;
+        } else if(type === 'symbol') {
+            qTitle.innerHTML = `<span style="font-size:3rem; font-weight:bold; color:#6c5ce7;">${answer.s}</span><br>이 기호의 원소 이름은?`;
+        } else {
+            qTitle.innerHTML = `<span style="font-size:1.5rem; font-weight:bold;">${answer.ko}</span><br>이 원소의 기호는?`;
+        }
+        qArea.appendChild(qTitle);
+
+        // 보기 생성
+        let choices = [answer];
+        while(choices.length < 4) {
+            const wrong = ALL[Math.floor(Math.random() * ALL.length)];
+            if(!choices.includes(wrong)) choices.push(wrong);
+        }
+        choices.sort(() => Math.random() - 0.5);
+
+        choices.forEach((c, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            
+            // 보기 텍스트
+            let label = type === 'symbol' || type === 'desc' ? c.ko : c.s;
+            btn.innerHTML = `<span style="color:#aaa; margin-right:10px;">${idx+1}</span> ${label}`;
+            
+            btn.onclick = () => checkAnswer(c, btn);
+            qArea.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(choice, btn) {
+        if(btn.disabled) return;
+        const answer = quizState.currentAnswer;
+        
+        if(choice.n === answer.n) {
+            // 정답
+            btn.classList.add('correct');
+            btn.innerHTML += " 🎉";
+            quizState.score += (10 + quizState.combo * 2);
+            quizState.combo++;
+            document.getElementById('scoreVal').innerText = quizState.score;
+            
+            if(quizState.combo >= 2) {
+                const badge = document.getElementById('comboBadge');
+                badge.style.display = 'inline-block';
+                badge.innerText = `🔥 ${quizState.combo}연속!`;
+            }
+            
+            // 버튼 잠금 및 다음 문제 버튼
+            document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+            document.getElementById('nextBtn').style.display = 'flex';
+        } else {
+            // 오답
+            btn.classList.add('wrong');
+            btn.disabled = true;
+            quizState.combo = 0;
+            document.getElementById('comboBadge').style.display = 'none';
+            
+            // 힌트 (토스트)
+            showToast(`앗! 틀렸어요. 힌트: ${answer.n}번 원소예요!`);
+        }
+    }
+
+    /* =========================================
+       5. 연금술사 (Alchemy) 게임
+       ========================================= */
+    function openAlchemy() {
+        alchemyState.mix = [];
+        updateBeakerUI();
+        renderCollection();
+        openPopup('alchemyPopup');
+    }
+    function closeAlchemy() { closeAllPopups(); }
+
+    function addToBeaker(el) {
+        if(alchemyState.mix.length >= 6) {
+            showToast("비커가 꽉 찼어요! 🔥 버튼을 누르세요.");
+            return;
+        }
+        
+        alchemyState.mix.push(el.s);
+        
+        // 애니메이션 효과 원소 생성
+        const ball = document.createElement('div');
+        ball.innerText = el.s;
+        ball.className = `bg-${el.b}`; // 배경색 활용
+        ball.style.cssText = `
+            width:40px; height:40px; border-radius:50%;
+            display:flex; justify-content:center; align-items:center; font-weight:bold;
+            border:2px solid white; box-shadow:0 3px 5px rgba(0,0,0,0.2);
+            animation: float 3s infinite ease-in-out;
+        `;
+        document.getElementById('beaker').appendChild(ball);
+    }
+
+    function clearBeaker() {
+        alchemyState.mix = [];
+        updateBeakerUI();
+        const res = document.getElementById('resultArea');
+        res.innerHTML = '<span style="font-size:2rem; opacity:0.3;">✨</span><span style="font-size:0.8rem; color:#aaa;">결과물</span>';
+        res.style.border = '3px dashed #ccc';
+        res.style.background = 'white';
+    }
+
+    function updateBeakerUI() {
+        const beaker = document.getElementById('beaker');
+        beaker.innerHTML = '<div style="position: absolute; top: -25px; color:#aaa; font-size:0.8rem; width:100%; text-align:center;">🧪 반응 용기</div>';
+    }
+
+    function mixElements() {
+        const key = alchemyState.mix.sort().join(',');
+        const resultDiv = document.getElementById('resultArea');
+        
+        if(recipes[key]) {
+            // 성공
+            const item = recipes[key];
+            if(!alchemyState.discovered.has(key)) {
+                alchemyState.discovered.add(key);
+                showToast(`🎉 새로운 발견! [${item.name}]`);
+                renderCollection();
+            }
+            
+            resultDiv.style.border = `3px solid ${item.color}`;
+            resultDiv.style.background = '#fff';
+            resultDiv.innerHTML = `
+                <div style="font-size:3rem; animation:bounce 0.5s;">${item.icon}</div>
+                <div style="font-size:0.9rem; font-weight:bold; margin-top:5px; color:#333;">${item.name}</div>
+            `;
+            createParticles(resultDiv); 
+        } else {
+            // 실패
+            showToast("음... 아무 반응이 없네요.");
+            resultDiv.innerHTML = '<div>💨 펑!</div>';
+            document.getElementById('beaker').style.animation = 'shake 0.4s';
+            setTimeout(() => document.getElementById('beaker').style.animation = '', 400);
+        }
+    }
+
+    function renderCollection() {
+        const grid = document.getElementById('collectionGrid');
+        const countSpan = document.getElementById('foundCount');
+        grid.innerHTML = '';
+        let count = 0;
+        
+        for(const [key, val] of Object.entries(recipes)) {
+            const isFound = alchemyState.discovered.has(key);
+            if(isFound) count++;
+            
+            const div = document.createElement('div');
+            div.className = `collect-item ${isFound ? 'found' : ''}`;
+            div.innerHTML = val.icon;
+            div.title = isFound ? val.name : "???";
+            div.onclick = () => { if(isFound) showToast(val.desc); };
+            grid.appendChild(div);
+        }
+        countSpan.innerText = count;
+    }
+
+    // 폭죽 파티클 효과
+    function createParticles(target) {
+        const rect = target.getBoundingClientRect();
+        for(let i=0; i<15; i++) {
+            const p = document.createElement('div');
+            p.style.cssText = `
+                position:fixed; width:8px; height:8px; background:gold; border-radius:50%;
+                top:${rect.top+50}px; left:${rect.left+50}px; pointer-events:none; z-index:2000;
+                transition: transform 0.8s, opacity 0.8s;
+            `;
+            document.body.appendChild(p);
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 60 + Math.random() * 40;
+            setTimeout(() => {
+                p.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
+                p.style.opacity = 0;
+            }, 10);
+            setTimeout(() => p.remove(), 800);
+        }
+    }
+
+    // 알림 메시지 (Toast)
+    function showToast(msg) {
+        let t = document.getElementById('toast');
+        if(!t) {
+            t = document.createElement('div');
+            t.id = 'toast';
+            t.style.cssText = 'position:fixed; bottom:15%; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:12px 24px; border-radius:30px; z-index:3000; transition:opacity 0.3s; font-size:1rem; box-shadow:0 5px 15px rgba(0,0,0,0.2);';
+            document.body.appendChild(t);
+        }
+        t.innerText = msg;
+        t.style.opacity = 1;
+        setTimeout(() => t.style.opacity = 0, 2500);
+    }
+
+    // 초기화 실행
+    window.onload = () => {
+        renderTable();
+    };
+</script>
+  <!-- Showcase Portal Navigation Button -->
+  <a href="../../index.html" class="showcase-nav-btn" title="쇼케이스 포털로 돌아가기">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    <span>Showcase</span>
+  </a>
+  <style>
+    .showcase-nav-btn {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 99999;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0.85;
+      user-select: none;
+    }
+    .showcase-nav-btn:hover {
+      opacity: 1;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.96);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+  </style>
+</body>
+</html>

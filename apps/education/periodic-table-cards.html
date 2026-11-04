@@ -1,0 +1,1740 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>원소 탐험 A3 주기율표 카드 도감</title>
+  <!-- SEO & Primary Meta Tags -->
+  <meta name="description" content="A3 대형 인쇄 및 대화형 학습에 최적화된 고해상도 주기율표 카드 뷰어" />
+  <meta name="keywords" content="주기율표 카드, A3 인쇄, 화학 도감, 주기율표 학습, 교육 자료" />
+  <meta name="author" content="Interactive Web Apps Collection" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicons/favicon-periodic-table-cards.svg" />
+  <link rel="alternate icon" type="image/png" href="../../assets/favicons/favicon-periodic-table-cards.png" />
+
+  <!-- Open Graph / Facebook / Kakao -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="원소 탐험 A3 주기율표 카드 도감" />
+  <meta property="og:description" content="A3 대형 인쇄 및 대화형 학습에 최적화된 고해상도 주기율표 카드 뷰어" />
+  <meta property="og:image" content="../../assets/og/og-periodic-table-cards.png" />
+  <meta property="og:site_name" content="Interactive Web Apps Showcase" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="원소 탐험 A3 주기율표 카드 도감" />
+  <meta name="twitter:description" content="A3 대형 인쇄 및 대화형 학습에 최적화된 고해상도 주기율표 카드 뷰어" />
+  <meta name="twitter:image" content="../../assets/og/og-periodic-table-cards.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+  <style>
+    /* A3 인쇄 설정 */
+    @page { size: A3 landscape; margin: 10mm; }
+
+    :root{
+      --bg:#fcfcfc;
+      --ink:#333;
+      --muted:#666;
+      --card:#fff;
+      --shadow: 0 10px 24px rgba(0,0,0,0.12);
+      --shadow2: 0 18px 55px rgba(0,0,0,0.25);
+      --radius: 18px;
+
+      /* 블록 색 (파스텔) */
+      --s:#FFD1DC; --s-b:#ffb7b2;
+      --p:#FFFACD; --p-b:#ffe680;
+      --d:#ADD8E6; --d-b:#87CEFA;
+      --f:#c9f2c9; --f-b:#98FB98;
+
+      --focus:#111;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      font-family:'Jua', system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      margin:0;
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:12px;
+    }
+
+    header{
+      width:min(1400px, 100%);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .titleRow{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    h1{
+      font-size:clamp(1.8rem, 2.2vw + 1rem, 3rem);
+      margin:0;
+      color:#444;
+      text-shadow:2px 2px 0 #eee;
+    }
+
+    .subtitle{
+      color:var(--muted);
+      font-size:1.05rem;
+      line-height:1.35;
+    
+
+ 
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      background:#fff;
+      border:1px solid #eee;
+      border-radius:18px;
+      padding:10px 12px;
+      box-shadow:0 6px 14px rgba(0,0,0,0.06);
+    }
+
+    .controls .left, .controls .right{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border:1px solid #ddd;
+      border-radius:999px;
+      background:#fff;
+    }
+
+    input[type="search"], input[type="number"], select{
+      font-family:inherit;
+      border:0;
+      outline:none;
+      background:transparent;
+      font-size:1rem;
+      color:var(--ink);
+    }
+
+    .btn{
+      font-family:inherit;
+      font-size:1rem;
+      border:1px solid #ddd;
+      background:#fff;
+      border-radius:14px;
+      padding:10px 12px;
+      cursor:pointer;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.06);
+      transition: transform .08s ease, box-shadow .08s ease;
+    }
+    .btn:active{ transform: translateY(1px); box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
+    .btn.primary{ border-color:#cfd6ff; }
+
+    .toggle{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      padding:8px 10px;
+      border:1px solid #ddd;
+      border-radius:999px;
+      background:#fff;
+      cursor:pointer;
+      user-select:none;
+    }
+    .toggle input{ transform:scale(1.2); }
+
+    /* 주기율표 그리드 */
+    .periodic-wrap{
+      width:min(1400px, 100%);
+      background:#fff;
+      border:1px solid #eee;
+      border-radius:22px;
+      padding:12px;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+    }
+
+    .periodic-table{
+      display:grid;
+      grid-template-columns: repeat(18, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      gap:8px;
+      width:100%;
+      aspect-ratio: 18 / 10;
+      min-height: 520px;
+    }
+
+    @media (max-width: 980px){
+      .periodic-table{ gap:6px; min-height: 440px; }
+    }
+    @media (max-width: 720px){
+      body{ padding:12px; }
+      .periodic-wrap{ padding:10px; }
+      .periodic-table{ gap:5px; min-height: 360px; }
+    }
+
+    .element{
+      border-radius: 14px;
+      padding:6px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      position:relative;
+      border:2px solid rgba(255,255,255,0.55);
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.10);
+      cursor:pointer;
+      transition: transform .12s ease, box-shadow .12s ease;
+      overflow:hidden;
+      touch-action: manipulation;
+    }
+
+    .element:focus{ outline:3px solid #111; outline-offset:2px; }
+
+    .element:hover{ transform: scale(1.06); z-index:10; }
+
+    .at-num{ font-size:.85rem; opacity:.75; }
+    .symbol{ font-size:1.9rem; font-weight:800; line-height:1; margin-top:2px; }
+    .name-ko{ font-size:.95rem; }
+    .name-en{ font-size:.65rem; color:#555; opacity:.9; }
+    .mass{ font-size:.72rem; background: rgba(255,255,255,0.65); display:inline-flex; padding:2px 7px; border-radius:999px; align-self:flex-start; }
+
+    /* 블록 색상 */
+    .s-block{ background:var(--s); border-color:var(--s-b); }
+    .p-block{ background:var(--p); border-color:var(--p-b); }
+    .d-block{ background:var(--d); border-color:var(--d-b); }
+    .f-block{ background:var(--f); border-color:var(--f-b); }
+
+    .empty{ visibility:hidden; border:none; box-shadow:none; }
+
+    .series-placeholder{
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      font-size: .9rem;
+      line-height: 1.2;
+      padding:6px;
+    }
+    .series-placeholder small{ display:block; color:#2f4f2f; opacity:.9; font-size:.72rem; margin-top:4px; }
+
+    /* 범례 */
+    .legend{
+      width:min(1400px, 100%);
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:center;
+      color:#444;
+      margin-top: 2px;
+    }
+    .legend-item{ display:flex; align-items:center; gap:8px; font-size:1.08rem; }
+    .dot{ width:18px; height:18px; border-radius:50%; border:1px solid #ddd; }
+
+    /* 토스트 */
+    #toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:rgba(20,20,20,.92);
+      color:#fff;
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:.95rem;
+      display:none;
+      z-index:99999;
+      max-width:min(92vw, 740px);
+      text-align:center;
+    }
+
+    /* 모달 */
+    #cardModal{ display:none; }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid #eee;
+      background:#fff;
+      font-size:.95rem;
+      color:#444;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.05);
+    }
+
+    .badge.warn{ border-color:#ffd0d0; }
+
+    .cardHero{
+      border-radius: 20px;
+      overflow:hidden;
+      box-shadow: var(--shadow);
+      border:1px solid #eee;
+    }
+
+    .cardHeroTop{
+      padding:16px 18px 14px;
+      display:flex;
+      gap:16px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .heroLeft{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+
+    .heroSymbol{
+      width:88px; height:88px;
+      border-radius:20px;
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      font-size:2.4rem;
+      border:2px solid rgba(255,255,255,0.6);
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.25);
+      backdrop-filter: blur(6px);
+    }
+
+    .heroNames{ line-height:1.05; }
+    .heroNames .ko{ font-size:1.65rem; }
+    .heroNames .en{ font-size:1rem; color:#2b2b2b; opacity:.85; }
+
+    .heroRight{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+
+    .cardHeroBody{ padding:16px 18px 18px; background:#fff; }
+    .infoGrid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; }
+    @media (max-width: 680px){ .infoGrid{ grid-template-columns:1fr; } }
+
+    .infoItem{
+      border:1px solid #eee;
+      border-radius:16px;
+      padding:10px 12px;
+      background:#fff;
+    }
+    .infoItem .k{ color:#666; font-size:.9rem; }
+    .infoItem .v{ font-size:1.1rem; margin-top:4px; }
+
+    .descBox{
+      margin-top:12px;
+      border:1px solid #eee;
+      border-radius:16px;
+      padding:12px 12px;
+      background:#fff;
+      line-height:1.45;
+      font-size:1.08rem;
+    }
+
+    .deckGrid{
+      display:grid;
+      grid-template-columns: repeat(5, minmax(0,1fr));
+      gap:10px;
+    }
+    @media (max-width: 760px){ .deckGrid{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+    @media (max-width: 480px){ .deckGrid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
+    .miniCard{
+      border-radius:16px;
+      border:1px solid #eee;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+      overflow:hidden;
+      cursor:pointer;
+      background:#fff;
+      transition: transform .08s ease;
+    }
+    .miniCard:hover{ transform: translateY(-2px); }
+
+    .miniTop{ padding:10px; display:flex; align-items:flex-start; justify-content:space-between; }
+    .miniSym{ font-size:1.35rem; font-weight:800; }
+    .miniNum{ opacity:.75; }
+    .miniBottom{ padding:10px; border-top:1px solid rgba(255,255,255,0.45); }
+    .miniKo{ font-size:1rem; }
+    .miniEn{ font-size:.75rem; opacity:.8; }
+
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    /* =========================
+       퀴즈 모달
+       ========================= */
+    #quizModal{ display:none; }
+    .quizCard{
+      background:#fff;
+      border:1px solid #eee;
+      border-radius:22px;
+      box-shadow: var(--shadow2);
+      overflow:hidden;
+    }
+    .quizTop{
+      padding:12px 14px;
+      border-bottom:1px solid #eee;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .quizTop .left, .quizTop .right{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .quizBody{ padding:16px 18px 18px; }
+    .quizQ{ font-size:1.35rem; line-height:1.35; margin:0 0 12px; }
+    .quizHint{
+      color:#666;
+      line-height:1.35;
+      border:1px dashed #ddd;
+      border-radius:16px;
+      padding:10px 12px;
+      background:#fff;
+      margin-bottom:12px;
+    }
+    .quizChoices{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; }
+    @media (max-width: 640px){ .quizChoices{ grid-template-columns:1fr; } }
+    .choiceBtn{
+      text-align:left;
+      border:1px solid #ddd;
+      background:#fff;
+      border-radius:16px;
+      padding:12px 12px;
+      cursor:pointer;
+      font-family:inherit;
+      font-size:1.05rem;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.06);
+      transition: transform .08s ease;
+    }
+    .choiceBtn:active{ transform: translateY(1px); }
+    .choiceBtn.correct{ border-color:#9be59b; background: rgba(201,242,201,.55); }
+    .choiceBtn.wrong{ border-color:#ffb7b2; background: rgba(255,209,220,.55); }
+
+    .quizAnswerRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .quizAnswerRow input{
+      border:1px solid #ddd;
+      border-radius:14px;
+      padding:10px 12px;
+      font-size:1.05rem;
+      width:min(420px, 85vw);
+      background:#fff;
+      font-family:inherit;
+    }
+    .quizStatus{ margin-top:12px; color:#555; line-height:1.35; }
+    .quizStatus b{ color:#111; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="titleRow">
+    <div>
+      <h1>🚀 우리들의 즐거운 원소 탐험</h1>
+      <div class="subtitle">초3(B) · 부모님용 학습 카드 모드: 원소를 클릭하면 ‘야구카드/NBA카드’처럼 큰 카드가 뜹니다. (← → 로 넘기기)</div>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <button class="btn" id="btnOpenDeck" title="1~118 카드 모아보기">🃏 카드 모아보기</button>
+      <button class="btn" id="btnPrint" title="인쇄">🖨️ 인쇄</button>
+      <button class="btn primary" id="btnQuiz" title="퀴즈 모드">🧩 퀴즈</button>
+    </div>
+  </div>
+
+  <div class="controls" role="region" aria-label="주기율표 학습 도구">
+    <div class="left">
+      <div class="pill" title="원소 검색">
+        <span>🔎</span>
+        <input id="q" type="search" placeholder="예: 산소, O, 8" aria-label="검색" />
+      </div>
+
+      <div class="pill" title="블록 필터">
+        <span>🎨</span>
+        <select id="blockFilter" aria-label="블록 필터">
+          <option value="all">전체 블록</option>
+          <option value="s">s-블록</option>
+          <option value="p">p-블록</option>
+          <option value="d">d-블록</option>
+          <option value="f">f-블록</option>
+        </select>
+      </div>
+
+      <label class="toggle" title="영문 이름 표시">
+        <input id="toggleEn" type="checkbox" checked />
+        <span>영문</span>
+      </label>
+
+      <label class="toggle" title="원자량 표시">
+        <input id="toggleAw" type="checkbox" checked />
+        <span>원자량</span>
+      </label>
+    </div>
+
+    <div class="right">
+      <div class="pill" title="번호 점프">
+        <span>⤴️</span>
+        <input id="jump" type="number" min="1" max="118" placeholder="1~118" style="width:92px;" aria-label="번호 점프" />
+        <button class="btn" id="btnJump">이동</button>
+      </div>
+      <button class="btn" id="btnRandom">🎲 랜덤</button>
+    </div>
+  </div>
+</header>
+
+<div class="periodic-wrap">
+  <div class="periodic-table" id="table-container" aria-label="주기율표"></div>
+</div>
+
+<div class="legend" aria-label="범례">
+  <div class="legend-item"><div class="dot" style="background:var(--s)"></div>s-블록 (1~2족 + He)</div>
+  <div class="legend-item"><div class="dot" style="background:var(--d)"></div>d-블록 (전이금속)</div>
+  <div class="legend-item"><div class="dot" style="background:var(--p)"></div>p-블록 (다양한 원소들)</div>
+  <div class="legend-item"><div class="dot" style="background:var(--f)"></div>f-블록 (란타넘/악티늄족)</div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  // =====================================================
+  // 1) 1~118 원소 기본 정보 (원자번호/기호/한글/영문/원자량/주기/족/블록)
+  //    - aw: 안정 원소는 CIAAW/IUPAC abridged 값(대표값)
+  //    - 방사성/불안정 원소는 IUPAC 표 방식으로 [질량수] 표기
+  // =====================================================
+
+  const ALL = [
+    {n:1,  s:"H",  ko:"수소",     en:"Hydrogen",      aw:"1.0080",  p:1, g:1,  b:"s"},
+    {n:2,  s:"He", ko:"헬륨",     en:"Helium",        aw:"4.0026",  p:1, g:18, b:"s"},
+
+    {n:3,  s:"Li", ko:"리튬",     en:"Lithium",       aw:"6.94",    p:2, g:1,  b:"s"},
+    {n:4,  s:"Be", ko:"베릴륨",   en:"Beryllium",     aw:"9.0122",  p:2, g:2,  b:"s"},
+    {n:5,  s:"B",  ko:"붕소",     en:"Boron",         aw:"10.81",   p:2, g:13, b:"p"},
+    {n:6,  s:"C",  ko:"탄소",     en:"Carbon",        aw:"12.011",  p:2, g:14, b:"p"},
+    {n:7,  s:"N",  ko:"질소",     en:"Nitrogen",      aw:"14.007",  p:2, g:15, b:"p"},
+    {n:8,  s:"O",  ko:"산소",     en:"Oxygen",        aw:"15.999",  p:2, g:16, b:"p"},
+    {n:9,  s:"F",  ko:"플루오린", en:"Fluorine",      aw:"18.998",  p:2, g:17, b:"p"},
+    {n:10, s:"Ne", ko:"네온",     en:"Neon",          aw:"20.180",  p:2, g:18, b:"p"},
+
+    {n:11, s:"Na", ko:"나트륨",   en:"Sodium",        aw:"22.990",  p:3, g:1,  b:"s"},
+    {n:12, s:"Mg", ko:"마그네슘", en:"Magnesium",     aw:"24.305",  p:3, g:2,  b:"s"},
+    {n:13, s:"Al", ko:"알루미늄", en:"Aluminium",     aw:"26.982",  p:3, g:13, b:"p"},
+    {n:14, s:"Si", ko:"규소",     en:"Silicon",       aw:"28.085",  p:3, g:14, b:"p"},
+    {n:15, s:"P",  ko:"인",       en:"Phosphorus",    aw:"30.974",  p:3, g:15, b:"p"},
+    {n:16, s:"S",  ko:"황",       en:"Sulfur",        aw:"32.06",   p:3, g:16, b:"p"},
+    {n:17, s:"Cl", ko:"염소",     en:"Chlorine",      aw:"35.45",   p:3, g:17, b:"p"},
+    {n:18, s:"Ar", ko:"아르곤",   en:"Argon",         aw:"39.95",   p:3, g:18, b:"p"},
+
+    {n:19, s:"K",  ko:"칼륨",     en:"Potassium",     aw:"39.098",  p:4, g:1,  b:"s"},
+    {n:20, s:"Ca", ko:"칼슘",     en:"Calcium",       aw:"40.078",  p:4, g:2,  b:"s"},
+    {n:21, s:"Sc", ko:"스칸듐",   en:"Scandium",      aw:"44.956",  p:4, g:3,  b:"d"},
+    {n:22, s:"Ti", ko:"티타늄",   en:"Titanium",      aw:"47.867",  p:4, g:4,  b:"d"},
+    {n:23, s:"V",  ko:"바나듐",   en:"Vanadium",      aw:"50.942",  p:4, g:5,  b:"d"},
+    {n:24, s:"Cr", ko:"크로뮴",   en:"Chromium",      aw:"51.996",  p:4, g:6,  b:"d"},
+    {n:25, s:"Mn", ko:"망가니즈", en:"Manganese",     aw:"54.938",  p:4, g:7,  b:"d"},
+    {n:26, s:"Fe", ko:"철",       en:"Iron",          aw:"55.845",  p:4, g:8,  b:"d"},
+    {n:27, s:"Co", ko:"코발트",   en:"Cobalt",        aw:"58.933",  p:4, g:9,  b:"d"},
+    {n:28, s:"Ni", ko:"니켈",     en:"Nickel",        aw:"58.693",  p:4, g:10, b:"d"},
+    {n:29, s:"Cu", ko:"구리",     en:"Copper",        aw:"63.546",  p:4, g:11, b:"d"},
+    {n:30, s:"Zn", ko:"아연",     en:"Zinc",          aw:"65.38",   p:4, g:12, b:"d"},
+    {n:31, s:"Ga", ko:"갈륨",     en:"Gallium",       aw:"69.723",  p:4, g:13, b:"p"},
+    {n:32, s:"Ge", ko:"게르마늄", en:"Germanium",     aw:"72.630",  p:4, g:14, b:"p"},
+    {n:33, s:"As", ko:"비소",     en:"Arsenic",       aw:"74.922",  p:4, g:15, b:"p"},
+    {n:34, s:"Se", ko:"셀레늄",   en:"Selenium",      aw:"78.971",  p:4, g:16, b:"p"},
+    {n:35, s:"Br", ko:"브로민",   en:"Bromine",       aw:"79.904",  p:4, g:17, b:"p"},
+    {n:36, s:"Kr", ko:"크립톤",   en:"Krypton",       aw:"83.798",  p:4, g:18, b:"p"},
+
+    {n:37, s:"Rb", ko:"루비듐",   en:"Rubidium",      aw:"85.468",  p:5, g:1,  b:"s"},
+    {n:38, s:"Sr", ko:"스트론튬", en:"Strontium",     aw:"87.62",   p:5, g:2,  b:"s"},
+    {n:39, s:"Y",  ko:"이트륨",   en:"Yttrium",       aw:"88.906",  p:5, g:3,  b:"d"},
+    {n:40, s:"Zr", ko:"지르코늄", en:"Zirconium",     aw:"91.222",  p:5, g:4,  b:"d"},
+    {n:41, s:"Nb", ko:"나이오븀", en:"Niobium",       aw:"92.906",  p:5, g:5,  b:"d"},
+    {n:42, s:"Mo", ko:"몰리브데넘", en:"Molybdenum",   aw:"95.95",   p:5, g:6,  b:"d"},
+    {n:43, s:"Tc", ko:"테크네튬", en:"Technetium",    aw:"[98]",    p:5, g:7,  b:"d"},
+    {n:44, s:"Ru", ko:"루테늄",   en:"Ruthenium",     aw:"101.07",  p:5, g:8,  b:"d"},
+    {n:45, s:"Rh", ko:"로듐",     en:"Rhodium",       aw:"102.91",  p:5, g:9,  b:"d"},
+    {n:46, s:"Pd", ko:"팔라듐",   en:"Palladium",     aw:"106.42",  p:5, g:10, b:"d"},
+    {n:47, s:"Ag", ko:"은",       en:"Silver",        aw:"107.87",  p:5, g:11, b:"d"},
+    {n:48, s:"Cd", ko:"카드뮴",   en:"Cadmium",       aw:"112.41",  p:5, g:12, b:"d"},
+    {n:49, s:"In", ko:"인듐",     en:"Indium",        aw:"114.82",  p:5, g:13, b:"p"},
+    {n:50, s:"Sn", ko:"주석",     en:"Tin",           aw:"118.71",  p:5, g:14, b:"p"},
+    {n:51, s:"Sb", ko:"안티모니", en:"Antimony",      aw:"121.76",  p:5, g:15, b:"p"},
+    {n:52, s:"Te", ko:"텔루륨",   en:"Tellurium",     aw:"127.60",  p:5, g:16, b:"p"},
+    {n:53, s:"I",  ko:"아이오딘", en:"Iodine",        aw:"126.90",  p:5, g:17, b:"p"},
+    {n:54, s:"Xe", ko:"제논",     en:"Xenon",         aw:"131.29",  p:5, g:18, b:"p"},
+
+    {n:55, s:"Cs", ko:"세슘",     en:"Caesium",       aw:"132.91",  p:6, g:1,  b:"s"},
+    {n:56, s:"Ba", ko:"바륨",     en:"Barium",        aw:"137.33",  p:6, g:2,  b:"s"},
+    // (6주기 3족은 ‘57~71’ 자리표시로 두고, 아래 f-블록 행에 La~Lu를 전부 표시합니다.)
+    {n:72, s:"Hf", ko:"하프늄",   en:"Hafnium",       aw:"178.49",  p:6, g:4,  b:"d"},
+    {n:73, s:"Ta", ko:"탄탈럼",   en:"Tantalum",      aw:"180.95",  p:6, g:5,  b:"d"},
+    {n:74, s:"W",  ko:"텅스텐",   en:"Tungsten",      aw:"183.84",  p:6, g:6,  b:"d"},
+    {n:75, s:"Re", ko:"레늄",     en:"Rhenium",       aw:"186.21",  p:6, g:7,  b:"d"},
+    {n:76, s:"Os", ko:"오스뮴",   en:"Osmium",        aw:"190.23",  p:6, g:8,  b:"d"},
+    {n:77, s:"Ir", ko:"이리듐",   en:"Iridium",       aw:"192.22",  p:6, g:9,  b:"d"},
+    {n:78, s:"Pt", ko:"백금",     en:"Platinum",      aw:"195.08",  p:6, g:10, b:"d"},
+    {n:79, s:"Au", ko:"금",       en:"Gold",          aw:"196.97",  p:6, g:11, b:"d"},
+    {n:80, s:"Hg", ko:"수은",     en:"Mercury",       aw:"200.59",  p:6, g:12, b:"d"},
+    {n:81, s:"Tl", ko:"탈륨",     en:"Thallium",      aw:"204.38",  p:6, g:13, b:"p"},
+    {n:82, s:"Pb", ko:"납",       en:"Lead",          aw:"207.2",   p:6, g:14, b:"p"},
+    {n:83, s:"Bi", ko:"비스무트", en:"Bismuth",       aw:"208.98",  p:6, g:15, b:"p"},
+    {n:84, s:"Po", ko:"폴로늄",   en:"Polonium",      aw:"[209]",  p:6, g:16, b:"p"},
+    {n:85, s:"At", ko:"아스타틴", en:"Astatine",      aw:"[210]",  p:6, g:17, b:"p"},
+    {n:86, s:"Rn", ko:"라돈",     en:"Radon",         aw:"[222]",  p:6, g:18, b:"p"},
+
+    {n:87, s:"Fr", ko:"프랑슘",   en:"Francium",      aw:"[223]",  p:7, g:1,  b:"s"},
+    {n:88, s:"Ra", ko:"라듐",     en:"Radium",        aw:"[226]",  p:7, g:2,  b:"s"},
+    // (7주기 3족은 ‘89~103’ 자리표시로 두고, 아래 f-블록 행에 Ac~Lr를 전부 표시합니다.)
+    {n:104,s:"Rf", ko:"러더포듐", en:"Rutherfordium", aw:"[267]",  p:7, g:4,  b:"d"},
+    {n:105,s:"Db", ko:"더브늄",   en:"Dubnium",       aw:"[268]",  p:7, g:5,  b:"d"},
+    {n:106,s:"Sg", ko:"시보귬",   en:"Seaborgium",    aw:"[269]",  p:7, g:6,  b:"d"},
+    {n:107,s:"Bh", ko:"보륨",     en:"Bohrium",       aw:"[270]",  p:7, g:7,  b:"d"},
+    {n:108,s:"Hs", ko:"하슘",     en:"Hassium",       aw:"[277]",  p:7, g:8,  b:"d"},
+    {n:109,s:"Mt", ko:"마이트너륨",en:"Meitnerium",   aw:"[278]",  p:7, g:9,  b:"d"},
+    {n:110,s:"Ds", ko:"다름슈타튬",en:"Darmstadtium", aw:"[281]",  p:7, g:10, b:"d"},
+    {n:111,s:"Rg", ko:"뢴트게늄", en:"Roentgenium",   aw:"[282]",  p:7, g:11, b:"d"},
+    {n:112,s:"Cn", ko:"코페르니슘",en:"Copernicium",  aw:"[285]",  p:7, g:12, b:"d"},
+    {n:113,s:"Nh", ko:"니호늄",   en:"Nihonium",      aw:"[286]",  p:7, g:13, b:"p"},
+    {n:114,s:"Fl", ko:"플레로븀", en:"Flerovium",     aw:"[289]",  p:7, g:14, b:"p"},
+    {n:115,s:"Mc", ko:"모스코븀", en:"Moscovium",     aw:"[290]",  p:7, g:15, b:"p"},
+    {n:116,s:"Lv", ko:"리버모륨", en:"Livermorium",   aw:"[293]",  p:7, g:16, b:"p"},
+    {n:117,s:"Ts", ko:"테네신",   en:"Tennessine",    aw:"[294]",  p:7, g:17, b:"p"},
+    {n:118,s:"Og", ko:"오가네손", en:"Oganesson",     aw:"[294]",  p:7, g:18, b:"p"},
+
+    // ======= f-블록(표 하단 행 배치용) =======
+    {n:57, s:"La", ko:"란타넘",       en:"Lanthanum",      aw:"138.91",  p:6, g:null, b:"f"},
+    {n:58, s:"Ce", ko:"세륨",         en:"Cerium",         aw:"140.12",  p:6, g:null, b:"f"},
+    {n:59, s:"Pr", ko:"프라세오디뮴", en:"Praseodymium",   aw:"140.91",  p:6, g:null, b:"f"},
+    {n:60, s:"Nd", ko:"네오디뮴",     en:"Neodymium",      aw:"144.24",  p:6, g:null, b:"f"},
+    {n:61, s:"Pm", ko:"프로메튬",     en:"Promethium",     aw:"[145]",   p:6, g:null, b:"f"},
+    {n:62, s:"Sm", ko:"사마륨",       en:"Samarium",       aw:"150.36",  p:6, g:null, b:"f"},
+    {n:63, s:"Eu", ko:"유로퓸",       en:"Europium",       aw:"151.96",  p:6, g:null, b:"f"},
+    {n:64, s:"Gd", ko:"가돌리늄",     en:"Gadolinium",     aw:"157.25",  p:6, g:null, b:"f"},
+    {n:65, s:"Tb", ko:"터븀",         en:"Terbium",        aw:"158.93",  p:6, g:null, b:"f"},
+    {n:66, s:"Dy", ko:"디스프로슘",   en:"Dysprosium",     aw:"162.50",  p:6, g:null, b:"f"},
+    {n:67, s:"Ho", ko:"홀뮴",         en:"Holmium",        aw:"164.93",  p:6, g:null, b:"f"},
+    {n:68, s:"Er", ko:"어븀",         en:"Erbium",         aw:"167.26",  p:6, g:null, b:"f"},
+    {n:69, s:"Tm", ko:"툴륨",         en:"Thulium",        aw:"168.93",  p:6, g:null, b:"f"},
+    {n:70, s:"Yb", ko:"이터븀",       en:"Ytterbium",      aw:"173.05",  p:6, g:null, b:"f"},
+    {n:71, s:"Lu", ko:"루테튬",       en:"Lutetium",       aw:"174.97",  p:6, g:null, b:"f"},
+
+    {n:89, s:"Ac", ko:"악티늄",       en:"Actinium",       aw:"[227]",   p:7, g:null, b:"f"},
+    {n:90, s:"Th", ko:"토륨",         en:"Thorium",        aw:"232.04",  p:7, g:null, b:"f"},
+    {n:91, s:"Pa", ko:"프로트악티늄", en:"Protactinium",   aw:"231.04",  p:7, g:null, b:"f"},
+    {n:92, s:"U",  ko:"우라늄",       en:"Uranium",        aw:"238.03",  p:7, g:null, b:"f"},
+    {n:93, s:"Np", ko:"넵투늄",       en:"Neptunium",      aw:"[237]",   p:7, g:null, b:"f"},
+    {n:94, s:"Pu", ko:"플루토늄",     en:"Plutonium",      aw:"[244]",   p:7, g:null, b:"f"},
+    {n:95, s:"Am", ko:"아메리슘",     en:"Americium",      aw:"[243]",   p:7, g:null, b:"f"},
+    {n:96, s:"Cm", ko:"큐륨",         en:"Curium",         aw:"[247]",   p:7, g:null, b:"f"},
+    {n:97, s:"Bk", ko:"버클륨",       en:"Berkelium",      aw:"[247]",   p:7, g:null, b:"f"},
+    {n:98, s:"Cf", ko:"캘리포늄",     en:"Californium",    aw:"[251]",   p:7, g:null, b:"f"},
+    {n:99, s:"Es", ko:"아인슈타이늄", en:"Einsteinium",    aw:"[252]",   p:7, g:null, b:"f"},
+    {n:100,s:"Fm", ko:"페르뮴",       en:"Fermium",        aw:"[257]",   p:7, g:null, b:"f"},
+    {n:101,s:"Md", ko:"멘델레븀",     en:"Mendelevium",    aw:"[258]",   p:7, g:null, b:"f"},
+    {n:102,s:"No", ko:"노벨륨",       en:"Nobelium",       aw:"[259]",   p:7, g:null, b:"f"},
+    {n:103,s:"Lr", ko:"로렌슘",       en:"Lawrencium",     aw:"[266]",   p:7, g:null, b:"f"},
+  ].sort((a,b)=>a.n-b.n);
+
+  const byN = new Map(ALL.map(e=>[e.n, e]));
+  const MAIN = ALL.filter(e => e.g !== null); // 본표(족이 있는 원소들)
+
+  // =====================================================
+  // 2) 초등학생(초3)용 설명: (업로드 파일 기반)
+  // =====================================================
+  const ELEMENT_DESC = {
+
+  1: "수소는 우주에서 가장 가벼운 원소예요. 물(H₂O)을 만드는 재료이고, 태양과 별들이 빛나는 에너지의 원천이에요. 미래의 친환경 자동차 연료로도 연구되고 있답니다.",
+  
+  2: "헬륨은 풍선을 하늘로 띄우는 가벼운 기체예요. 목소리를 재미있게 변하게 하기도 하지만, 병원의 MRI 기계를 차갑게 유지하는 중요한 역할도 해요. 우주에서 두 번째로 많은 원소랍니다.",
+  
+  3: "리튬은 스마트폰과 노트북 배터리에 들어있는 가벼운 금속이에요. 충전할 수 있는 배터리를 만드는 데 꼭 필요해요. 전기자동차가 달릴 수 있는 것도 리튬 덕분이랍니다.",
+  
+  4: "베릴륨은 가볍지만 아주 단단한 금속이에요. 우주선과 인공위성 같은 특별한 장비를 만들 때 사용해요. X-ray 기계의 창문 재료로도 쓰인답니다.",
+  
+  5: "붕소는 유리를 열에 강하게 만들어줘요. 세제와 비누를 만들 때도 사용하고, 식물이 건강하게 자라는 데도 필요해요. 단단한 세라믹을 만드는 재료이기도 해요.",
+  
+  6: "탄소는 연필심(흑연)과 다이아몬드를 만드는 신기한 원소예요. 우리 몸을 포함한 모든 생명체의 기본 재료예요. 같은 원소인데 배열에 따라 무른 흑연도 되고 단단한 다이아몬드도 된답니다.",
+  
+  7: "질소는 우리가 숨 쉬는 공기의 약 78%를 차지해요. 식물이 자라는 데 꼭 필요한 영양소예요. 과자 봉지를 부풀리는 데도 사용되어 과자가 부서지지 않게 보호해준답니다.",
+  
+  8: "산소는 우리가 숨을 쉬며 살아가는 데 꼭 필요한 기체예요. 공기의 약 21%를 차지하고, 불이 타는 데도 필요해요. 물(H₂O)의 재료이기도 하답니다.",
+  
+  9: "플루오린은 치약에 들어있어서 충치를 예방해줘요. 이를 단단하게 만들어 세균으로부터 보호해요. 프라이팬의 코팅(테프론)을 만드는 데도 사용된답니다.",
+  
+  10: "네온은 밤거리의 화려한 네온사인을 만드는 기체예요. 전기를 통하면 주황빛으로 빛나요. 다른 기체와 거의 반응하지 않는 안전한 원소랍니다.",
+  
+  11: "나트륨은 소금(염화나트륨)의 재료예요. 우리 몸의 신경과 근육이 일하는 데 필요하지만, 너무 많이 먹으면 건강에 안 좋아요. 순수한 나트륨은 물과 만나면 폭발적으로 반응하는 위험한 금속이에요.",
+  
+  12: "마그네슘은 불꽃놀이에서 하얀 빛을 내는 금속이에요. 우리 몸의 뼈와 근육이 제대로 일하는 데 필요해요. 카메라 플래시에도 옛날에 사용되었답니다.",
+  
+  13: "알루미늄은 가볍고 녹슬지 않는 금속이에요. 음료수 캔, 은박지(포일), 비행기를 만드는 데 사용해요. 지구에서 가장 흔한 금속 중 하나랍니다.",
+  
+  14: "규소(실리콘)는 모래의 주요 성분이에요. 컴퓨터 칩과 태양전지를 만드는 중요한 재료예요. 유리를 만들 때도 꼭 필요한 원소랍니다.",
+  
+  15: "인은 우리 몸의 뼈와 이를 튼튼하게 만들어줘요. 성냥과 불꽃놀이에도 사용돼요. DNA와 세포 에너지(ATP)를 만드는 데도 꼭 필요한 원소예요.",
+  
+  16: "황은 계란 썩은 냄새가 나는 노란색 원소예요. 고무를 튼튼하게 만들고(가황), 화약과 성냥을 만드는 데 사용해요. 우리 몸의 단백질에도 들어있답니다.",
+  
+  17: "염소는 수영장 물을 깨끗하게 소독하는 기체예요. 수돗물도 염소로 소독해서 안전하게 마실 수 있어요. 소금(염화나트륨)의 재료이기도 해요.",
+  
+  18: "아르곤은 전구 안에 들어있는 기체예요. 다른 물질과 거의 반응하지 않아서 필라멘트를 보호해줘요. 공기 중에 약 1% 정도 들어있답니다.",
+  
+  19: "칼륨은 바나나에 많이 들어있는 원소예요. 우리 몸의 근육과 심장이 제대로 뛰는 데 꼭 필요해요. 식물이 건강하게 자라는 데도 중요한 영양소랍니다.",
+  
+  20: "칼슘은 뼈와 이를 튼튼하게 만드는 원소예요. 우유, 치즈, 멸치에 많이 들어있어요. 근육이 움직이고 신경이 신호를 전달하는 데도 필요해요.",
+  
+  21: "스칸듐은 가볍고 단단한 금속이에요. 고급 자전거와 야구 배트를 만드는 데 사용해요. 아주 비싸서 특별한 용도로만 쓰인답니다.",
+  
+  22: "티타늄은 강철만큼 강하지만 훨씬 가벼운 금속이에요. 비행기, 우주선, 인공 뼈를 만드는 데 사용해요. 바닷물에도 녹슬지 않는 특별한 금속이랍니다.",
+  
+  23: "바나듐은 강철을 더 단단하고 질기게 만들어줘요. 공구와 자동차 부품에 섞어서 사용해요. 일부 생물의 몸에도 소량 들어있답니다.",
+  
+  24: "크로뮴은 반짝반짝 빛나는 은색 금속이에요. 수도꼭지와 자동차 범퍼를 반짝이게 코팅하는 데 사용해요. 스테인리스 강철을 만드는 중요한 재료예요.",
+  
+  25: "망가니즈는 건전지와 강철을 만드는 데 꼭 필요해요. 알루미늄 캔을 단단하게 만들어줘요. 우리 몸에도 소량 필요한 원소랍니다.",
+  
+  26: "철은 지구에서 가장 많이 사용되는 금속이에요. 건물, 다리, 자동차, 못을 만들어요. 우리 몸의 피(헤모글로빈)에도 들어있어서 산소를 운반해준답니다.",
+  
+  27: "코발트는 아름다운 파란색을 내는 금속이에요. 충전 배터리와 강력한 자석을 만드는 데 사용해요. 도자기와 유리에 파란색을 입히는 데도 쓰인답니다.",
+  
+  28: "니켈은 동전을 만드는 데 사용되는 금속이에요. 스테인리스 강철에 섞어서 녹슬지 않게 해줘요. 충전 배터리에도 들어있답니다.",
+  
+  29: "구리는 전기가 아주 잘 통하는 금속이에요. 전선, 동전, 냄비를 만드는 데 사용해요. 시간이 지나면 초록색으로 변하는데, 이것을 녹청이라고 해요.",
+  
+  30: "아연은 철이 녹슬지 않도록 보호하는 코팅 재료예요. 건전지를 만들고, 우리 몸의 면역 체계에도 필요해요. 상처가 빨리 낫도록 도와주기도 한답니다.",
+  
+  31: "갈륨은 손 위에 올려놓으면 녹아버리는 신기한 금속이에요. 녹는점이 약 30℃로 아주 낮아요. LED 조명과 스마트폰 부품을 만드는 데 사용된답니다.",
+  
+  32: "게르마늄은 반도체를 만드는 데 사용되는 원소예요. 컴퓨터와 광섬유 통신에 쓰여요. 규소와 비슷한 성질을 가지고 있답니다.",
+  
+  33: "비소는 독성이 있어서 아주 조심해야 하는 원소예요. 옛날 이야기에 독약으로 자주 나와요. 지금은 반도체와 일부 약을 만드는 데 조심스럽게 사용해요.",
+  
+  34: "셀레늄은 복사기와 태양전지에 사용되는 원소예요. 빛을 받으면 전기가 잘 통하는 특별한 성질이 있어요. 우리 몸에도 소량 필요한 영양소랍니다.",
+  
+  35: "브로민은 상온에서 액체인 몇 안 되는 원소 중 하나예요. 붉은 갈색을 띠고 냄새가 강해요. 불이 잘 붙지 않게 하는 난연제를 만드는 데 사용된답니다.",
+  
+  36: "크립톤은 밝은 조명과 레이저를 만드는 기체예요. 카메라 플래시에도 사용돼요. 슈퍼맨의 고향 행성 이름이기도 하답니다!",
+  
+  37: "루비듐은 물과 만나면 폭발적으로 반응하는 금속이에요. 아주 정밀한 시계를 만드는 데 사용해요. 실험실에서 아주 조심스럽게 다뤄야 해요.",
+  
+  38: "스트론튬은 불꽃놀이에서 빨간색을 만들어내요. 뼈를 튼튼하게 하는 연구에도 사용돼요. 야광 시계에도 옛날에 쓰였답니다.",
+  
+  39: "이트륨은 TV와 컴퓨터 화면을 밝게 만들어줘요. 강력한 레이저를 만드는 데도 사용해요. LED 조명의 재료이기도 하답니다.",
+  
+  40: "지르코늄은 아주 높은 온도에도 견디는 금속이에요. 원자력 발전소의 연료봉을 감싸는 데 사용해요. 인공 다이아몬드(큐빅 지르코니아)를 만들기도 해요.",
+  
+  41: "나이오븀은 강철을 더욱 강하게 만들어줘요. 초전도 자석과 로켓 엔진에 사용돼요. MRI 기계의 중요한 부품이기도 하답니다.",
+  
+  42: "몰리브데넘은 아주 높은 온도에서도 녹지 않는 금속이에요. 강철을 단단하게 만들고, 전구 필라멘트를 지지하는 데 사용해요. 공구와 기계 부품에도 쓰인답니다.",
+  
+  43: "테크네튬은 자연에서 거의 발견되지 않는 인공 원소예요. 병원에서 몸속을 검사하는 의료 영상에 사용돼요. 방사선을 내지만 금방 사라져서 안전해요.",
+  
+  44: "루테늄은 아주 단단하고 귀한 금속이에요. 컴퓨터 하드디스크와 전자부품을 만드는 데 사용해요. 백금과 섞으면 더욱 단단해져서 특수 장비에 쓰인답니다.",
+  
+  45: "로듐은 세상에서 가장 비싼 금속 중 하나예요. 자동차 배기가스를 깨끗하게 만드는 촉매 변환기에 사용돼요. 은색 장신구를 더 반짝이게 코팅하는 데도 쓰인답니다.",
+  
+  46: "팔라듐은 자동차 배기가스를 정화하는 데 꼭 필요한 금속이에요. 수소를 저장하는 특별한 능력이 있어요. 치과 치료와 전자제품에도 사용된답니다.",
+  
+  47: "은은 반짝반짝 빛나는 귀한 금속이에요. 장신구와 동전을 만들고, 전기가 가장 잘 통하는 금속이에요. 세균을 죽이는 능력이 있어서 항균 제품에도 쓰인답니다.",
+  
+  48: "카드뮴은 충전 배터리에 사용되었지만 독성이 있어요. 지금은 사용을 줄이고 있어요. 노란색 물감과 일부 태양전지를 만드는 데 조심스럽게 사용된답니다.",
+  
+  49: "인듐은 스마트폰과 태블릿 화면을 터치할 수 있게 해주는 원소예요. 투명하면서도 전기가 통하는 특별한 성질이 있어요. LCD와 LED 화면에 꼭 필요한 재료랍니다.",
+  
+  50: "주석은 깡통(양철)을 만드는 데 사용되는 금속이에요. 철이 녹슬지 않도록 코팅해줘요. 땜납을 만들어서 전자제품을 연결하는 데도 쓰인답니다.",
+  
+  51: "안티모니는 물건이 불에 잘 타지 않게 만드는 난연제로 사용돼요. 배터리와 반도체를 만드는 데도 쓰여요. 옛날에는 화장품과 약으로도 사용되었답니다.",
+  
+  52: "텔루륨은 태양전지와 DVD를 만드는 데 사용되는 원소예요. 반도체 성질을 가지고 있어요. 강철에 섞으면 가공하기 쉬워진답니다.",
+  
+  53: "아이오딘은 상처를 소독하는 빨간 약(포비돈)에 들어있어요. 우리 몸의 갑상선이 제대로 일하는 데 꼭 필요해요. 소금에 첨가되어 건강을 지켜준답니다.",
+  
+  54: "제논은 자동차의 밝은 헤드라이트를 만드는 기체예요. 마취제로도 사용되고, 우주선 엔진에도 쓰여요. 공기 중에 아주 조금만 들어있는 귀한 기체랍니다.",
+  
+  55: "세슘은 세상에서 가장 정확한 원자시계를 만드는 데 사용돼요. 1초를 정의하는 기준이 되는 원소예요. 물과 만나면 폭발적으로 반응하는 위험한 금속이랍니다.",
+  
+  56: "바륨은 병원에서 위와 장을 X-ray로 검사할 때 마시는 하얀 액체의 재료예요. 불꽃놀이에서 초록색을 만들어내요. 진흙 속에서 석유를 찾는 데도 도움을 준답니다.",
+  
+  57: "란타넘은 카메라와 망원경 렌즈를 더 선명하게 만들어줘요. 충전 배터리의 성능을 높이는 데도 사용돼요. 희토류 원소 중 하나랍니다.",
+  
+  58: "세륨은 라이터의 부싯돌에 들어있어서 불꽃을 쉽게 만들어줘요. 자동차 배기가스를 깨끗하게 하는 촉매로도 사용돼요. 유리를 연마하는 데도 쓰인답니다.",
+  
+  59: "프라세오디뮴은 용접할 때 눈을 보호하는 고글을 만드는 데 사용돼요. 강력한 자석의 재료이기도 해요. 아름다운 초록색 유리를 만드는 데도 쓰인답니다.",
+  
+  60: "네오디뮴은 세상에서 가장 강력한 영구자석을 만드는 원소예요. 헤드폰, 스피커, 전기자동차 모터에 들어있어요. 레이저를 만드는 데도 사용된답니다.",
+  
+  61: "프로메튬은 자연에서 거의 발견되지 않는 방사성 원소예요. 야광 시계와 두께 측정 장비에 사용돼요. 인공적으로만 만들 수 있는 희귀한 원소랍니다.",
+  
+  62: "사마륨은 강력한 자석과 레이저를 만드는 데 사용되는 원소예요. 암 치료 연구에도 쓰여요. 헤드폰과 전기 기타의 픽업에 들어있는 자석의 재료랍니다.",
+  
+  63: "유로퓸은 TV와 형광등에서 빨간색 빛을 만들어내는 원소예요. 유로 지폐의 위조 방지 잉크에도 사용돼요. LED 조명의 색을 조절하는 데도 쓰인답니다.",
+  
+  64: "가돌리늄은 병원의 MRI 검사를 더 선명하게 만들어주는 조영제예요. 강력한 자석 성질을 가지고 있어요. 원자로를 제어하는 데도 사용된답니다.",
+  
+  65: "터븀은 형광등과 TV 화면에서 초록색 빛을 만들어내요. 강력한 자석을 만드는 데도 사용돼요. 지폐의 위조 방지 기술에도 쓰인답니다.",
+  
+  66: "디스프로슘은 전기자동차와 풍력발전기의 자석을 더 강하게 만들어줘요. 높은 온도에서도 자석 성질을 유지해요. 원자로를 제어하는 데도 사용된답니다.",
+  
+  67: "홀뮴은 자연에서 가장 강한 자기적 성질을 가진 원소예요. 레이저 수술 장비에 사용돼요. 원자로에서 중성자를 흡수하는 역할도 한답니다.",
+  
+  68: "어븀은 광섬유 케이블로 인터넷 신호를 멀리 보내는 데 사용돼요. 분홍색 유리와 선글라스를 만드는 데도 쓰여요. 레이저 피부 치료에도 사용된답니다.",
+  
+  69: "툴륨은 휴대용 X-ray 장비를 만드는 데 사용되는 원소예요. 레이저 수술 도구에도 쓰여요. 희토류 원소 중에서 가장 비싼 원소 중 하나랍니다.",
+  
+  70: "이터븀은 원자시계와 레이저를 만드는 데 사용되는 원소예요. 스테인리스 강철의 성질을 개선하는 데도 쓰여요. 지진을 감지하는 장비에도 들어있답니다.",
+  
+  71: "루테튬은 암을 진단하고 치료하는 의료 영상에 사용돼요. PET 스캔 장비의 중요한 부품이에요. 희토류 원소 중 가장 무겁고 단단한 원소랍니다.",
+  
+  72: "하프늄은 아주 높은 온도에도 견디는 금속이에요. 로켓 노즐과 원자로 제어봉을 만드는 데 사용돼요. 컴퓨터 칩의 성능을 높이는 데도 쓰인답니다.",
+  
+  73: "탄탈럼은 스마트폰과 노트북의 작은 축전기를 만드는 데 꼭 필요해요. 인공 관절과 뼈 이식 재료로도 사용돼요. 산에도 녹지 않는 강한 금속이랍니다.",
+  
+  74: "텅스텐은 모든 금속 중에서 녹는점이 가장 높은 원소예요(3,422℃). 전구의 필라멘트와 용접 전극을 만들어요. 휴대폰 진동 모터의 무게추로도 사용된답니다.",
+  
+  75: "레늄은 제트엔진과 로켓 엔진의 고온 부품을 만드는 데 사용돼요. 아주 비싸고 희귀한 금속이에요. 촉매로 석유를 정제하는 데도 쓰인답니다.",
+  
+  76: "오스뮴은 자연에서 가장 무거운 원소예요(밀도가 가장 높아요). 만년필 펜촉과 전기 접점을 만드는 데 사용돼요. 아주 단단하지만 부서지기 쉬운 금속이랍니다.",
+  
+  77: "이리듐은 6,600만 년 전 공룡을 멸종시킨 운석에서 많이 발견됐어요. 만년필 펜촉과 자동차 점화 플러그를 만들어요. 부식에 아주 강한 귀한 금속이랍니다.",
+  
+  78: "백금은 아주 귀하고 반짝이는 금속이에요. 결혼반지와 자동차 촉매 변환기를 만들어요. 화학 실험 도구와 암 치료 약물에도 사용된답니다.",
+  
+  79: "금은 반짝이고 절대 녹슬지 않는 귀한 금속이에요. 장신구와 동전을 만들고, 스마트폰과 컴퓨터 부품에도 들어있어요. 전기가 아주 잘 통하고 영원히 변하지 않는답니다.",
+  
+  80: "수은은 상온에서 액체인 유일한 금속이에요. 옛날 온도계에 사용되었지만 독성이 있어서 지금은 사용을 줄이고 있어요. 형광등 안에도 아주 조금 들어있답니다.",
+  
+  81: "탈륨은 독성이 강해서 아주 조심해야 하는 원소예요. 옛날 쥐약으로 사용되었어요. 지금은 특수 유리와 의료 영상 검사에 조심스럽게 사용된답니다.",
+  
+  82: "납은 무겁고 부드러운 금속이에요. 옛날 배터리와 페인트에 사용되었지만 독성 때문에 지금은 사용을 줄이고 있어요. X-ray 차폐복과 낚시 추로 사용된답니다.",
+  
+  83: "비스무트는 비교적 안전한 중금속이에요. 배탈 약(펩토비스몰)의 주성분이에요. 아름다운 무지개색 결정을 만들고, 화장품과 합금에도 사용된답니다.",
+  
+  84: "폴로늄은 강한 방사선을 내는 위험한 원소예요. 우주선의 정전기를 제거하는 데 사용돼요. 마리 퀴리가 발견했고, 그녀의 조국 폴란드의 이름을 땄답니다.",
+  
+  85: "아스타틴은 자연에서 가장 희귀한 원소 중 하나예요. 지구 전체에 28g 정도만 존재해요. 암 치료 연구에 사용되지만 금방 사라지는 방사성 원소랍니다.",
+  
+  86: "라돈은 땅속에서 나오는 방사성 기체예요. 집 지하실에 쌓이면 건강에 해로울 수 있어요. 지진을 예측하는 연구에도 사용되는 무겁고 보이지 않는 기체랍니다.",
+  
+  87: "프랑슘은 자연에서 가장 불안정한 원소예요. 지구 전체에 30g 정도만 존재하고 금방 사라져요. 물과 만나면 가장 폭발적으로 반응하는 금속이지만, 너무 희귀해서 실험하기 어렵답니다.",
+  
+  88: "라듐은 어둠 속에서 초록빛으로 빛나는 방사성 원소예요. 마리 퀴리가 발견했고, 옛날 야광 시계에 사용되었어요. 지금은 암 치료 연구에 조심스럽게 사용된답니다.",
+  
+  89: "악티늄은 강한 방사선을 내는 원소예요. 어둠 속에서 푸른빛으로 빛나요. 암 치료 연구와 중성자를 만드는 장치에 사용되는 희귀한 원소랍니다.",
+  
+  90: "토륨은 우라늄보다 3배나 많은 원소예요. 미래의 원자력 발전 연료로 연구되고 있어요. 캠핑용 랜턴의 맨틀(밝게 빛나는 망)에도 사용되었답니다.",
+  
+  91: "프로트악티늄은 자연에서 아주 드물게 발견되는 방사성 원소예요. 은빛을 띠는 금속이에요. 주로 과학 연구용으로만 사용되는 희귀한 원소랍니다.",
+  
+  92: "우라늄은 원자력 발전소에서 전기를 만드는 데 사용되는 원소예요. 아주 무거운 금속이고 방사선을 내요. 지구의 나이를 측정하는 데도 사용된답니다.",
+  
+  93: "넵투늄은 우라늄에 중성자를 쾅 부딪혀서 만든 최초의 인공 원소예요. 해왕성(Neptune)의 이름을 따서 지었어요. 연기 감지기와 과학 연구에 사용되는 방사성 원소랍니다.",
+  
+  94: "플루토늄은 우라늄에 중수소를 충돌시켜 만들어진 인공 원소예요. 원자력 발전과 우주 탐사선의 전력원으로 사용돼요. 명왕성(Pluto)의 이름을 따서 지었답니다.",
+  
+  95: "아메리슘은 플루토늄에 중성자를 계속 쏘아서 만든 인공 원소예요. 가정용 연기 감지기에 들어있어요. 아메리카 대륙의 이름을 따서 지었답니다.",
+  
+  96: "큐륨은 플루토늄에 헬륨 원자핵을 쾅 부딪혀서 만든 원소예요. 마리 퀴리 부부의 이름을 땄어요. 우주 탐사선의 전력원으로 사용되고 어둠 속에서 붉은빛으로 빛난답니다.",
+  
+  97: "버클륨은 아메리슘에 헬륨 원자핵을 충돌시켜 만든 인공 원소예요. 미국 버클리 대학교의 이름을 땄어요. 아주 소량만 만들 수 있는 방사성 원소랍니다.",
+  
+  98: "캘리포늄은 큐륨에 헬륨 원자핵을 쾅 부딪혀서 만든 원소예요. 캘리포니아주의 이름을 땄어요. 암 치료와 금속 탐지에 사용되며, 1g에 수십억 원이 넘는 아주 비싼 원소랍니다.",
+  
+  99: "아인슈타이늄은 최초의 수소폭탄 실험 잔해에서 발견된 원소예요. 우라늄이 엄청난 중성자를 흡수해서 만들어졌어요. 천재 과학자 아인슈타인의 이름을 딴 방사성 원소랍니다.",
+  
+  100: "페르뮴은 수소폭탄 실험에서 우라늄이 여러 중성자를 흡수해 만들어진 원소예요. 원자폭탄을 만든 엔리코 페르미의 이름을 땄어요. 실험실에서 극소량만 만들 수 있답니다.",
+  
+  101: "멘델레븀은 아인슈타이늄에 헬륨 원자핵을 쾅 부딪혀서 만든 원소예요. 주기율표를 만든 멘델레예프의 이름을 땄어요. 한 번에 몇 개 원자만 만들 수 있는 희귀한 원소랍니다.",
+  
+  102: "노벨륨은 큐륨에 탄소 원자핵을 충돌시켜 만든 인공 원소예요. 다이너마이트를 발명한 알프레드 노벨의 이름을 땄어요. 아주 짧은 시간만 존재하는 방사성 원소랍니다.",
+  
+  103: "로렌슘은 캘리포늄에 붕소 원자핵을 쾅 부딪혀서 만든 원소예요. 사이클로트론을 발명한 어니스트 로렌스의 이름을 땄어요. 몇 시간만 존재하는 불안정한 원소랍니다.",
+  
+  104: "러더포듐은 캘리포늄에 탄소 원자핵을 충돌시켜 만든 인공 원소예요. 원자 구조를 발견한 러더퍼드의 이름을 땄어요. 몇 초만 존재하다가 사라지는 초중원소랍니다.",
+  
+  105: "더브늄은 캘리포늄에 질소 원자핵을 쾅 부딪혀서 만든 원소예요. 러시아 두브나 연구소의 이름을 땄어요. 1분도 안 되어 사라지는 불안정한 초중원소랍니다.",
+  
+  106: "시보귬은 캘리포늄에 산소 원자핵을 충돌시켜 만든 인공 원소예요. 미국 물리학자 글렌 시보그의 이름을 땄어요. 살아있을 때 이름이 붙여진 유일한 과학자의 원소랍니다.",
+  
+  107: "보륨은 비스무트에 크로뮴 원자핵을 쾅 부딪혀서 만든 원소예요. 덴마크 물리학자 닐스 보어의 이름을 땄어요. 몇 초만 존재하는 아주 불안정한 초중원소랍니다.",
+  
+  108: "하슘은 납에 철 원자핵을 충돌시켜 만든 인공 원소예요. 독일 헤센주의 이름을 땄어요. 1초도 안 되어 사라지는 불안정한 초중원소랍니다.",
+  
+  109: "마이트너륨은 비스무트에 철 원자핵을 쾅 부딪혀서 만든 원소예요. 여성 물리학자 리제 마이트너의 이름을 땄어요. 몇 밀리초만 존재하는 초중원소랍니다.",
+  
+  110: "다름슈타튬은 납에 니켈 원자핵을 충돌시켜 만든 인공 원소예요. 독일 다름슈타트시의 이름을 땄어요. 몇 초만 존재하다가 분해되는 초중원소랍니다.",
+  
+  111: "뢴트게늄은 비스무트에 니켈 원자핵을 쾅 부딪혀서 만든 원소예요. X-ray를 발견한 빌헬름 뢴트겐의 이름을 땄어요. 몇 밀리초만 존재하는 불안정한 원소랍니다.",
+  
+  112: "코페르니슘은 아연에 납 원자핵을 충돌시켜 만든 인공 원소예요. 천문학자 코페르니쿠스의 이름을 땄어요. 상온에서 기체일 것으로 예측되는 특이한 금속이랍니다.",
+  
+  113: "니호늄은 아연에 비스무트 원자핵을 쾅 부딪혀서 만든 원소예요. 일본(니혼)에서 발견해서 붙여진 이름이에요. 아시아에서 처음 발견한 초중원소로, 9년간의 실험 끝에 겨우 3개 원자를 만들었답니다.",
+  
+  114: "플레로븀은 플루토늄에 칼슘 원자핵을 충돌시켜 만든 인공 원소예요. 러시아 물리학자 플레로프의 이름을 땄어요. 몇 초 동안만 존재하는 초중원소랍니다.",
+  
+  115: "모스코븀은 아메리슘에 칼슘 원자핵을 쾅 부딪혀서 만든 원소예요. 러시아 모스크바의 이름을 땄어요. 몇 밀리초만 존재하는 불안정한 초중원소랍니다.",
+  
+  116: "리버모륨은 큐륨에 칼슘 원자핵을 충돌시켜 만든 인공 원소예요. 미국 리버모어 연구소의 이름을 땄어요. 몇 밀리초만 존재하다가 사라지는 초중원소랍니다.",
+  
+  117: "테네신은 버클륨에 칼슘 원자핵을 쾅 부딪혀서 만든 원소예요. 미국 테네시주의 이름을 땄어요. 할로겐족에 속하지만 금속 성질을 가질 것으로 예측된답니다.",
+  
+  118: "오가네손은 캘리포늄에 칼슘 원자핵을 충돌시켜 만든 가장 무거운 원소예요. 러시아 과학자 오가네시안의 이름을 땄어요. 1000조 번 충돌시켜 겨우 5개 원자를 만들었고, 발견 후 13년 만에 공식 인정받았답니다. 현재까지 발견된 주기율표의 마지막 원소예요."
+
+  };
+
+  // =====================================================
+  // 3) UI 유틸
+  // =====================================================
+  const container = document.getElementById('table-container');
+  const toast = document.getElementById('toast');
+
+  function blockClass(b){
+    if(b==="s") return "s-block";
+    if(b==="p") return "p-block";
+    if(b==="d") return "d-block";
+    return "f-block";
+  }
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=> toast.style.display='none', 1600);
+  }
+
+  function elIsRadioactive(e){
+    return typeof e.aw === 'string' && e.aw.trim().startsWith('[');
+  }
+
+  const TOXIC = new Set(["As","Cd","Hg","Pb","Tl","Po","Rn"]);
+
+  // =====================================================
+  // 4) 테이블 렌더링
+  // =====================================================
+
+  function createCellForElement(e){
+    const div = document.createElement('div');
+    div.className = `element ${blockClass(e.b)}`;
+    div.tabIndex = 0;
+    div.setAttribute('role','button');
+    div.dataset.n = String(e.n);
+
+    div.innerHTML = `
+      <div class="at-num">${e.n}</div>
+      <div class="symbol">${e.s}</div>
+      <div class="name-ko">${e.ko}</div>
+      <div class="name-en">${e.en}</div>
+      <div class="mass">${e.aw}</div>
+    `;
+
+    div.addEventListener('click', ()=> openCard(e.n));
+    div.addEventListener('keydown', (ev)=>{
+      if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); openCard(e.n); }
+    });
+
+    return div;
+  }
+
+  function addEmpty(row,col){
+    const div = document.createElement('div');
+    div.className = 'element empty';
+    div.style.gridRow = row;
+    div.style.gridColumn = col;
+    container.appendChild(div);
+  }
+
+  function addSeriesPlaceholder(row, col, startN, labelKo, labelEn){
+    const div = document.createElement('div');
+    div.className = `element f-block series-placeholder`;
+    div.tabIndex = 0;
+    div.setAttribute('role','button');
+    div.dataset.n = String(startN);
+    div.style.gridRow = row;
+    div.style.gridColumn = col;
+    div.innerHTML = `
+      <div style="font-weight:800;">${labelKo}</div>
+      <small>${labelEn}</small>
+      <small>눌러서 카드 보기</small>
+    `;
+    div.addEventListener('click', ()=> openCard(startN));
+    div.addEventListener('keydown', (ev)=>{
+      if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); openCard(startN); }
+    });
+    container.appendChild(div);
+  }
+
+  function renderTable(){
+    container.innerHTML = '';
+
+    // 1~7주기 본표
+    for(let p=1; p<=7; p++){
+      for(let g=1; g<=18; g++){
+        // (6주기 3족, 7주기 3족은 자리표시)
+        if(p===6 && g===3){ addSeriesPlaceholder(6, 3, 57, '57~71\n란타넘족', 'La–Lu'); continue; }
+        if(p===7 && g===3){ addSeriesPlaceholder(7, 3, 89, '89~103\n악티늄족', 'Ac–Lr'); continue; }
+
+        const e = MAIN.find(x => x.p===p && x.g===g);
+        if(!e){ addEmpty(p,g); continue; }
+
+        const cell = createCellForElement(e);
+        cell.style.gridRow = p;
+        cell.style.gridColumn = g;
+        container.appendChild(cell);
+      }
+    }
+
+    // 8행: 여백(보기 좋게)
+    for(let g=1; g<=18; g++) addEmpty(8, g);
+
+    // 9행: 란타넘족(57~71) (col 4~18)
+    const laLabel = document.createElement('div');
+    laLabel.className = 'element f-block';
+    laLabel.style.gridRow = 9;
+    laLabel.style.gridColumn = '1 / 4';
+    laLabel.style.display = 'flex';
+    laLabel.style.alignItems = 'center';
+    laLabel.style.justifyContent = 'center';
+    laLabel.style.textAlign = 'center';
+    laLabel.style.cursor = 'default';
+    laLabel.innerHTML = '<div style="font-size:1.05rem;">🌿 란타넘족<br><span style="font-size:.85rem; opacity:.85;">(57~71)</span></div>';
+    container.appendChild(laLabel);
+
+    let col = 4;
+    for(let n=57; n<=71; n++){
+      const e = byN.get(n);
+      const cell = createCellForElement(e);
+      cell.classList.remove('s-block','p-block','d-block');
+      cell.classList.add('f-block');
+      cell.style.gridRow = 9;
+      cell.style.gridColumn = col;
+      container.appendChild(cell);
+      col++;
+    }
+
+    // 10행: 악티늄족(89~103) (col 4~18)
+    const acLabel = document.createElement('div');
+    acLabel.className = 'element f-block';
+    acLabel.style.gridRow = 10;
+    acLabel.style.gridColumn = '1 / 4';
+    acLabel.style.display = 'flex';
+    acLabel.style.alignItems = 'center';
+    acLabel.style.justifyContent = 'center';
+    acLabel.style.textAlign = 'center';
+    acLabel.style.cursor = 'default';
+    acLabel.innerHTML = '<div style="font-size:1.05rem;">☢️ 악티늄족<br><span style="font-size:.85rem; opacity:.85;">(89~103)</span></div>';
+    container.appendChild(acLabel);
+
+    col = 4;
+    for(let n=89; n<=103; n++){
+      const e = byN.get(n);
+      const cell = createCellForElement(e);
+      cell.classList.remove('s-block','p-block','d-block');
+      cell.classList.add('f-block');
+      cell.style.gridRow = 10;
+      cell.style.gridColumn = col;
+      container.appendChild(cell);
+      col++;
+    }
+
+    applyToggles();
+    applyFilter();
+  }
+
+  // =====================================================
+  // 5) 모달(카드) UI
+  // =====================================================
+
+  let currentN = 1;
+  let deckMode = false; // 모달 안에서 카드 그리드
+
+  function ensureModal(){
+    if(document.getElementById('cardModal')) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'cardModal';
+    modal.style.cssText = `
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.52); z-index:9999; padding:16px;
+    `;
+
+    modal.innerHTML = `
+      <div id="cardPanel" style="
+        width:min(860px, 96vw);
+        background:#fff;
+        border-radius:22px;
+        box-shadow: var(--shadow2);
+        overflow:hidden;
+      ">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #eee; gap:10px; flex-wrap:wrap;">
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button class="btn" id="btnPrev" aria-label="이전">◀</button>
+            <button class="btn" id="btnNext" aria-label="다음">▶</button>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span style="color:#666;">번호 점프</span>
+              <input id="jumpN" type="number" min="1" max="118" inputmode="numeric" style="width:92px; padding:10px 10px; border-radius:14px; border:1px solid #ddd; font-family:inherit;" placeholder="1~118" />
+              <button class="btn" id="btnGo">이동</button>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button class="btn" id="btnDeck">🃏 카드 모아보기</button>
+            <button class="btn" id="btnCopy">📋 복사</button>
+            <button class="btn" id="btnClose" aria-label="닫기">✕</button>
+          </div>
+        </div>
+
+        <div id="cardBody" style="padding:18px;"></div>
+
+        <div style="padding:12px 18px 16px; border-top:1px solid #eee; color:#777; font-size:0.98rem;">
+          팁: 키보드 <b>← →</b> 로 넘기기 · 배경을 클릭하면 닫혀요
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 이벤트
+    modal.addEventListener('click', (ev)=>{
+      if(ev.target === modal) closeCard();
+    });
+
+    document.getElementById('btnClose').addEventListener('click', closeCard);
+    document.getElementById('btnPrev').addEventListener('click', ()=> step(-1));
+    document.getElementById('btnNext').addEventListener('click', ()=> step(+1));
+    document.getElementById('btnGo').addEventListener('click', ()=>{
+      const v = Number(document.getElementById('jumpN').value);
+      if(v>=1 && v<=118) openCard(v);
+    });
+    document.getElementById('jumpN').addEventListener('keydown', (ev)=>{
+      if(ev.key==='Enter'){
+        const v = Number(ev.target.value);
+        if(v>=1 && v<=118) openCard(v);
+      }
+    });
+
+    document.getElementById('btnDeck').addEventListener('click', ()=>{
+      deckMode = !deckMode;
+      renderModal();
+    });
+
+    document.getElementById('btnCopy').addEventListener('click', async ()=>{
+      const e = byN.get(currentN);
+      const desc = ELEMENT_DESC[currentN] || '';
+      const txt = `${e.n} ${e.ko} (${e.en})\n기호: ${e.s}\n원자량: ${e.aw}\n설명: ${desc}`;
+      try{
+        await navigator.clipboard.writeText(txt);
+        showToast('복사했어요!');
+      } catch{
+        showToast('복사가 막혀있어요 😅');
+      }
+    });
+
+    window.addEventListener('keydown', (ev)=>{
+      const m = document.getElementById('cardModal');
+      if(!m || m.style.display!=='flex') return;
+      if(ev.key==='ArrowLeft') step(-1);
+      if(ev.key==='ArrowRight') step(+1);
+      if(ev.key==='Escape') closeCard();
+    });
+  }
+
+  function openCard(n){
+    ensureModal();
+    currentN = Math.max(1, Math.min(118, Number(n)));
+    deckMode = false;
+    renderModal();
+    const modal = document.getElementById('cardModal');
+    modal.style.display = 'flex';
+  }
+
+  function closeCard(){
+    const modal = document.getElementById('cardModal');
+    if(modal) modal.style.display = 'none';
+  }
+
+  function step(delta){
+    const next = currentN + delta;
+    if(next<1 || next>118) return;
+    openCard(next);
+  }
+
+  function renderModal(){
+    const body = document.getElementById('cardBody');
+    if(!body) return;
+
+    if(deckMode){
+      body.innerHTML = `
+        <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:12px;">
+          <div style="font-size:1.25rem;">🃏 1~118 카드 모아보기</div>
+          <div style="color:#666;">카드를 누르면 크게 볼 수 있어요</div>
+        </div>
+        <div class="deckGrid" id="deckGrid"></div>
+      `;
+      const grid = document.getElementById('deckGrid');
+      ALL.forEach(e=>{
+        const mc = document.createElement('div');
+        mc.className = 'miniCard';
+        mc.innerHTML = `
+          <div class="miniTop ${blockClass(e.b)}" style="border-bottom:1px solid rgba(255,255,255,0.4);">
+            <div class="miniSym">${e.s}</div>
+            <div class="miniNum">#${e.n}</div>
+          </div>
+          <div class="miniBottom ${blockClass(e.b)}" style="border-top:0;">
+            <div class="miniKo">${e.ko}</div>
+            <div class="miniEn">${e.en}</div>
+          </div>
+        `;
+        mc.addEventListener('click', ()=>{ deckMode=false; openCard(e.n); });
+        grid.appendChild(mc);
+      });
+      return;
+    }
+
+    const e = byN.get(currentN);
+    const desc = ELEMENT_DESC[currentN] || '설명 준비중이에요.';
+
+    const isRad = elIsRadioactive(e);
+    const isTox = TOXIC.has(e.s);
+
+    const badges = [];
+    badges.push(`<span class="badge">블록: ${e.b.toUpperCase()}</span>`);
+    if(e.g!=null) badges.push(`<span class="badge">주기 ${e.p} · ${e.g}족</span>`);
+    if(isRad) badges.push(`<span class="badge warn">☢️ 방사성</span>`);
+    if(isTox) badges.push(`<span class="badge warn">⚠️ 독성 주의</span>`);
+
+    body.innerHTML = `
+      <div class="cardHero">
+        <div class="cardHeroTop ${blockClass(e.b)}">
+          <div class="heroLeft">
+            <div class="heroSymbol ${blockClass(e.b)}">${e.s}</div>
+            <div class="heroNames">
+              <div class="ko">${e.n}. ${e.ko}</div>
+              <div class="en">${e.en}</div>
+            </div>
+          </div>
+          <div class="heroRight">${badges.join('')}</div>
+        </div>
+        <div class="cardHeroBody">
+          <div class="infoGrid">
+            <div class="infoItem"><div class="k">원자번호</div><div class="v">${e.n}</div></div>
+            <div class="infoItem"><div class="k">원자량(대표값)</div><div class="v">${e.aw}</div></div>
+            <div class="infoItem"><div class="k">한글 이름</div><div class="v">${e.ko}</div></div>
+            <div class="infoItem"><div class="k">영문 이름</div><div class="v">${e.en}</div></div>
+          </div>
+          <div class="descBox">
+            <div style="font-size:1.05rem; color:#666; margin-bottom:6px;">성질/용도/대표 예시</div>
+            <div>${escapeHtml(desc)}</div>
+          </div>
+          <div style="margin-top:10px; color:#666; font-size:.95rem;">
+            부모님 팁: 위험/독성/방사성 표시가 있는 원소는 <b>실험·취급을 집에서 하지 않기</b>로 약속하면 좋아요.
+          </div>
+        </div>
+      </div>
+    `;
+
+    // 모달 상단 점프 입력 값 동기화
+    const jumpN = document.getElementById('jumpN');
+    if(jumpN) jumpN.value = String(currentN);
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#039;');
+  }
+
+  // =====================================================
+  // 6) 검색/필터/토글
+  // =====================================================
+
+  const q = document.getElementById('q');
+  const blockFilter = document.getElementById('blockFilter');
+  const toggleEn = document.getElementById('toggleEn');
+  const toggleAw = document.getElementById('toggleAw');
+
+  function applyToggles(){
+    const showEn = toggleEn.checked;
+    const showAw = toggleAw.checked;
+    document.querySelectorAll('.name-en').forEach(el=> el.style.display = showEn ? '' : 'none');
+    document.querySelectorAll('.mass').forEach(el=> el.style.display = showAw ? '' : 'none');
+  }
+
+  function applyFilter(){
+    const termRaw = (q.value || '').trim();
+    const term = termRaw.toLowerCase();
+    const b = blockFilter.value;
+
+    const cells = Array.from(container.querySelectorAll('.element'));
+
+    for(const cell of cells){
+      if(cell.classList.contains('empty')) continue;
+
+      // 라벨(란타넘/악티늄족)도 유지
+      const nStr = cell.dataset.n;
+      if(!nStr){ continue; }
+      const n = Number(nStr);
+      const e = byN.get(n);
+      if(!e){ continue; }
+
+      // 블록 필터
+      const okBlock = (b==='all') ? true : (e.b === b);
+
+      // 검색
+      let okTerm = true;
+      if(term){
+        okTerm = (
+          String(e.n) === term ||
+          e.s.toLowerCase() === term ||
+          e.ko.toLowerCase().includes(term) ||
+          e.en.toLowerCase().includes(term)
+        );
+      }
+
+      cell.style.opacity = (okBlock && okTerm) ? '1' : '0.18';
+      cell.style.filter = (okBlock && okTerm) ? '' : 'grayscale(0.45)';
+    }
+  }
+
+  q.addEventListener('input', applyFilter);
+  blockFilter.addEventListener('change', applyFilter);
+  toggleEn.addEventListener('change', applyToggles);
+  toggleAw.addEventListener('change', applyToggles);
+
+  // 점프/랜덤
+  document.getElementById('btnJump').addEventListener('click', ()=>{
+    const v = Number(document.getElementById('jump').value);
+    if(v>=1 && v<=118) openCard(v);
+    else showToast('1~118 사이로 입력해줘요');
+  });
+  document.getElementById('jump').addEventListener('keydown', (ev)=>{
+    if(ev.key==='Enter') document.getElementById('btnJump').click();
+  });
+
+  document.getElementById('btnRandom').addEventListener('click', ()=>{
+    const v = 1 + Math.floor(Math.random()*118);
+    openCard(v);
+  });
+
+  document.getElementById('btnOpenDeck').addEventListener('click', ()=>{
+    openCard(1);
+    deckMode = true;
+    renderModal();
+  });
+
+  document.getElementById('btnPrint').addEventListener('click', ()=> window.print());
+
+  // =====================================================
+  // 7) 퀴즈 모드 (난이도 선택 가능 ✅)
+  //    - 초급: 1~20 + 잘 알려진 금속/원소(금/은/우라늄 등)
+  //    - 중급: 그 외
+  //    - 고급: 설명(ELEMENT_DESC) 힌트로 맞히기
+  // =====================================================
+
+  const FAMOUS_EASY = new Set(['Fe','Cu','Al','Zn','Ag','Au','Pt','Hg','Pb','Sn','Ni','Ti','W','U']);
+
+  function difficultyOf(e){
+    if(e.n <= 20) return 'easy';
+    if(FAMOUS_EASY.has(e.s)) return 'easy';
+    return 'mid';
+  }
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
+  function pickOne(arr){
+    return arr[Math.floor(Math.random()*arr.length)];
+  }
+
+  function normalizeKo(s){ return String(s||'').trim().replace(/\s+/g,''); }
+  function normalizeSym(s){ return String(s||'').trim().replace(/\s+/g,'').toUpperCase(); }
+
+  function safeDescForQuiz(n){
+    const e = byN.get(n);
+    let d = ELEMENT_DESC[n] || '';
+    if(!e || !d) return '';
+    // 정답이 바로 보이지 않도록 가볍게 마스킹
+    d = d.replaceAll(e.ko, '___').replaceAll(e.en, '___').replaceAll(e.s, '___');
+    if(d.length > 180) d = d.slice(0, 180) + '…';
+    return d;
+  }
+
+  let quizState = {
+    level: 'easy',
+    mode: 'mcq',   // mcq | short
+    scope: 'all',  // all | s | p | d | f
+    q: null,
+    score: 0,
+    streak: 0,
+    locked: false,
+  };
+
+  function ensureQuizModal(){
+    if(document.getElementById('quizModal')) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'quizModal';
+    modal.style.cssText = `
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.52); z-index:9999; padding:16px;
+    `;
+
+    modal.innerHTML = `
+      <div class="quizCard" style="width:min(860px, 96vw);">
+        <div class="quizTop">
+          <div class="left">
+            <span style="font-size:1.2rem;">🧩 퀴즈 모드</span>
+            <span class="badge" id="quizMeter">점수 0 · 연속 0</span>
+          </div>
+          <div class="right">
+            <button class="btn" id="quizClose">✕</button>
+          </div>
+        </div>
+
+        <div class="quizBody">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+            <div class="pill" title="난이도">
+              <span>🎯</span>
+              <select id="quizLevel" aria-label="난이도">
+                <option value="easy">초급 (1~20 + 유명 원소)</option>
+                <option value="mid">중급 (나머지)</option>
+                <option value="hard">고급 (설명 힌트)</option>
+              </select>
+            </div>
+
+            <div class="pill" title="문제 방식">
+              <span>🧠</span>
+              <select id="quizMode" aria-label="문제 방식">
+                <option value="mcq">객관식 (4지선다)</option>
+                <option value="short">주관식 (직접 입력)</option>
+              </select>
+            </div>
+
+            <div class="pill" title="범위">
+              <span>🎨</span>
+              <select id="quizScope" aria-label="범위">
+                <option value="all">전체</option>
+                <option value="s">s-블록</option>
+                <option value="p">p-블록</option>
+                <option value="d">d-블록</option>
+                <option value="f">f-블록</option>
+              </select>
+            </div>
+
+            <button class="btn" id="quizRestart">🔄 다시 시작</button>
+            <button class="btn primary" id="quizNext">▶ 다음 문제</button>
+          </div>
+
+          <div id="quizArea"></div>
+          <div class="quizStatus" id="quizStatus" aria-live="polite"></div>
+
+          <div style="margin-top:12px; color:#666; font-size:.95rem; line-height:1.35;">
+            팁: 초3은 <b>초급/객관식</b>이 딱 좋아요. 고급은 ‘설명’을 읽고 맞히는 모드예요.
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', (ev)=>{ if(ev.target===modal) closeQuiz(); });
+    document.getElementById('quizClose').addEventListener('click', closeQuiz);
+
+    document.getElementById('quizLevel').addEventListener('change', (ev)=>{ quizState.level = ev.target.value; newQuestion(); });
+    document.getElementById('quizMode').addEventListener('change', (ev)=>{ quizState.mode  = ev.target.value; newQuestion(); });
+    document.getElementById('quizScope').addEventListener('change', (ev)=>{ quizState.scope = ev.target.value; newQuestion(); });
+
+    document.getElementById('quizRestart').addEventListener('click', ()=>{
+      quizState.score = 0; quizState.streak = 0; quizState.locked = false;
+      updateQuizMeter();
+      setQuizStatus('새로 시작!');
+      newQuestion();
+    });
+
+    document.getElementById('quizNext').addEventListener('click', ()=> newQuestion());
+
+    window.addEventListener('keydown', (ev)=>{
+      const m = document.getElementById('quizModal');
+      if(!m || m.style.display!=='flex') return;
+      if(ev.key==='Escape') closeQuiz();
+    });
+  }
+
+  function openQuiz(){
+    ensureQuizModal();
+    const m = document.getElementById('quizModal');
+    m.style.display = 'flex';
+
+    // UI 동기화
+    document.getElementById('quizLevel').value = quizState.level;
+    document.getElementById('quizMode').value = quizState.mode;
+    document.getElementById('quizScope').value = quizState.scope;
+
+    updateQuizMeter();
+    newQuestion();
+  }
+
+  function closeQuiz(){
+    const m = document.getElementById('quizModal');
+    if(m) m.style.display = 'none';
+  }
+
+  function updateQuizMeter(){
+    const meter = document.getElementById('quizMeter');
+    if(meter) meter.textContent = `점수 ${quizState.score} · 연속 ${quizState.streak}`;
+  }
+
+  function setQuizStatus(html){
+    const s = document.getElementById('quizStatus');
+    if(s) s.innerHTML = html || '';
+  }
+
+  function filteredPool(level){
+    let pool = ALL.slice();
+    if(level === 'easy') pool = pool.filter(e => difficultyOf(e)==='easy');
+    if(level === 'mid')  pool = pool.filter(e => difficultyOf(e)==='mid');
+
+    if(quizState.scope !== 'all') pool = pool.filter(e => e.b === quizState.scope);
+
+    // 고급(설명 기반)은 설명이 있는 원소만
+    if(level === 'hard') pool = pool.filter(e => (ELEMENT_DESC[e.n]||'').trim().length>0);
+
+    return pool;
+  }
+
+  function makeQuestion(){
+    const level = quizState.level;
+    const pool = filteredPool(level);
+    if(pool.length < 4){
+      return { kind:'info', text:'현재 설정에서 문제를 만들 수 없어요. 범위를 “전체”로 바꿔주세요.' };
+    }
+
+    const answer = pickOne(pool);
+
+    let kind = 'sym_to_ko';
+    if(level === 'easy') kind = pickOne(['sym_to_ko','ko_to_sym','num_to_sym']);
+    else if(level === 'mid') kind = pickOne(['sym_to_ko','ko_to_sym','num_to_sym','en_to_sym','sym_to_en']);
+    else kind = 'desc_to_element';
+
+    let prompt = '';
+    let expectType = 'text';
+
+    if(kind === 'sym_to_ko'){ prompt = `기호 <b>${answer.s}</b> 는 어떤 원소(한글 이름)일까요?`; expectType = 'ko'; }
+    if(kind === 'ko_to_sym'){ prompt = `원소 <b>${answer.ko}</b> 의 기호는 무엇일까요?`;        expectType = 'sym'; }
+    if(kind === 'num_to_sym'){prompt = `원자번호 <b>${answer.n}</b> 번의 기호는 무엇일까요?`;  expectType = 'sym'; }
+    if(kind === 'sym_to_en'){ prompt = `기호 <b>${answer.s}</b> 의 영문 이름은 무엇일까요?`;   expectType = 'en'; }
+    if(kind === 'en_to_sym'){ prompt = `영문 이름 <b>${answer.en}</b> 의 기호는 무엇일까요?`;  expectType = 'sym'; }
+
+    if(kind === 'desc_to_element'){
+      return { kind, level, pool, answer, prompt: '다음 설명에 해당하는 원소는 무엇일까요?', clue: safeDescForQuiz(answer.n), expectType:'any' };
+    }
+
+    return { kind, level, pool, answer, prompt, clue:null, expectType };
+  }
+
+  function buildChoices(q){
+    const pool = q.pool.filter(e=> e.n !== q.answer.n);
+    const picks = shuffle(pool).slice(0,3);
+    const opts = shuffle([q.answer, ...picks]);
+
+    return opts.map(e=>{
+      if(q.kind === 'sym_to_ko') return { label: `${e.ko} (${e.s})`, value: e.n };
+      if(q.kind === 'ko_to_sym') return { label: `${e.s} — ${e.ko}`, value: e.n };
+      if(q.kind === 'num_to_sym')return { label: `${e.s} — ${e.ko}`, value: e.n };
+      if(q.kind === 'sym_to_en') return { label: `${e.en} (${e.s})`, value: e.n };
+      if(q.kind === 'en_to_sym') return { label: `${e.s} — ${e.en}`, value: e.n };
+      return { label: `${e.ko} (${e.s})`, value: e.n };
+    });
+  }
+
+  function checkShortAnswer(q, raw){
+    const inp = String(raw||'').trim();
+    if(!inp) return false;
+
+    if(/^\d+$/.test(inp)) return Number(inp) === q.answer.n;
+
+    if(q.expectType === 'sym' || q.expectType === 'any'){
+      if(normalizeSym(inp) === normalizeSym(q.answer.s)) return true;
+    }
+    if(q.expectType === 'ko' || q.expectType === 'any'){
+      if(normalizeKo(inp) === normalizeKo(q.answer.ko)) return true;
+    }
+    if(q.expectType === 'en' || q.expectType === 'any'){
+      if(inp.toLowerCase() === String(q.answer.en).toLowerCase()) return true;
+    }
+
+    return false;
+  }
+
+  function explainAnswer(q, ok){
+    const e = q.answer;
+    const desc = ELEMENT_DESC[e.n] || '';
+    const tag = ok ? '✅ 정답!' : '❌ 아쉽다!';
+    const tip = `정답은 <b>${e.ko} (${e.s})</b> · 원자번호 <b>${e.n}</b>`;
+    const more = desc ? `<div style="margin-top:8px; color:#555;">📌 한 줄 복습: ${escapeHtml(desc)}</div>` : '';
+    setQuizStatus(`${tag} ${tip}${more}`);
+  }
+
+  function renderQuestion(q){
+    const area = document.getElementById('quizArea');
+    if(!area) return;
+
+    if(q.kind === 'info'){
+      area.innerHTML = `<div class="quizHint">${q.text}</div>`;
+      return;
+    }
+
+    const hintHtml = q.clue ? `<div class="quizHint">${escapeHtml(q.clue)}</div>` : '';
+
+    if(quizState.mode === 'mcq'){
+      const choices = buildChoices(q);
+      area.innerHTML = `
+        <p class="quizQ">${q.prompt}</p>
+        ${hintHtml}
+        <div class="quizChoices" id="quizChoices"></div>
+      `;
+      const box = document.getElementById('quizChoices');
+      quizState.locked = false;
+
+      choices.forEach(ch=>{
+        const btn = document.createElement('button');
+        btn.className = 'choiceBtn';
+        btn.innerHTML = ch.label;
+        btn.addEventListener('click', ()=>{
+          if(quizState.locked) return;
+          quizState.locked = true;
+
+          const ok = (ch.value === q.answer.n);
+          if(ok){ quizState.score++; quizState.streak++; }
+          else { quizState.streak = 0; }
+
+          updateQuizMeter();
+
+          const buttons = box.querySelectorAll('button');
+          buttons.forEach(b=> b.disabled = true);
+          buttons.forEach(b=>{
+            const t = b.textContent || '';
+            if(t.includes(q.answer.s) || t.includes(q.answer.ko) || t.includes(q.answer.en)) b.classList.add('correct');
+          });
+          if(!ok) btn.classList.add('wrong');
+
+          explainAnswer(q, ok);
+        });
+        box.appendChild(btn);
+      });
+
+      return;
+    }
+
+    // 주관식
+    area.innerHTML = `
+      <p class="quizQ">${q.prompt}</p>
+      ${hintHtml}
+      <div class="quizAnswerRow">
+        <input id="quizInput" placeholder="정답 입력 (예: O 또는 산소 또는 8)" autocomplete="off" />
+        <button class="btn primary" id="quizSubmit">제출</button>
+        <button class="btn" id="quizReveal">정답 보기</button>
+      </div>
+    `;
+
+    const inp = document.getElementById('quizInput');
+    const submit = document.getElementById('quizSubmit');
+    const reveal = document.getElementById('quizReveal');
+    quizState.locked = false;
+
+    function doSubmit(){
+      if(quizState.locked) return;
+      quizState.locked = true;
+
+      const ok = checkShortAnswer(q, inp.value);
+      if(ok){ quizState.score++; quizState.streak++; }
+      else { quizState.streak = 0; }
+
+      updateQuizMeter();
+      explainAnswer(q, ok);
+    }
+
+    submit.addEventListener('click', doSubmit);
+    inp.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter') doSubmit(); });
+    reveal.addEventListener('click', ()=> explainAnswer(q, false));
+
+    setTimeout(()=> inp && inp.focus(), 50);
+  }
+
+  function newQuestion(){
+    quizState.q = makeQuestion();
+    setQuizStatus('');
+    renderQuestion(quizState.q);
+  }
+
+  // 퀴즈 버튼 연결
+  const btnQuiz = document.getElementById('btnQuiz');
+  if(btnQuiz) btnQuiz.addEventListener('click', openQuiz);
+
+  // 초기 렌더
+  renderTable();
+
+  // 작은 안내
+  setTimeout(()=>{
+    showToast('원소를 눌러서 카드로 학습해요!');
+  }, 650);
+
+</script>
+
+  <!-- Showcase Portal Navigation Button -->
+  <a href="../../index.html" class="showcase-nav-btn" title="쇼케이스 포털로 돌아가기">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    <span>Showcase</span>
+  </a>
+  <style>
+    .showcase-nav-btn {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 99999;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0.85;
+      user-select: none;
+    }
+    .showcase-nav-btn:hover {
+      opacity: 1;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.96);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+  </style>
+</body>
+</html>

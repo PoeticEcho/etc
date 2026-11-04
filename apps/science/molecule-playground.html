@@ -1,0 +1,1306 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>분자놀이터 Molecule Playground - 분자 결합 시뮬레이터</title>
+  <!-- SEO & Primary Meta Tags -->
+  <meta name="description" content="원소와 분자 결합 구조를 직접 조작하고 반응을 관찰하는 인터랙티브 화학 시뮬레이터" />
+  <meta name="keywords" content="분자놀이터, 분자 결합, 화학 시뮬레이터, 과학 교육, 인터랙티브" />
+  <meta name="author" content="Interactive Web Apps Collection" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicons/favicon-molecule-playground.svg" />
+  <link rel="alternate icon" type="image/png" href="../../assets/favicons/favicon-molecule-playground.png" />
+
+  <!-- Open Graph / Facebook / Kakao -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="분자놀이터 Molecule Playground - 분자 결합 시뮬레이터" />
+  <meta property="og:description" content="원소와 분자 결합 구조를 직접 조작하고 반응을 관찰하는 인터랙티브 화학 시뮬레이터" />
+  <meta property="og:image" content="../../assets/og/og-molecule-playground.png" />
+  <meta property="og:site_name" content="Interactive Web Apps Showcase" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="분자놀이터 Molecule Playground - 분자 결합 시뮬레이터" />
+  <meta name="twitter:description" content="원소와 분자 결합 구조를 직접 조작하고 반응을 관찰하는 인터랙티브 화학 시뮬레이터" />
+  <meta name="twitter:image" content="../../assets/og/og-molecule-playground.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #f0f4f8;
+    }
+    #palette {
+      width: 220px;
+      overflow-y: auto;
+      background: #ffffff;
+      border-right: 1px solid #e0e0e0;
+      padding: 1rem;
+      box-sizing: border-box;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+    }
+    #palette h3 {
+      margin-top: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 0.75rem;
+    }
+    .atom-btn {
+      display: block;
+      width: 100%;
+      cursor: grab;
+      text-align: left;
+      padding: 0.6rem 0.7rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      color: #0f172a;
+      font-weight: 500;
+      border-radius: 0.5rem;
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      box-sizing: border-box;
+    }
+    .atom-btn:hover {
+      cursor: grabbing;
+      background-color: #e0f2fe;
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+    }
+    .atom-btn:active {
+      cursor: grabbing;
+      transform: translateY(1px);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+    }
+    .atom-btn .symbol {
+      display: block;
+      font-weight: 700;
+      font-size: 1.15rem;
+      margin-bottom: 0.1rem;
+    }
+    .atom-btn .max-bonds {
+      display: block;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    #canvasContainer {
+      flex: 1;
+      position: relative;
+      background: #ffffff;
+    }
+    #gameCanvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+    #info {
+      width: 280px;
+      background: #ffffff;
+      border-left: 1px solid #e0e0e0;
+      padding: 1rem;
+      box-sizing: border-box;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+    }
+    #missionPanel, #statusPanel {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    }
+    #missionPanel {
+      background-color: #e0f2fe;
+      border: 1px solid #bae6fd;
+    }
+    #statusPanel {
+      background-color: #f0fdf4;
+      border: 1px solid #dcfce7;
+    }
+    #missionTitle {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0369a1;
+      margin-bottom: 0.5rem;
+    }
+    #missionDesc {
+      font-size: 0.95rem;
+      color: #0c4a6e;
+    }
+    #statusTitle {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #0f8b4d;
+      margin-bottom: 0.5rem;
+    }
+    #statusList {
+      list-style-type: none;
+      padding-left: 0;
+      font-size: 0.9rem;
+      color: #166534;
+    }
+    .status-item {
+      margin-bottom: 0.25rem;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+    .status-item::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: #0f8b4d;
+      font-weight: bold;
+    }
+    .info-button {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      transition: background 0.15s;
+      margin-top: 0.5rem;
+      border: none;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+    #nextMissionBtn {
+      background-color: #10b981;
+      color: white;
+    }
+    #nextMissionBtn:hover {
+      background-color: #059669;
+    }
+    #resetBoardBtn {
+      background-color: #facc15;
+      color: #78350f;
+    }
+    #resetBoardBtn:hover {
+      background-color: #eab308;
+    }
+    #missionCompleteMessage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px 40px;
+      border-radius: 10px;
+      font-size: 2rem;
+      font-weight: bold;
+      text-align: center;
+      z-index: 100;
+      display: none;
+    }
+    #statusSimulation {
+      font-size: 0.8rem;
+      color: #ef4444;
+      margin-top: 0.5rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 팔레트 (원소 선택) -->
+  <div id="palette">
+    <h3>원소 팔레트</h3>
+    <p class="text-xs text-gray-500 mb-4">
+      원자를 드래그하여 배치하세요.<br>
+      배치된 원자를 더블클릭하면 삭제됩니다.
+    </p>
+  </div>
+
+  <!-- 캔버스 컨테이너 -->
+  <div id="canvasContainer">
+    <canvas id="gameCanvas"></canvas>
+    <div id="missionCompleteMessage">미션 성공! 🎉</div>
+  </div>
+
+  <!-- 정보 패널 -->
+  <div id="info">
+    <div id="missionPanel">
+      <div id="missionTitle"></div>
+      <div id="missionDesc"></div>
+    </div>
+
+    <div id="statusPanel">
+      <div id="statusTitle">현재 상태</div>
+      <ul id="statusList"></ul>
+      <div id="statusSimulation" class="text-center hidden">
+        구조 안정화 중... (결합 길이/각도 조정)
+      </div>
+      <div id="moleculeInfoPanel" class="mt-4 text-sm"></div>
+    </div>
+
+    <button id="nextMissionBtn" class="info-button" disabled>다음 미션</button>
+    <button id="resetBoardBtn" class="info-button">보드 초기화</button>
+  </div>
+
+  <script>
+    // --- 상수 및 전역 변수 ---
+
+    const BASE_RADIUS = 30;
+    const BOND_MARGIN_FACTOR = 1.05;
+    const SNAP_RANGE_FACTOR = 1.2;
+
+    const STIFFNESS = 0.06;
+    const REPULSION_CONSTANT = 350;
+    const DAMPING = 0.88;
+    const STABILITY_THRESHOLD = 0.02;
+    const MIN_SIMULATION_STEPS = 10;
+    const MAX_SIMULATION_STEPS = 220;
+
+    const ANGLE_STIFFNESS = 0.02;
+    const ANGLE_TOLERANCE = (5 * Math.PI) / 180;
+
+    const ATOM_PROPERTIES = {
+      H:  { ratio: 32 / 75, maxBonds: 1, color: '#888888', name: '수소' },
+      C:  { ratio: 75 / 75, maxBonds: 4, color: '#333333', name: '탄소' },
+      O:  { ratio: 63 / 75, maxBonds: 2, color: '#FF0000', name: '산소' },
+      N:  { ratio: 71 / 75, maxBonds: 3, color: '#0000FF', name: '질소' },
+      F:  { ratio: 64 / 75, maxBonds: 1, color: '#00FF00', name: '불소' },
+      Cl: { ratio: 99 / 75, maxBonds: 1, color: '#00FFFF', name: '염소' },
+      P:  { ratio: 110 / 75, maxBonds: 3, color: '#FFA500', name: '인' },
+      S:  { ratio: 103 / 75, maxBonds: 2, color: '#FFFF00', name: '황' }
+    };
+
+    const MISSIONS = [
+      {
+        formula: 'H₂O (물)',
+        desc: '수소(H) 2개와 산소(O) 1개를 결합하여 물 분자를 만드세요. 자연스럽게 굽어진 결합각을 확인해 보세요.',
+        check: (atoms, bonds) => {
+          const counts = countAtoms(atoms);
+          if (counts.H !== 2 || counts.O !== 1 || atoms.length !== 3) return false;
+          return checkAllBondsSatisfied(atoms, bonds);
+        }
+      },
+      {
+        formula: 'CH₄ (메탄)',
+        desc: '탄소(C) 1개와 수소(H) 4개를 결합하여 메탄 분자를 만드세요. 수소들이 서로 최대한 멀어지며 안정적인 구조를 찾습니다.',
+        check: (atoms, bonds) => {
+          const counts = countAtoms(atoms);
+          if (counts.C !== 1 || counts.H !== 4 || atoms.length !== 5) return false;
+          return checkAllBondsSatisfied(atoms, bonds);
+        }
+      },
+      {
+        formula: 'NH₃ (암모니아)',
+        desc: '질소(N) 1개와 수소(H) 3개를 결합하여 암모니아 분자를 만드세요.',
+        check: (atoms, bonds) => {
+          const counts = countAtoms(atoms);
+          if (counts.N !== 1 || counts.H !== 3 || atoms.length !== 4) return false;
+          return checkAllBondsSatisfied(atoms, bonds);
+        }
+      },
+      {
+        formula: 'O₂ (산소 분자)',
+        desc: '산소(O) 2개를 이중 결합으로 연결하여 산소 분자를 만드세요. 단일 결합 후 결합 선을 한 번 더 클릭하면 이중 결합으로 바뀝니다.',
+        check: (atoms, bonds) => {
+          const counts = countAtoms(atoms);
+          if (counts.O !== 2 || atoms.length !== 2) return false;
+          const ooBond = bonds.find(b => b.atom1.type === 'O' && b.atom2.type === 'O');
+          if (!ooBond) return false;
+          if ((ooBond.order || 1) < 2) return false;
+          return checkAllBondsSatisfied(atoms, bonds);
+        }
+      },
+      {
+        formula: 'HCl (염화수소)',
+        desc: '수소(H) 1개와 염소(Cl) 1개를 결합하여 염화수소를 만드세요.',
+        check: (atoms, bonds) => {
+          const counts = countAtoms(atoms);
+          if (counts.H !== 1 || counts.Cl !== 1 || atoms.length !== 2) return false;
+          return checkAllBondsSatisfied(atoms, bonds);
+        }
+      },
+      {
+        formula: 'H₂S (황화수소)',
+        desc: '수소(H) 2개와 황(S) 1개를 결합하여 황화수소를 만드세요.',
+        check: (atoms, bonds) => {
+          const counts = countAtoms(atoms);
+          if (counts.H !== 2 || counts.S !== 1 || atoms.length !== 3) return false;
+          return checkAllBondsSatisfied(atoms, bonds);
+        }
+      },
+      {
+        formula: 'PH₃ (포스핀)',
+        desc: '수소(H) 3개와 인(P) 1개를 결합하여 포스핀을 만드세요.',
+        check: (atoms, bonds) => {
+          const counts = countAtoms(atoms);
+          if (counts.H !== 3 || counts.P !== 1 || atoms.length !== 4) return false;
+          return checkAllBondsSatisfied(atoms, bonds);
+        }
+      },
+      {
+        formula: 'CH₃F (플루오로메탄)',
+        desc: '탄소(C) 1개, 수소(H) 3개, 불소(F) 1개를 결합하여 플루오로메탄을 만드세요.',
+        check: (atoms, bonds) => {
+          const counts = countAtoms(atoms);
+          if (counts.C !== 1 || counts.H !== 3 || counts.F !== 1 || atoms.length !== 5) return false;
+          return checkAllBondsSatisfied(atoms, bonds);
+        }
+      }
+    ];
+
+    // 분자 DB (일부는 요약 설명)
+    const MOLECULE_DATA = {
+      C10H14N2: { name: '니코틴', displayFormula: 'C₁₀H₁₄N₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C10H16N5O13P3: { name: '아데노신 삼인산 (ATP)', displayFormula: 'C₁₀H₁₆N₅O₁₃P₃', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C10H8: { name: '나프탈렌', displayFormula: 'C₁₀H₈', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C12H22O11: { name: '설탕', displayFormula: 'C₁₂H₂₂O₁₁', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C13H18O2: { name: '이부프로펜', displayFormula: 'C₁₃H₁₈O₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C14H19NO2: { name: '메틸페니데이트 (리탈린)', displayFormula: 'C₁₄H₁₉NO₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C17H19NO3: { name: '모르핀', displayFormula: 'C₁₇H₁₉NO₃', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C27H46O: { name: '콜레스테롤', displayFormula: 'C₂₇H₄₆O', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C2H2: { name: '아세틸렌', displayFormula: 'C₂H₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C2H3Cl: { name: '염화비닐', displayFormula: 'C₂H₃Cl', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C2H4: { name: '에텐 (에틸렌)', displayFormula: 'C₂H₄', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C2H4O2: { name: '아세트산 (식초)', displayFormula: 'CH₃COOH', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C2H6O: { name: '에탄올 (알코올)', displayFormula: 'C₂H₅OH', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C3H6: { name: '프로펜 (프로필렌)', displayFormula: 'C₃H₆', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C3H6O: { name: '아세톤', displayFormula: 'CH₃COCH₃', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C3H8: { name: '프로판', displayFormula: 'C₃H₈', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C3H8O3: { name: '글리세롤', displayFormula: 'C₃H₈O₃', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C4H10: { name: '부탄', displayFormula: 'C₄H₁₀', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C4H8: { name: '뷰텐', displayFormula: 'C₄H₈', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C4H8O2: { name: '뷰티르산', displayFormula: 'C₄H₈O₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C5H12: { name: '펜탄', displayFormula: 'C₅H₁₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C5H5N5: { name: '아데닌', displayFormula: 'C₅H₅N₅', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C5H5N5O: { name: '구아닌', displayFormula: 'C₅H₅N₅O', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C5H6N2O2: { name: '티민', displayFormula: 'C₅H₆N₂O₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C5H8NNaO4: { name: '글루탐산나트륨 (MSG)', displayFormula: 'C₅H₈NNaO₄', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C6H12O6: { name: '포도당 (Glucose)', displayFormula: 'C₆H₁₂O₆', desc: '포도당은 생물체의 주요 에너지원이 되는 단당류로, 광합성과 세포 호흡에서 핵심 역할을 합니다.' },
+      C6H14: { name: '헥산', displayFormula: 'C₆H₁₄', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C6H5NH2: { name: '아닐린', displayFormula: 'C₆H₅NH₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C6H5NO3S: { name: '사카린', displayFormula: 'C₇H₅NO₃S', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C6H5OH: { name: '페놀', displayFormula: 'C₆H₅OH', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C6H6: { name: '벤젠', displayFormula: 'C₆H₆', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C6H8O6: { name: '비타민 C (아스코르브산)', displayFormula: 'C₆H₈O₆', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C6H8O7: { name: '구연산', displayFormula: 'C₆H₈O₇', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C7H5N3O6: { name: 'TNT (트리니트로톨루엔)', displayFormula: 'C₇H₅N₃O₆', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C7H8: { name: '톨루엔', displayFormula: 'C₇H₈', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C8H10: { name: '자일렌', displayFormula: 'C₈H₁₀', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C8H10N4O2: { name: '카페인', displayFormula: 'C₈H₁₀N₄O₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C8H11NO2: { name: '도파민', displayFormula: 'C₈H₁₁NO₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C8H18: { name: '옥탄', displayFormula: 'C₈H₁₈', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C9H13NO3: { name: '에피네프린 (아드레날린)', displayFormula: 'C₉H₁₃NO₃', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      C9H8O4: { name: '아스피린', displayFormula: 'C₉H₈O₄', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      CH3F: { name: '플루오로메탄', displayFormula: 'CH₃F', desc: '플루오로메탄은 하나의 플루오린과 세 개의 수소가 탄소에 결합한 화합물입니다.' },
+      CH3OH: { name: '메탄올', displayFormula: 'CH₃OH', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      CH4: { name: '메탄 (Methane)', displayFormula: 'CH₄', desc: '메탄은 가장 간단한 알케인으로, 주로 천연가스의 성분입니다. 이상적으로는 정사면체 구조(109.5°)를 가집니다.' },
+      CH4N2O: { name: '요소 / 요소수', displayFormula: 'CH₄N₂O', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      CN: { name: '시안화수소', displayFormula: 'HCN', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      CO: { name: '일산화탄소', displayFormula: 'CO', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      CO2: { name: '이산화탄소 (Carbon Dioxide)', displayFormula: 'CO₂', desc: '이산화탄소는 탄소와 산소로 이루어진 직선형 분자로, 호흡과 연소, 온실효과와 관련된 중요한 기체입니다.' },
+      CS2: { name: '이황화탄소', displayFormula: 'CS₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      H2: { name: '수소 분자 (Hydrogen)', displayFormula: 'H₂', desc: '수소 분자는 우주의 가장 풍부한 원소로, 두 개의 수소 원자가 단일 결합을 이룹니다.' },
+      H2O: { name: '물 (Water)', displayFormula: 'H₂O', desc: '물은 두 개의 수소와 한 개의 산소로 이루어진 극성 분자입니다. 약 104.5°의 굽은 결합각을 가집니다.' },
+      H2O2: { name: '과산화수소', displayFormula: 'H₂O₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      H2S: { name: '황화수소 (Hydrogen Sulfide)', displayFormula: 'H₂S', desc: '황화수소는 썩은 달걀 냄새로 유명한 기체로, 두 개의 수소와 하나의 황으로 이루어집니다.' },
+      H3N: { name: '암모니아 (Ammonia)', displayFormula: 'NH₃', desc: '암모니아는 질소와 수소로 이루어진 염기성 기체로 비료 등에 사용됩니다. 질소 중심의 삼각뿔 구조를 가집니다.' },
+      H3O3P: { name: '인산', displayFormula: 'H₃PO₄', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      H3P: { name: '포스핀 (Phosphine)', displayFormula: 'PH₃', desc: '포스핀은 인과 수소가 결합한 기체 화합물로, 일부 산업 공정과 연구에서 사용됩니다.' },
+      H3PO3: { name: '인아산', displayFormula: 'H₃PO₃', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      H4ClN: { name: '염화암모늄', displayFormula: 'NH₄Cl', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      H8N2O4S: { name: '황산암모늄', displayFormula: '(NH₄)₂SO₄', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      HCl: { name: '염화수소 (Hydrogen Chloride)', displayFormula: 'HCl', desc: '염화수소는 수소와 염소가 결합한 기체로, 수용액 상태에서는 강산인 염산으로 알려져 있습니다.' },
+      HF: { name: '불화수소산', displayFormula: 'HF', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      HNO2: { name: '아질산', displayFormula: 'HNO₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      HNO3: { name: '질산', displayFormula: 'HNO₃', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      N2: { name: '질소', displayFormula: 'N₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      N2O: { name: '아산화질소', displayFormula: 'N₂O', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      NO: { name: '일산화질소', displayFormula: 'NO', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      NO2: { name: '이산화질소', displayFormula: 'NO₂', desc: '교과서와 실생활에서 자주 등장하는 대표적인 화합물입니다.' },
+      O2: { name: '산소 분자 (Oxygen)', displayFormula: 'O₂', desc: '산소 분자는 생명 활동에 필수적인 기체로, 두 개의 산소 원자가 이중 결합을 이루고 있습니다.' }
+    };
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const simulationStatus = document.getElementById('statusSimulation');
+
+    let atoms = [];
+    let bonds = [];
+    let draggingAtom = null;
+    let clusterDrag = null;
+    let clusterDragOffsets = new Map();
+    let didClusterDrag = false;
+    let lastMousePos = null;
+    let currentMissionIndex = 0;
+    let isMissionComplete = false;
+    let isRelaxing = false;
+
+    // --- 클래스 ---
+
+    class Atom {
+      constructor(type, x, y) {
+        this.id = Date.now() + Math.random();
+        this.type = type;
+        this.x = x;
+        this.y = y;
+        const props = ATOM_PROPERTIES[type];
+        this.color = props.color;
+        this.maxBonds = props.maxBonds;
+        this.radius = BASE_RADIUS * props.ratio;
+        this.vx = 0;
+        this.vy = 0;
+        this.mass = this.radius;
+      }
+      get bondCount() {
+        return bonds.reduce((acc, b) => {
+          if (b.atom1 === this) return acc + (b.order || 1);
+          if (b.atom2 === this) return acc + (b.order || 1);
+          return acc;
+        }, 0);
+      }
+      get remainingBonds() {
+        return this.maxBonds - this.bondCount;
+      }
+      get neighbors() {
+        return bonds
+          .filter(b => b.atom1 === this || b.atom2 === this)
+          .map(b => (b.atom1 === this ? b.atom2 : b.atom1));
+      }
+    }
+
+    // --- 헬퍼 ---
+
+    function getMousePos(evt) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+      };
+    }
+
+    function dist(a, b) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function calculateIdealBondDistance(a1, a2) {
+      return (a1.radius + a2.radius) * BOND_MARGIN_FACTOR;
+    }
+
+    function getIdealBondAngle(center, neighborCount) {
+      const t = center.type;
+      if (t === 'C') {
+        if (neighborCount === 4) return 109.5 * Math.PI / 180;
+        if (neighborCount === 3) return 120 * Math.PI / 180;
+        if (neighborCount === 2) return Math.PI;
+      }
+      if (t === 'N') {
+        if (neighborCount === 3) return 107 * Math.PI / 180;
+        if (neighborCount === 4) return 109.5 * Math.PI / 180;
+        if (neighborCount === 2) return Math.PI;
+      }
+      if (t === 'O' || t === 'S') {
+        if (neighborCount === 2) return 104.5 * Math.PI / 180;
+      }
+      if (t === 'P') {
+        if (neighborCount === 3) return 93 * Math.PI / 180;
+        if (neighborCount === 4) return 109.5 * Math.PI / 180;
+      }
+      if (neighborCount >= 2) return (2 * Math.PI) / neighborCount;
+      return 0;
+    }
+
+    function checkAllBondsSatisfied(currentAtoms, currentBonds, options = {}) {
+      const { requireFullValence = true } = options;
+      if (currentAtoms.length === 0) return false;
+      for (const atom of currentAtoms) {
+        if (atom.remainingBonds < 0) return false;
+        if (requireFullValence && atom.remainingBonds !== 0) return false;
+      }
+      return true;
+    }
+
+    function countAtoms(arr) {
+      return arr.reduce((c, a) => {
+        c[a.type] = (c[a.type] || 0) + 1;
+        return c;
+      }, {});
+    }
+
+    function pointLineDistance(px, py, x1, y1, x2, y2) {
+      const lineSq = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+      if (lineSq === 0) {
+        const dx = px - x1;
+        const dy = py - y1;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+      let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / lineSq;
+      t = Math.max(0, Math.min(1, t));
+      const projX = x1 + t * (x2 - x1);
+      const projY = y1 + t * (y2 - y1);
+      const dx = px - projX;
+      const dy = py - projY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function getConnectedClusters() {
+      const clusters = [];
+      const visited = new Set();
+      atoms.forEach(atom => {
+        if (!visited.has(atom)) {
+          const cluster = [];
+          const stack = [atom];
+          visited.add(atom);
+          while (stack.length) {
+            const current = stack.pop();
+            cluster.push(current);
+            current.neighbors.forEach(neigh => {
+              if (!visited.has(neigh)) {
+                visited.add(neigh);
+                stack.push(neigh);
+              }
+            });
+          }
+          clusters.push(cluster);
+        }
+      });
+      return clusters;
+    }
+
+    function getClusterFromAtom(startAtom) {
+      if (!startAtom) return [];
+      const cluster = [];
+      const visited = new Set();
+      const stack = [startAtom];
+      visited.add(startAtom);
+      while (stack.length) {
+        const current = stack.pop();
+        cluster.push(current);
+        current.neighbors.forEach(neigh => {
+          if (!visited.has(neigh)) {
+            visited.add(neigh);
+            stack.push(neigh);
+          }
+        });
+      }
+      return cluster;
+    }
+
+    function computeFormula(cluster) {
+      const counts = {};
+      cluster.forEach(atom => {
+        counts[atom.type] = (counts[atom.type] || 0) + 1;
+      });
+      const parts = [];
+      if (counts.C) parts.push('C' + (counts.C > 1 ? counts.C : ''));
+      if (counts.H) parts.push('H' + (counts.H > 1 ? counts.H : ''));
+      Object.keys(counts).sort().forEach(k => {
+        if (k !== 'C' && k !== 'H') {
+          const c = counts[k];
+          parts.push(k + (c > 1 ? c : ''));
+        }
+      });
+      return parts.join('');
+    }
+
+    // --- 드로잉 ---
+
+    function draw() {
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      bonds.forEach(drawBond);
+      atoms.forEach(a => drawAtom(a));
+
+      if (draggingAtom) drawAtom(draggingAtom, true);
+
+      const clusters = getConnectedClusters();
+      clusters.forEach(cluster => {
+        if (cluster.length === 0) return;
+        const formula = computeFormula(cluster);
+        const data = MOLECULE_DATA[formula];
+        const label = data ? data.name : formula;
+        drawMoleculeTag(cluster, label);
+      });
+    }
+
+    function drawMoleculeTag(cluster, label) {
+      if (!cluster || cluster.length === 0) return;
+      let minX = Infinity, minY = Infinity;
+      let maxX = -Infinity, maxY = -Infinity;
+      cluster.forEach(atom => {
+        const left = atom.x - atom.radius;
+        const right = atom.x + atom.radius;
+        const top = atom.y - atom.radius;
+        const bottom = atom.y + atom.radius;
+        if (left < minX) minX = left;
+        if (right > maxX) maxX = right;
+        if (top < minY) minY = top;
+        if (bottom > maxY) maxY = bottom;
+      });
+      const centerX = (minX + maxX) / 2;
+      const tagY = minY - 10;
+
+      ctx.font = 'bold 14px Inter, sans-serif';
+      const textWidth = ctx.measureText(label).width;
+      const padding = 4;
+      const rectWidth = textWidth + padding * 2;
+      const rectHeight = 18;
+      const rectX = centerX - rectWidth / 2;
+      const rectY = tagY - rectHeight;
+
+      ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
+      ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, centerX, rectY + rectHeight / 2);
+    }
+
+    function drawBond(bond) {
+      const { atom1, atom2 } = bond;
+      const order = bond.order || 1;
+
+      const x1 = atom1.x, y1 = atom1.y;
+      const x2 = atom2.x, y2 = atom2.y;
+
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      const nx = -dy / length;
+      const ny = dx / length;
+
+      const offset = 7;
+
+      for (let i = 0; i < order; i++) {
+        let offsetMult;
+        if (order % 2 === 1) {
+          offsetMult = (i - Math.floor(order / 2)) * offset;
+        } else {
+          offsetMult = (i - (order / 2) + 0.5) * offset;
+        }
+        ctx.beginPath();
+        ctx.moveTo(x1 + nx * offsetMult, y1 + ny * offsetMult);
+        ctx.lineTo(x2 + nx * offsetMult, y2 + ny * offsetMult);
+        ctx.strokeStyle = '#666666';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+    }
+
+    function drawAtom(atom, isDragging = false) {
+      ctx.beginPath();
+      ctx.arc(atom.x, atom.y, atom.radius, 0, Math.PI * 2);
+      ctx.fillStyle = isDragging ? atom.color + 'A0' : atom.color;
+      ctx.fill();
+
+      ctx.strokeStyle = isDragging ? '#333333' : '#111111';
+      ctx.lineWidth = isDragging ? 2 : 3;
+      ctx.stroke();
+
+      const fontSize = Math.max(12, Math.min(24, Math.floor(atom.radius * 0.7)));
+      ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = isDragging ? '#333333' : '#ffffff';
+      ctx.fillText(atom.type, atom.x, atom.y);
+
+      const indicatorRadius = Math.max(4, Math.floor(atom.radius * 0.15));
+      const indicatorX = atom.x + atom.radius * Math.cos(-Math.PI / 4);
+      const indicatorY = atom.y + atom.radius * Math.sin(-Math.PI / 4);
+
+      const remaining = atom.remainingBonds;
+      if (remaining > 0) {
+        ctx.beginPath();
+        ctx.arc(indicatorX, indicatorY, indicatorRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#10b981';
+        ctx.fill();
+
+        ctx.font = `bold ${Math.max(8, Math.floor(indicatorRadius * 1.5))}px Inter, sans-serif`;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(remaining, indicatorX, indicatorY);
+      } else if (remaining < 0) {
+        ctx.beginPath();
+        ctx.arc(indicatorX, indicatorY, indicatorRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#ef4444';
+        ctx.fill();
+
+        ctx.font = `bold ${Math.max(8, Math.floor(indicatorRadius * 1.5))}px Inter, sans-serif`;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('!', indicatorX, indicatorY);
+      }
+
+      if (draggingAtom && !isRelaxing) {
+        const idealDist = calculateIdealBondDistance(atom, draggingAtom);
+        const maxSnapDist = idealDist * SNAP_RANGE_FACTOR;
+        if (dist(atom, draggingAtom) < maxSnapDist) {
+          ctx.beginPath();
+          ctx.arc(atom.x, atom.y, maxSnapDist, 0, Math.PI * 2);
+          ctx.strokeStyle = '#cccccc';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([5, 5]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+    }
+
+    // --- 물리 시뮬레이션 ---
+
+    function applyForces() {
+      if (atoms.length === 0) return 0;
+
+      const forces = new Map();
+      atoms.forEach(atom => forces.set(atom, { fx: 0, fy: 0 }));
+
+      // 척력
+      for (let i = 0; i < atoms.length; i++) {
+        for (let j = i + 1; j < atoms.length; j++) {
+          const a = atoms[i];
+          const b = atoms[j];
+          const d = dist(a, b);
+          const minSep = a.radius + b.radius;
+
+          if (d < canvas.width / 5 && d > 1) {
+            const angle = Math.atan2(b.y - a.y, b.x - a.x);
+            let f = REPULSION_CONSTANT / (d * d);
+            if (d < minSep) f *= 2;
+
+            const fx = f * Math.cos(angle);
+            const fy = f * Math.sin(angle);
+
+            const fa = forces.get(a);
+            const fb = forces.get(b);
+            fa.fx -= fx;
+            fa.fy -= fy;
+            fb.fx += fx;
+            fb.fy += fy;
+          }
+        }
+      }
+
+      // 결합 인력
+      bonds.forEach(bond => {
+        const a = bond.atom1;
+        const b = bond.atom2;
+        const d = dist(a, b);
+        const ideal = calculateIdealBondDistance(a, b);
+        const f = STIFFNESS * (d - ideal) * (bond.order || 1);
+        const angle = Math.atan2(b.y - a.y, b.x - a.x);
+
+        const fx = f * Math.cos(angle);
+        const fy = f * Math.sin(angle);
+
+        const fa = forces.get(a);
+        const fb = forces.get(b);
+        fa.fx += fx;
+        fa.fy += fy;
+        fb.fx -= fx;
+        fb.fy -= fy;
+      });
+
+      // 결합각 제약
+      atoms.forEach(center => {
+        const neighbors = center.neighbors;
+        if (neighbors.length < 2) return;
+        const ideal = getIdealBondAngle(center, neighbors.length);
+        if (!ideal) return;
+
+        for (let i = 0; i < neighbors.length; i++) {
+          for (let j = i + 1; j < neighbors.length; j++) {
+            const a = neighbors[i];
+            const b = neighbors[j];
+
+            const ux = a.x - center.x;
+            const uy = a.y - center.y;
+            const vx = b.x - center.x;
+            const vy = b.y - center.y;
+
+            const uLen = Math.sqrt(ux * ux + uy * uy);
+            const vLen = Math.sqrt(vx * vx + vy * vy);
+            if (uLen === 0 || vLen === 0) continue;
+
+            const uxn = ux / uLen, uyn = uy / uLen;
+            const vxn = vx / vLen, vyn = vy / vLen;
+
+            let dot = uxn * vxn + uyn * vyn;
+            dot = Math.max(-1, Math.min(1, dot));
+            const angle = Math.acos(dot);
+            const delta = ideal - angle;
+
+            if (delta > ANGLE_TOLERANCE) {
+              const mag = ANGLE_STIFFNESS * delta;
+              const abx = b.x - a.x;
+              const aby = b.y - a.y;
+              const abLen = Math.sqrt(abx * abx + aby * aby) || 1;
+              const abxN = abx / abLen;
+              const abyN = aby / abLen;
+
+              const fa = forces.get(a);
+              const fb = forces.get(b);
+              fa.fx -= mag * abxN;
+              fa.fy -= mag * abyN;
+              fb.fx += mag * abxN;
+              fb.fy += mag * abyN;
+            }
+          }
+        }
+      });
+
+      // 속도·위치 업데이트
+      let totalKE = 0;
+      atoms.forEach(atom => {
+        const f = forces.get(atom);
+        atom.vx += f.fx / atom.mass;
+        atom.vy += f.fy / atom.mass;
+
+        atom.vx *= DAMPING;
+        atom.vy *= DAMPING;
+
+        atom.x += atom.vx;
+        atom.y += atom.vy;
+
+        if (atom.x < atom.radius) { atom.x = atom.radius; atom.vx *= -1; }
+        if (atom.x > canvas.width - atom.radius) { atom.x = canvas.width - atom.radius; atom.vx *= -1; }
+        if (atom.y < atom.radius) { atom.y = atom.radius; atom.vy *= -1; }
+        if (atom.y > canvas.height - atom.radius) { atom.y = canvas.height - atom.radius; atom.vy *= -1; }
+
+        totalKE += atom.vx * atom.vx + atom.vy * atom.vy;
+      });
+
+      return totalKE;
+    }
+
+    function relaxLayout(minIter = MIN_SIMULATION_STEPS, maxIter = MAX_SIMULATION_STEPS) {
+      if (isRelaxing || atoms.length <= 1) {
+        updateInfoPanel();
+        draw();
+        return;
+      }
+      isRelaxing = true;
+      simulationStatus.classList.remove('hidden');
+
+      let step = 0;
+      function loop() {
+        if (!draggingAtom) {
+          const ke = applyForces();
+          draw();
+          step++;
+          const stable = step > minIter && ke < STABILITY_THRESHOLD;
+          const maxed = step >= maxIter;
+          if (stable || maxed) {
+            isRelaxing = false;
+            simulationStatus.classList.add('hidden');
+            updateInfoPanel();
+            return;
+          }
+          requestAnimationFrame(loop);
+        } else {
+          isRelaxing = false;
+          simulationStatus.classList.add('hidden');
+          updateInfoPanel();
+        }
+      }
+      loop();
+    }
+
+    // --- 로직 ---
+
+    function snapAndBond(movingAtom, candidateAtoms = atoms) {
+      if (!movingAtom || candidateAtoms.length === 0) return;
+
+      let bestTarget = null;
+      let bestDist = Infinity;
+
+      for (const atom of candidateAtoms) {
+        if (atom === movingAtom) continue;
+        const ideal = calculateIdealBondDistance(atom, movingAtom);
+        const maxSnap = ideal * SNAP_RANGE_FACTOR;
+        const d = dist(atom, movingAtom);
+
+        if (d <= maxSnap && d < bestDist &&
+            atom.remainingBonds > 0 && movingAtom.remainingBonds > 0) {
+          bestDist = d;
+          bestTarget = atom;
+        }
+      }
+
+      if (!bestTarget) return;
+
+      const angle = Math.atan2(movingAtom.y - bestTarget.y, movingAtom.x - bestTarget.x);
+      const ideal = calculateIdealBondDistance(bestTarget, movingAtom);
+      movingAtom.x = bestTarget.x + Math.cos(angle) * ideal;
+      movingAtom.y = bestTarget.y + Math.sin(angle) * ideal;
+
+      let existing = bonds.find(
+        b => (b.atom1 === bestTarget && b.atom2 === movingAtom) ||
+             (b.atom2 === bestTarget && b.atom1 === movingAtom)
+      );
+      if (existing) {
+        const avail = Math.min(bestTarget.remainingBonds, movingAtom.remainingBonds);
+        if (existing.order < 3 && avail > 0) existing.order += 1;
+      } else {
+        bonds.push({ atom1: bestTarget, atom2: movingAtom, order: 1 });
+      }
+    }
+
+    function finalizeDraggingAtom() {
+      if (!draggingAtom) return;
+      atoms.push(draggingAtom);
+      atoms.forEach(a => { a.vx = 0; a.vy = 0; });
+      snapAndBond(draggingAtom);
+      draggingAtom = null;
+      relaxLayout();
+    }
+
+    function deleteAtom(atomToDelete) {
+      if (!atomToDelete) return;
+      atoms = atoms.filter(a => a !== atomToDelete);
+      bonds = bonds.filter(b => b.atom1 !== atomToDelete && b.atom2 !== atomToDelete);
+      relaxLayout(5, 80);
+    }
+
+    // --- UI 업데이트 ---
+
+    function generatePalette() {
+      const palette = document.getElementById('palette');
+      palette.innerHTML = `
+        <h3>원소 팔레트</h3>
+        <p class="text-xs text-gray-500 mb-4">
+          원자를 드래그하여 배치하세요.<br>
+          배치된 원자를 더블클릭하면 삭제됩니다.
+        </p>
+      `;
+      const fragment = document.createDocumentFragment();
+      for (const type in ATOM_PROPERTIES) {
+        const props = ATOM_PROPERTIES[type];
+        const btn = document.createElement('button');
+        btn.className = 'atom-btn';
+        btn.setAttribute('data-type', type);
+        btn.innerHTML = `
+          <span class="symbol">${type}</span>
+          <span class="max-bonds">(${props.maxBonds}개 결합)</span>
+        `;
+        btn.addEventListener('mousedown', e => {
+          e.preventDefault();
+          isRelaxing = false;
+          simulationStatus.classList.add('hidden');
+          const t = btn.getAttribute('data-type');
+          const pos = getMousePos(e);
+          draggingAtom = new Atom(t, pos.x, pos.y);
+          draw();
+        });
+        fragment.appendChild(btn);
+      }
+      palette.appendChild(fragment);
+    }
+
+    function updateStatusPanel() {
+      const statusList = document.getElementById('statusList');
+      statusList.innerHTML = '';
+
+      const totalAtoms = atoms.length;
+      const totalBonds = bonds.length;
+      const clusters = getConnectedClusters();
+      const stable = totalAtoms > 0 && checkAllBondsSatisfied(atoms, bonds);
+
+      function add(text) {
+        const li = document.createElement('li');
+        li.className = 'status-item';
+        li.textContent = text;
+        statusList.appendChild(li);
+      }
+
+      add(`원자 수: ${totalAtoms}`);
+      add(`결합 수: ${totalBonds}`);
+      add(`분자(클러스터) 개수: ${clusters.length}`);
+      add(stable ? '모든 원자의 결합수가 안정 상태입니다.' :
+                   '아직 일부 원자의 결합수가 부족하거나 많습니다.');
+    }
+
+    function updateMoleculeInfoPanel() {
+      const panel = document.getElementById('moleculeInfoPanel');
+      panel.innerHTML = '';
+
+      const clusters = getConnectedClusters();
+      const infos = clusters
+        .filter(c => c.length > 0)
+        .map(c => ({ cluster: c, formula: computeFormula(c) }))
+        .sort((a, b) => a.formula.localeCompare(b.formula));
+
+      infos.forEach((info, idx) => {
+        const { cluster, formula } = info;
+        const container = document.createElement('div');
+        container.style.marginBottom = '0.5rem';
+
+        const title = document.createElement('div');
+        title.style.fontWeight = '600';
+        const data = MOLECULE_DATA[formula];
+        const displayFormula = data && data.displayFormula ? data.displayFormula : formula;
+        title.textContent = `분자 ${idx + 1}: ${displayFormula}`;
+        container.appendChild(title);
+
+        const descDiv = document.createElement('div');
+        if (data) {
+          descDiv.innerHTML = `<strong>${data.name}</strong><br>${data.desc}`;
+        } else {
+          descDiv.textContent = '알려지지 않은 분자입니다. 이성질체나 특이한 구조일 수 있어요.';
+        }
+        descDiv.style.fontSize = '0.85rem';
+        descDiv.style.color = '#334155';
+        container.appendChild(descDiv);
+
+        panel.appendChild(container);
+      });
+    }
+
+    function updateInfoPanel() {
+      updateStatusPanel();
+      updateMoleculeInfoPanel();
+      checkMissionCompletion();
+    }
+
+    function setMission(index) {
+      const missionTitle = document.getElementById('missionTitle');
+      const missionDesc = document.getElementById('missionDesc');
+      const mission = MISSIONS[index];
+      if (!mission) return;
+      currentMissionIndex = index;
+      missionTitle.textContent = `미션 ${index + 1}: ${mission.formula}`;
+      missionDesc.textContent = mission.desc;
+      isMissionComplete = false;
+      document.getElementById('missionCompleteMessage').style.display = 'none';
+      document.getElementById('nextMissionBtn').disabled = true;
+    }
+
+    function checkMissionCompletion() {
+      const mission = MISSIONS[currentMissionIndex];
+      if (!mission) return;
+      const overlay = document.getElementById('missionCompleteMessage');
+      const nextBtn = document.getElementById('nextMissionBtn');
+      const success = mission.check(atoms, bonds);
+      if (success) {
+        isMissionComplete = true;
+        overlay.style.display = 'block';
+        nextBtn.disabled = false;
+      } else {
+        isMissionComplete = false;
+        overlay.style.display = 'none';
+        nextBtn.disabled = true;
+      }
+    }
+
+    function nextMission() {
+      const nextIndex = (currentMissionIndex + 1) % MISSIONS.length;
+      resetBoard();
+      setMission(nextIndex);
+      draw();
+      updateInfoPanel();
+    }
+
+    function resetBoard() {
+      atoms = [];
+      bonds = [];
+      draggingAtom = null;
+      clusterDrag = null;
+      clusterDragOffsets = new Map();
+      didClusterDrag = false;
+      lastMousePos = null;
+      isRelaxing = false;
+      simulationStatus.classList.add('hidden');
+      document.getElementById('missionCompleteMessage').style.display = 'none';
+      draw();
+      updateInfoPanel();
+    }
+
+    function cycleBondOrder(bond) {
+      const current = bond.order || 1;
+      let next = current + 1;
+      if (next > 3) next = 1;
+      bond.order = next;
+    }
+
+    // --- 이벤트 리스너 ---
+
+    function setupEventListeners() {
+      const nextMissionBtn = document.getElementById('nextMissionBtn');
+      const resetBoardBtn = document.getElementById('resetBoardBtn');
+
+      canvas.addEventListener('mousedown', e => {
+        if (draggingAtom) return;
+        const pos = getMousePos(e);
+        lastMousePos = pos;
+
+        let target = null;
+        for (const atom of atoms) {
+          if (dist(atom, pos) <= atom.radius) {
+            target = atom;
+            break;
+          }
+        }
+        if (!target) {
+          clusterDrag = null;
+          clusterDragOffsets = new Map();
+          return;
+        }
+
+        const cluster = getClusterFromAtom(target);
+        clusterDrag = cluster;
+        clusterDragOffsets = new Map();
+        cluster.forEach(a => {
+          clusterDragOffsets.set(a, { dx: a.x - pos.x, dy: a.y - pos.y });
+          a.vx = 0;
+          a.vy = 0;
+        });
+        didClusterDrag = false;
+      });
+
+      canvas.addEventListener('mousemove', e => {
+        const pos = getMousePos(e);
+        if (draggingAtom) {
+          draggingAtom.x = pos.x;
+          draggingAtom.y = pos.y;
+          draw();
+        } else if (clusterDrag) {
+          if (lastMousePos && !didClusterDrag) {
+            if (Math.abs(pos.x - lastMousePos.x) > 2 ||
+                Math.abs(pos.y - lastMousePos.y) > 2) {
+              didClusterDrag = true;
+            }
+          }
+          clusterDrag.forEach(atom => {
+            const offset = clusterDragOffsets.get(atom);
+            if (!offset) return;
+            atom.x = pos.x + offset.dx;
+            atom.y = pos.y + offset.dy;
+          });
+          draw();
+        }
+      });
+
+      function endDragging() {
+        if (draggingAtom) {
+          finalizeDraggingAtom();
+        }
+        if (clusterDrag) {
+          const movedCluster = clusterDrag;
+          clusterDrag = null;
+          clusterDragOffsets = new Map();
+          if (didClusterDrag) {
+            const otherAtoms = atoms.filter(a => !movedCluster.includes(a));
+            movedCluster.forEach(a => snapAndBond(a, otherAtoms));
+            relaxLayout(5, 80);
+          }
+        }
+      }
+
+      canvas.addEventListener('mouseup', endDragging);
+      document.addEventListener('mouseup', endDragging);
+
+      canvas.addEventListener('dblclick', e => {
+        const pos = getMousePos(e);
+        for (const atom of atoms) {
+          if (dist(atom, pos) <= atom.radius) {
+            deleteAtom(atom);
+            draw();
+            updateInfoPanel();
+            break;
+          }
+        }
+      });
+
+      canvas.addEventListener('click', e => {
+        if (draggingAtom) return;
+        if (didClusterDrag) {
+          didClusterDrag = false;
+          return;
+        }
+        if (e.detail !== 1) return;
+
+        const pos = getMousePos(e);
+        const threshold = 10;
+        let clickedBond = null;
+        for (const bond of bonds) {
+          const d = pointLineDistance(
+            pos.x, pos.y,
+            bond.atom1.x, bond.atom1.y,
+            bond.atom2.x, bond.atom2.y
+          );
+          if (d <= threshold) {
+            clickedBond = bond;
+            break;
+          }
+        }
+        if (clickedBond) {
+          cycleBondOrder(clickedBond);
+          relaxLayout(5, 80);
+        }
+      });
+
+      nextMissionBtn.addEventListener('click', nextMission);
+      resetBoardBtn.addEventListener('click', () => {
+        resetBoard();
+        setMission(currentMissionIndex);
+      });
+
+      window.addEventListener('resize', draw);
+    }
+
+    // --- 초기화 ---
+
+    (function init() {
+      generatePalette();
+      setMission(0);
+      setupEventListeners();
+      updateInfoPanel();
+      draw();
+    })();
+  </script>
+  <!-- Showcase Portal Navigation Button -->
+  <a href="../../index.html" class="showcase-nav-btn" title="쇼케이스 포털로 돌아가기">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    <span>Showcase</span>
+  </a>
+  <style>
+    .showcase-nav-btn {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 99999;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0.85;
+      user-select: none;
+    }
+    .showcase-nav-btn:hover {
+      opacity: 1;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.96);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+  </style>
+</body>
+</html>

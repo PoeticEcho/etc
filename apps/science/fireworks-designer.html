@@ -1,0 +1,1876 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fireworks Designer Simulator - 파티클 불꽃놀이 랩</title>
+  <!-- SEO & Primary Meta Tags -->
+  <meta name="description" content="화려한 파티클 물리 역학과 폭발 시각 효과를 직접 커스텀하고 연출하는 시뮬레이터" />
+  <meta name="keywords" content="불꽃놀이 시뮬레이터, 파티클 시스템, HTML5 Canvas, 시각 효과, 물리 엔진" />
+  <meta name="author" content="Interactive Web Apps Collection" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicons/favicon-fireworks-designer.svg" />
+  <link rel="alternate icon" type="image/png" href="../../assets/favicons/favicon-fireworks-designer.png" />
+
+  <!-- Open Graph / Facebook / Kakao -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Fireworks Designer Simulator - 파티클 불꽃놀이 랩" />
+  <meta property="og:description" content="화려한 파티클 물리 역학과 폭발 시각 효과를 직접 커스텀하고 연출하는 시뮬레이터" />
+  <meta property="og:image" content="../../assets/og/og-fireworks-designer.png" />
+  <meta property="og:site_name" content="Interactive Web Apps Showcase" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Fireworks Designer Simulator - 파티클 불꽃놀이 랩" />
+  <meta name="twitter:description" content="화려한 파티클 물리 역학과 폭발 시각 효과를 직접 커스텀하고 연출하는 시뮬레이터" />
+  <meta name="twitter:image" content="../../assets/og/og-fireworks-designer.png" />
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: rgba(10, 18, 32, 0.9);
+      --panel-2: rgba(18, 28, 46, 0.95);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #eaf2ff;
+      --muted: #97a6c7;
+      --accent: #7cc0ff;
+      --accent-2: #b38fff;
+      --good: #79e2a1;
+      --danger: #ff8f8f;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: Inter, Pretendard, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 50% 20%, rgba(76, 107, 181, 0.18), transparent 28%),
+        radial-gradient(circle at 82% 12%, rgba(145, 95, 255, 0.12), transparent 18%),
+        linear-gradient(180deg, #050d19 0%, #081120 42%, #02060d 100%);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .app {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 18px;
+      padding: 18px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(14, 24, 42, 0.97), rgba(8, 14, 24, 0.97));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-width: 360px;
+    }
+
+    .panel-header {
+      padding: 22px 22px 14px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+    }
+
+    .title {
+      margin: 0;
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .scroll {
+      flex: 1;
+      overflow: auto;
+      padding: 18px;
+    }
+
+    .section {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(6px);
+    }
+
+    .section h2 {
+      margin: 0 0 12px;
+      font-size: 0.98rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .grid-2, .grid-3 {
+      display: grid;
+      gap: 10px;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .shape-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .shape-card {
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 10px;
+      background: rgba(255,255,255,0.035);
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      overflow: hidden;
+    }
+
+    .shape-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(124,192,255,0.28);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.16);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .shape-card.active {
+      border-color: rgba(148, 215, 255, 0.65);
+      box-shadow: 0 0 0 3px rgba(148,215,255,0.10), 0 14px 24px rgba(0,0,0,0.18);
+      background: linear-gradient(180deg, rgba(148,215,255,0.10), rgba(255,255,255,0.03));
+    }
+
+    .shape-card canvas {
+      width: 100%;
+      height: 84px;
+      display: block;
+      border-radius: 12px;
+      background: radial-gradient(circle at 50% 52%, rgba(18,34,58,0.85), rgba(3,8,16,0.98));
+      border: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 8px;
+    }
+
+    .shape-card-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #f5f9ff;
+      letter-spacing: -0.01em;
+    }
+
+    .shape-card-desc {
+      margin-top: 4px;
+      font-size: 0.73rem;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    select, input[type="range"], input[type="text"], button {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      font: inherit;
+    }
+
+    select, input[type="text"] {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 11px 12px;
+      outline: none;
+    }
+
+    input[type="range"] {
+      appearance: none;
+      background: transparent;
+      padding: 0;
+      height: 32px;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(124,192,255,0.35), rgba(179,143,255,0.38));
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      margin-top: -5px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.9);
+      background: #dcecff;
+      box-shadow: 0 2px 10px rgba(124,192,255,0.35);
+      cursor: pointer;
+    }
+
+    .value {
+      font-size: 0.82rem;
+      color: #d7e7ff;
+      text-align: right;
+      margin-top: 2px;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .swatch {
+      position: relative;
+      min-height: 64px;
+      border-radius: 16px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-align: left;
+      overflow: hidden;
+    }
+
+    .swatch::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02));
+      pointer-events: none;
+    }
+
+    .swatch-name,
+    .swatch-symbol {
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    }
+
+    .swatch-name {
+      font-size: 0.76rem;
+      font-weight: 800;
+      color: #f8fbff;
+      letter-spacing: -0.01em;
+    }
+
+    .swatch-symbol {
+      font-size: 0.92rem;
+      font-weight: 900;
+      color: rgba(255,255,255,0.95);
+      align-self: flex-end;
+    }
+
+    .swatch:hover { transform: translateY(-1px); }
+    .swatch.active {
+      border-color: rgba(255,255,255,0.92);
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.09), 0 10px 22px rgba(0,0,0,0.24);
+    }
+
+    .checkbox-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .checkbox-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: #90c8ff;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    button {
+      padding: 12px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    button:active { transform: translateY(0); }
+
+    .primary {
+      background: linear-gradient(135deg, #78b9ff, #9b85ff);
+      color: #09111c;
+    }
+
+    .secondary {
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .danger {
+      background: rgba(255, 110, 110, 0.12);
+      color: #ffd5d5;
+      border: 1px solid rgba(255, 141, 141, 0.18);
+    }
+
+    .saved-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 250px;
+      overflow: auto;
+    }
+
+    .preset {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,0.035);
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .preset:hover {
+      transform: translateY(-1px);
+      border-color: rgba(124,192,255,0.28);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.16);
+    }
+
+    .preset.active-preset {
+      border-color: rgba(124,192,255,0.45);
+      box-shadow: 0 0 0 3px rgba(124,192,255,0.09);
+    }
+
+    .preset-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .preset-title {
+      font-size: 0.94rem;
+      font-weight: 700;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(124,192,255,0.11);
+      color: #d6e9ff;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border: 1px solid rgba(124,192,255,0.18);
+    }
+
+    .preset-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+
+    .mini-swatches {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .mini {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16);
+    }
+
+    .launch-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .launch-main {
+      background: linear-gradient(135deg, #94d7ff, #9b85ff);
+      color: #06101b;
+      font-size: 1rem;
+      padding: 14px 16px;
+      box-shadow: 0 12px 24px rgba(123, 170, 255, 0.22);
+    }
+
+    .preset-hint {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .preset-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .note {
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .stage-shell {
+      position: relative;
+      min-width: 0;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: var(--shadow);
+      background:
+        radial-gradient(circle at 50% 100%, rgba(24, 44, 78, 0.38), transparent 33%),
+        linear-gradient(180deg, rgba(6, 12, 22, 0.94), rgba(1, 4, 10, 0.98));
+    }
+
+    .stage-header {
+      position: absolute;
+      z-index: 5;
+      inset: 16px 16px auto 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .hud, .legend {
+      padding: 12px 14px;
+      background: rgba(5, 10, 18, 0.38);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      pointer-events: auto;
+    }
+
+    .hud strong, .legend strong {
+      display: block;
+      font-size: 0.96rem;
+      margin-bottom: 5px;
+    }
+
+    .hud p, .legend p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    #stage {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: transparent;
+    }
+
+    .status-bar {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      pointer-events: none;
+    }
+
+    .status-card {
+      background: rgba(5, 10, 18, 0.38);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 10px 14px;
+      backdrop-filter: blur(10px);
+      font-size: 0.83rem;
+      color: var(--muted);
+    }
+
+    .status-card span {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .footer-safe {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(121, 226, 161, 0.08);
+      border: 1px solid rgba(121, 226, 161, 0.16);
+      color: #d7ffe4;
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1280px) {
+      .app { grid-template-columns: 360px 1fr; }
+    }
+
+    @media (max-width: 1080px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .panel { min-width: 0; }
+      .stage-shell { min-height: 55vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <div class="panel-header">
+        <h1 class="title">Fireworks Designer</h1>
+        <p class="subtitle">Peony, Chrysanthemum, Willow, Crossette, Palm, Ring, Pistil�� �����ϰ� �� ���հ� ũ�⸦ �ٲ㺸�� �������� ������ �� �ִ� FHD ������ �Ҳɳ��� �ùķ�����.</p>
+      </div>
+      <div class="scroll">
+        <section class="section">
+          <h2>�⺻ ����</h2>
+          <div class="grid-2">
+            <div>
+              <label for="shellType">�Ҳ� ���</label>
+              <select id="shellType">
+                <option value="peony">Peony</option>
+                <option value="chrysanthemum">Chrysanthemum</option>
+                <option value="willow">Willow</option>
+                <option value="crossette">Crossette</option>
+                <option value="palm">Palm</option>
+                <option value="ring">Ring</option>
+                <option value="pistil">Pistil</option>
+              </select>
+            </div>
+            <div>
+              <label for="fuseDelay">�߻� ����</label>
+              <select id="fuseDelay">
+                <option value="140">����</option>
+                <option value="260" selected>����</option>
+                <option value="420">����</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="shape-grid" id="shapeGrid"></div>
+
+          <div style="margin-top: 12px;">
+            <label for="sizeRange">���� ũ��</label>
+            <input id="sizeRange" type="range" min="50" max="180" value="110" />
+            <div class="value" id="sizeValue">110</div>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <label for="burstCount">�е�</label>
+            <input id="burstCount" type="range" min="18" max="80" value="42" />
+            <div class="value" id="burstValue">42</div>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <label for="trailRange">�ܻ� ����</label>
+            <input id="trailRange" type="range" min="0" max="100" value="64" />
+            <div class="value" id="trailValue">64</div>
+          </div>
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="glitterToggle" checked />
+            <label for="glitterToggle" style="margin:0; color:var(--text);">��¦�� �߰�</label>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>�� ����</h2>
+          <label>�ܰ� ����</label>
+          <div class="swatches" id="outerSwatches"></div>
+          <div style="height: 12px;"></div>
+          <label>�߽� ����</label>
+          <div class="swatches" id="innerSwatches"></div>
+          <div class="launch-buttons">
+            <button class="primary launch-main" id="launchSelectedBtn">���� ���� �߻�</button>
+            <button class="secondary" id="launchCenterBtn">�߾� �߻�</button>
+          </div>
+          <div class="preset-hint">����Ĩ���� ��ǥ �߱� ���ұ�ȣ�� �Բ� ǥ�õ˴ϴ�. ���� ������ ������ ������ �ٷ� �߻��� �� �ֽ��ϴ�.</div>
+          <div class="footer-safe">�� �ùķ����ʹ� ���� ȭ�� ���� ���� ����, ������ �ð� �����ο� ���� �����¸� �����մϴ�.</div>
+        </section>
+
+        <section class="section">
+          <h2>������ ����</h2>
+          <div>
+            <label for="presetName">������ �̸�</label>
+            <input id="presetName" type="text" placeholder="��: �ο� ��� �ǿ���" maxlength="40" />
+          </div>
+          <div class="buttons" style="margin-top: 10px;">
+            <button class="primary" id="savePresetBtn">���� ���� ����</button>
+            <button class="secondary" id="loadCurrentBtn">���� ���� �߻�</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>����� ������</h2>
+          <div class="saved-list" id="savedList"></div>
+          <div class="buttons" style="margin-top: 12px;">
+            <button class="primary" id="fireFiveBtn">���� ������ 5��</button>
+            <button class="primary" id="fireTenBtn">���� ������ 10��</button>
+          </div>
+          <div class="buttons" style="margin-top: 10px;">
+            <button class="secondary" id="demoBtn">�ڵ� �� ����</button>
+            <button class="danger" id="clearSkyBtn">�ϴ� ����</button>
+          </div>
+          <p class="note" style="margin-top: 10px;">�����º��� üũ�� �׸� ����/���� �߻翡 ���Ե˴ϴ�. ���ù߻� ������ ���� ª�� �������� ���� ��ġ���� �ڵ� �߻�˴ϴ�.</p>
+        </section>
+      </div>
+    </aside>
+
+    <main class="stage-shell">
+      <div class="stage-header">
+        <div class="hud">
+          <strong>1920 �� 1080 ������ ��������</strong>
+          <p>Ŭ���� ��ġ�ε� �߻�˴ϴ�. ���ϴÿ��� ������ �׽�Ʈ�ϰ�, ������ �� ���� ���� ���� � �����غ�����.</p>
+        </div>
+        <div class="legend">
+          <strong>���� ȿ��</strong>
+          <p>Peony �� Chrysanthemum �� Willow �� Crossette �� Palm �� Ring �� Pistil</p>
+        </div>
+      </div>
+
+      <canvas id="stage" width="1920" height="1080"></canvas>
+
+      <div class="status-bar">
+        <div class="status-card">���� ���: <span id="statusType">Peony</span></div>
+        <div class="status-card">���� ����: <span id="statusColors">Blue / Gold</span></div>
+        <div class="status-card">���� ������: <span id="statusSaved">0</span></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+
+    const shellTypeEl = document.getElementById('shellType');
+    const fuseDelayEl = document.getElementById('fuseDelay');
+    const sizeRangeEl = document.getElementById('sizeRange');
+    const burstCountEl = document.getElementById('burstCount');
+    const trailRangeEl = document.getElementById('trailRange');
+    const glitterToggleEl = document.getElementById('glitterToggle');
+    const presetNameEl = document.getElementById('presetName');
+    const savePresetBtn = document.getElementById('savePresetBtn');
+    const loadCurrentBtn = document.getElementById('loadCurrentBtn');
+    const fireFiveBtn = document.getElementById('fireFiveBtn');
+    const fireTenBtn = document.getElementById('fireTenBtn');
+    const clearSkyBtn = document.getElementById('clearSkyBtn');
+    const demoBtn = document.getElementById('demoBtn');
+    const savedListEl = document.getElementById('savedList');
+    const launchSelectedBtn = document.getElementById('launchSelectedBtn');
+    const launchCenterBtn = document.getElementById('launchCenterBtn');
+
+    const sizeValue = document.getElementById('sizeValue');
+    const burstValue = document.getElementById('burstValue');
+    const trailValue = document.getElementById('trailValue');
+    const statusType = document.getElementById('statusType');
+    const statusColors = document.getElementById('statusColors');
+    const statusSaved = document.getElementById('statusSaved');
+
+    const outerSwatchesEl = document.getElementById('outerSwatches');
+    const innerSwatchesEl = document.getElementById('innerSwatches');
+    const shapeGridEl = document.getElementById('shapeGrid');
+
+    const colors = [
+      { name: 'Crimson', symbol: 'Sr', value: '#ff3258' },
+      { name: 'Amber', symbol: 'Ca', value: '#ff9f1f' },
+      { name: 'Gold', symbol: 'Na', value: '#ffd232' },
+      { name: 'Lime', symbol: 'Ba', value: '#b9ff18' },
+      { name: 'Emerald', symbol: 'Ba', value: '#1aff8c' },
+      { name: 'Sky Blue', symbol: 'Cu', value: '#3ed9ff' },
+      { name: 'Royal Blue', symbol: 'Cu', value: '#3f6fff' },
+      { name: 'Violet', symbol: 'Sr+Cu', value: '#a14dff' },
+      { name: 'Silver', symbol: 'Mg/Al/Ti', value: '#eef6ff' },
+      { name: 'Rose', symbol: 'Sr', value: '#ff5fbe' },
+      { name: 'Ice', symbol: 'Cu', value: '#8ff6ff' },
+      { name: 'White', symbol: 'Mg/Al/Ti', value: '#ffffff' },
+    ];
+
+    const shapeOptions = [
+      { value: 'peony', label: 'Peony', desc: '�ձ۰� ǳ���ϰ� ������ �⺻��' },
+      { value: 'chrysanthemum', label: 'Chrysanthemum', desc: '��� ������ ������ ����' },
+      { value: 'willow', label: 'Willow', desc: 'õõ�� �Ʒ��� �帣�� ���峪����' },
+      { value: 'crossette', label: 'Crossette', desc: '���� �� ���� �������� ���ȭ' },
+      { value: 'palm', label: 'Palm', desc: '���� �ٱ�� ���ڼ� �� ����' },
+      { value: 'ring', label: 'Ring', desc: '��� �ִ� ���� �׵θ�' },
+      { value: 'pistil', label: 'Pistil', desc: '�ܰ��� �߽��� �������� ���̴� ��' },
+    ];
+
+    let selectedOuter = 'Royal Blue';
+    let selectedInner = 'Gold';
+    let savedPresets = JSON.parse(localStorage.getItem('fireworks-presets-v1') || '[]');
+
+    let stageWidth = 1920;
+    let stageHeight = 1080;
+    let dpr = 1;
+    let lastTime = 0;
+    let rafId = null;
+
+    let rockets = [];
+    let particles = [];
+    let flashes = [];
+
+    let stars = [];
+    let buildings = [];
+    let launchPads = [];
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function hexToRgb(hex) {
+      const h = hex.replace('#', '');
+      const bigint = parseInt(h, 16);
+      return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+    }
+
+    function rgbaFromHex(hex, alpha = 1) {
+      const { r, g, b } = hexToRgb(hex);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function byName(name) {
+      return colors.find(c => c.name === name) || colors[0];
+    }
+
+    function createStars() {
+      stars = Array.from({ length: Math.max(70, Math.floor(stageWidth * 0.045)) }, (_, i) => ({
+        x: rand(0, stageWidth),
+        y: rand(6, stageHeight * 0.62),
+        radius: rand(0.5, 1.4),
+        alpha: rand(0.15, 0.5),
+        speed: rand(0.4, 1.6),
+        phase: rand(0, Math.PI * 2),
+        tint: i % 7 === 0 ? 'rgba(180,220,255,' : 'rgba(255,255,255,'
+      }));
+    }
+
+    function createSkyline() {
+      buildings = [];
+      let x = 0;
+      while (x < stageWidth + 60) {
+        const width = rand(28, 92);
+        const height = rand(stageHeight * 0.05, stageHeight * 0.16);
+        const y = stageHeight * 0.9 - height;
+        const windows = [];
+        for (let wx = x + 6; wx < x + width - 6; wx += rand(7, 10)) {
+          for (let wy = y + 8; wy < y + height - 6; wy += rand(9, 13)) {
+            if (Math.random() < 0.26) {
+              windows.push({ x: wx, y: wy, w: rand(2, 4), h: rand(3, 5), alpha: rand(0.06, 0.22) });
+            }
+          }
+        }
+        buildings.push({ x, y, width, height, windows });
+        x += width + rand(8, 22);
+      }
+
+      launchPads = [0.14, 0.3, 0.5, 0.7, 0.86].map(p => ({
+        x: stageWidth * p,
+        y: stageHeight * 0.9,
+      }));
+    }
+
+    function resizeStage() {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      stageWidth = rect.width;
+      stageHeight = rect.height;
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      createStars();
+      createSkyline();
+    }
+
+    function renderSwatches(container, activeName, onSelect) {
+      container.innerHTML = '';
+      colors.forEach(color => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `swatch ${activeName === color.name ? 'active' : ''}`;
+        btn.style.background = `linear-gradient(135deg, ${color.value}, rgba(255,255,255,0.12))`;
+        btn.title = `${color.name} (${color.symbol})`;
+        btn.innerHTML = `
+          <span class="swatch-name">${color.name}</span>
+          <span class="swatch-symbol">${color.symbol}</span>
+        `;
+        btn.addEventListener('click', () => onSelect(color.name));
+        container.appendChild(btn);
+      });
+    }
+
+    function refreshSwatches() {
+      renderSwatches(outerSwatchesEl, selectedOuter, (name) => {
+        selectedOuter = name;
+        refreshSwatches();
+        updateStatus();
+      });
+      renderSwatches(innerSwatchesEl, selectedInner, (name) => {
+        selectedInner = name;
+        refreshSwatches();
+        updateStatus();
+      });
+    }
+
+    function drawPreviewBurst(previewCanvas, type) {
+      const pctx = previewCanvas.getContext('2d');
+      const w = previewCanvas.width;
+      const h = previewCanvas.height;
+      pctx.clearRect(0, 0, w, h);
+
+      const bg = pctx.createRadialGradient(w * 0.5, h * 0.48, 2, w * 0.5, h * 0.48, w * 0.55);
+      bg.addColorStop(0, 'rgba(17,30,52,0.9)');
+      bg.addColorStop(1, 'rgba(2,8,16,1)');
+      pctx.fillStyle = bg;
+      pctx.fillRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const cy = h * 0.46;
+      const line = (x1, y1, x2, y2, color, width = 1.6, alpha = 1) => {
+        pctx.save();
+        pctx.strokeStyle = color;
+        pctx.globalAlpha = alpha;
+        pctx.lineWidth = width;
+        pctx.shadowBlur = 10;
+        pctx.shadowColor = color;
+        pctx.beginPath();
+        pctx.moveTo(x1, y1);
+        pctx.lineTo(x2, y2);
+        pctx.stroke();
+        pctx.restore();
+      };
+      const dot = (x, y, r, color, alpha = 1) => {
+        pctx.save();
+        pctx.globalAlpha = alpha;
+        pctx.fillStyle = color;
+        pctx.shadowBlur = 12;
+        pctx.shadowColor = color;
+        pctx.beginPath();
+        pctx.arc(x, y, r, 0, Math.PI * 2);
+        pctx.fill();
+        pctx.restore();
+      };
+
+      switch (type) {
+        case 'peony':
+          for (let i = 0; i < 18; i++) {
+            const a = (Math.PI * 2 * i) / 18;
+            line(cx, cy, cx + Math.cos(a) * 24, cy + Math.sin(a) * 24, '#ffb84d', 1.8, 0.95);
+            dot(cx + Math.cos(a) * 28, cy + Math.sin(a) * 28, 1.8, '#ffd98a');
+          }
+          break;
+        case 'chrysanthemum':
+          for (let i = 0; i < 22; i++) {
+            const a = (Math.PI * 2 * i) / 22;
+            line(cx, cy, cx + Math.cos(a) * 28, cy + Math.sin(a) * 28, '#ffe4a8', 1.2, 0.9);
+            line(cx + Math.cos(a) * 18, cy + Math.sin(a) * 18, cx + Math.cos(a) * 34, cy + Math.sin(a) * 34, '#ffc04d', 0.9, 0.7);
+          }
+          break;
+        case 'willow':
+          for (let i = -4; i <= 4; i++) {
+            const x = cx + i * 8;
+            line(cx, cy - 8, x, cy + 4, '#ffd66b', 1.6, 0.9);
+            line(x, cy + 4, x + i * 1.5, cy + 24 + Math.abs(i) * 4, '#ff9e52', 1.4, 0.85);
+          }
+          break;
+        case 'crossette':
+          for (let i = 0; i < 4; i++) {
+            const a = (Math.PI / 2) * i + Math.PI / 4;
+            const ex = cx + Math.cos(a) * 22;
+            const ey = cy + Math.sin(a) * 22;
+            line(cx, cy, ex, ey, '#ff7ab8', 1.8, 0.95);
+            line(ex - 6, ey, ex + 6, ey, '#ffd6ea', 1.2, 0.95);
+            line(ex, ey - 6, ex, ey + 6, '#ffd6ea', 1.2, 0.95);
+          }
+          break;
+        case 'palm':
+          for (let i = -3; i <= 3; i++) {
+            line(cx, cy + 18, cx + i * 7, cy - 12 - Math.abs(i) * 2, i === 0 ? '#fff1a6' : '#78d0ff', i === 0 ? 2.2 : 1.6, 0.95);
+          }
+          break;
+        case 'ring':
+          for (let i = 0; i < 20; i++) {
+            const a = (Math.PI * 2 * i) / 20;
+            dot(cx + Math.cos(a) * 24, cy + Math.sin(a) * 16, 2, '#79d5ff', 0.95);
+          }
+          break;
+        case 'pistil':
+          for (let i = 0; i < 16; i++) {
+            const a = (Math.PI * 2 * i) / 16;
+            line(cx, cy, cx + Math.cos(a) * 28, cy + Math.sin(a) * 24, '#ffb54e', 1.4, 0.88);
+          }
+          for (let i = 0; i < 10; i++) {
+            const a = (Math.PI * 2 * i) / 10;
+            dot(cx + Math.cos(a) * 10, cy + Math.sin(a) * 8, 1.8, '#ff5f91', 0.95);
+          }
+          break;
+      }
+
+      dot(cx, cy, 2.2, '#ffffff', 0.9);
+    }
+
+    function renderShapePicker() {
+      shapeGridEl.innerHTML = '';
+      shapeOptions.forEach(shape => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `shape-card ${shellTypeEl.value === shape.value ? 'active' : ''}`;
+        card.innerHTML = `
+          <canvas width="160" height="110"></canvas>
+          <div class="shape-card-title">${shape.label}</div>
+          <div class="shape-card-desc">${shape.desc}</div>
+        `;
+        card.addEventListener('click', () => {
+          shellTypeEl.value = shape.value;
+          renderShapePicker();
+          updateStatus();
+        });
+        drawPreviewBurst(card.querySelector('canvas'), shape.value);
+        shapeGridEl.appendChild(card);
+      });
+    }
+
+    function updateRangeLabels() {
+      sizeValue.textContent = sizeRangeEl.value;
+      burstValue.textContent = burstCountEl.value;
+      trailValue.textContent = trailRangeEl.value;
+    }
+
+    function currentConfig() {
+      return {
+        id: crypto.randomUUID(),
+        name: presetNameEl.value.trim() || `${shellTypeEl.value} ${selectedOuter}`,
+        type: shellTypeEl.value,
+        outer: selectedOuter,
+        inner: selectedInner,
+        size: Number(sizeRangeEl.value),
+        density: Number(burstCountEl.value),
+        trail: Number(trailRangeEl.value),
+        glitter: glitterToggleEl.checked,
+        delay: Number(fuseDelayEl.value),
+      };
+    }
+
+    function updateStatus() {
+      statusType.textContent = shellTypeEl.options[shellTypeEl.selectedIndex].text;
+      statusColors.textContent = `${selectedOuter} / ${selectedInner}`;
+      statusSaved.textContent = String(savedPresets.length);
+    }
+
+    function nearestLaunchX(preferCenter = false) {
+      if (!launchPads.length) return stageWidth * 0.5;
+      if (preferCenter) return launchPads[Math.floor(launchPads.length / 2)].x;
+      return pick(launchPads).x + rand(-22, 22);
+    }
+
+    function launchCurrentSelection(center = false) {
+      launch(currentConfig(), nearestLaunchX(center));
+    }
+
+    function glowCircle(x, y, radius, color, alpha = 1) {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      g.addColorStop(0, rgbaFromHex(color, 0.95 * alpha));
+      g.addColorStop(0.25, rgbaFromHex(color, 0.35 * alpha));
+      g.addColorStop(1, rgbaFromHex(color, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    class Rocket {
+      constructor(x, config, targetX = x) {
+        this.x = x;
+        this.y = stageHeight + rand(24, 90);
+        this.lastX = this.x;
+        this.lastY = this.y;
+        this.vx = (targetX - x) * 0.018;
+        this.vy = rand(-18.8, -16.6);
+        this.targetY = rand(stageHeight * 0.18, stageHeight * 0.46);
+        this.config = config;
+        this.alive = true;
+        this.sparkTimer = 0;
+      }
+
+      update(frame) {
+        this.lastX = this.x;
+        this.lastY = this.y;
+        this.x += this.vx * frame;
+        this.y += this.vy * frame;
+        this.vy += 0.042 * frame;
+        this.sparkTimer += frame;
+
+        if (this.sparkTimer > 1.35) {
+          this.sparkTimer = 0;
+          const liftColor = byName(this.config.outer).value;
+          spawnParticle({
+            x: this.x,
+            y: this.y,
+            vx: rand(-0.35, 0.35),
+            vy: rand(0.5, 1.6),
+            color: liftColor,
+            life: rand(18, 26),
+            maxLife: 26,
+            size: rand(1.1, 1.8),
+            gravity: 0.045,
+            drag: 0.95,
+            historyLength: 4,
+            lineWidth: 1.2,
+            bloom: 0.55,
+            glitter: false,
+          });
+        }
+
+        if (this.vy >= -1.1 || this.y <= this.targetY) {
+          explode(this.x, this.y, this.config);
+          this.alive = false;
+        }
+      }
+
+      draw() {
+        const c = byName(this.config.outer).value;
+        ctx.save();
+        ctx.strokeStyle = rgbaFromHex(c, 0.9);
+        ctx.lineWidth = 1.8;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = c;
+        ctx.beginPath();
+        ctx.moveTo(this.lastX, this.lastY);
+        ctx.lineTo(this.x, this.y);
+        ctx.stroke();
+        glowCircle(this.x, this.y, 12, c, 0.65);
+        ctx.restore();
+      }
+    }
+
+    class Particle {
+      constructor(opts) {
+        Object.assign(this, {
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+          gravity: 0.045,
+          drag: 0.985,
+          life: 100,
+          maxLife: 100,
+          size: 2,
+          color: '#fff',
+          glitter: false,
+          alpha: 1,
+          splitAt: null,
+          splitDone: false,
+          childrenFactory: null,
+          history: [],
+          historyLength: 8,
+          lineWidth: 1.6,
+          bloom: 0.8,
+          twinkle: 0,
+        }, opts);
+      }
+
+      update(frame) {
+        this.history.unshift({ x: this.x, y: this.y, alpha: this.alpha });
+        if (this.history.length > this.historyLength) this.history.pop();
+
+        this.x += this.vx * frame;
+        this.y += this.vy * frame;
+        this.vx *= Math.pow(this.drag, frame);
+        this.vy *= Math.pow(this.drag, frame * 0.82);
+        this.vy += this.gravity * frame;
+        this.life -= 0.95 * frame;
+        this.alpha = clamp(this.life / this.maxLife, 0, 1);
+
+        if (this.splitAt !== null && !this.splitDone && this.life <= this.splitAt) {
+          this.splitDone = true;
+          if (typeof this.childrenFactory === 'function') this.childrenFactory(this);
+        }
+      }
+
+      draw() {
+        if (this.history.length > 1) {
+          ctx.save();
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          for (let i = 0; i < this.history.length - 1; i++) {
+            const p1 = this.history[i];
+            const p2 = this.history[i + 1];
+            const t = 1 - i / this.history.length;
+            ctx.strokeStyle = rgbaFromHex(this.color, this.alpha * t * 0.55);
+            ctx.lineWidth = Math.max(0.6, this.lineWidth * t);
+            ctx.shadowBlur = 8 * t;
+            ctx.shadowColor = this.color;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        const twinkleBoost = this.twinkle ? (0.75 + 0.25 * Math.sin(performance.now() * 0.02 + this.twinkle)) : 1;
+        glowCircle(this.x, this.y, Math.max(5, this.size * 5.2 * this.bloom), this.color, this.alpha * 0.32 * twinkleBoost);
+
+        ctx.save();
+        ctx.globalAlpha = this.alpha * twinkleBoost;
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = this.glitter ? 26 : 14;
+        ctx.shadowColor = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (this.glitter && Math.random() < 0.16) {
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(this.x + rand(-2.4, 2.4), this.y + rand(-2.4, 2.4), rand(0.4, 1.3), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    class Flash {
+      constructor(x, y, color, maxRadius, life = 18) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.maxRadius = maxRadius;
+        this.life = life;
+        this.maxLife = life;
+      }
+
+      update(frame) {
+        this.life -= frame;
+      }
+
+      draw() {
+        const t = clamp(this.life / this.maxLife, 0, 1);
+        const radius = lerp(this.maxRadius, this.maxRadius * 0.18, 1 - t);
+        glowCircle(this.x, this.y, radius, this.color, t * 0.85);
+      }
+    }
+
+    function spawnParticle(opts) {
+      particles.push(new Particle(opts));
+    }
+
+    function spawnFlash(x, y, color, maxRadius, life = 18) {
+      flashes.push(new Flash(x, y, color, maxRadius, life));
+    }
+
+    function emitShock(x, y, count, color = '#ffffff') {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = rand(1.8, 4.8);
+        spawnParticle({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color,
+          life: rand(12, 22),
+          maxLife: 22,
+          size: rand(0.8, 1.6),
+          gravity: 0.04,
+          drag: 0.94,
+          historyLength: 3,
+          lineWidth: 1,
+          bloom: 0.35,
+          glitter: false,
+        });
+      }
+    }
+
+    function explode(x, y, config) {
+      const outer = byName(config.outer).value;
+      const inner = byName(config.inner).value;
+      const density = config.density;
+      const radius = config.size;
+      const trailLength = Math.max(5, Math.floor(config.trail / 9) + 4);
+      const glitter = config.glitter;
+
+      const addParticle = ({
+        angle = 0,
+        speed = 0,
+        color = outer,
+        size = 2,
+        life = 100,
+        maxLife = life,
+        gravity = 0.055,
+        drag = 0.986,
+        historyLength = trailLength,
+        lineWidth = 1.8,
+        bloom = 0.8,
+        glitterValue = glitter,
+        twinkle = glitterValue,
+        originOffset = 0,
+        offsetScaleY = 1,
+        vxScale = 1,
+        vyScale = 1,
+        vxBias = 0,
+        vyBias = 0,
+      } = {}) => {
+        spawnParticle({
+          x: x + Math.cos(angle) * originOffset,
+          y: y + Math.sin(angle) * originOffset * offsetScaleY,
+          vx: Math.cos(angle) * speed * vxScale + vxBias,
+          vy: Math.sin(angle) * speed * vyScale + vyBias,
+          color,
+          size,
+          life,
+          maxLife,
+          gravity,
+          drag,
+          historyLength,
+          lineWidth,
+          bloom,
+          glitter: glitterValue,
+          twinkle: twinkle ? rand(0, Math.PI * 2) : 0,
+        });
+      };
+
+      const emitSphere = ({ count, speedMin, speedMax, colorPicker, sizeMin, sizeMax, lifeMin, lifeMax, gravity, drag, historyBoost = 0, lineWidth = 1.8, bloom = 0.8, jitter = 0.05, glitterValue = glitter, twinkle = glitterValue }) => {
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 * i) / count + rand(-jitter, jitter);
+          addParticle({
+            angle,
+            speed: rand(speedMin, speedMax),
+            color: typeof colorPicker === 'function' ? colorPicker(i, angle) : colorPicker,
+            size: rand(sizeMin, sizeMax),
+            life: rand(lifeMin, lifeMax),
+            maxLife: lifeMax,
+            gravity,
+            drag,
+            historyLength: trailLength + historyBoost,
+            lineWidth,
+            bloom,
+            glitterValue,
+            twinkle,
+          });
+        }
+      };
+
+      spawnFlash(x, y, '#ffffff', radius * 0.62, 14);
+      spawnFlash(x, y, outer, radius * 0.42, 22);
+
+      switch (config.type) {
+        case 'peony': {
+          emitSphere({
+            count: density,
+            speedMin: radius * 0.064,
+            speedMax: radius * 0.106,
+            colorPicker: () => (Math.random() < 0.18 ? inner : outer),
+            sizeMin: 1.7,
+            sizeMax: 2.9,
+            lifeMin: 72,
+            lifeMax: 108,
+            gravity: 0.052,
+            drag: 0.986,
+            historyBoost: 0,
+            lineWidth: 1.8,
+            bloom: 0.8,
+            jitter: 0.08,
+            glitterValue: glitter,
+            twinkle: glitter,
+          });
+          emitShock(x, y, 18);
+          break;
+        }
+
+        case 'chrysanthemum': {
+          emitSphere({
+            count: density + 22,
+            speedMin: radius * 0.084,
+            speedMax: radius * 0.132,
+            colorPicker: (i) => (i % 6 === 0 ? inner : outer),
+            sizeMin: 1.2,
+            sizeMax: 2.2,
+            lifeMin: 112,
+            lifeMax: 156,
+            gravity: 0.058,
+            drag: 0.982,
+            historyBoost: 14,
+            lineWidth: 1.35,
+            bloom: 0.74,
+            jitter: 0.045,
+            glitterValue: true,
+            twinkle: true,
+          });
+          emitShock(x, y, 28, rgbaFromHex(inner, 1));
+          break;
+        }
+
+        case 'willow': {
+          const branches = Math.max(10, Math.floor(density * 0.32));
+          for (let i = 0; i < branches; i++) {
+            const t = branches === 1 ? 0.5 : i / (branches - 1);
+            const baseAngle = lerp(-Math.PI * 0.92, -Math.PI * 0.08, t);
+            const branchColor = i % 4 === 0 ? outer : inner;
+            const branchParticles = 2 + (i % 2);
+
+            for (let j = 0; j < branchParticles; j++) {
+              addParticle({
+                angle: baseAngle + rand(-0.035, 0.035),
+                speed: rand(radius * 0.034, radius * 0.056),
+                color: branchColor,
+                size: rand(2.0, 3.4),
+                life: rand(156, 224),
+                maxLife: 224,
+                gravity: 0.115,
+                drag: 0.994,
+                historyLength: trailLength + 30,
+                lineWidth: 2.5,
+                bloom: 0.98,
+                glitterValue: true,
+                twinkle: true,
+                vxScale: 0.92,
+                vyScale: 0.48,
+                vyBias: -rand(1.0, 1.8),
+              });
+            }
+          }
+          emitShock(x, y, 10, rgbaFromHex(inner, 1));
+          break;
+        }
+
+        case 'crossette': {
+          const parentCount = Math.max(4, Math.floor(density * 0.16));
+          const startIndex = particles.length;
+
+          emitSphere({
+            count: parentCount,
+            speedMin: radius * 0.055,
+            speedMax: radius * 0.07,
+            colorPicker: outer,
+            sizeMin: 3.0,
+            sizeMax: 4.1,
+            lifeMin: 82,
+            lifeMax: 96,
+            gravity: 0.04,
+            drag: 0.989,
+            historyBoost: 8,
+            lineWidth: 3.2,
+            bloom: 1.0,
+            jitter: 0.02,
+            glitterValue: false,
+            twinkle: false,
+          });
+
+          particles.slice(startIndex).forEach(parent => {
+            parent.splitAt = rand(52, 58);
+            parent.childrenFactory = function splitCross(source) {
+              spawnFlash(source.x, source.y, '#ffffff', 30, 14);
+              spawnFlash(source.x, source.y, inner, 22, 20);
+
+              const axis = [
+                { vx: 7.8, vy: 0 },
+                { vx: 0, vy: -7.8 },
+                { vx: -7.8, vy: 0 },
+                { vx: 0, vy: 7.8 }
+              ];
+
+              axis.forEach((dir, idx) => {
+                spawnParticle({
+                  x: source.x,
+                  y: source.y,
+                  vx: dir.vx,
+                  vy: dir.vy,
+                  color: idx % 2 === 0 ? inner : '#ffffff',
+                  size: rand(2.2, 2.9),
+                  life: rand(52, 70),
+                  maxLife: 70,
+                  gravity: 0.018,
+                  drag: 0.978,
+                  historyLength: 14,
+                  lineWidth: 2.5,
+                  bloom: 0.98,
+                  glitter: false,
+                  twinkle: false,
+                });
+              });
+
+              emitShock(source.x, source.y, 4, '#ffffff');
+              source.life = Math.min(source.life, 4);
+              source.alpha = 0.08;
+              source.size *= 0.55;
+              source.historyLength = 2;
+            };
+          });
+
+          emitShock(x, y, 8, rgbaFromHex(outer, 1));
+          break;
+        }
+
+        case 'palm': {
+          const fronds = Math.max(6, Math.floor(density * 0.18));
+          for (let i = 0; i < fronds; i++) {
+            const t = fronds === 1 ? 0.5 : i / (fronds - 1);
+            const angle = lerp(-Math.PI * 0.82, -Math.PI * 0.18, t) + rand(-0.025, 0.025);
+            addParticle({
+              angle,
+              speed: rand(radius * 0.102, radius * 0.142),
+              color: i % 3 === 0 ? inner : outer,
+              size: rand(2.6, 3.9),
+              life: rand(118, 156),
+              maxLife: 156,
+              gravity: 0.092,
+              drag: 0.993,
+              historyLength: trailLength + 18,
+              lineWidth: 3.2,
+              bloom: 0.94,
+              glitterValue: true,
+              twinkle: true,
+              vxScale: 0.55,
+              vyScale: 0.95,
+              vyBias: -0.4,
+            });
+          }
+
+          addParticle({
+            angle: -Math.PI / 2,
+            speed: radius * 0.12,
+            color: inner,
+            size: 3.0,
+            life: 100,
+            maxLife: 100,
+            gravity: 0.09,
+            drag: 0.994,
+            historyLength: trailLength + 22,
+            lineWidth: 3.6,
+            bloom: 0.92,
+            glitterValue: false,
+            twinkle: false,
+            vxScale: 0.16,
+            vyScale: 1.05,
+          });
+          emitShock(x, y, 14, rgbaFromHex(inner, 1));
+          break;
+        }
+
+        case 'ring': {
+          const count = Math.max(24, density + 12);
+          for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 * i) / count;
+            addParticle({
+              angle,
+              speed: radius * 0.1,
+              color: i % 6 === 0 ? inner : outer,
+              size: rand(1.8, 2.4),
+              life: rand(92, 118),
+              maxLife: 118,
+              gravity: 0.036,
+              drag: 0.989,
+              historyLength: trailLength + 2,
+              lineWidth: 1.7,
+              bloom: 0.76,
+              glitterValue: glitter,
+              twinkle: false,
+              vxScale: 1,
+              vyScale: 0.72,
+            });
+          }
+          emitShock(x, y, 10);
+          break;
+        }
+
+        case 'pistil': {
+          emitSphere({
+            count: density + 8,
+            speedMin: radius * 0.07,
+            speedMax: radius * 0.112,
+            colorPicker: outer,
+            sizeMin: 1.7,
+            sizeMax: 2.7,
+            lifeMin: 88,
+            lifeMax: 126,
+            gravity: 0.054,
+            drag: 0.985,
+            historyBoost: 4,
+            lineWidth: 1.85,
+            bloom: 0.8,
+            jitter: 0.05,
+            glitterValue: glitter,
+            twinkle: glitter,
+          });
+          emitSphere({
+            count: Math.max(10, Math.floor(density * 0.44)),
+            speedMin: radius * 0.026,
+            speedMax: radius * 0.05,
+            colorPicker: inner,
+            sizeMin: 1.9,
+            sizeMax: 3.2,
+            lifeMin: 76,
+            lifeMax: 104,
+            gravity: 0.05,
+            drag: 0.986,
+            historyBoost: 1,
+            lineWidth: 1.65,
+            bloom: 0.92,
+            jitter: 0.05,
+            glitterValue: true,
+            twinkle: true,
+          });
+          emitShock(x, y, 20, rgbaFromHex(inner, 1));
+          break;
+        }
+      }
+    }
+
+    function launch(config, x = nearestLaunchX(false)) {
+      rockets.push(new Rocket(x, config, x + rand(-36, 36)));
+    }
+
+    function renderBackground(timestamp) {
+      ctx.clearRect(0, 0, stageWidth, stageHeight);
+
+      const sky = ctx.createLinearGradient(0, 0, 0, stageHeight);
+      sky.addColorStop(0, '#040b16');
+      sky.addColorStop(0.42, '#081220');
+      sky.addColorStop(1, '#03070d');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, stageWidth, stageHeight);
+
+      const haze = ctx.createRadialGradient(stageWidth * 0.5, stageHeight * 0.84, 0, stageWidth * 0.5, stageHeight * 0.84, stageWidth * 0.45);
+      haze.addColorStop(0, 'rgba(40,75,130,0.18)');
+      haze.addColorStop(1, 'rgba(40,75,130,0)');
+      ctx.fillStyle = haze;
+      ctx.fillRect(0, 0, stageWidth, stageHeight);
+
+      stars.forEach(star => {
+        const twinkle = star.alpha + Math.sin(timestamp * 0.001 * star.speed + star.phase) * 0.14;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `${star.tint}${clamp(twinkle, 0.06, 0.65)})`;
+        ctx.fill();
+      });
+
+      const horizon = ctx.createLinearGradient(0, stageHeight * 0.76, 0, stageHeight);
+      horizon.addColorStop(0, 'rgba(10,18,30,0)');
+      horizon.addColorStop(1, 'rgba(9,16,28,0.96)');
+      ctx.fillStyle = horizon;
+      ctx.fillRect(0, stageHeight * 0.76, stageWidth, stageHeight * 0.24);
+
+      ctx.fillStyle = 'rgba(8,12,18,0.98)';
+      ctx.beginPath();
+      ctx.moveTo(0, stageHeight);
+      ctx.lineTo(0, stageHeight * 0.9);
+      for (let x = 0; x <= stageWidth; x += 120) {
+        const y = stageHeight * 0.9 - (14 + Math.sin((x * 0.012) + timestamp * 0.00025) * 4);
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(stageWidth, stageHeight);
+      ctx.closePath();
+      ctx.fill();
+
+      buildings.forEach(building => {
+        ctx.fillStyle = 'rgba(6,10,16,0.98)';
+        ctx.fillRect(building.x, building.y, building.width, building.height);
+        building.windows.forEach(win => {
+          ctx.fillStyle = `rgba(255,214,112,${win.alpha})`;
+          ctx.fillRect(win.x, win.y, win.w, win.h);
+        });
+      });
+
+      launchPads.forEach((pad, idx) => {
+        const pulse = 0.06 + Math.sin(timestamp * 0.0018 + idx) * 0.02;
+        glowCircle(pad.x, pad.y + 4, 18, idx % 2 === 0 ? '#8ac6ff' : '#ffd77c', pulse);
+      });
+    }
+
+    function step(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const delta = Math.min(32, timestamp - lastTime || 16.67);
+      lastTime = timestamp;
+      const frame = delta / 16.6667;
+
+      ctx.globalCompositeOperation = 'source-over';
+      renderBackground(timestamp);
+      ctx.globalCompositeOperation = 'lighter';
+
+      flashes = flashes.filter(flash => {
+        flash.update(frame);
+        flash.draw();
+        return flash.life > 0;
+      });
+
+      rockets = rockets.filter(rocket => {
+        rocket.update(frame);
+        rocket.draw();
+        return rocket.alive;
+      });
+
+      particles = particles.filter(particle => {
+        particle.update(frame);
+        particle.draw();
+        return particle.life > 0.5;
+      });
+
+      rafId = requestAnimationFrame(step);
+    }
+
+    function savePresets() {
+      localStorage.setItem('fireworks-presets-v1', JSON.stringify(savedPresets));
+      updateStatus();
+    }
+
+    function renderSavedList() {
+      savedListEl.innerHTML = '';
+      if (savedPresets.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'note';
+        empty.textContent = '���� ����� �������� �����ϴ�. ������ ����� �����غ�����.';
+        savedListEl.appendChild(empty);
+        updateStatus();
+        return;
+      }
+
+      savedPresets.forEach((preset, index) => {
+        const wrap = document.createElement('div');
+        wrap.className = `preset ${preset.selected ? 'active-preset' : ''}`;
+        wrap.innerHTML = `
+          <div class="preset-top">
+            <div class="preset-title">${preset.name}</div>
+            <span class="pill">${preset.type}</span>
+          </div>
+          <div class="mini-swatches">
+            <div class="mini" style="background:${byName(preset.outer).value}" title="${preset.outer}"></div>
+            <div class="mini" style="background:${byName(preset.inner).value}" title="${preset.inner}"></div>
+          </div>
+          <div class="preset-meta">${preset.outer} / ${preset.inner} �� ũ�� ${preset.size} �� �е� ${preset.density} �� �ܻ� ${preset.trail}</div>
+          <div class="preset-actions">
+            <button class="secondary" data-action="toggle">${preset.selected ? '���õ�' : '����'}</button>
+            <button class="secondary" data-action="launch">�߻�</button>
+            <button class="danger" data-action="delete">����</button>
+          </div>
+        `;
+
+        wrap.addEventListener('click', (event) => {
+          if (event.target.closest('button')) return;
+          applyPreset(preset);
+          launch(preset);
+        });
+
+        wrap.querySelector('[data-action="toggle"]').addEventListener('click', (event) => {
+          event.stopPropagation();
+          preset.selected = !preset.selected;
+          savePresets();
+          renderSavedList();
+        });
+
+        wrap.querySelector('[data-action="launch"]').addEventListener('click', (event) => {
+          event.stopPropagation();
+          applyPreset(preset);
+          launch(preset);
+        });
+
+        wrap.querySelector('[data-action="delete"]').addEventListener('click', (event) => {
+          event.stopPropagation();
+          savedPresets.splice(index, 1);
+          savePresets();
+          renderSavedList();
+        });
+
+        savedListEl.appendChild(wrap);
+      });
+      updateStatus();
+    }
+
+    function saveCurrentPreset() {
+      const preset = currentConfig();
+      preset.selected = true;
+      savedPresets.unshift(preset);
+      savedPresets = savedPresets.slice(0, 18);
+      savePresets();
+      renderSavedList();
+      presetNameEl.value = '';
+    }
+
+    function applyPreset(preset) {
+      shellTypeEl.value = preset.type;
+      selectedOuter = preset.outer;
+      selectedInner = preset.inner;
+      sizeRangeEl.value = preset.size;
+      burstCountEl.value = preset.density;
+      trailRangeEl.value = preset.trail;
+      glitterToggleEl.checked = preset.glitter;
+      fuseDelayEl.value = preset.delay;
+      refreshSwatches();
+      renderShapePicker();
+      updateRangeLabels();
+      updateStatus();
+    }
+
+    function selectedPresets() {
+      return savedPresets.filter(p => p.selected);
+    }
+
+    function fireSequence(count) {
+      const presets = selectedPresets();
+      const source = presets.length ? presets : [currentConfig()];
+      const spacing = Number(fuseDelayEl.value);
+
+      for (let i = 0; i < count; i++) {
+        const preset = source[i % source.length];
+        const lane = i % launchPads.length;
+        const x = launchPads.length ? launchPads[lane].x + rand(-18, 18) : nearestLaunchX(false);
+        setTimeout(() => launch(preset, x), i * Math.max(65, spacing * 0.68));
+      }
+    }
+
+    function startDemo() {
+      const types = ['peony', 'chrysanthemum', 'willow', 'crossette', 'palm', 'ring', 'pistil'];
+      const colorNames = colors.map(c => c.name);
+      for (let i = 0; i < 14; i++) {
+        const config = {
+          ...currentConfig(),
+          type: types[i % types.length],
+          outer: pick(colorNames),
+          inner: pick(colorNames),
+          size: rand(84, 168),
+          density: rand(26, 70),
+          trail: rand(48, 100),
+          glitter: Math.random() > 0.2,
+        };
+        const x = launchPads.length ? launchPads[i % launchPads.length].x + rand(-24, 24) : nearestLaunchX(false);
+        setTimeout(() => launch(config, x), i * 210);
+      }
+      setTimeout(() => fireSequence(10), 1500);
+    }
+
+    function clearSky() {
+      rockets = [];
+      particles = [];
+      flashes = [];
+    }
+
+    function handleCanvasClick(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      launch(currentConfig(), clamp(x, 50, stageWidth - 50));
+    }
+
+    sizeRangeEl.addEventListener('input', () => { updateRangeLabels(); updateStatus(); });
+    burstCountEl.addEventListener('input', updateRangeLabels);
+    trailRangeEl.addEventListener('input', updateRangeLabels);
+
+    shellTypeEl.addEventListener('change', () => {
+      renderShapePicker();
+      updateStatus();
+    });
+
+    savePresetBtn.addEventListener('click', saveCurrentPreset);
+    loadCurrentBtn.addEventListener('click', () => launchCurrentSelection(false));
+    launchSelectedBtn.addEventListener('click', () => launchCurrentSelection(false));
+    launchCenterBtn.addEventListener('click', () => launchCurrentSelection(true));
+    fireFiveBtn.addEventListener('click', () => fireSequence(5));
+    fireTenBtn.addEventListener('click', () => fireSequence(10));
+    clearSkyBtn.addEventListener('click', clearSky);
+    demoBtn.addEventListener('click', startDemo);
+    canvas.addEventListener('click', handleCanvasClick);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        launch(currentConfig(), nearestLaunchX(false));
+      }
+      if (e.key.toLowerCase() === 'd') startDemo();
+      if (e.key.toLowerCase() === 'c') clearSky();
+    });
+
+    window.addEventListener('resize', resizeStage);
+
+    refreshSwatches();
+    renderShapePicker();
+    updateRangeLabels();
+    renderSavedList();
+    updateStatus();
+    resizeStage();
+    if (!rafId) rafId = requestAnimationFrame(step);
+  </script>
+  <!-- Showcase Portal Navigation Button -->
+  <a href="../../index.html" class="showcase-nav-btn" title="쇼케이스 포털로 돌아가기">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    <span>Showcase</span>
+  </a>
+  <style>
+    .showcase-nav-btn {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 99999;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0.85;
+      user-select: none;
+    }
+    .showcase-nav-btn:hover {
+      opacity: 1;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.96);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+  </style>
+</body>
+</html>

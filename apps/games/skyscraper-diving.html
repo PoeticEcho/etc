@@ -1,0 +1,1030 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>스카이스크래퍼 다이빙 850m - 낙하 물리 시뮬레이션 게임</title>
+  <!-- SEO & Primary Meta Tags -->
+  <meta name="description" content="850m 초고층 빌딩에서의 아찔한 낙하 물리 시뮬레이션 인터랙티브 웹 게임" />
+  <meta name="keywords" content="스카이스크래퍼 다이빙, HTML5 게임, 캔버스 게임, 물리 시뮬레이터, 웹게임" />
+  <meta name="author" content="Interactive Web Apps Collection" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicons/favicon-skyscraper-diving.svg" />
+  <link rel="alternate icon" type="image/png" href="../../assets/favicons/favicon-skyscraper-diving.png" />
+
+  <!-- Open Graph / Facebook / Kakao -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="스카이스크래퍼 다이빙 850m - 낙하 물리 시뮬레이션 게임" />
+  <meta property="og:description" content="850m 초고층 빌딩에서의 아찔한 낙하 물리 시뮬레이션 인터랙티브 웹 게임" />
+  <meta property="og:image" content="../../assets/og/og-skyscraper-diving.png" />
+  <meta property="og:site_name" content="Interactive Web Apps Showcase" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="스카이스크래퍼 다이빙 850m - 낙하 물리 시뮬레이션 게임" />
+  <meta name="twitter:description" content="850m 초고층 빌딩에서의 아찔한 낙하 물리 시뮬레이션 인터랙티브 웹 게임" />
+  <meta name="twitter:image" content="../../assets/og/og-skyscraper-diving.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            touch-action: none;
+            overflow: hidden;
+            background-color: #0f172a; /* 더 깊은 하늘색 */
+            user-select: none;
+        }
+
+        .title-font { font-family: 'Jua', sans-serif; }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid #3b82f6;
+            cursor: pointer;
+            margin-top: -10px;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        .canvas-container {
+            border-radius: 16px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.3);
+            /* 하늘 그라데이션: 성층권에서 지상까지 */
+            background: linear-gradient(180deg, #020617 0%, #0f172a 20%, #1e3a8a 50%, #38bdf8 80%, #0ea5e9 100%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 컨트롤 패널 스타일 */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            color: white;
+        }
+
+        .radio-group label {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .radio-group input:checked + label {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .animate-pulse-border {
+            animation: pulse-border 2s infinite;
+        }
+        
+        #action-btn-area {
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen p-3 md:p-4 gap-3 bg-slate-900 text-slate-100">
+
+    <!-- 헤더 -->
+    <header class="flex justify-between items-center px-1 shrink-0">
+        <h1 class="text-xl md:text-3xl text-blue-400 title-font flex items-center gap-2">
+            🏙️ 스카이스크래퍼 다이빙
+        </h1>
+        
+        <div class="flex gap-2">
+            <button id="btn-cam-toggle" class="bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-sm font-bold text-slate-300 flex items-center gap-1 active:scale-95 transition">
+                <span>🎥</span> <span id="cam-text">자동 카메라</span>
+            </button>
+            <button id="btn-slow-toggle" class="bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-sm font-bold text-slate-300 flex items-center gap-1 active:scale-95 transition">
+                <span>🐢</span> <span id="slow-text">정상 속도</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-col md:flex-row gap-4 h-full pb-2 overflow-hidden">
+        
+        <!-- 왼쪽: 게임 화면 -->
+        <div class="flex-grow canvas-container relative w-full h-full" id="canvasWrapper">
+            <canvas id="gameCanvas"></canvas>
+            
+            <!-- 액션 버튼 -->
+            <div id="action-btn-area" class="hidden absolute bottom-0 left-0 w-full h-1/3 flex-col justify-end items-center pb-8 z-20 cursor-pointer touch-none">
+                <div class="bg-blue-500/30 backdrop-blur-sm border border-white/40 text-white px-8 py-4 rounded-full text-xl font-bold animate-pulse pointer-events-none select-none">
+                    👇 꾹 눌러서 회전! (떼면 펴짐)
+                </div>
+            </div>
+
+            <!-- HUD -->
+            <div id="hud" class="absolute top-4 left-4 hidden flex-col gap-1 z-10 pointer-events-none">
+                <div class="bg-black/50 backdrop-blur-md text-white px-4 py-3 rounded-xl border border-white/10 text-sm font-mono shadow-lg">
+                    <div class="flex justify-between w-40 mb-1"><span class="text-slate-400">ALTITUDE</span> <span id="hud-alt" class="font-bold text-yellow-400 text-lg">850m</span></div>
+                    <div class="flex justify-between w-40 mb-1"><span class="text-slate-400">SPEED</span> <span id="hud-spd" class="font-bold text-blue-400">0.0 km/h</span></div>
+                    <div class="flex justify-between w-40"><span class="text-slate-400">POSE</span> <span id="hud-rot" class="font-bold text-white">LAYOUT</span></div>
+                    <!-- 수심 게이지 추가 -->
+                    <div id="depth-gauge-container" class="mt-2 w-full h-1.5 bg-slate-700 rounded-full hidden">
+                        <div id="depth-gauge" class="h-full bg-blue-500 rounded-full transition-all duration-75" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 재시작 버튼 -->
+            <button id="btn-restart-overlay" class="hidden absolute top-4 right-4 bg-slate-800/90 hover:bg-slate-700 text-white p-2 px-4 rounded-xl font-bold shadow-lg z-20 backdrop-blur border border-slate-600 transition active:scale-95">
+                ↺ 처음으로
+            </button>
+
+            <!-- 결과 패널 -->
+            <div id="scorePanel" class="hidden absolute top-20 left-1/2 transform -translate-x-1/2 bg-white/95 p-6 rounded-2xl shadow-2xl text-center border-4 border-blue-500 min-w-[280px] z-30 transition-all text-slate-800">
+                <div class="text-sm text-slate-500 font-bold mb-1">DIVE RESULT</div>
+                <div id="scoreText" class="text-6xl font-black mb-2 title-font text-blue-600 tracking-tighter">10.0</div>
+                <div id="scoreComment" class="text-slate-800 font-bold text-xl mb-4">Legendary Dive!</div>
+                
+                <div class="grid grid-cols-2 gap-2 text-xs text-slate-400 mb-4 bg-slate-100 p-3 rounded-lg">
+                    <div>입수 각도: <span id="res-angle" class="text-slate-700 font-bold">0°</span></div>
+                    <div>최대 수심: <span id="res-depth" class="text-slate-700 font-bold">0m</span></div>
+                </div>
+                <button id="btn-replay" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-blue-700 transition active:scale-95">
+                    다시 도전하기
+                </button>
+            </div>
+            
+            <div id="dragHint" class="absolute bottom-4 right-4 text-white/30 text-xs font-bold pointer-events-none">
+                화면 드래그로 카메라 이동 가능
+            </div>
+        </div>
+
+        <!-- 오른쪽: 컨트롤 패널 -->
+        <div id="sidebar" class="w-full md:w-80 flex-shrink-0 flex flex-col gap-3 transition-all duration-300 origin-right overflow-y-auto">
+            
+            <div class="glass-panel rounded-2xl p-5 flex flex-col gap-6 overflow-y-auto">
+                
+                <!-- 1. 높이 설정 (850m까지) -->
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="font-bold text-blue-200 text-sm flex items-center gap-2">
+                            <span>📏</span> 다이빙 높이
+                        </label>
+                        <span id="lbl-height" class="text-blue-400 font-bold text-sm">850m</span>
+                    </div>
+                    <!-- Max increased to 850 -->
+                    <input type="range" id="inp-height" min="10" max="850" step="10" value="100">
+                    <div class="flex justify-between text-[10px] text-slate-500 mt-1 px-1 font-mono">
+                        <span>10m</span>
+                        <span>300m(에펠탑)</span>
+                        <span>850m</span>
+                    </div>
+                </div>
+
+                <!-- 2. 점프력 -->
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="font-bold text-blue-200 text-sm flex items-center gap-2">
+                            <span>🦵</span> 점프 파워
+                        </label>
+                        <span id="lbl-jump" class="text-blue-400 font-bold text-sm">보통</span>
+                    </div>
+                    <input type="range" id="inp-jump" min="10" max="100" value="50">
+                </div>
+
+                <!-- 3. 도움닫기 -->
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="font-bold text-blue-200 text-sm flex items-center gap-2">
+                            <span>🏃</span> 도움닫기 속도
+                        </label>
+                        <span id="lbl-run" class="text-blue-400 font-bold text-sm">50%</span>
+                    </div>
+                    <input type="range" id="inp-run" min="0" max="100" value="50">
+                </div>
+
+                <!-- 4. 회전 기술 -->
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="font-bold text-blue-200 text-sm flex items-center gap-2">
+                            <span>🌀</span> 회전 기술
+                        </label>
+                        <span id="lbl-rotSkill" class="text-blue-400 font-bold text-sm">50%</span>
+                    </div>
+                    <input type="range" id="inp-rotSkill" min="0" max="100" value="50">
+                </div>
+
+                <!-- 5. 회전 방향 -->
+                <div>
+                    <label class="font-bold text-blue-200 text-sm flex items-center gap-2 mb-2">
+                        <span>🔁</span> 회전 방향
+                    </label>
+                    <div class="radio-group grid grid-cols-2 gap-2">
+                        <div class="relative">
+                            <input type="radio" name="spinDir" id="spin-cw" value="1" class="hidden" checked>
+                            <label for="spin-cw" class="block text-center py-2 rounded-xl border border-slate-600 bg-slate-800 text-slate-300 text-sm font-bold hover:bg-slate-700">
+                                ⟳ 시계
+                            </label>
+                        </div>
+                        <div class="relative">
+                            <input type="radio" name="spinDir" id="spin-ccw" value="-1" class="hidden">
+                            <label for="spin-ccw" class="block text-center py-2 rounded-xl border border-slate-600 bg-slate-800 text-slate-300 text-sm font-bold hover:bg-slate-700">
+                                ⟲ 반시계
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-blue-900/30 rounded-xl text-xs text-blue-200 leading-relaxed border border-blue-500/20">
+                    <strong class="text-blue-400 block mb-1">💡 플레이 팁</strong>
+                    높이가 높을수록 공기 저항으로 속도가 제한됩니다. 입수 후 깊은 수심까지 내려가는 짜릿함을 느껴보세요!
+                </div>
+
+            </div>
+
+            <!-- JUMP 버튼 -->
+            <div class="sticky bottom-0">
+                <button id="btn-jump" class="w-full h-20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] transition-all text-white rounded-2xl shadow-xl flex flex-col items-center justify-center gap-1 relative overflow-hidden group animate-pulse-border border border-white/10">
+                    <span class="text-2xl font-black italic tracking-wider z-10 drop-shadow-md">🚀 DIVE!</span>
+                    <span class="text-xs font-medium text-blue-200 z-10">설정 완료 / 다이빙 시작</span>
+                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            /**
+             * Skyscraper Diving Simulator
+             * Features: 850m Height, Building Silhouette, Deep Water Physics
+             */
+
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const wrapper = document.getElementById('canvasWrapper');
+
+            // --- Physics Constants ---
+            const P = {
+                gravity: 0.25,          // 중력 (약간 증가)
+                meterScale: 20,         // 1m = 20px (850m 표현을 위해 축소)
+                airFrictionH: 0.995,    // 수평 공기 저항
+                airFrictionV: 0.998,    // 수직 공기 저항 (종단 속도 시뮬레이션용)
+                
+                // 수중 물리 (개선됨)
+                waterEntryDrag: 0.96,   // 입수 직후 감속 (높을수록 덜 감속 = 더 깊이 들어감)
+                waterDragBase: 0.92,    // 기본 수중 저항
+                buoyancy: 0.08,         // 부력 (떠오르는 힘)
+                
+                moiLayout: 250,
+                moiTuck: 50,
+                tuckSpeed: 0.15
+            };
+
+            // --- Game State ---
+            let game = {
+                state: 'ready', // ready, diving, finished
+                timeScale: 1.0,
+                slowMotion: false,
+                cameraMode: 'auto',
+                
+                cam: { x: 0, y: 0, targetX: 0, targetY: 0 },
+                
+                diver: {
+                    x: 0, y: 0,
+                    vx: 0, vy: 0,
+                    angle: 0,
+                    angularMom: 0,
+                    angularVel: 0,
+                    poseFactor: 0,
+                    direction: 1,
+                    maxDepth: 0 // 최대 수심 기록용
+                },
+                
+                board: { x: 100, y: 150, width: 80 }, // 보드 위치 조정
+                waterLevel: 0,
+                totalHeightMeters: 0,
+                
+                trail: [],
+                particles: [],
+                delayedEffects: [],
+                
+                input: {
+                    isTouching: false,
+                    isDragging: false,
+                    lastX: 0, lastY: 0
+                }
+            };
+
+            // --- UI Elements ---
+            const ui = {
+                sidebar: document.getElementById('sidebar'),
+                hud: document.getElementById('hud'),
+                actionArea: document.getElementById('action-btn-area'),
+                scorePanel: document.getElementById('scorePanel'),
+                btnJump: document.getElementById('btn-jump'),
+                btnReplay: document.getElementById('btn-replay'),
+                btnRestartOverlay: document.getElementById('btn-restart-overlay'),
+                btnCam: document.getElementById('btn-cam-toggle'),
+                btnSlow: document.getElementById('btn-slow-toggle'),
+                
+                lblHeight: document.getElementById('lbl-height'),
+                lblJump: document.getElementById('lbl-jump'),
+                inpHeight: document.getElementById('inp-height'),
+                inpJump: document.getElementById('inp-jump'),
+                
+                lblRun: document.getElementById('lbl-run'),
+                inpRun: document.getElementById('inp-run'),
+                lblRotSkill: document.getElementById('lbl-rotSkill'),
+                inpRotSkill: document.getElementById('inp-rotSkill'),
+                inpSpinDir: document.getElementsByName('spinDir'),
+                
+                hudAlt: document.getElementById('hud-alt'),
+                hudRot: document.getElementById('hud-rot'),
+                hudSpd: document.getElementById('hud-spd'),
+                depthGauge: document.getElementById('depth-gauge'),
+                depthContainer: document.getElementById('depth-gauge-container'),
+                
+                scoreText: document.getElementById('scoreText'),
+                scoreComment: document.getElementById('scoreComment'),
+                resAngle: document.getElementById('res-angle'),
+                resDepth: document.getElementById('res-depth')
+            };
+
+            function init() {
+                resize();
+                resetGame(false);
+                loop();
+            }
+
+            function resize() {
+                canvas.width = wrapper.clientWidth;
+                canvas.height = wrapper.clientHeight;
+                if(game.state === 'ready') resetGame(false);
+            }
+
+            function resetGame(fullReset = true) {
+                if (fullReset) {
+                    game.state = 'ready';
+                    ui.sidebar.style.transform = 'translateX(0)';
+                    ui.sidebar.style.display = 'flex';
+                    ui.scorePanel.classList.add('hidden');
+                    ui.hud.classList.remove('flex');
+                    ui.hud.classList.add('hidden');
+                    ui.actionArea.classList.remove('flex');
+                    ui.actionArea.classList.add('hidden');
+                    ui.btnRestartOverlay.classList.add('hidden');
+                    ui.depthContainer.classList.add('hidden');
+                    ui.btnJump.disabled = false;
+                    game.cam.x = 0;
+                }
+
+                const heightMeters = parseInt(ui.inpHeight.value);
+                game.totalHeightMeters = heightMeters;
+                const dropPx = heightMeters * P.meterScale;
+                
+                game.waterLevel = game.board.y + dropPx;
+                
+                // 다이버 위치 초기화
+                game.diver.direction = 1;
+                game.diver.x = game.board.x + game.board.width - 15;
+                game.diver.y = game.board.y - 50;
+                game.diver.vx = 0; game.diver.vy = 0;
+                game.diver.angle = 0;
+                game.diver.angularVel = 0;
+                game.diver.poseFactor = 0;
+                game.diver.maxDepth = 0;
+                
+                // 카메라: 시작 시 다이버와 아래가 조금 보이게
+                game.cam.y = game.board.y - 150;
+                game.cam.targetY = game.cam.y;
+                
+                game.trail = [];
+                game.particles = [];
+                game.delayedEffects = [];
+                
+                updateLabels();
+            }
+
+            function updateLabels() {
+                ui.lblHeight.innerText = ui.inpHeight.value + 'm';
+                const jumpVal = ui.inpJump.value;
+                ui.lblJump.innerText = jumpVal > 70 ? '강력함' : (jumpVal > 40 ? '보통' : '약함');
+                ui.lblRun.innerText = ui.inpRun.value + '%';
+                ui.lblRotSkill.innerText = ui.inpRotSkill.value + '%';
+            }
+
+            function startDive() {
+                if (game.state !== 'ready') return;
+                game.state = 'diving';
+                
+                ui.sidebar.style.transform = 'translateX(100%)';
+                setTimeout(() => { ui.sidebar.style.display = 'none'; }, 300);
+                
+                ui.hud.classList.remove('hidden');
+                ui.hud.classList.add('flex');
+                ui.actionArea.classList.remove('hidden');
+                ui.actionArea.classList.add('flex');
+                ui.btnRestartOverlay.classList.remove('hidden');
+
+                const jumpPower = parseInt(ui.inpJump.value) / 100;
+                const runPower  = parseInt(ui.inpRun.value) / 100;
+                const rotSkill  = parseInt(ui.inpRotSkill.value) / 100;
+
+                // 점프: 높이 뛸수록 체공시간 증가
+                game.diver.vy = -(3 + jumpPower * 5);
+                game.diver.vx = (2 + runPower * 4) * game.diver.direction;
+
+                let spinDir = 1;
+                const checked = Array.from(ui.inpSpinDir).find(r => r.checked);
+                if (checked) spinDir = parseInt(checked.value);
+
+                let initialSpinForce = rotSkill * 0.4;
+                game.diver.angularMom = P.moiLayout * (initialSpinForce * spinDir);
+                game.diver.angle = -Math.PI / 8 * game.diver.direction;
+            }
+
+            function update() {
+                let targetScale = game.slowMotion ? 0.2 : 1.0;
+                game.timeScale += (targetScale - game.timeScale) * 0.1;
+                const dt = game.timeScale;
+
+                if (game.state === 'diving') {
+                    const targetPose = game.input.isTouching ? 1.0 : 0.0;
+                    game.diver.poseFactor += (targetPose - game.diver.poseFactor) * P.tuckSpeed;
+
+                    const currentMOI = P.moiLayout - (game.diver.poseFactor * (P.moiLayout - P.moiTuck));
+                    game.diver.angularVel = game.diver.angularMom / currentMOI;
+
+                    game.diver.vy += P.gravity * dt;
+                    
+                    // 공기 저항 (속도가 빠를수록 저항 커짐) - 종단 속도 구현
+                    // 높이가 높으면 저항이 매우 중요함
+                    game.diver.vx *= P.airFrictionH;
+                    game.diver.vy *= P.airFrictionV; 
+                    
+                    game.diver.x += game.diver.vx * dt;
+                    game.diver.y += game.diver.vy * dt;
+                    game.diver.angle += game.diver.angularVel * dt;
+
+                    if(game.trail.length === 0 || Math.hypot(game.diver.x - game.trail[game.trail.length-1].x, game.diver.y - game.trail[game.trail.length-1].y) > 30) {
+                        game.trail.push({x: game.diver.x, y: game.diver.y});
+                    }
+
+                    if (game.diver.y > game.waterLevel) {
+                        handleEntry();
+                    }
+
+                    ui.hudRot.innerText = game.diver.poseFactor > 0.8 ? "TUCK" : (game.diver.poseFactor < 0.2 ? "LAYOUT" : "PIKE");
+
+                } else if (game.state === 'finished') {
+                    // --- V4 핵심: 리얼한 수중 물리 ---
+                    
+                    // 깊이에 따른 드래그 변화 (깊을수록 물의 밀도가 높아지지만 시뮬레이션 단순화를 위해 속도 기반 감쇠)
+                    // 속도가 빠르면(입수 직후) 쑥 들어갔다가, 느려지면 부력이 지배함
+                    
+                    // 수평 저항은 강력하게
+                    game.diver.vx *= 0.9; 
+                    
+                    // 수직 저항: 내려갈때는 waterEntryDrag, 올라올때는 waterDragBase
+                    let drag = (game.diver.vy > 0) ? P.waterEntryDrag : P.waterDragBase;
+                    
+                    game.diver.vy *= drag; 
+                    game.diver.vy -= P.buoyancy * dt; // 부력은 항상 위로 작용
+                    
+                    game.diver.x += game.diver.vx * dt;
+                    game.diver.y += game.diver.vy * dt;
+                    
+                    game.diver.angularVel *= 0.8;
+                    game.diver.angle += game.diver.angularVel * dt;
+
+                    // 최대 수심 체크
+                    let currentDepth = (game.diver.y - game.waterLevel) / P.meterScale;
+                    if (currentDepth > game.diver.maxDepth) {
+                        game.diver.maxDepth = currentDepth;
+                    }
+                    
+                    // 수면 위로 올라오면 둥둥 뜨게
+                    if (game.diver.y < game.waterLevel + 10 && game.diver.vy < 0) {
+                        game.diver.y = game.waterLevel + 10;
+                        game.diver.vy = 0;
+                        // 결과창은 멈췄을 때 띄우기 보단, 일정 시간 후 혹은 상승 시작 후 띄움
+                    }
+                    
+                    // 수심 게이지 업데이트
+                    if (game.diver.maxDepth > 0) {
+                         let p = Math.min(100, (currentDepth / game.diver.maxDepth) * 100);
+                         ui.depthGauge.style.width = `${p}%`;
+                    }
+                }
+
+                if (!game.input.isDragging) {
+                    if (game.cameraMode === 'auto') {
+                        let tx = game.diver.x - canvas.width / 2;
+                        let ty = game.diver.y - canvas.height / 2;
+                        
+                        // X축: 건물 실루엣이 보이게 약간 오른쪽으로 치우치지 않게 중앙 유지
+                        // Y축: 다이빙 중에는 위아래 제한
+                        if (game.state === 'diving') {
+                            // 너무 위로 안가게
+                            const limitTop = game.board.y - 300;
+                            ty = Math.max(limitTop, ty);
+                        } else if (game.state === 'finished') {
+                             // 물속에서는 다이버를 따라가되, 수면 위를 너무 많이 보여주지 않음
+                             ty = Math.max(game.waterLevel - 200, ty);
+                        }
+                        
+                        game.cam.targetX = tx;
+                        game.cam.targetY = ty;
+                    }
+                    game.cam.x += (game.cam.targetX - game.cam.x) * 0.1;
+                    game.cam.y += (game.cam.targetY - game.cam.y) * 0.1;
+                }
+
+                updateParticles(dt);
+                updateHUDText();
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.translate(-game.cam.x, -game.cam.y);
+
+                drawBackground(); 
+                // V4 핵심: 빌딩 그리기
+                drawBuilding();
+                
+                if (game.state !== 'ready') drawTrail();
+                drawDiver();
+                drawWater();
+                drawParticles();
+
+                ctx.restore();
+                requestAnimationFrame(update);
+            }
+
+            // --- New Visuals ---
+
+            function drawBuilding() {
+                // 보드 위치를 기준으로 아래로 빌딩 실루엣 생성
+                const bx = game.board.x;
+                const by = game.board.y;
+                const groundY = game.waterLevel;
+                
+                ctx.fillStyle = "#1e293b"; // Slate-800
+                
+                // 메인 타워 (점점 굵어지게)
+                ctx.beginPath();
+                ctx.moveTo(bx, by);
+                ctx.lineTo(bx, groundY + 500); // 물 아래까지 박힘
+                ctx.lineTo(bx - 150, groundY + 500); // 바닥 면
+                ctx.lineTo(bx - 100, by + 100); // 위쪽으로 갈수록 좁아짐
+                ctx.lineTo(bx - 20, by); 
+                ctx.fill();
+                
+                // 창문 불빛 효과 (높이에 따라)
+                ctx.fillStyle = "rgba(255, 255, 200, 0.5)";
+                const windowSpacing = 60;
+                const windowRows = Math.floor((groundY - by) / windowSpacing);
+                
+                for(let i=0; i<windowRows; i++) {
+                    let y = by + i * windowSpacing + 50;
+                    // 화면에 보이는 부분만 그리기 (성능 최적화)
+                    if (y < game.cam.y - 100 || y > game.cam.y + canvas.height + 100) continue;
+                    
+                    // 랜덤하게 꺼진 창문
+                    if ((i * 13) % 7 === 0) continue; 
+                    
+                    // 층수 표시 or 장식
+                    ctx.fillRect(bx - 80, y, 10, 20);
+                    ctx.fillRect(bx - 60, y, 10, 20);
+                    ctx.fillRect(bx - 40, y, 10, 20);
+                }
+                
+                // 높이 비교 마커 (랜드마크)
+                ctx.font = "bold 20px 'Noto Sans KR'";
+                ctx.fillStyle = "rgba(255,255,255,0.3)";
+                ctx.textAlign = "right";
+                
+                // 현재 높이에 따른 마커 그리기
+                const landmarks = [
+                    { h: 828, name: "부르즈 할리파 (828m)" },
+                    { h: 555, name: "롯데월드타워 (555m)" },
+                    { h: 300, name: "에펠탑 (300m)" },
+                    { h: 100, name: "자유의 여신상 (93m)" },
+                    { h: 10, name: "올림픽 다이빙대 (10m)" }
+                ];
+
+                landmarks.forEach(lm => {
+                    let y = game.waterLevel - (lm.h * P.meterScale);
+                    // 화면에 보이는 부분만 그리기
+                    if (y > game.cam.y - 50 && y < game.cam.y + canvas.height + 50) {
+                        ctx.beginPath();
+                        ctx.moveTo(bx, y);
+                        ctx.lineTo(bx + 500, y); // 가로선
+                        ctx.strokeStyle = "rgba(255,255,255,0.1)";
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                        
+                        ctx.fillText(`--- ${lm.name}`, bx - 10, y + 7);
+                    }
+                });
+            }
+
+            function drawDiver() {
+                ctx.save();
+                ctx.translate(game.diver.x, game.diver.y);
+                ctx.rotate(game.diver.angle);
+
+                const p = game.diver.poseFactor;
+                // 850m 다이빙이라 다이버가 작아보일 수 있으므로 약간 스케일 키움? 아니면 그대로.
+                // meterScale이 20으로 줄었으므로 다이버 그래픽도 약간 작게 그려야 비율이 맞음.
+                // 하지만 시인성을 위해 기존 크기(Stickman) 유지하거나 0.8배 정도로 조정
+                const s = 0.8; 
+                ctx.scale(s, s);
+
+                const headY = -25 + (p * 10);
+                const hipY = 10;
+                const kneeAngle = p * Math.PI * 1.2;
+                const hipAngle = p * Math.PI * 0.8;
+
+                ctx.strokeStyle = "#1e293b";
+                ctx.fillStyle = "#fca5a5"; // 밝은 살색
+                ctx.lineWidth = 8;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+
+                // 머리
+                ctx.beginPath();
+                ctx.arc(0, headY, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // 몸통
+                ctx.beginPath();
+                ctx.moveTo(0, headY + 10);
+                if (p > 0.5) ctx.quadraticCurveTo(-15 * game.diver.direction, 0, 0, hipY);
+                else ctx.lineTo(0, hipY);
+                ctx.stroke();
+
+                // 다리
+                ctx.beginPath();
+                ctx.moveTo(0, hipY);
+                let legDir = (Math.PI / 2) - hipAngle;
+                const thighLen = 25;
+                const shinLen = 25;
+                let kx = Math.cos(legDir) * thighLen * game.diver.direction;
+                let ky = Math.sin(legDir) * thighLen;
+                if(game.diver.direction === -1 && p < 0.2) { kx = 0; ky = thighLen; }
+                let kneeX = kx;
+                let kneeY = hipY + ky;
+                ctx.lineTo(kneeX, kneeY);
+                
+                let shinDir = legDir + kneeAngle; 
+                let footX = kneeX + Math.cos(shinDir) * shinLen * game.diver.direction;
+                let footY = kneeY + Math.sin(shinDir) * shinLen;
+                if (p > 0.8) { footX = 5 * game.diver.direction; footY = hipY + 5; }
+                ctx.lineTo(footX, footY);
+                ctx.stroke();
+
+                // 팔
+                ctx.beginPath();
+                const shoulderY = headY + 12;
+                ctx.moveTo(0, shoulderY);
+                let handX, handY;
+                if (p > 0.5) {
+                    handX = (kneeX + footX) / 2;
+                    handY = (kneeY + footY) / 2;
+                } else {
+                    if (game.state === 'diving') {
+                        // 고속 낙하 시 팔을 몸에 붙이거나 위로 뻗음 (공기저항 최소화 자세)
+                        handX = 0; handY = headY - 25; 
+                    } else {
+                        handX = 20 * game.diver.direction; handY = shoulderY + 10;
+                    }
+                }
+                ctx.lineTo(handX, handY);
+                ctx.stroke();
+
+                // 수영복
+                ctx.strokeStyle = "#3b82f6";
+                ctx.beginPath();
+                ctx.moveTo(0, hipY - 5);
+                ctx.lineTo(0, hipY + 5);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            function handleEntry() {
+                game.state = 'finished';
+                ui.actionArea.classList.add('hidden');
+                ui.depthContainer.classList.remove('hidden'); // 수심 게이지 표시
+                
+                game.diver.y = game.waterLevel + 10; 
+
+                let normAngle = Math.abs(game.diver.angle % Math.PI);
+                let diff = Math.abs(normAngle - (Math.PI / 2));
+                let score = Math.max(0, 10 - (diff * 10));
+                
+                let isRipEntry = score > 8.5;
+                let comment = "";
+                let splashSize = 0;
+
+                // 850m 낙하의 충격 효과
+                // 화면 흔들림 효과 추가 가능
+                
+                if (isRipEntry) {
+                    comment = "Perfect Entry! 🏆";
+                    splashSize = 20; 
+                    createWorthingtonJet(game.diver.x, game.waterLevel);
+                } else if (score > 5) {
+                    comment = "Nice Dive!";
+                    splashSize = 60;
+                } else {
+                    comment = "HUGE SPLASH! 🌊";
+                    splashSize = 150; 
+                    score = Math.max(score, 1.0);
+                }
+
+                createSplash(game.diver.x, game.waterLevel, splashSize, isRipEntry);
+                createBubbles(game.diver.x, game.waterLevel, 50); // 거품 많이
+
+                // 결과창은 다이버가 다시 떠오르기 시작할 때 쯤 보여주면 좋음
+                // 혹은 일정 시간 후
+                setTimeout(() => {
+                    ui.scoreText.innerText = score.toFixed(1);
+                    ui.scoreComment.innerText = comment;
+                    ui.scoreComment.className = isRipEntry ? "text-blue-600 font-bold text-lg mb-4" : "text-slate-700 font-bold text-lg mb-4";
+                    
+                    let deg = Math.round(diff * 180 / Math.PI);
+                    ui.resAngle.innerText = `입수각 오차: ${deg}°`;
+                    
+                    // 수심 업데이트 루프에서 최종 수심 갱신하도록 함
+                    const checkDepthInterval = setInterval(() => {
+                        ui.resDepth.innerText = `${game.diver.maxDepth.toFixed(1)}m`;
+                        // 속도가 0에 가까워지거나 다시 올라오면 인터벌 종료
+                        if (game.diver.vy <= 0) clearInterval(checkDepthInterval);
+                    }, 100);
+
+                    ui.scorePanel.classList.remove('hidden');
+                    ui.btnRestartOverlay.classList.add('hidden');
+                }, 2500); // 깊게 들어가므로 딜레이를 줌
+            }
+
+            function createWorthingtonJet(x, y) {
+                game.delayedEffects.push({
+                    timer: 10,
+                    action: () => {
+                        for(let i=0; i<40; i++) {
+                            game.particles.push({
+                                x: x + (Math.random()-0.5)*15, y: y,
+                                                           vx: (Math.random()-0.5)*3,
+                                vy: -(Math.random()*20 + 15), // 더 높게 솟구침
+                                life: 1.0, type: 'water', size: Math.random()*6+3,
+                                color: 'rgba(200, 240, 255, 0.9)'
+                            });
+                        }
+                    }
+                });
+            }
+
+            function createSplash(x, y, count, isClean) {
+                for(let i=0; i<count; i++) {
+                    let speed = isClean ? 10 : 30; // 물 튀김 속도 증가
+                    game.particles.push({
+                        x: x, y: y,
+                        vx: (Math.random()-0.5) * speed,
+                        vy: -(Math.random() * speed/2 + 5),
+                        life: 1.2, type: 'water', size: Math.random()*5+2,
+                        color: `rgba(180, 230, 255, ${Math.random()})`
+                    });
+                }
+            }
+
+            function createBubbles(x, y, count) {
+                for(let i=0; i<count; i++) {
+                    game.particles.push({
+                        x: x + (Math.random()-0.5)*30,
+                        y: y + Math.random()*80, // 깊게 생성
+                        vx: (Math.random()-0.5)*2,
+                        vy: -(Math.random()*3 + 1),
+                        life: 2.5, type: 'bubble', size: Math.random()*4+1, // 수명 길게
+                        color: 'rgba(255, 255, 255, 0.5)'
+                    });
+                }
+            }
+
+            function updateParticles(dt) {
+                for(let i=game.delayedEffects.length-1; i>=0; i--) {
+                    game.delayedEffects[i].timer -= dt;
+                    if(game.delayedEffects[i].timer <= 0) {
+                        game.delayedEffects[i].action();
+                        game.delayedEffects.splice(i, 1);
+                    }
+                }
+                
+                for(let i=game.particles.length-1; i>=0; i--) {
+                    let p = game.particles[i];
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.life -= 0.01 * dt;
+                    
+                    if (p.type === 'water') p.vy += P.gravity * dt;
+                    
+                    if(p.life <= 0) game.particles.splice(i, 1);
+                }
+            }
+
+            function drawParticles() {
+                for(let p of game.particles) {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1.0;
+            }
+
+            function drawWater() {
+                // 심해 표현: 그라데이션
+                const grad = ctx.createLinearGradient(0, game.waterLevel, 0, game.waterLevel + 2000);
+                grad.addColorStop(0, "rgba(0, 100, 255, 0.6)");
+                grad.addColorStop(1, "rgba(0, 10, 80, 0.95)"); // 깊을수록 어두워짐
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(-5000, game.waterLevel, 10000, 5000); // 아주 깊게 그리기
+                
+                ctx.strokeStyle = "rgba(255,255,255,0.8)";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-5000, game.waterLevel);
+                ctx.lineTo(5000, game.waterLevel);
+                ctx.stroke();
+
+                if(game.state === 'diving') {
+                    ctx.strokeStyle = "rgba(255, 255, 0, 0.3)";
+                    ctx.setLineDash([8, 8]);
+                    ctx.beginPath();
+                    let predX = game.diver.x + game.diver.vx * 10; 
+                    ctx.moveTo(predX, game.waterLevel - 150);
+                    ctx.lineTo(predX, game.waterLevel + 150);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            function drawBackground() {
+                // 배경은 CSS 그라데이션이 처리하지만, 구름 등을 추가할 수 있음
+            }
+
+            function drawTrail() {
+                if(game.trail.length < 2) return;
+                ctx.beginPath();
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 10]); // 점선
+                ctx.moveTo(game.trail[0].x, game.trail[0].y);
+                for(let i=1; i<game.trail.length; i+=2) { // 최적화를 위해 건너뛰며 그리기
+                     ctx.lineTo(game.trail[i].x, game.trail[i].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            function updateHUDText() {
+                // 높이
+                let alt = Math.max(0, (game.waterLevel - game.diver.y) / P.meterScale);
+                ui.hudAlt.innerText = `${alt.toFixed(1)}m`;
+                
+                // 속도 (대략적인 km/h 환산, 1px/frame @ 60fps -> scale 고려)
+                // vy(px/frame) * 60(frame/s) / 20(px/m) * 3.6(km/h/ms)
+                let speedKmh = Math.abs(game.diver.vy) * 60 / P.meterScale * 3.6;
+                ui.hudSpd.innerText = `${speedKmh.toFixed(1)} km/h`;
+            }
+
+            // --- Event Listeners ---
+            function handleInputStart(e) {
+                if(e.target.closest('button') || e.target.closest('#sidebar')) return;
+                game.input.isTouching = true;
+                game.input.isDragging = true;
+                game.input.lastX = e.touches ? e.touches[0].clientX : e.clientX;
+                game.input.lastY = e.touches ? e.touches[0].clientY : e.clientY;
+            }
+            
+            function handleInputEnd() {
+                game.input.isTouching = false;
+                game.input.isDragging = false;
+            }
+            
+            function handleInputMove(e) {
+                if (!game.input.isDragging) return;
+                const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                if(game.state !== 'diving') {
+                    game.cam.targetX += (game.input.lastX - cx);
+                    game.cam.targetY += (game.input.lastY - cy);
+                    game.cam.x = game.cam.targetX;
+                    game.cam.y = game.cam.targetY;
+                }
+                
+                game.input.lastX = cx;
+                game.input.lastY = cy;
+            }
+
+            wrapper.addEventListener('mousedown', handleInputStart);
+            wrapper.addEventListener('touchstart', handleInputStart, {passive: false});
+            window.addEventListener('mouseup', handleInputEnd);
+            window.addEventListener('touchend', handleInputEnd);
+            window.addEventListener('mousemove', handleInputMove);
+            window.addEventListener('touchmove', handleInputMove, {passive: false});
+
+            ui.inpHeight.addEventListener('input', () => { if(game.state === 'ready') resetGame(false); });
+            ui.inpJump.addEventListener('input', updateLabels);
+            ui.inpRun.addEventListener('input', updateLabels);
+            ui.inpRotSkill.addEventListener('input', updateLabels);
+            
+            ui.btnJump.addEventListener('click', startDive);
+            ui.btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); startDive(); });
+            ui.btnReplay.addEventListener('click', () => resetGame(true));
+            ui.btnRestartOverlay.addEventListener('click', () => resetGame(true));
+            
+            ui.btnSlow.addEventListener('click', () => {
+                game.slowMotion = !game.slowMotion;
+                ui.btnSlow.innerHTML = game.slowMotion ? "🐢 ON" : "🐢 OFF";
+                ui.btnSlow.classList.toggle('text-green-400');
+            });
+            
+            ui.btnCam.addEventListener('click', () => {
+                game.cameraMode = game.cameraMode === 'auto' ? 'fixed' : 'auto';
+                document.getElementById('cam-text').innerText = game.cameraMode === 'auto' ? "자동" : "고정";
+            });
+
+            window.addEventListener('resize', resize);
+            
+            function loop() {
+                draw();
+                requestAnimationFrame(loop);
+            }
+
+            init();
+        })();
+    </script>
+  <!-- Showcase Portal Navigation Button -->
+  <a href="../../index.html" class="showcase-nav-btn" title="쇼케이스 포털로 돌아가기">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    <span>Showcase</span>
+  </a>
+  <style>
+    .showcase-nav-btn {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 99999;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0.85;
+      user-select: none;
+    }
+    .showcase-nav-btn:hover {
+      opacity: 1;
+      color: #ffffff;
+      background: rgba(15, 23, 42, 0.96);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+  </style>
+</body>
+</html>
