@@ -266,13 +266,13 @@
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
     }
 
-    /* Shape Chips (Horizontal Scroll Strip) */
+    /* Shape Chips (Horizontal Scroll Strip with Canvas Previews) */
     .shape-chips-scroll {
       display: flex;
-      gap: 6px;
+      gap: 7px;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
-      padding: 2px 2px 8px;
+      padding: 3px 2px 8px;
       -webkit-overflow-scrolling: touch;
       margin-top: 4px;
     }
@@ -291,36 +291,68 @@
       flex: 0 0 auto;
       scroll-snap-align: start;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 6px;
-      padding: 7px 11px;
+      gap: 4px;
+      padding: 5px 6px 6px;
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.035);
       border: 1px solid rgba(255, 255, 255, 0.08);
       color: var(--muted);
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      white-space: nowrap;
+      user-select: none;
+      -webkit-user-select: none;
+      min-width: 60px;
     }
     .shape-chip:hover {
       background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-      transform: translateY(-1px);
+      border-color: rgba(124, 192, 255, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     .shape-chip.active {
-      background: linear-gradient(135deg, rgba(124, 192, 255, 0.24), rgba(179, 143, 255, 0.2));
-      border-color: rgba(124, 192, 255, 0.65);
+      background: linear-gradient(135deg, rgba(124, 192, 255, 0.22), rgba(179, 143, 255, 0.18));
+      border-color: rgba(148, 215, 255, 0.85);
       color: #fff;
-      box-shadow: 0 2px 12px rgba(124, 192, 255, 0.25);
+      box-shadow: 0 0 14px rgba(124, 192, 255, 0.35);
     }
-    .shape-chip .shape-icon {
-      font-size: 1rem;
-      line-height: 1;
+    .shape-chip .shape-thumb {
+      width: 52px;
+      height: 36px;
+      border-radius: 8px;
+      display: block;
+      background: #020712;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .shape-chip.active .shape-thumb {
+      border-color: rgba(148, 215, 255, 0.65);
+      box-shadow: 0 0 10px rgba(124, 192, 255, 0.3);
+    }
+    .shape-chip .shape-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1.15;
     }
     .shape-chip .shape-name {
-      font-size: 0.78rem;
+      font-size: 0.74rem;
       font-weight: 800;
       letter-spacing: -0.01em;
+      color: #d8e5f8;
+      white-space: nowrap;
+    }
+    .shape-chip.active .shape-name {
+      color: #ffffff;
+      text-shadow: 0 0 8px rgba(148, 215, 255, 0.6);
+    }
+    .shape-chip .shape-sub {
+      font-size: 0.62rem;
+      color: var(--muted);
+      line-height: 1;
+      white-space: nowrap;
     }
 
     /* Concentric Double Circle Firework Shell Designer */
@@ -386,17 +418,19 @@
       width: 52px;
       height: 52px;
       border-radius: 50%;
-      background: #ffd232;
-      box-shadow: 0 0 14px rgba(255, 210, 50, 0.55), inset 0 0 6px rgba(0, 0, 0, 0.25);
+      background: #060e1a;
+      border: 2.5px solid #ffd232;
+      box-shadow: 0 0 14px rgba(255, 210, 50, 0.55), inset 0 0 10px rgba(0, 0, 0, 0.8);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 2;
-      transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
       cursor: pointer;
+      overflow: hidden;
     }
     .concentric-inner-core.active-layer {
-      box-shadow: 0 0 0 3px #ffffff, 0 0 20px rgba(255, 220, 80, 0.95);
+      box-shadow: 0 0 0 3px #ffffff, 0 0 20px rgba(255, 220, 80, 0.95), inset 0 0 10px rgba(0, 0, 0, 0.6);
       animation: pulse-core 2.2s infinite ease-in-out;
     }
 
@@ -405,11 +439,12 @@
       50% { transform: scale(1.08); }
     }
 
-    .concentric-center-glyph {
-      font-size: 1.35rem;
-      line-height: 1;
+    .concentric-center-canvas {
+      width: 52px;
+      height: 52px;
+      display: block;
+      border-radius: 50%;
       pointer-events: none;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.7));
     }
 
     .concentric-guide-text {
@@ -1180,45 +1215,74 @@
             <!-- 1. 메인 섹션: 모양 칩 + 이중원 조작기 + 컬러 팔레트 -->
             <section class="section" style="padding: 12px 14px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-                <h2 style="margin:0; font-size: 0.88rem; font-weight:800;">불꽃 모양 선택 (7종)</h2>
+                <h2 style="margin:0; font-size: 0.88rem; font-weight:800;">불꽃 모양 선택 (8종)</h2>
                 <button type="button" id="resetShapeBtn" class="reset-shape-btn" title="현재 불꽃 모양의 수치를 기본값으로 복원">↺ 초기화</button>
               </div>
 
-              <!-- 7종 모양 가로 칩 스트립 -->
+              <!-- 8종 모양 가로 칩 스트립 (물리 폭발 형태 캔버스 프리뷰 탑재) -->
               <div class="shape-chips-scroll" id="shapeChipsContainer">
-                <button type="button" class="shape-chip active" data-shape="peony">
-                  <span class="shape-icon">🌸</span>
-                  <span class="shape-name">Peony</span>
+                <button type="button" class="shape-chip" data-shape="random" title="발사할 때마다 7종 모양이 무작위로 교차 폭발">
+                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <div class="shape-info">
+                    <span class="shape-name">랜덤</span>
+                    <span class="shape-sub">무작위</span>
+                  </div>
                 </button>
-                <button type="button" class="shape-chip" data-shape="chrysanthemum">
-                  <span class="shape-icon">🌼</span>
-                  <span class="shape-name">Chrys.</span>
+                <button type="button" class="shape-chip active" data-shape="peony" title="둥글고 풍성하게 퍼지는 정통 구형 불꽃">
+                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <div class="shape-info">
+                    <span class="shape-name">Peony</span>
+                    <span class="shape-sub">모란</span>
+                  </div>
                 </button>
-                <button type="button" class="shape-chip" data-shape="willow">
-                  <span class="shape-icon">🌿</span>
-                  <span class="shape-name">Willow</span>
+                <button type="button" class="shape-chip" data-shape="chrysanthemum" title="길고 촘촘하게 뻗어나가는 국화 꽃잎형 섬광 꼬리">
+                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <div class="shape-info">
+                    <span class="shape-name">Chrys.</span>
+                    <span class="shape-sub">국화</span>
+                  </div>
                 </button>
-                <button type="button" class="shape-chip" data-shape="crossette">
-                  <span class="shape-icon">➕</span>
-                  <span class="shape-name">Cross</span>
+                <button type="button" class="shape-chip" data-shape="willow" title="천천히 폭포수처럼 흘러내리는 금빛 버드나무 가지">
+                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <div class="shape-info">
+                    <span class="shape-name">Willow</span>
+                    <span class="shape-sub">버들</span>
+                  </div>
                 </button>
-                <button type="button" class="shape-chip" data-shape="palm">
-                  <span class="shape-icon">🌴</span>
-                  <span class="shape-name">Palm</span>
+                <button type="button" class="shape-chip" data-shape="crossette" title="폭발 후 십자(+) 방향으로 분화하여 뻗어가는 크로셋">
+                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <div class="shape-info">
+                    <span class="shape-name">Cross</span>
+                    <span class="shape-sub">크로셋</span>
+                  </div>
                 </button>
-                <button type="button" class="shape-chip" data-shape="ring">
-                  <span class="shape-icon">⭕</span>
-                  <span class="shape-name">Ring</span>
+                <button type="button" class="shape-chip" data-shape="palm" title="굵은 줄기 상승 후 아치형으로 굽어지는 야자수 잎">
+                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <div class="shape-info">
+                    <span class="shape-name">Palm</span>
+                    <span class="shape-sub">야자수</span>
+                  </div>
                 </button>
-                <button type="button" class="shape-chip" data-shape="pistil">
-                  <span class="shape-icon">🎯</span>
-                  <span class="shape-name">Pistil</span>
+                <button type="button" class="shape-chip" data-shape="ring" title="중심이 비어 있는 도넛 링 형태의 원형 성단">
+                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <div class="shape-info">
+                    <span class="shape-name">Ring</span>
+                    <span class="shape-sub">고리</span>
+                  </div>
+                </button>
+                <button type="button" class="shape-chip" data-shape="pistil" title="외곽 구체와 중심 코어가 뚜렷하게 대비되는 이중 피스틸">
+                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <div class="shape-info">
+                    <span class="shape-name">Pistil</span>
+                    <span class="shape-sub">이중</span>
+                  </div>
                 </button>
               </div>
 
               <!-- 숨김 셀렉트 (기존 로직 호환용) -->
               <select id="shellType" style="display: none;">
-                <option value="peony">Peony</option>
+                <option value="random">랜덤 (Random)</option>
+                <option value="peony" selected>Peony</option>
                 <option value="chrysanthemum">Chrysanthemum</option>
                 <option value="willow">Willow</option>
                 <option value="crossette">Crossette</option>
@@ -1234,7 +1298,7 @@
                   <div class="concentric-shell-disc" id="concentricShellDisc" title="외곽링 클릭: 외곽색 | 중심원 클릭: 중심색">
                     <div class="concentric-outer-ring active-layer" id="concentricOuterRing" title="외곽 불꽃색 (클릭하여 선택)"></div>
                     <div class="concentric-inner-core" id="concentricInnerCore" title="중심 코어색 (클릭하여 선택)">
-                      <div class="concentric-center-glyph" id="concentricCenterGlyph">🌸</div>
+                      <canvas id="concentricCenterCanvas" width="52" height="52" class="concentric-center-canvas"></canvas>
                     </div>
                   </div>
                   <div class="concentric-guide-text">
@@ -1506,7 +1570,7 @@
     // Concentric Shell & Palette Elements
     const concentricOuterRing = document.getElementById('concentricOuterRing');
     const concentricInnerCore = document.getElementById('concentricInnerCore');
-    const concentricCenterGlyph = document.getElementById('concentricCenterGlyph');
+    const concentricCenterCanvas = document.getElementById('concentricCenterCanvas');
     const btnLayerOuter = document.getElementById('btnLayerOuter');
     const btnLayerInner = document.getElementById('btnLayerInner');
     const dotLayerOuter = document.getElementById('dotLayerOuter');
@@ -1561,6 +1625,7 @@
     ];
 
     const shapeOptions = [
+      { value: 'random', label: '랜덤', desc: '발사 시마다 7종 모양이 무작위로 교차 폭발' },
       { value: 'peony', label: 'Peony', desc: '둥글고 풍성하게 퍼지는 기본형' },
       { value: 'chrysanthemum', label: 'Chrysanthemum', desc: '길고 촘촘한 꽃잎형 꼬리' },
       { value: 'willow', label: 'Willow', desc: '천천히 아래로 흐르는 버드나무형' },
@@ -1571,6 +1636,15 @@
     ];
 
     const defaultShapeConfigs = {
+      random: {
+        size: 115,
+        density: 44,
+        trail: 68,
+        glitter: true,
+        outer: 'Crimson',
+        inner: 'Gold',
+        delay: 260
+      },
       peony: {
         size: 110,
         density: 42,
@@ -1821,21 +1895,18 @@
       drawStaticBackground();
     }
 
-    const shapeIcons = {
-      peony: '🌸',
-      chrysanthemum: '🌼',
-      willow: '🌿',
-      crossette: '➕',
-      palm: '🌴',
-      ring: '⭕',
-      pistil: '🎯'
-    };
-
     let activeColorLayer = 'outer'; // 'outer' | 'inner'
 
     function setLayerMode(layer) {
       activeColorLayer = layer;
       refreshConcentricUI();
+    }
+
+    function resolveColorHex(val, fallback) {
+      if (!val) return fallback;
+      if (typeof val === 'string' && val.startsWith('#')) return val;
+      const found = colors.find(c => c.name === val);
+      return found ? found.value : fallback;
     }
 
     function refreshConcentricUI() {
@@ -1850,12 +1921,22 @@
       }
 
       if (concentricInnerCore) {
-        concentricInnerCore.style.backgroundColor = innerColorData.value;
+        concentricInnerCore.style.borderColor = innerColorData.value;
         concentricInnerCore.classList.toggle('active-layer', activeColorLayer === 'inner');
       }
 
-      if (concentricCenterGlyph) {
-        concentricCenterGlyph.textContent = shapeIcons[curShape] || '🌸';
+      // 이중원 중심 캔버스에 현재 불꽃 모양의 실제 폭발 물리 형태를 동적 렌더링
+      if (concentricCenterCanvas) {
+        drawPreviewBurst(concentricCenterCanvas, curShape, outerColorData.value, innerColorData.value, true);
+      }
+
+      // 현재 활성화된 모양 칩의 프리뷰 캔버스도 선택된 색상으로 라이브 갱신
+      const activeChip = document.querySelector(`.shape-chip[data-shape="${curShape}"]`);
+      if (activeChip) {
+        const thumbCanvas = activeChip.querySelector('canvas.shape-thumb');
+        if (thumbCanvas) {
+          drawPreviewBurst(thumbCanvas, curShape, outerColorData.value, innerColorData.value, false);
+        }
       }
 
       // 2. Layer Cards & Status
@@ -1913,26 +1994,51 @@
       }
     }
 
-    function drawPreviewBurst(previewCanvas, type) {
+    function drawPreviewBurst(previewCanvas, type, customOuter = null, customInner = null, isCenterDisc = false) {
+      if (!previewCanvas) return;
       const pctx = previewCanvas.getContext('2d');
+      if (!pctx) return;
+
       const w = previewCanvas.width;
       const h = previewCanvas.height;
       pctx.clearRect(0, 0, w, h);
 
-      const bg = pctx.createRadialGradient(w * 0.5, h * 0.48, 2, w * 0.5, h * 0.48, w * 0.55);
-      bg.addColorStop(0, 'rgba(17,30,52,0.9)');
-      bg.addColorStop(1, 'rgba(2,8,16,1)');
-      pctx.fillStyle = bg;
-      pctx.fillRect(0, 0, w, h);
-
       const cx = w * 0.5;
-      const cy = h * 0.46;
+      const cy = h * (type === 'willow' ? 0.36 : (type === 'palm' ? 0.58 : 0.48));
+
+      // 캔버스 배경 렌더링
+      if (!isCenterDisc) {
+        const bg = pctx.createRadialGradient(cx, cy, 2, cx, cy, w * 0.62);
+        bg.addColorStop(0, 'rgba(16, 28, 52, 0.96)');
+        bg.addColorStop(1, 'rgba(2, 6, 14, 0.98)');
+        pctx.fillStyle = bg;
+        pctx.fillRect(0, 0, w, h);
+      }
+
+      // 시그니처 색상 매핑 (지정 색상이 없을 경우 불꽃 종류별 대표 발색)
+      const signatureColors = {
+        random: { outer: '#ff3258', inner: '#ffd232' },
+        peony: { outer: '#3f6fff', inner: '#ffd232' },
+        chrysanthemum: { outer: '#ff9f1f', inner: '#ffd232' },
+        willow: { outer: '#ffd232', inner: '#ff9f1f' },
+        crossette: { outer: '#ff5fbe', inner: '#ffffff' },
+        palm: { outer: '#3ed9ff', inner: '#ffd232' },
+        ring: { outer: '#3ed9ff', inner: '#8ff6ff' },
+        pistil: { outer: '#ff3258', inner: '#8ff6ff' }
+      };
+
+      const sig = signatureColors[type] || signatureColors.peony;
+      const outerColor = resolveColorHex(customOuter, sig.outer);
+      const innerColor = resolveColorHex(customInner, sig.inner);
+
+      const scale = Math.min(w, h) / 52;
+
       const line = (x1, y1, x2, y2, color, width = 1.6, alpha = 1) => {
         pctx.save();
         pctx.strokeStyle = color;
         pctx.globalAlpha = alpha;
-        pctx.lineWidth = width;
-        pctx.shadowBlur = 10;
+        pctx.lineWidth = width * scale;
+        pctx.shadowBlur = 8 * scale;
         pctx.shadowColor = color;
         pctx.beginPath();
         pctx.moveTo(x1, y1);
@@ -1940,74 +2046,166 @@
         pctx.stroke();
         pctx.restore();
       };
+
       const dot = (x, y, r, color, alpha = 1) => {
         pctx.save();
         pctx.globalAlpha = alpha;
         pctx.fillStyle = color;
-        pctx.shadowBlur = 12;
+        pctx.shadowBlur = 10 * scale;
         pctx.shadowColor = color;
         pctx.beginPath();
-        pctx.arc(x, y, r, 0, Math.PI * 2);
+        pctx.arc(x, y, Math.max(1, r * scale), 0, Math.PI * 2);
         pctx.fill();
         pctx.restore();
       };
 
       switch (type) {
-        case 'peony':
-          for (let i = 0; i < 18; i++) {
-            const a = (Math.PI * 2 * i) / 18;
-            line(cx, cy, cx + Math.cos(a) * 24, cy + Math.sin(a) * 24, '#ffb84d', 1.8, 0.95);
-            dot(cx + Math.cos(a) * 28, cy + Math.sin(a) * 28, 1.8, '#ffd98a');
+        case 'random': {
+          const rainbow = ['#ff3258', '#ff9f1f', '#ffd232', '#1aff8c', '#3ed9ff', '#a14dff'];
+          const rays = 12;
+          for (let i = 0; i < rays; i++) {
+            const a = (Math.PI * 2 * i) / rays;
+            const col = rainbow[i % rainbow.length];
+            const len = (i % 2 === 0 ? 19 : 13) * scale;
+            line(cx, cy, cx + Math.cos(a) * len, cy + Math.sin(a) * len, col, 1.4, 0.95);
+            dot(cx + Math.cos(a) * (len + 3 * scale), cy + Math.sin(a) * (len + 3 * scale), 1.6, col);
           }
+          dot(cx, cy, 2.4, '#ffffff', 1);
           break;
-        case 'chrysanthemum':
-          for (let i = 0; i < 22; i++) {
-            const a = (Math.PI * 2 * i) / 22;
-            line(cx, cy, cx + Math.cos(a) * 28, cy + Math.sin(a) * 28, '#ffe4a8', 1.2, 0.9);
-            line(cx + Math.cos(a) * 18, cy + Math.sin(a) * 18, cx + Math.cos(a) * 34, cy + Math.sin(a) * 34, '#ffc04d', 0.9, 0.7);
-          }
-          break;
-        case 'willow':
-          for (let i = -4; i <= 4; i++) {
-            const x = cx + i * 8;
-            line(cx, cy - 8, x, cy + 4, '#ffd66b', 1.6, 0.9);
-            line(x, cy + 4, x + i * 1.5, cy + 24 + Math.abs(i) * 4, '#ff9e52', 1.4, 0.85);
-          }
-          break;
-        case 'crossette':
-          for (let i = 0; i < 4; i++) {
-            const a = (Math.PI / 2) * i + Math.PI / 4;
-            const ex = cx + Math.cos(a) * 22;
-            const ey = cy + Math.sin(a) * 22;
-            line(cx, cy, ex, ey, '#ff7ab8', 1.8, 0.95);
-            line(ex - 6, ey, ex + 6, ey, '#ffd6ea', 1.2, 0.95);
-            line(ex, ey - 6, ex, ey + 6, '#ffd6ea', 1.2, 0.95);
-          }
-          break;
-        case 'palm':
-          for (let i = -3; i <= 3; i++) {
-            line(cx, cy + 18, cx + i * 7, cy - 12 - Math.abs(i) * 2, i === 0 ? '#fff1a6' : '#78d0ff', i === 0 ? 2.2 : 1.6, 0.95);
-          }
-          break;
-        case 'ring':
-          for (let i = 0; i < 20; i++) {
-            const a = (Math.PI * 2 * i) / 20;
-            dot(cx + Math.cos(a) * 24, cy + Math.sin(a) * 16, 2, '#79d5ff', 0.95);
-          }
-          break;
-        case 'pistil':
+        }
+
+        case 'peony': {
           for (let i = 0; i < 16; i++) {
             const a = (Math.PI * 2 * i) / 16;
-            line(cx, cy, cx + Math.cos(a) * 28, cy + Math.sin(a) * 24, '#ffb54e', 1.4, 0.88);
+            const r1 = 18 * scale;
+            const r2 = 22 * scale;
+            line(cx, cy, cx + Math.cos(a) * r1, cy + Math.sin(a) * r1, outerColor, 1.6, 0.95);
+            dot(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2, 1.8, innerColor);
           }
-          for (let i = 0; i < 10; i++) {
-            const a = (Math.PI * 2 * i) / 10;
-            dot(cx + Math.cos(a) * 10, cy + Math.sin(a) * 8, 1.8, '#ff5f91', 0.95);
-          }
+          dot(cx, cy, 2.2, '#ffffff', 1);
           break;
-      }
+        }
 
-      dot(cx, cy, 2.2, '#ffffff', 0.9);
+        case 'chrysanthemum': {
+          for (let i = 0; i < 20; i++) {
+            const a = (Math.PI * 2 * i) / 20;
+            const r1 = 20 * scale;
+            const r2 = 25 * scale;
+            line(cx, cy, cx + Math.cos(a) * r1, cy + Math.sin(a) * r1, innerColor, 1.3, 0.9);
+            line(cx + Math.cos(a) * 12 * scale, cy + Math.sin(a) * 12 * scale, cx + Math.cos(a) * r2, cy + Math.sin(a) * r2, outerColor, 0.95, 0.85);
+            if (i % 2 === 0) {
+              dot(cx + Math.cos(a) * (r2 + 2 * scale), cy + Math.sin(a) * (r2 + 2 * scale), 1.4, '#ffffff');
+            }
+          }
+          dot(cx, cy, 2.2, '#ffffff', 1);
+          break;
+        }
+
+        case 'willow': {
+          for (let i = -3; i <= 3; i++) {
+            const col = i % 2 === 0 ? outerColor : innerColor;
+            const startX = cx;
+            const startY = cy - 3 * scale;
+            const midX = cx + i * 5 * scale;
+            const midY = cy + 5 * scale;
+            const endX = cx + i * 7.5 * scale;
+            const endY = cy + 18 * scale + Math.abs(i) * 2.2 * scale;
+
+            pctx.save();
+            pctx.strokeStyle = col;
+            pctx.lineWidth = 1.4 * scale;
+            pctx.shadowBlur = 8 * scale;
+            pctx.shadowColor = col;
+            pctx.beginPath();
+            pctx.moveTo(startX, startY);
+            pctx.quadraticCurveTo(midX, midY, endX, endY);
+            pctx.stroke();
+            pctx.restore();
+
+            dot(endX, endY, 1.5, '#ffeaa7');
+          }
+          dot(cx, cy - 3 * scale, 2.2, '#ffffff', 1);
+          break;
+        }
+
+        case 'crossette': {
+          for (let i = 0; i < 4; i++) {
+            const a = (Math.PI / 2) * i + Math.PI / 4;
+            const ex = cx + Math.cos(a) * 17 * scale;
+            const ey = cy + Math.sin(a) * 17 * scale;
+            line(cx, cy, ex, ey, outerColor, 1.8, 0.95);
+            const cLen = 5 * scale;
+            line(ex - cLen, ey, ex + cLen, ey, innerColor, 1.2, 0.95);
+            line(ex, ey - cLen, ex, ey + cLen, innerColor, 1.2, 0.95);
+            dot(ex, ey, 1.6, '#ffffff');
+          }
+          dot(cx, cy, 2.2, '#ffffff', 1);
+          break;
+        }
+
+        case 'palm': {
+          line(cx, cy + 15 * scale, cx, cy - 4 * scale, innerColor, 2.4, 0.95);
+          for (let i = -3; i <= 3; i++) {
+            if (i === 0) continue;
+            const col = outerColor;
+            const endX = cx + i * 7.5 * scale;
+            const endY = cy - 2 * scale + Math.abs(i) * 3 * scale;
+            pctx.save();
+            pctx.strokeStyle = col;
+            pctx.lineWidth = 1.4 * scale;
+            pctx.shadowBlur = 8 * scale;
+            pctx.shadowColor = col;
+            pctx.beginPath();
+            pctx.moveTo(cx, cy - 4 * scale);
+            pctx.quadraticCurveTo(cx + i * 4 * scale, cy - 14 * scale, endX, endY);
+            pctx.stroke();
+            pctx.restore();
+            dot(endX, endY, 1.4, col);
+          }
+          dot(cx, cy - 4 * scale, 2.2, '#ffffff', 1);
+          break;
+        }
+
+        case 'ring': {
+          const count = 18;
+          const rx = 19 * scale;
+          const ry = 14 * scale;
+          for (let i = 0; i < count; i++) {
+            const a = (Math.PI * 2 * i) / count;
+            const px = cx + Math.cos(a) * rx;
+            const py = cy + Math.sin(a) * ry;
+            dot(px, py, 1.9, i % 2 === 0 ? outerColor : innerColor);
+          }
+          dot(cx, cy, 1.2, '#ffffff', 0.4);
+          break;
+        }
+
+        case 'pistil': {
+          const outerCount = 14;
+          for (let i = 0; i < outerCount; i++) {
+            const a = (Math.PI * 2 * i) / outerCount;
+            line(cx, cy, cx + Math.cos(a) * 22 * scale, cy + Math.sin(a) * 22 * scale, outerColor, 1.4, 0.88);
+            dot(cx + Math.cos(a) * 22 * scale, cy + Math.sin(a) * 22 * scale, 1.5, outerColor);
+          }
+          const innerCount = 8;
+          for (let i = 0; i < innerCount; i++) {
+            const a = (Math.PI * 2 * i) / innerCount;
+            dot(cx + Math.cos(a) * 8 * scale, cy + Math.sin(a) * 8 * scale, 2.0, innerColor);
+          }
+          dot(cx, cy, 2.2, '#ffffff', 1);
+          break;
+        }
+      }
+    }
+
+    function renderAllShapeThumbs() {
+      document.querySelectorAll('.shape-chip').forEach(chip => {
+        const shape = chip.dataset.shape;
+        const thumbCanvas = chip.querySelector('canvas.shape-thumb');
+        if (thumbCanvas && shape) {
+          drawPreviewBurst(thumbCanvas, shape);
+        }
+      });
     }
 
     function saveCurrentShapeConfig() {
@@ -2050,6 +2248,7 @@
       selectedOuter = cfg.outer;
       selectedInner = cfg.inner;
 
+      renderAllShapeThumbs();
       refreshConcentricUI();
       updateRangeLabels();
       updateStatus();
@@ -2449,7 +2648,11 @@
       spawnFlash(x, y, '#ffffff', radius * 0.62, 14);
       spawnFlash(x, y, outer, radius * 0.42, 22);
 
-      switch (config.type) {
+      const actualShape = (config.type === 'random')
+        ? pick(['peony', 'chrysanthemum', 'willow', 'crossette', 'palm', 'ring', 'pistil'])
+        : (config.type || 'peony');
+
+      switch (actualShape) {
         case 'peony': {
           emitSphere({
             count: density,
@@ -3376,7 +3579,7 @@
     if (isMobile() && mainPanel) {
       mainPanel.classList.add('collapsed');
     }
-    renderShapePicker();
+    renderAllShapeThumbs();
     const initialShape = localStorage.getItem(STORAGE_KEY_LAST_SHAPE) || 'peony';
     selectShape(initialShape, false);
     renderSavedList();
