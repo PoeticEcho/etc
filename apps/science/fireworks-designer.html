@@ -288,39 +288,42 @@
       border-radius: 999px;
     }
     .shape-chip {
-      flex: 0 0 auto;
+      flex: 0 0 92px !important;
+      width: 92px !important;
+      min-width: 92px !important;
+      max-width: 92px !important;
+      box-sizing: border-box !important;
       scroll-snap-align: start;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      padding: 5px 6px 6px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 5px;
+      padding: 6px 5px 7px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
       color: var(--muted);
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       user-select: none;
       -webkit-user-select: none;
-      min-width: 60px;
     }
     .shape-chip:hover {
       background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(124, 192, 255, 0.35);
+      border-color: rgba(124, 192, 255, 0.45);
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
     }
     .shape-chip.active {
       background: linear-gradient(135deg, rgba(124, 192, 255, 0.22), rgba(179, 143, 255, 0.18));
-      border-color: rgba(148, 215, 255, 0.85);
+      border-color: rgba(148, 215, 255, 0.9);
       color: #fff;
-      box-shadow: 0 0 14px rgba(124, 192, 255, 0.35);
+      box-shadow: 0 0 16px rgba(124, 192, 255, 0.4);
     }
     .shape-chip .shape-thumb {
-      width: 52px;
-      height: 36px;
-      border-radius: 8px;
+      width: 80px !important;
+      height: 52px !important;
+      border-radius: 9px;
       display: block;
       background: #020712;
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -328,8 +331,8 @@
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .shape-chip.active .shape-thumb {
-      border-color: rgba(148, 215, 255, 0.65);
-      box-shadow: 0 0 10px rgba(124, 192, 255, 0.3);
+      border-color: rgba(148, 215, 255, 0.7);
+      box-shadow: 0 0 12px rgba(124, 192, 255, 0.35);
     }
     .shape-chip .shape-info {
       display: flex;
@@ -1222,56 +1225,56 @@
               <!-- 8종 모양 가로 칩 스트립 (물리 폭발 형태 캔버스 프리뷰 탑재) -->
               <div class="shape-chips-scroll" id="shapeChipsContainer">
                 <button type="button" class="shape-chip" data-shape="random" title="발사할 때마다 7종 모양이 무작위로 교차 폭발">
-                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <canvas class="shape-thumb" width="80" height="52"></canvas>
                   <div class="shape-info">
                     <span class="shape-name">랜덤</span>
                     <span class="shape-sub">무작위</span>
                   </div>
                 </button>
                 <button type="button" class="shape-chip active" data-shape="peony" title="둥글고 풍성하게 퍼지는 정통 구형 불꽃">
-                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <canvas class="shape-thumb" width="80" height="52"></canvas>
                   <div class="shape-info">
                     <span class="shape-name">Peony</span>
                     <span class="shape-sub">모란</span>
                   </div>
                 </button>
                 <button type="button" class="shape-chip" data-shape="chrysanthemum" title="길고 촘촘하게 뻗어나가는 국화 꽃잎형 섬광 꼬리">
-                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <canvas class="shape-thumb" width="80" height="52"></canvas>
                   <div class="shape-info">
                     <span class="shape-name">Chrys.</span>
                     <span class="shape-sub">국화</span>
                   </div>
                 </button>
                 <button type="button" class="shape-chip" data-shape="willow" title="천천히 폭포수처럼 흘러내리는 금빛 버드나무 가지">
-                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <canvas class="shape-thumb" width="80" height="52"></canvas>
                   <div class="shape-info">
                     <span class="shape-name">Willow</span>
                     <span class="shape-sub">버들</span>
                   </div>
                 </button>
                 <button type="button" class="shape-chip" data-shape="crossette" title="폭발 후 십자(+) 방향으로 분화하여 뻗어가는 크로셋">
-                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <canvas class="shape-thumb" width="80" height="52"></canvas>
                   <div class="shape-info">
                     <span class="shape-name">Cross</span>
                     <span class="shape-sub">크로셋</span>
                   </div>
                 </button>
                 <button type="button" class="shape-chip" data-shape="palm" title="굵은 줄기 상승 후 아치형으로 굽어지는 야자수 잎">
-                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <canvas class="shape-thumb" width="80" height="52"></canvas>
                   <div class="shape-info">
                     <span class="shape-name">Palm</span>
                     <span class="shape-sub">야자수</span>
                   </div>
                 </button>
                 <button type="button" class="shape-chip" data-shape="ring" title="중심이 비어 있는 도넛 링 형태의 원형 성단">
-                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <canvas class="shape-thumb" width="80" height="52"></canvas>
                   <div class="shape-info">
                     <span class="shape-name">Ring</span>
                     <span class="shape-sub">고리</span>
                   </div>
                 </button>
                 <button type="button" class="shape-chip" data-shape="pistil" title="외곽 구체와 중심 코어가 뚜렷하게 대비되는 이중 피스틸">
-                  <canvas class="shape-thumb" width="54" height="38"></canvas>
+                  <canvas class="shape-thumb" width="80" height="52"></canvas>
                   <div class="shape-info">
                     <span class="shape-name">Pistil</span>
                     <span class="shape-sub">이중</span>
