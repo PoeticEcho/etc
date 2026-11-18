@@ -4,6 +4,7 @@ import { fetchPlaceWarnings, buildWarningSummary, buildWarningsFromApi } from '.
 import { classifySeverityTier, isRoadRiskEscalated, ROAD_RISK_LABELS, FOG_RISK_LABELS } from './ice.js';
 import { renderOverviewCanvas, renderDetailCanvas, canvasToJpgBlob } from './share.js';
 import { apiUrl, getApiBase, setApiBase, probeBackend, isBackendAvailable, getBackendStatusSnapshot } from './config.js';
+import { applyHeroScene, buildHeroSceneInputFromRecord, clearHeroScene } from './hero-scenes.js';
 
 const $ = id => document.getElementById(id);
 const el = (tag, txt = '', cls = '') => {
@@ -1565,6 +1566,11 @@ function renderDetail() {
     o?.snowDepth != null ? `관측 적설 ${n(o.snowDepth, 1)} cm` : ''
   ].filter(Boolean).join('   /   ') || '자료 시각 확인 중';
 
+  const heroEl = document.querySelector('#detail .hero');
+  if (heroEl) {
+    applyHeroScene(heroEl, buildHeroSceneInputFromRecord(r));
+  }
+
   // 비·눈 시작~종료 전망 + 12시간 타임라인
   const a = w?.kma?.analysis;
   const kHours = w?.kma?.hours || [];
@@ -2062,6 +2068,8 @@ function route() {
       })
     );
     select.value = detailURL(detailPlace);
+  } else {
+    clearHeroScene(document.querySelector('#detail .hero'));
   }
   refresh();
 }

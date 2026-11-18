@@ -328,6 +328,7 @@ export function normalizeIceRank(input = {}) {
 export function formatTyphoonHeadline(typhoonInfo) {
   if (!typhoonInfo) return `${DEFAULT_TYPHOON_INFO.no} 태풍 ${DEFAULT_TYPHOON_INFO.name}`;
   if (typeof typhoonInfo === 'string') return typhoonInfo;
+  if (typhoonInfo.title && !typhoonInfo.name) return String(typhoonInfo.title).trim();
   const no = typhoonInfo.no || DEFAULT_TYPHOON_INFO.no;
   const name = typhoonInfo.name || DEFAULT_TYPHOON_INFO.name;
   return `${no} 태풍 ${name}`.trim();
@@ -369,7 +370,9 @@ export function resolveHeroScene(input = {}) {
   const iceMeta = ICE_RANK_META[iceRank] || ICE_RANK_META[0];
   const typhoon = weather === 'typhoon'
     ? (input.typhoonInfo && typeof input.typhoonInfo === 'object'
-      ? { ...DEFAULT_TYPHOON_INFO, ...input.typhoonInfo }
+      ? (input.typhoonInfo.title || input.typhoonInfo.isGaleOnly
+        ? { ...input.typhoonInfo }
+        : { ...DEFAULT_TYPHOON_INFO, ...input.typhoonInfo })
       : { ...DEFAULT_TYPHOON_INFO })
     : null;
   const rawWind = input.windSpeed ?? input.wind ?? (typhoon ? typhoon.maxWindMs : null) ?? DEFAULT_WIND_BY_WEATHER[weather];
@@ -551,6 +554,7 @@ function renderMoonLayer(scene, uid) {
 function renderTyphoonInfoLayer(scene) {
   if (scene.weather !== 'typhoon') return '';
   const info = scene.typhoon || DEFAULT_TYPHOON_INFO;
+  const prefix = info.badgePrefix || '태풍 특보';
   const subParts = [];
   if (info.pressureHpa) subParts.push(`${info.pressureHpa} hPa`);
   if (info.maxWindMs) subParts.push(`최대풍속 ${info.maxWindMs} m/s`);
@@ -559,7 +563,7 @@ function renderTyphoonInfoLayer(scene) {
 
   return `<div class="hs-typhoon-cluster" aria-hidden="true">
     <div class="hs-typhoon-tag">
-      <strong>태풍 특보 · ${esc(headline)}</strong>
+      <strong>${esc(prefix)} · ${esc(headline)}</strong>
       <span>${esc(subLine)}</span>
     </div>
   </div>`;
@@ -957,6 +961,7 @@ export function applyHeroScene(heroEl, input = {}) {
     horizonEl.setAttribute('aria-hidden', 'true');
     heroEl.prepend(horizonEl);
   }
+  detachWeatherParticles(horizonEl);
   horizonEl.innerHTML = html;
 
   // 비·눈·폭설·태풍바람·한파빙정은 Canvas 2D 입자 엔진으로 입체 렌더링
@@ -973,4 +978,136 @@ export function applyHeroScene(heroEl, input = {}) {
   }
 
   return scene;
+}
+
+/**
+ * 상세 화면 이탈·숨김 시 Canvas 애니메이션 루프 정리
+ */
+export function clearHeroScene(heroEl) {
+  const horizonEl = heroEl?.querySelector?.('.horizon');
+  if (horizonEl) detachWeatherParticles(horizonEl);
+}
+
+/**
+ * 운영 상세 페이지 레코드({ o, w, wrn, roadRisk })를 히어로 연출 입력 파라미터로 정규화
+ */
+export function buildHeroSceneInputFromRecord(r = {}, options = {}) {
+  const o = r?.o || null;
+  const w = r?.w || null;
+  const wrn = r?.wrn || null;
+  const rr = r?.roadRisk || null;
+  const kmaNow = w?.kma?.analysis?.now || null;
+  const kmaH0 = w?.kma?.hours?.[0] || null;
+  const activeWrns = Array.isArray(wrn?.active) ? wrn.active : [];
+
+  const temp = Number.isFinite(o?.temp) ? o.temp : (Number.isFinite(w?.current?.temp) ? w.current.temp : null);
+  const humidity = Number.isFinite(o?.humidity) ? o.humidity : (Number.isFinite(w?.current?.humidity) ? w.current.humidity : null);
+  const wind = Number.isFinite(o?.windSpeed)
+    ? o.windSpeed
+    : (Number.isFinite(kmaNow?.wind) ? kmaNow.wind : (Number.isFinite(w?.current?.wind) ? w.current.wind : 1.5));
+  const wmoCode = w?.current?.code;
+
+  // 1. 도로 살얼음 단계 (012선 도로위험 + 6h iceOutlook + 실측 결빙)
+  const iceRank = clamp(
+    Math.max(Number(rr?.iceLevel) || 0, Number(w?.ice?.rank) || 0, o?.surfaceCode === 5 ? 2 : 0),
+    0,
+    3
+  );
+
+  // 2. 특보 기반 플래그 (태풍·대설·한파·안개)
+  const typhoonWrn = activeWrns.find(a => a.kind === '태풍' || /태풍/.test(`${a.title || ''} ${a.headline || ''}`));
+  const isTyphoon = Boolean(typhoonWrn);
+  const isGale = !isTyphoon && Number(wind) >= 17;
+  let typhoonInfo = null;
+  if (isTyphoon) {
+    const rawTitle = `${typhoonWrn.headline || ''} ${typhoonWrn.title || ''}`.trim();
+    const m = rawTitle.match(/제?\s*(\d+)\s*호\s*태풍\s*([가-힣A-Za-z0-9]+)/);
+    typhoonInfo = m
+      ? { no: `제${m[1]}호`, name: m[2], maxWindMs: Number(wind.toFixed(1)), note: typhoonWrn.title || '태풍 특보 발효' }
+      : {
+          badgePrefix: '태풍 특보',
+          title: typhoonWrn.title || '태풍 특보 발효',
+          maxWindMs: Number(wind.toFixed(1)),
+          note: typhoonWrn.headline || '강풍·폭우 주의'
+        };
+  } else if (isGale) {
+    typhoonInfo = {
+      isGaleOnly: true,
+      badgePrefix: '강풍 경계',
+      title: `평균 풍속 ${Number(wind).toFixed(1)} m/s`,
+      maxWindMs: Number(wind.toFixed(1)),
+      note: '교량·고지대 강풍 주의'
+    };
+  }
+
+  const coldWave = activeWrns.some(a => a.kind === '한파') || (Number.isFinite(temp) && temp <= -10);
+
+  // 3. 강수 형태(PTY) 및 하늘 상태(SKY) 추론 (KMA 실황 > KMA 예보 > Open-Meteo WMO 순)
+  let pty = '0';
+  const obsDesc = String(o?.description || '');
+  const nowType = kmaNow?.wet ? String(kmaNow.type || '') : '';
+  const liveSnowOrWet = obsDesc || nowType;
+
+  if (o?.pty && o.pty !== '0') {
+    pty = String(o.pty);
+  } else if (/눈날림/.test(liveSnowOrWet)) {
+    pty = '7';
+  } else if (/진눈깨비|비\/눈/.test(liveSnowOrWet)) {
+    pty = '2';
+  } else if (/눈/.test(liveSnowOrWet)) {
+    pty = '3';
+  } else if (/비|소나기|빗방울/.test(liveSnowOrWet)) {
+    pty = '1';
+  } else if (Number.isFinite(wmoCode)) {
+    if ([71, 73, 75, 77, 85, 86].includes(wmoCode)) pty = '3';
+    else if ((wmoCode >= 51 && wmoCode <= 67) || (wmoCode >= 80 && wmoCode <= 82) || wmoCode >= 95) pty = '1';
+  } else if (kmaH0?.wet && kmaH0.pty && kmaH0.pty !== '0') {
+    pty = String(kmaH0.pty);
+  }
+
+  const snowAmount = Number(kmaH0?.snowCm ?? w?.rows?.[0]?.snow ?? 0);
+  const heavySnow =
+    activeWrns.some(a => a.kind === '대설' && a.level === '경보') ||
+    (pty === '3' && (snowAmount >= 3 || Number(o?.snowDepth) >= 5));
+
+  const lightning =
+    Boolean(kmaH0?.lightning) ||
+    (Number.isFinite(wmoCode) && wmoCode >= 95) ||
+    /뇌우|천둥|번개/.test(`${obsDesc} ${nowType}`);
+
+  const fog =
+    (Number.isFinite(o?.visibility) && o.visibility < 1000) ||
+    (Number(rr?.fogLevel) >= 2) ||
+    wmoCode === 45 ||
+    wmoCode === 48 ||
+    activeWrns.some(a => a.kind === '안개');
+
+  let sky = '1';
+  if (Number.isFinite(wmoCode)) {
+    if (wmoCode === 0 || wmoCode === 1) sky = '1';
+    else if (wmoCode === 2) sky = '3';
+    else if (wmoCode === 3) sky = '4';
+    else sky = kmaH0?.sky ? String(kmaH0.sky) : '4';
+  } else if (kmaH0?.sky) {
+    sky = String(kmaH0.sky);
+  }
+
+  return {
+    date: options.date || new Date(),
+    dayPhase: options.dayPhase || null,
+    hourKst: options.hourKst ?? null,
+    typhoon: isTyphoon || isGale,
+    typhoonInfo,
+    lightning,
+    heavySnow,
+    snowAmount,
+    pty,
+    sky,
+    fog,
+    wind,
+    windSpeed: wind,
+    humidity,
+    iceRank,
+    coldWave
+  };
 }
