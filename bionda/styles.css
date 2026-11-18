@@ -1704,6 +1704,8 @@ body.dark-mode .wrn-item-card strong { color: #ff8e7d; }
   right: 20px;
   top: 58px;
   width: min(380px, calc(100vw - 20px));
+  max-height: calc(100dvh - 76px);
+  overflow-y: auto;
   background: var(--card-bg);
   color: var(--ink);
   border: 1.5px solid #2b5c5a;
@@ -1783,6 +1785,55 @@ body.dark-mode .wrn-item-card strong { color: #ff8e7d; }
 .toggle-pill.on {
   background: #175c4c;
   color: #fff;
+}
+.setting-row-col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.setting-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.backend-pill {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  background: #e3eae7;
+  color: #425a57;
+}
+.backend-pill.is-live {
+  background: rgba(16, 185, 129, 0.16);
+  color: #0e7c58;
+}
+.backend-pill.is-snapshot {
+  background: rgba(245, 158, 11, 0.16);
+  color: #a15c07;
+}
+.api-base-bar {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.api-base-bar input {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.api-base-bar .minor-btn {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 /* In-App Alert Toast Banner (Compact Bottom-Right on PC so it doesn't block left road stations or tables!) */
@@ -2075,3 +2126,6 @@ body.dark-mode .tl-slot { background: #1a3034; color: #b9d1cd; }
 body.dark-mode .icehour { background: rgba(255, 255, 255, 0.05); }
 body.dark-mode .icehour[data-rank="1"] { background: #362211; color: #fdba74; border-color: #ea580c; }
 body.dark-mode .icehour[data-rank="2"] { background: #421c19; color: #fca5a5; border-color: #dc2626; }
+body.dark-mode .backend-pill { background: rgba(255, 255, 255, 0.08); color: #b9d1cd; }
+body.dark-mode .backend-pill.is-live { background: #164438; color: #86efac; }
+body.dark-mode .backend-pill.is-snapshot { background: #3b2a10; color: #fcd34d; }

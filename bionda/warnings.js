@@ -1,4 +1,7 @@
 // 기상청 CAP 특보 전종 파싱 · 도로관리 위험도 우선순위 정렬 · 발효/해제예정 시각 추출 (요구사항 3)
+import { apiUrl, isBackendAvailable } from './config.js';
+import { getSnapshotFallback } from './observations.js';
+
 const origin = 'https://www.weather.go.kr';
 const feed = origin + '/w/rss/cap/warning.do';
 const official = origin + '/w/wnuri-fct2021/weather/warning.do';
@@ -92,14 +95,16 @@ export function inPolygon(lat, lon, polygon) {
 
 async function retrieve(file = '') {
   const krFile = file ? file.replace(/_EN\.xml$/, '_KR.xml') : '';
+  const hasBackend = await isBackendAvailable();
   const candidates = file
     ? [
-        '/api/kma-cap?file=' + encodeURIComponent(krFile),
-        '/api/kma-cap?file=' + encodeURIComponent(file),
+        ...(hasBackend
+          ? [apiUrl('/api/kma-cap?file=' + encodeURIComponent(krFile)), apiUrl('/api/kma-cap?file=' + encodeURIComponent(file))]
+          : []),
         origin + '/w/repositary/xml/wrn/xml/' + krFile,
         origin + '/w/repositary/xml/wrn/xml/' + file
       ]
-    : ['/api/kma-cap', feed];
+    : [...(hasBackend ? [apiUrl('/api/kma-cap')] : []), feed];
 
   for (const url of candidates) {
     try {
@@ -262,57 +267,51 @@ export function buildWarningSummary(activeWarnings = []) {
   };
 }
 
+function toActiveWarningItem(w) {
+  return {
+    id: `${w.regId}:${w.kind}:${w.tmFc}`,
+    kind: w.kind,
+    level: w.level,
+    title: w.title,
+    areaName: w.regKo || '',
+    cancel: false,
+    action: w.cmd || '발효',
+    sent: Date.now(),
+    effectiveText: w.effectiveText,
+    isFutureEffective: w.isFutureEffective,
+    expiresText: w.expiresText ? (w.expiresText.includes('해제') || w.expiresText.includes('발표') ? w.expiresText : `${w.expiresText} 해제예정`) : '해제시각 추후 발표',
+    priorityScore: w.priorityScore ?? calcPriorityScore(w.kind, w.level)
+  };
+}
+
 export async function fetchPlaceWarnings(place) {
   const activeByKind = new Map();
   const recentEvents = [];
 
   // 1. Server-side KMA wrn_now_data.php endpoint (/api/warnings) or static snapshot fallback
-  try {
-    const res = await fetch('/api/warnings?name=' + encodeURIComponent(place.name) + '&lat=' + place.lat + '&lon=' + place.lon, {
-      signal: AbortSignal.timeout(6000)
-    });
-    if (res.ok) {
-      const data = await res.json();
-      for (const w of data.warnings || []) {
-        activeByKind.set(w.kind, {
-          id: `${w.regId}:${w.kind}:${w.tmFc}`,
-          kind: w.kind,
-          level: w.level,
-          title: w.title,
-          areaName: w.regKo || '',
-          cancel: false,
-          action: w.cmd || '발효',
-          sent: Date.now(),
-          effectiveText: w.effectiveText,
-          isFutureEffective: w.isFutureEffective,
-          expiresText: w.expiresText ? (w.expiresText.includes('해제') || w.expiresText.includes('발표') ? w.expiresText : `${w.expiresText} 해제예정`) : '해제시각 추후 발표',
-          priorityScore: w.priorityScore ?? calcPriorityScore(w.kind, w.level)
-        });
-      }
-    } else {
-      throw Error('fallback');
-    }
-  } catch {
+  let loadedPrimary = false;
+  if (await isBackendAvailable()) {
     try {
-      const snapRes = await fetch('./api/snapshot.json', { signal: AbortSignal.timeout(5000) });
-      if (snapRes.ok) {
-        const snap = await snapRes.json();
+      const res = await fetch(
+        apiUrl('/api/warnings?name=' + encodeURIComponent(place.name) + '&lat=' + place.lat + '&lon=' + place.lon),
+        { signal: AbortSignal.timeout(6000) }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        for (const w of data.warnings || []) {
+          activeByKind.set(w.kind, toActiveWarningItem(w));
+        }
+        loadedPrimary = true;
+      }
+    } catch {}
+  }
+  if (!loadedPrimary) {
+    try {
+      const snap = await getSnapshotFallback();
+      if (snap) {
         const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
         for (const w of snap?.warnings?.[key]?.warnings || []) {
-          activeByKind.set(w.kind, {
-            id: `${w.regId}:${w.kind}:${w.tmFc}`,
-            kind: w.kind,
-            level: w.level,
-            title: w.title,
-            areaName: w.regKo || '',
-            cancel: false,
-            action: w.cmd || '발효',
-            sent: Date.now(),
-            effectiveText: w.effectiveText,
-            isFutureEffective: w.isFutureEffective,
-            expiresText: w.expiresText ? (w.expiresText.includes('해제') || w.expiresText.includes('발표') ? w.expiresText : `${w.expiresText} 해제예정`) : '해제시각 추후 발표',
-            priorityScore: w.priorityScore ?? calcPriorityScore(w.kind, w.level)
-          });
+          activeByKind.set(w.kind, toActiveWarningItem(w));
         }
       }
     } catch {}

@@ -1,24 +1,24 @@
 {
   "schema": "bionda-briefing-v1",
-  "generatedAt": "2026-11-18T12:15:26.338Z",
-  "generatedKst": "2026-11-18 21:15 KST",
+  "generatedAt": "2026-11-18T13:04:40.172Z",
+  "generatedKst": "2026-11-18 22:04 KST",
   "corridor": "고속국도 제12호선 (광주대구선 · 기상청 도로기상 14번)",
   "latestImage": {
     "slot": "2026-11-18-1800",
     "slotLabelKst": "2026-11-18 18:00 KST",
     "url": "./api/briefing/goryeong-2026-11-18-1800.jpg",
     "latestAliasUrl": "./api/briefing/latest.jpg",
-    "sizeBytes": 126234,
+    "sizeBytes": 133757,
     "quality": 0.72
   },
   "archiveIndexUrl": "./api/briefing/index.json",
   "summary": {
     "total": 8,
-    "danger": 0,
-    "directive": 5,
+    "danger": 1,
+    "directive": 6,
     "watch": 1,
-    "calm": 2,
-    "headline": "긴급(빨강) 0 · 제설지시(주황) 5 · 관심·비(노랑) 1 · 평온 2"
+    "calm": 0,
+    "headline": "긴급(빨강) 1 · 제설지시(주황) 6 · 관심·비(노랑) 1 · 평온 0"
   },
   "regions": [
     {
@@ -26,14 +26,14 @@
       "site": "현풍읍",
       "lat": 35.697,
       "lon": 128.447,
-      "tier": 0,
-      "tierLabel": "평온",
-      "tempC": 10,
-      "roadTempC": 9.8,
-      "surfaceState": "관측중",
+      "tier": 2,
+      "tierLabel": "지시·주의",
+      "tempC": 10.2,
+      "roadTempC": 10.1,
+      "surfaceState": "건조",
       "roadStation": "논공교(도)",
-      "condition": "노면 관측중",
-      "humidityPct": 63.5,
+      "condition": "대체로 맑음",
+      "humidityPct": 57.9,
       "todayPrecipMm": 0,
       "maxPop6hPct": 60,
       "rainTiming": "23:00~00:00 강수예상",
@@ -52,9 +52,9 @@
         }
       ],
       "ice": {
-        "level": "뚜렷한 신호 없음",
-        "rank": 0,
-        "shortReason": "향후 6시간 결빙 위험 조건 없음 (정상)"
+        "level": "관심",
+        "rank": 1,
+        "shortReason": "04:00 최근 강수와 저온(교량 결빙 관심)"
       },
       "warnings": [],
       "milepostKm": 171.6
@@ -66,19 +66,19 @@
       "lon": 127.774,
       "tier": 2,
       "tierLabel": "지시·주의",
-      "tempC": 6.6,
-      "roadTempC": 7,
+      "tempC": 5.9,
+      "roadTempC": 6.4,
       "surfaceState": "습윤",
       "roadStation": "함양(도)",
-      "condition": "비",
-      "humidityPct": 76.8,
+      "condition": "이슬비",
+      "humidityPct": 81.6,
       "todayPrecipMm": 1,
-      "maxPop6hPct": 71,
-      "rainTiming": "현재~01:00 비중",
+      "maxPop6hPct": 60,
+      "rainTiming": "23:00~01:00 강수예상",
       "horizons": [
         {
           "window": "향후 3시간",
-          "status": "비·빗방울 예상"
+          "status": "비 예상"
         },
         {
           "window": "3~6시간",
@@ -104,15 +104,15 @@
       "lon": 127.91,
       "tier": 2,
       "tierLabel": "지시·주의",
-      "tempC": 7.1,
-      "roadTempC": 8.1,
+      "tempC": 6.6,
+      "roadTempC": 7.4,
       "surfaceState": "습윤",
       "roadStation": "남상졸음(도)",
-      "condition": "비",
-      "humidityPct": 77,
+      "condition": "대체로 맑음",
+      "humidityPct": 77.4,
       "todayPrecipMm": 0,
       "maxPop6hPct": 60,
-      "rainTiming": "현재~00:00 비중",
+      "rainTiming": "23:00~01:00 강수예상",
       "horizons": [
         {
           "window": "향후 3시간",
@@ -130,7 +130,7 @@
       "ice": {
         "level": "관심",
         "rank": 1,
-        "shortReason": "01:00 최근 강수와 저온(교량 결빙 관심)"
+        "shortReason": "02:00 최근 강수와 저온(교량 결빙 관심)"
       },
       "warnings": [],
       "milepostKm": 115.9
@@ -140,21 +140,21 @@
       "site": "야로면",
       "lat": 35.706,
       "lon": 128.168,
-      "tier": 2,
-      "tierLabel": "지시·주의",
-      "tempC": 6.4,
-      "roadTempC": 8.2,
+      "tier": 3,
+      "tierLabel": "긴급·경고",
+      "tempC": 5.8,
+      "roadTempC": 7.9,
       "surfaceState": "건조",
       "roadStation": "거창휴(도)",
-      "condition": "맑음",
-      "humidityPct": 67.7,
+      "condition": "대체로 맑음",
+      "humidityPct": 74.8,
       "todayPrecipMm": 0,
-      "maxPop6hPct": 60,
-      "rainTiming": "22:00~00:00 강수예상",
+      "maxPop6hPct": 40,
+      "rainTiming": "️ 23:00~01:00 눈예상",
       "horizons": [
         {
           "window": "향후 3시간",
-          "status": "빗방울·비 예상"
+          "status": "빗방울·빗방울·눈날림 예상"
         },
         {
           "window": "3~6시간",
@@ -178,21 +178,21 @@
       "site": "대가야읍",
       "lat": 35.728,
       "lon": 128.263,
-      "tier": 0,
-      "tierLabel": "평온",
-      "tempC": 9.7,
-      "roadTempC": 11.2,
+      "tier": 2,
+      "tierLabel": "지시·주의",
+      "tempC": 9.5,
+      "roadTempC": 10.7,
       "surfaceState": "건조",
       "roadStation": "양전교(도)",
       "condition": "대체로 맑음",
-      "humidityPct": 63,
+      "humidityPct": 58,
       "todayPrecipMm": 0,
       "maxPop6hPct": 60,
-      "rainTiming": "22:00~00:00 강수예상",
+      "rainTiming": "23:00~01:00 강수예상",
       "horizons": [
         {
           "window": "향후 3시간",
-          "status": "빗방울·비 예상"
+          "status": "비·빗방울 예상"
         },
         {
           "window": "3~6시간",
@@ -204,9 +204,9 @@
         }
       ],
       "ice": {
-        "level": "뚜렷한 신호 없음",
-        "rank": 0,
-        "shortReason": "향후 6시간 결빙 위험 조건 없음 (정상)"
+        "level": "관심",
+        "rank": 1,
+        "shortReason": "04:00 최근 강수와 저온(교량 결빙 관심)"
       },
       "warnings": [],
       "milepostKm": 154.6
@@ -218,15 +218,15 @@
       "lon": 127.39,
       "tier": 1,
       "tierLabel": "관심",
-      "tempC": 7.1,
-      "roadTempC": 8,
+      "tempC": 6.6,
+      "roadTempC": 7.4,
       "surfaceState": "습윤",
       "roadStation": "남원주차장(도)",
-      "condition": "비",
-      "humidityPct": 83.1,
-      "todayPrecipMm": 4,
+      "condition": "흐림",
+      "humidityPct": 86.2,
+      "todayPrecipMm": 4.5,
       "maxPop6hPct": 100,
-      "rainTiming": "현재~01:00 비중",
+      "rainTiming": "현재~02:00 비중",
       "horizons": [
         {
           "window": "향후 3시간",
@@ -256,19 +256,19 @@
       "lon": 127.725,
       "tier": 2,
       "tierLabel": "지시·주의",
-      "tempC": 6.6,
-      "roadTempC": 7,
+      "tempC": 5.9,
+      "roadTempC": 6.4,
       "surfaceState": "습윤",
       "roadStation": "함양(도)",
-      "condition": "비",
-      "humidityPct": 76.8,
+      "condition": "이슬비",
+      "humidityPct": 81.6,
       "todayPrecipMm": 1,
-      "maxPop6hPct": 71,
+      "maxPop6hPct": 60,
       "rainTiming": "현재~01:00 비중",
       "horizons": [
         {
           "window": "향후 3시간",
-          "status": "비·빗방울 예상"
+          "status": "비 예상"
         },
         {
           "window": "3~6시간",
@@ -282,7 +282,7 @@
       "ice": {
         "level": "관심",
         "rank": 1,
-        "shortReason": "02:00 최근 강수와 저온(교량 결빙 관심)"
+        "shortReason": "03:00 최근 강수와 저온(교량 결빙 관심)"
       },
       "warnings": [],
       "milepostKm": 93.5
@@ -294,19 +294,19 @@
       "lon": 127.91,
       "tier": 2,
       "tierLabel": "지시·주의",
-      "tempC": 7.1,
-      "roadTempC": 8.1,
+      "tempC": 6.6,
+      "roadTempC": 7.4,
       "surfaceState": "습윤",
       "roadStation": "남상졸음(도)",
-      "condition": "비",
-      "humidityPct": 77,
+      "condition": "대체로 맑음",
+      "humidityPct": 77.4,
       "todayPrecipMm": 0,
       "maxPop6hPct": 60,
-      "rainTiming": "현재~00:00 비중",
+      "rainTiming": "00:00~01:00 강수예상",
       "horizons": [
         {
           "window": "향후 3시간",
-          "status": "비·빗방울 예상"
+          "status": "비 예상"
         },
         {
           "window": "3~6시간",
@@ -320,7 +320,7 @@
       "ice": {
         "level": "관심",
         "rank": 1,
-        "shortReason": "01:00 최근 강수와 저온(교량 결빙 관심)"
+        "shortReason": "00:00 최근 강수와 저온(교량 결빙 관심)"
       },
       "warnings": [],
       "milepostKm": 120.5

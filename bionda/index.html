@@ -398,6 +398,20 @@
         </div>
         <button type="button" id="toggleSimMode" class="toggle-pill" aria-pressed="false">실제 데이터</button>
       </div>
+      <div class="setting-row setting-row-col">
+        <div class="setting-row-head">
+          <div>
+            <b>🔌 실시간 기상청 백엔드 연동</b>
+            <small id="backendModeLabel">백엔드 연결 상태 확인 중…</small>
+          </div>
+          <span id="backendModeBadge" class="backend-pill">확인중</span>
+        </div>
+        <div class="api-base-bar">
+          <input id="apiBaseInput" type="url" placeholder="https://your-app.onrender.com (비워두면 자동)" aria-label="실시간 백엔드 서버 HTTPS 주소">
+          <button type="button" id="saveApiBaseBtn" class="minor-btn">연결</button>
+          <button type="button" id="resetApiBaseBtn" class="minor-btn">초기화</button>
+        </div>
+      </div>
     </div>
   </aside>
 

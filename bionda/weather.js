@@ -1,5 +1,7 @@
-// 기상청 단기·초단기예보(비·눈 시작/종료·3/6/12시간 전망) + Open-Meteo 시계열·ICON 앙상블 통합 모듈
+// 기상청 단기·초단기예보(비·눈 시작/종료·3/6/12시간 전망) + Open-Meteo 다중좌표 일괄 조회·ICON 앙상블 통합 모듈
 import { iceOutlook } from './ice.js';
+import { apiUrl, isBackendAvailable } from './config.js';
+import { getSnapshotFallback } from './observations.js';
 
 const HOUR = 3600000;
 const kst = ms => new Date(ms + 9 * HOUR).toISOString().slice(0, 16);
@@ -7,50 +9,150 @@ const val = x => Number.isFinite(x) ? x : null;
 const currentFields = 'temperature_2m,relative_humidity_2m,weather_code,precipitation,wind_speed_10m';
 const hourlyFields = currentFields + ',precipitation_probability,rain,showers,snowfall';
 
-let snapshotCache = null;
-async function getSnapshotFallback() {
-  if (snapshotCache) return snapshotCache;
-  try {
-    const r = await fetch('./api/snapshot.json', { signal: AbortSignal.timeout(6000) });
-    if (r.ok) {
-      snapshotCache = await r.json();
-      return snapshotCache;
-    }
-  } catch {}
-  return null;
-}
+const coordKey = p => `${Number(p.lat).toFixed(4)},${Number(p.lon).toFixed(4)}`;
+const omForecastCache = new Map(); // coordKey -> { expires, data }
+const omEnsembleCache = new Map(); // coordKey -> { expires, fetchedAt, data }
+let ensembleCooldownUntil = 0;
+let forecastPrefetchPromise = null;
+let ensemblePrefetchPromise = null;
 
 async function requestOpenMeteo(endpoint, query) {
+  if (endpoint === 'ensemble' && Date.now() < ensembleCooldownUntil) {
+    throw Error('앙상블 API 일일 요청 한도 쿨다운 중');
+  }
   const params = new URLSearchParams(query);
   const direct = endpoint === 'ensemble'
     ? 'https://ensemble-api.open-meteo.com/v1/ensemble'
     : 'https://api.open-meteo.com/v1/forecast';
-  const proxy = `/api/open-meteo?endpoint=${endpoint}&` + params.toString();
+  const urls = [];
+  if (await isBackendAvailable()) {
+    urls.push(apiUrl(`/api/open-meteo?endpoint=${endpoint}&` + params.toString()));
+  }
+  urls.push(direct + '?' + params.toString());
 
-  for (const url of [proxy, direct + '?' + params.toString()]) {
+  for (const url of urls) {
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(12000) });
+      if (response.status === 429) {
+        if (endpoint === 'ensemble') ensembleCooldownUntil = Date.now() + 15 * 60000;
+        continue;
+      }
       if (response.ok) {
         const data = await response.json();
-        if (Array.isArray(data.hourly?.time) && data.hourly.time.length) return data;
+        const validSingle = data && !Array.isArray(data) && Array.isArray(data.hourly?.time) && data.hourly.time.length;
+        const validBatch = Array.isArray(data) && data.length > 0 && Array.isArray(data[0]?.hourly?.time);
+        if (validSingle || validBatch) return data;
       }
     } catch {}
   }
   throw Error('격자 날씨 자료 조회 지연');
 }
 
+function dedupePlaces(placesList) {
+  const seen = new Map();
+  for (const p of placesList || []) {
+    if (!p || !Number.isFinite(Number(p.lat)) || !Number.isFinite(Number(p.lon))) continue;
+    const k = coordKey(p);
+    if (!seen.has(k)) seen.set(k, p);
+  }
+  return [...seen.values()];
+}
+
+/**
+ * 복수 관심지역의 Open-Meteo 예보(forecast) 및 앙상블(ensemble)을 콤마 일괄 쿼리(각 1회 호출)로 미리 조회합니다.
+ */
+export async function prefetchOpenMeteo(placesList, { force = false } = {}) {
+  const unique = dedupePlaces(placesList);
+  if (!unique.length) return;
+  const now = Date.now();
+
+  if (force) {
+    omForecastCache.clear();
+  }
+
+  const needFcst = unique.filter(p => {
+    const hit = omForecastCache.get(coordKey(p));
+    return !hit || hit.expires <= now;
+  });
+
+  if (needFcst.length) {
+    forecastPrefetchPromise = (async () => {
+      try {
+        const raw = await requestOpenMeteo('forecast', {
+          latitude: needFcst.map(p => Number(p.lat).toFixed(4)).join(','),
+          longitude: needFcst.map(p => Number(p.lon).toFixed(4)).join(','),
+          timezone: 'Asia/Seoul',
+          current: currentFields,
+          hourly: hourlyFields,
+          past_days: 1,
+          forecast_days: 2
+        });
+        const items = Array.isArray(raw) ? raw : [raw];
+        needFcst.forEach((p, idx) => {
+          const item = items[idx];
+          if (item && Array.isArray(item.hourly?.time) && item.hourly.time.length) {
+            omForecastCache.set(coordKey(p), { expires: Date.now() + 3 * 60000, data: item });
+          }
+        });
+      } catch {}
+    })().finally(() => {
+      forecastPrefetchPromise = null;
+    });
+  }
+
+  const needEns = Date.now() >= ensembleCooldownUntil
+    ? unique.filter(p => {
+        const hit = omEnsembleCache.get(coordKey(p));
+        if (!hit || hit.expires <= now) return true;
+        if (force && now - hit.fetchedAt > 5 * 60000) return true;
+        return false;
+      })
+    : [];
+
+  if (needEns.length) {
+    ensemblePrefetchPromise = (async () => {
+      try {
+        const raw = await requestOpenMeteo('ensemble', {
+          latitude: needEns.map(p => Number(p.lat).toFixed(4)).join(','),
+          longitude: needEns.map(p => Number(p.lon).toFixed(4)).join(','),
+          timezone: 'Asia/Seoul',
+          hourly: 'rain,snowfall',
+          models: 'icon_seamless',
+          forecast_hours: 8
+        });
+        const items = Array.isArray(raw) ? raw : [raw];
+        needEns.forEach((p, idx) => {
+          const item = items[idx];
+          if (item && Array.isArray(item.hourly?.time) && item.hourly.time.length) {
+            const ts = Date.now();
+            omEnsembleCache.set(coordKey(p), { expires: ts + 30 * 60000, fetchedAt: ts, data: item });
+          }
+        });
+      } catch {}
+    })().finally(() => {
+      ensemblePrefetchPromise = null;
+    });
+  }
+
+  await forecastPrefetchPromise;
+}
+
 export async function loadKmaForecast(place) {
   const params = new URLSearchParams({ lat: place.lat, lon: place.lon });
-  try {
-    const r = await fetch('/api/forecast?' + params.toString(), { signal: AbortSignal.timeout(12000) });
-    if (r.ok) {
-      const d = await r.json();
-      if (d?.ok) return d;
-    }
-  } catch {}
+  if (await isBackendAvailable()) {
+    try {
+      const r = await fetch(apiUrl('/api/forecast?' + params.toString()), { signal: AbortSignal.timeout(12000) });
+      if (r.ok) {
+        const d = await r.json();
+        if (d?.ok) return { ...d, _fromSnapshot: false };
+      }
+    } catch {}
+  }
   const snap = await getSnapshotFallback();
   const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
-  if (snap?.forecasts?.[key]) return snap.forecasts[key];
+  if (snap?.forecasts?.[key]) {
+    return { ...snap.forecasts[key], _fromSnapshot: true, _snapshotGeneratedAt: snap.generatedAt || null };
+  }
   return null;
 }
 
@@ -90,10 +192,34 @@ function ensembleProbability(h, variable, index) {
   return Math.round((100 * amounts.filter(v => v >= 0.1).length) / amounts.length);
 }
 
+async function getSingleOpenMeteoForecast(place) {
+  if (forecastPrefetchPromise) {
+    try { await forecastPrefetchPromise; } catch {}
+  }
+  const key = coordKey(place);
+  const hit = omForecastCache.get(key);
+  if (hit && hit.expires > Date.now()) return hit.data;
+
+  const raw = await requestOpenMeteo('forecast', {
+    latitude: place.lat,
+    longitude: place.lon,
+    timezone: 'Asia/Seoul',
+    current: currentFields,
+    hourly: hourlyFields,
+    past_days: 1,
+    forecast_days: 2
+  });
+  const data = Array.isArray(raw) ? raw[0] : raw;
+  if (data && Array.isArray(data.hourly?.time) && data.hourly.time.length) {
+    omForecastCache.set(key, { expires: Date.now() + 3 * 60000, data });
+    return data;
+  }
+  throw Error('격자 날씨 자료 조회 지연');
+}
+
 export async function loadWeather(place, obs = null) {
-  const base = { latitude: place.lat, longitude: place.lon, timezone: 'Asia/Seoul' };
   const [omSettled, kmaSettled] = await Promise.allSettled([
-    requestOpenMeteo('forecast', { ...base, current: currentFields, hourly: hourlyFields, past_days: 1, forecast_days: 2 }),
+    getSingleOpenMeteoForecast(place),
     loadKmaForecast(place)
   ]);
 
@@ -197,14 +323,29 @@ export async function loadWeather(place, obs = null) {
 
 export async function loadProbabilities(place, rows) {
   try {
-    const ens = await requestOpenMeteo('ensemble', {
-      latitude: place.lat,
-      longitude: place.lon,
-      timezone: 'Asia/Seoul',
-      hourly: 'rain,snowfall',
-      models: 'icon_seamless',
-      forecast_hours: 8
-    });
+    if (ensemblePrefetchPromise) {
+      try { await ensemblePrefetchPromise; } catch {}
+    }
+    const key = coordKey(place);
+    const hit = omEnsembleCache.get(key);
+    let ens = hit && hit.expires > Date.now() ? hit.data : null;
+
+    if (!ens) {
+      const raw = await requestOpenMeteo('ensemble', {
+        latitude: place.lat,
+        longitude: place.lon,
+        timezone: 'Asia/Seoul',
+        hourly: 'rain,snowfall',
+        models: 'icon_seamless',
+        forecast_hours: 8
+      });
+      ens = Array.isArray(raw) ? raw[0] : raw;
+      if (ens && Array.isArray(ens.hourly?.time) && ens.hourly.time.length) {
+        const ts = Date.now();
+        omEnsembleCache.set(key, { expires: ts + 30 * 60000, fetchedAt: ts, data: ens });
+      }
+    }
+
     for (const r of rows) {
       const idx = ens.hourly.time.indexOf(r.time);
       const rPop = ensembleProbability(ens.hourly, 'rain', idx);
@@ -213,7 +354,7 @@ export async function loadProbabilities(place, rows) {
       if (sPop !== null) r.snowPop = sPop;
     }
   } catch {
-    // Fallback heuristic if ensemble API is slow
+    // Fallback heuristic if ensemble API is slow or 429 rate-limited
     for (const r of rows) {
       if (r.rainPop === null) r.rainPop = r.temp !== null && r.temp <= 0 ? 0 : (r.pop ?? 0);
       if (r.snowPop === null) r.snowPop = r.temp !== null && r.temp <= 1 ? (r.pop ?? 0) : 0;

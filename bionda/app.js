@@ -1,8 +1,9 @@
-import { loadWeather, loadProbabilities } from './weather.js';
+import { loadWeather, loadProbabilities, prefetchOpenMeteo } from './weather.js';
 import { loadObservation, loadRoadStations } from './observations.js';
 import { fetchPlaceWarnings, buildWarningSummary } from './warnings.js';
 import { classifySeverityTier } from './ice.js';
 import { renderOverviewCanvas, renderDetailCanvas, canvasToJpgBlob } from './share.js';
+import { apiUrl, getApiBase, setApiBase, probeBackend, isBackendAvailable, getBackendStatusSnapshot } from './config.js';
 
 const $ = id => document.getElementById(id);
 const el = (tag, txt = '', cls = '') => {
@@ -159,6 +160,14 @@ export const summary = c =>
     : '뇌우';
 
 const fmt = t => (t ? t.slice(5, 16).replace('T', ' ') : '—');
+const escHtml = s =>
+  String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const toEpochMs = t => {
+  if (!t) return NaN;
+  const s = String(t).trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) return Date.parse(s + ':00+09:00');
+  return Date.parse(s);
+};
 
 const records = new Map();
 let roadStations = [];
@@ -429,18 +438,51 @@ async function syncWakeLock() {
   updateMonitorStatusBar();
 }
 
+function syncBackendStatusUI() {
+  const badge = $('backendModeBadge');
+  const label = $('backendModeLabel');
+  const input = $('apiBaseInput');
+  const st = getBackendStatusSnapshot();
+  const base = getApiBase();
+  if (input && document.activeElement !== input) {
+    input.value = base;
+  }
+  if (!badge || !label) return;
+  badge.classList.remove('is-live', 'is-snapshot');
+  if (!st) {
+    badge.textContent = '확인중';
+    label.textContent = base ? `연결 확인 중 (${base})` : '동일 서버 /api 및 정적 스냅샷 확인 중…';
+  } else if (st.available) {
+    badge.textContent = '🟢 실시간 KMA';
+    badge.classList.add('is-live');
+    label.textContent = st.base
+      ? `외부 백엔드 실시간 연동 중 (${st.base})`
+      : '로컬/서버 Node 백엔드(/api/*) 실시간 기상청 관측 연동 중';
+  } else {
+    badge.textContent = '🟡 스냅샷+모델';
+    badge.classList.add('is-snapshot');
+    label.textContent = st.base
+      ? `연결 대기(${st.base}) · 스냅샷 + Open-Meteo 실시간 동작`
+      : '정적 호스팅(스냅샷 관측) + Open-Meteo 실시간 모델 동작 중';
+  }
+}
+
 // 감시 상태 요약은 [⚙ 설정] 패널 내부 상단에 직관적으로 표시!
 function updateMonitorStatusBar() {
   const dot = $('wakeDot');
   const txt = $('statusSummaryText');
   if (!dot || !txt) return;
   dot.classList.toggle('active', settings.wakeLock);
+  const st = getBackendStatusSnapshot();
+  const modeTxt = st?.available ? '🟢 실시간 기상청' : st ? '🟡 스냅샷+Open-Meteo' : '🔄 연결 확인중';
   const parts = [
     settings.wakeLock ? '👁️ 계속 켜두기 작동 중' : '👁️ 절전 기본',
     settings.sound ? '🔔 알림 소리 ON' : '🔕 소리 OFF',
-    settings.sortRisk ? '위험지역 정렬됨' : '기본순서'
+    settings.sortRisk ? '위험지역 정렬됨' : '기본순서',
+    modeTxt
   ];
   txt.textContent = parts.join(' · ');
+  syncBackendStatusUI();
 }
 
 // 인앱 특보/위험 변동 토스트 배너 (요구사항 5 — 12초 후 자동 닫힘으로 하단 화면 가림 방지)
@@ -688,14 +730,61 @@ export function rainTimingSummary(w, o) {
 }
 
 function updateUnifiedGlobalStamp() {
-  let latestStr = null;
+  let latestObs = null;
+  let latestObsMs = -Infinity;
+  let latestModel = null;
+  let latestModelMs = -Infinity;
+  let anyObsSnapshot = false;
+
   for (const p of places) {
     const r = getEffectiveRecord(p);
-    const candidate = r.o?.time || r.w?.current?.time;
-    if (candidate && (!latestStr || candidate > latestStr)) latestStr = candidate;
+    if (r.o?.time) {
+      if (r.o._fromSnapshot) anyObsSnapshot = true;
+      const ms = toEpochMs(r.o.time);
+      if (Number.isFinite(ms) && ms > latestObsMs) {
+        latestObsMs = ms;
+        latestObs = r.o.time;
+      } else if (!latestObs) {
+        latestObs = r.o.time;
+      }
+    }
+    if (r.w?.current?.time) {
+      const ms = toEpochMs(r.w.current.time);
+      if (Number.isFinite(ms) && ms > latestModelMs) {
+        latestModelMs = ms;
+        latestModel = r.w.current.time;
+      } else if (!latestModel) {
+        latestModel = r.w.current.time;
+      }
+    }
   }
-  const stampFormatted = latestStr ? fmt(latestStr) : fmt(new Date(Date.now() + 9 * 3600000).toISOString());
-  $('globalStamp').textContent = `기준 자료: ${stampFormatted} · 5분마다 자동 갱신 (모든 카드 통합 기준 시각)`;
+
+  const latestOverall =
+    latestModelMs > latestObsMs && latestModel
+      ? latestModel
+      : latestObs || latestModel;
+  const stampFormatted = latestOverall
+    ? fmt(latestOverall)
+    : fmt(new Date(Date.now() + 9 * 3600000).toISOString());
+
+  let footerLabel;
+  if (latestObs && latestModel) {
+    if (anyObsSnapshot) {
+      footerLabel = `기준 자료: 관측 ${fmt(latestObs)}(스냅샷) · 모델 ${fmt(latestModel)}(실시간) · Open-Meteo 5분마다 자동 갱신`;
+    } else if (fmt(latestObs) === fmt(latestModel)) {
+      footerLabel = `기준 자료: ${fmt(latestObs)} · 5분마다 실시간 자동 갱신 (모든 카드 통합 기준 시각)`;
+    } else {
+      footerLabel = `기준 자료: 도로관측 ${fmt(latestObs)} · 모델 ${fmt(latestModel)} · 5분마다 실시간 자동 갱신`;
+    }
+  } else if (latestObs) {
+    footerLabel = `기준 자료: 관측 ${fmt(latestObs)}${anyObsSnapshot ? '(스냅샷)' : ''} · 5분마다 자동 갱신`;
+  } else if (latestModel) {
+    footerLabel = `기준 자료: 모델 ${fmt(latestModel)} · 5분마다 자동 갱신`;
+  } else {
+    footerLabel = `기준 자료: ${stampFormatted} · 5분마다 자동 갱신 (모든 카드 통합 기준 시각)`;
+  }
+
+  $('globalStamp').textContent = footerLabel;
   return stampFormatted;
 }
 
@@ -843,14 +932,14 @@ function renderMiniMap() {
     const roadPart = roadVal != null ? `노면 ${roadVal.toFixed(1)}°` : (p.site || '');
     const statusPart = hasWrn ? rec.wrn.top.title : timing.shortMapText;
 
-    svg += `<g class="map-node" data-coord="${coord(p)}" style="cursor:pointer">
+    svg += `<g class="map-node" data-coord="${escHtml(coord(p))}" style="cursor:pointer">
       <line x1="${px}" y1="${py}" x2="${slot.cx}" y2="${slot.anchorY}" stroke="${fillCol}" stroke-width="1.3" stroke-dasharray="2.5,2.5" opacity="0.85"/>
       <circle cx="${px}" cy="${py}" r="${isPlaceSelected ? 13 : 10.5}" fill="${ringCol}"/>
       <circle cx="${px}" cy="${py}" r="5.5" fill="${fillCol}" stroke="${isPlaceSelected ? '#38bdf8' : '#ffffff'}" stroke-width="${isPlaceSelected ? 2.4 : 1.7}"/>
       <g transform="translate(${slot.cx},${slot.cy})">
         <rect x="-62" y="-18" width="124" height="36" rx="7" fill="rgba(8, 25, 28, 0.94)" stroke="${isPlaceSelected ? '#38bdf8' : fillCol}" stroke-width="${isPlaceSelected ? 2 : 1.4}"/>
-        <text x="0" y="-3" text-anchor="middle" fill="#ffffff" font-size="10.4" font-weight="800">${titleLabel}</text>
-        <text x="0" y="11" text-anchor="middle" fill="#b5e8de" font-size="9" font-weight="650">${roadPart} · ${statusPart}</text>
+        <text x="0" y="-3" text-anchor="middle" fill="#ffffff" font-size="10.4" font-weight="800">${escHtml(titleLabel)}</text>
+        <text x="0" y="11" text-anchor="middle" fill="#b5e8de" font-size="9" font-weight="650">${escHtml(roadPart)} · ${escHtml(statusPart)}</text>
       </g>
     </g>`;
   });
@@ -874,8 +963,8 @@ function renderMiniMap() {
     const trTxt = stn.roadTemp !== null ? `노면 ${stn.roadTemp.toFixed(1)}°C` : '';
     const dotCol = classifyStnCol(stn);
     const isSel = selectedWindyKey === `stn:${stn.stnId}`;
-    svg += `<g class="stn-dot" data-stnid="${stn.stnId}" role="button" tabindex="0" transform="translate(${sx},${sy})" style="cursor:pointer">
-      <title>[도로기상 ${kmTxt}] ${stn.name} (${stn.stationType}, 고도 ${stn.elevation ?? '—'}m) ${trTxt} · 클릭 시 위성·레이더 이동</title>
+    svg += `<g class="stn-dot" data-stnid="${escHtml(stn.stnId)}" role="button" tabindex="0" transform="translate(${sx},${sy})" style="cursor:pointer">
+      <title>[도로기상 ${escHtml(kmTxt)}] ${escHtml(stn.name)} (${escHtml(stn.stationType)}, 고도 ${escHtml(stn.elevation ?? '—')}m) ${escHtml(trTxt)} · 클릭 시 위성·레이더 이동</title>
       <circle cx="0" cy="0" r="10.5" fill="transparent"/>
       ${isSel ? '<circle cx="0" cy="0" r="9.5" fill="rgba(56,189,248,0.28)" stroke="#38bdf8" stroke-width="1.3"/>' : ''}
       <circle class="stn-marker-core" cx="0" cy="0" r="4.6" fill="${dotCol}" stroke="#082427" stroke-width="1.3"/>
@@ -1031,19 +1120,27 @@ async function loadKmaRadarImage(force = false) {
   const box = $('kmaRadarContainer');
   if (!box) return;
   box.innerHTML = '<div class="radar-placeholder">기상청 API허브 전국 레이더 HSR 합성영상을 불러오는 중…</div>';
+  const hasBackend = await isBackendAvailable(force);
   const img = new Image();
   img.alt = '기상청 공식 전국 강수 레이더 HSR 합성 영상';
   img.onload = () => box.replaceChildren(img);
-  img.onerror = () => {
-    const fallback = new Image();
-    fallback.alt = '기상청 레이더 스냅샷 영상';
-    fallback.onload = () => box.replaceChildren(fallback);
-    fallback.onerror = () => {
-      box.innerHTML = '<div class="radar-placeholder">레이더 영상을 불러오지 못했습니다. 서버 환경변수 KMA_SERVICE_KEY / KMA_RADAR_KEY 설정을 확인하세요.</div>';
+  if (hasBackend) {
+    img.onerror = () => {
+      const fallback = new Image();
+      fallback.alt = '기상청 레이더 스냅샷 영상';
+      fallback.onload = () => box.replaceChildren(fallback);
+      fallback.onerror = () => {
+        box.innerHTML = '<div class="radar-placeholder">레이더 영상을 불러오지 못했습니다. 서버 환경변수 KMA_SERVICE_KEY / KMA_RADAR_KEY 설정을 확인하세요.</div>';
+      };
+      fallback.src = './api/radar.png';
     };
-    fallback.src = './api/radar.png';
-  };
-  img.src = '/api/radar?t=' + (force ? Date.now() : Math.floor(Date.now() / 180000));
+    img.src = apiUrl('/api/radar?t=' + (force ? Date.now() : Math.floor(Date.now() / 180000)));
+  } else {
+    img.onerror = () => {
+      box.innerHTML = '<div class="radar-placeholder">정적 호스팅 모드에서는 실시간 HSR 레이더 대신 배포 스냅샷 또는 Windy 위성·레이더를 이용하세요.</div>';
+    };
+    img.src = './api/radar.png';
+  }
 }
 
 const ACTION_STAGE_META = [
@@ -1450,7 +1547,7 @@ function renderDetail() {
   $('roadSurfaceInfo').textContent = roadParts.join(' · ') || '기상청 도로기상관측망 연동 중';
 
   $('stamp').textContent = [
-    o ? `${o.name} 관측 · ${n(o.distanceKm, 1)} km · ${fmt(o.time)}` : '',
+    o ? `${o.name} 관측${o._fromSnapshot ? '(스냅샷)' : ''} · ${n(o.distanceKm, 1)} km · ${fmt(o.time)}` : '',
     w?.current ? `모델 ${fmt(w.current.time)}` : '',
     o?.snowDepth != null ? `관측 적설 ${n(o.snowDepth, 1)} cm` : ''
   ].filter(Boolean).join('   /   ') || '자료 시각 확인 중';
@@ -1719,8 +1816,8 @@ function renderDetail() {
 
   $('radarLink').href = `https://www.windy.com/-Weather-radar-radar?radar,${p.lat},${p.lon},10`;
   $('status').textContent = [
-    o ? `도로기상관측(${o.name})` : '관측 연동 중',
-    w?.kma ? '기상청 초단기·단기예보' : '',
+    o ? `도로기상관측(${o.name}${o._fromSnapshot ? '·스냅샷' : ''})` : '관측 연동 중',
+    w?.kma ? `기상청 초단기·단기예보${w.kma._fromSnapshot ? '(스냅샷)' : ''}` : '',
     w ? (w.stale ? '이전 모델 자료' : 'Open-Meteo·ICON 앙상블') : '예보 확인 중',
     '5분마다 자동 갱신'
   ].filter(Boolean).join(' · ');
@@ -1759,6 +1856,17 @@ async function pollWarnings() {
 
 export async function refresh(force = false) {
   render();
+  await probeBackend(force);
+  updateMonitorStatusBar();
+
+  const queue = [...targets()];
+  if (detailPlace) {
+    queue.sort((a, b) => Number(coord(b) === coord(detailPlace)) - Number(coord(a) === coord(detailPlace)));
+  }
+
+  // Open-Meteo 8개 지역 다중 좌표 일괄 선행 조회 (forecast 1회 + cached ensemble 1회)
+  const omBatchTask = prefetchOpenMeteo(queue, { force });
+
   loadRoadStations(14).then(stns => {
     if (stns?.length) {
       roadStations = stns;
@@ -1766,11 +1874,6 @@ export async function refresh(force = false) {
     }
   }).catch(() => {});
   pollWarnings();
-
-  const queue = [...targets()];
-  if (detailPlace) {
-    queue.sort((a, b) => Number(coord(b) === coord(detailPlace)) - Number(coord(a) === coord(detailPlace)));
-  }
 
   async function worker() {
     while (queue.length) {
@@ -1783,6 +1886,7 @@ export async function refresh(force = false) {
           r.o = await loadObservation(p);
         } catch {}
         try {
+          await omBatchTask;
           r.w = await loadWeather(p, r.o);
           if (r.w?.rows) {
             loadProbabilities(p, r.w.rows).then(render).catch(() => {});
@@ -2125,6 +2229,28 @@ $('toggleSimMode').onclick = () => {
   }
 };
 
+$('saveApiBaseBtn').onclick = async () => {
+  const raw = ($('apiBaseInput')?.value || '').trim();
+  if (raw && !/^https:\/\//i.test(raw) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(raw)) {
+    const lbl = $('backendModeLabel');
+    if (lbl) lbl.textContent = '⚠ 보안을 위해 https:// 주소(또는 localhost)만 입력할 수 있습니다.';
+    return;
+  }
+  const clean = setApiBase(raw);
+  if ($('apiBaseInput')) $('apiBaseInput').value = clean;
+  await probeBackend(true);
+  updateMonitorStatusBar();
+  refresh(true);
+};
+
+$('resetApiBaseBtn').onclick = async () => {
+  setApiBase('');
+  if ($('apiBaseInput')) $('apiBaseInput').value = getApiBase();
+  await probeBackend(true);
+  updateMonitorStatusBar();
+  refresh(true);
+};
+
 $('toastCloseBtn').onclick = () => {
   $('alertToast').hidden = true;
 };
@@ -2265,7 +2391,10 @@ function search() {
   if (q.length < 2) return;
   timer = setTimeout(async () => {
     try {
-      const res = await fetch('/api/search?name=' + encodeURIComponent(q), { signal: AbortSignal.timeout(7000) });
+      const searchUrl = (await isBackendAvailable())
+        ? apiUrl('/api/search?name=' + encodeURIComponent(q))
+        : `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=12&language=ko&format=json`;
+      const res = await fetch(searchUrl, { signal: AbortSignal.timeout(7000) });
       if (!res.ok) throw Error();
       const data = await res.json();
       if (id !== searchId) return;
