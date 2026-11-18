@@ -266,6 +266,7 @@ function renderSheet() {
   html += `<div class="hr-th hr-th-name">${state.sort === 'route' ? '대상 지역 (서→동 순)' : '대상 지역 (권역별)'}</div>`;
   html += `<div class="hr-th hr-th-sum">시작·요약 (${state.range === 'tomorrow' ? '내일' : state.range + 'h'})</div>`;
 
+  const nowHst = new Date(Date.now() + 9 * 3600000).getUTCHours();
   for (let i = 0; i < headerHours.length; i++) {
     const h = headerHours[i];
     const prev = i > 0 ? headerHours[i - 1] : null;
@@ -276,7 +277,11 @@ function renderSheet() {
       isBoundary ? 'is-day-boundary' : '',
       i === 0 ? 'is-now-col' : ''
     ].filter(Boolean).join(' ');
-    const subTag = i === 0 ? '현재' : isBoundary ? `${h.dateLabel.slice(3)}일` : (h.isTomorrow ? '내일' : '오늘');
+    const subTag = (i === 0 && h.hourKst === nowHst)
+      ? '현재'
+      : isBoundary
+        ? `${h.dateLabel.slice(3)}일`
+        : (i === 0 ? '시작' : (h.isTomorrow ? '내일' : '오늘'));
     html += `<div class="${cls}">${String(h.hourKst).padStart(2, '0')}시<small>${esc(subTag)}</small></div>`;
   }
   html += '</div>';
@@ -442,10 +447,11 @@ function updateSourceStatus() {
     if (apiBtnLabel) apiBtnLabel.textContent = 'API 연결됨';
   }
 
-  const stampText = `단기예보 ${shortStr} 발표 · 초단기 ${ultraStr} · 1회 통합 호출(12격자)`;
+  const uniqCount = p.uniqueGridCount || 11;
+  const stampText = `단기예보 ${shortStr} 발표 · 초단기 ${ultraStr} · 1회 통합 호출(${uniqCount}격자)`;
   stamp.textContent = stampText;
   if (footerStamp) {
-    footerStamp.textContent = `기준 자료: ${stampText} · 갱신 ${formatMdHm(p.updatedAt)} · 15분마다 자동 갱신`;
+    footerStamp.textContent = `기준 자료: ${stampText} · 갱신 ${formatMdHm(p.updatedAt)} · 5분마다 자동 갱신`;
   }
 }
 
@@ -455,7 +461,10 @@ async function fetchShortTerm12Data(force = false) {
 
   try {
     const endpoint = apiUrl('/api/short-term-12' + (force ? '?force=1' : ''));
-    const r = await fetch(endpoint, { signal: AbortSignal.timeout(15000) });
+    const r = await fetch(endpoint, {
+      signal: AbortSignal.timeout(15000),
+      ...(force ? { cache: 'no-store' } : {})
+    });
     if (r.ok) {
       const data = await r.json();
       if (data?.ok && Array.isArray(data.regions)) {
@@ -553,8 +562,8 @@ function bindEvents() {
     fetchShortTerm12Data(true);
   });
 
-  // 15분마다 자동 갱신
-  setInterval(() => fetchShortTerm12Data(false), 15 * 60000);
+  // 5분마다 자동 갱신 (초단기예보 최신 반영)
+  setInterval(() => fetchShortTerm12Data(false), 5 * 60000);
 }
 
 bindEvents();
