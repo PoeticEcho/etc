@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#103c3e">
+  <meta name="description" content="광주대구선(14번) 8개 관심지역의 비·눈 시작·종료 시각, 도로 살얼음, 제설·수방 의사결정 및 기상특보를 한눈에 감시하는 고밀도 기상 모니터">
+  <title>날씨봇 × 비온다? | 관심지역 상시 기상·도로살얼음 모니터</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+</head>
+<body>
+  <header class="top-header">
+    <div class="wrap bar">
+      <a class="brandhome" href="#overview" aria-label="날씨봇 관심지역 기상 모니터 홈">
+        <b class="brand"><i>≋</i> 날씨봇</b>
+        <span class="tag">관심지역 상시 기상 모니터 (PC·모바일 감시 모드 · 광주대구선 14번)</span>
+      </a>
+      <div class="header-actions">
+        <button id="reloadAll" type="button" class="hdr-btn" title="전체 기상자료 새로고침">
+          <span class="icon-spin">↻</span> <span class="hdr-lbl-pc">새로고침</span>
+        </button>
+        <button id="shareBtn" type="button" class="hdr-btn hdr-btn-share" title="1:1 정방형(1080×1080) 브리핑 JPG 생성 및 공유">
+          📤 <span class="hdr-lbl-pc">정방형 JPG 공유</span><span class="hdr-lbl-mob">공유</span>
+        </button>
+        <button id="add" type="button" class="hdr-btn" title="관심지역 추가·삭제 관리">
+          <span class="hdr-pin">📍</span> <span id="addBtnText" class="hdr-lbl-pc">지역 관리 (8/8)</span><span class="hdr-lbl-mob">지역관리</span>
+        </button>
+        <button id="settingsBtn" type="button" class="hdr-btn hdr-btn-accent" aria-expanded="false" aria-controls="settingsPanel" title="감시 및 화면 설정">
+          ⚙ <span>설정</span> <span class="hdr-caret">▾</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap main-wrap">
+    <!-- OVERVIEW SECTION -->
+    <section id="overview" aria-label="관심지역 종합 상황판">
+      <div class="overviewhead">
+        <div>
+          <h1>관심지역 기상·도로살얼음 모니터</h1>
+          <p id="overviewCaption">저장한 지역 8 / 8 · 비·눈 시작/종료 · 광주대구선(14번) 도로기상 실황 연동</p>
+        </div>
+      </div>
+
+      <div class="subbar">
+        <nav id="groups" aria-label="지역 모아보기 필터"></nav>
+        <div id="monitorStatus" class="monitor-status" aria-live="polite">
+          <span class="status-dot active" id="wakeDot"></span>
+          <span id="statusSummaryText">👁️ 계속 켜두기(Wake Lock) 작동 중 · 🔔 알림 소리 ON · 위험지역 정렬됨</span>
+        </div>
+      </div>
+
+      <!-- 8-Region High-Density Card Grid -->
+      <div id="grid" class="region-grid" aria-live="polite"></div>
+      <div id="quick" class="quick-bar"></div>
+
+      <!-- Gwangju-Daegu Route 14 Mini-Map + Windy Satellite/Radar + KMA HSR Radar -->
+      <section id="mapSection" class="map-radar-section" aria-label="광주대구선 노선 미니맵 및 기상 영상">
+        <div class="map-panel card">
+          <div class="head map-head">
+            <div>
+              <span class="section-kicker">ROUTE 14 CORRIDOR MINIMAP</span>
+              <h2>광주대구선(14번) 8개 관심지역 · 도로기상 미니맵</h2>
+            </div>
+            <div class="map-legend">
+              <span><i class="dot-calm"></i>평온</span>
+              <span><i class="dot-watch"></i>주의·강수</span>
+              <span><i class="dot-danger"></i>경고·결빙</span>
+            </div>
+          </div>
+          <p class="map-sub">마커를 누르면 우측 Windy 위성·레이더 지도가 해당 지점으로 이동하며, 더블클릭 또는 하단 버튼으로 상세 분석을 봅니다.</p>
+          <div id="minimapContainer" class="minimap-box" role="region" aria-label="광주대구선 8개 관심지역 미니맵"></div>
+          <div id="roadStnStrip" class="road-stn-strip" aria-label="광주대구선 실시간 도로기상관측소 요약"></div>
+        </div>
+
+        <div class="windy-panel card">
+          <div class="head map-head">
+            <div>
+              <span class="section-kicker">LIVE SATELLITE &amp; KMA RADAR</span>
+              <h2 id="visualPanelTitle">실시간 위성 · 강수 레이더 영상</h2>
+            </div>
+            <div class="visual-tabs" role="tablist">
+              <button type="button" id="tabWindy" class="vtab active" role="tab" aria-selected="true">🛰️ Windy 위성·레이더</button>
+              <button type="button" id="tabKmaRadar" class="vtab" role="tab" aria-selected="false">📡 기상청 HSR 레이더</button>
+            </div>
+          </div>
+
+          <div id="windyBox" class="visual-body">
+            <div class="windy-controls">
+              <span class="wc-label">레이어:</span>
+              <button type="button" class="wc-btn active" data-overlay="satellite">위성(구름)</button>
+              <button type="button" class="wc-btn" data-overlay="radar">강수레이더</button>
+              <button type="button" class="wc-btn" data-overlay="rain">비·눈(mm)</button>
+              <button type="button" class="wc-btn" data-overlay="wind">바람(풍속)</button>
+              <button type="button" class="wc-btn" data-overlay="temp">기온(°C)</button>
+              <span id="windyFocusLabel" class="wc-focus">중심: 함양·지리산 (35.47, 127.725)</span>
+            </div>
+            <div class="iframe-wrap">
+              <iframe
+                id="windyIframe"
+                title="Windy 실시간 위성 및 기상 레이더"
+                width="650"
+                height="450"
+                src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=default&zoom=11&overlay=satellite&product=satellite&level=surface&lat=35.47&lon=127.725&detailLat=35.52&detailLon=127.725&detail=true&pressure=true&message=true"
+                frameborder="0"
+                loading="lazy"
+                allowfullscreen>
+              </iframe>
+            </div>
+          </div>
+
+          <div id="kmaRadarBox" class="visual-body" hidden>
+            <div class="windy-controls">
+              <span>자료: 기상청 API허브 전국 레이더 HSR 합성영상</span>
+              <button type="button" id="radarRefreshBtn" class="wc-btn">↻ 레이더 새로고침</button>
+            </div>
+            <div id="kmaRadarContainer" class="kma-radar-container">
+              <div class="radar-placeholder">기상청 공식 레이더 합성영상을 불러오는 중…</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- DETAIL SECTION -->
+    <div id="detail" hidden>
+      <nav class="detailnav">
+        <a href="#overview" class="back-link">← 전체 관심지역 모니터</a>
+        <div class="detailnav-right">
+          <select id="jump" aria-label="다른 관심지역 바로가기"></select>
+          <button type="button" id="detailShareBtn" class="hdr-btn hdr-btn-share">📤 상세 브리핑 JPG 공유</button>
+        </div>
+      </nav>
+
+      <section class="hero">
+        <div class="horizon" aria-hidden="true"><i></i><b></b><em></em></div>
+        <div class="terrain" aria-hidden="true"></div>
+        <div class="herodata">
+          <span class="eyebrow">LOCAL WEATHER &amp; ROAD MANAGEMENT BRIEFING</span>
+          <h1 id="place">관심지역</h1>
+          <div class="heroNums">
+            <strong id="temp">—</strong>
+            <div>
+              <b id="condition">현재 날씨 조회 중</b>
+              <small id="humidity">상대습도 —</small>
+              <small id="roadSurfaceInfo" class="hero-road-info">도로기상관측 확인 중</small>
+            </div>
+          </div>
+          <small id="stamp">기준 시각 확인 중</small>
+        </div>
+        <button id="refresh" type="button" title="선택 지역 자료 다시 조회">↻ 새로고침</button>
+      </section>
+
+      <div id="status" role="status"></div>
+
+      <div class="layout">
+        <div class="layout-main">
+          <!-- Rain/Snow Start & End Timing + 12-Hour KMA Timeline -->
+          <section class="card">
+            <div class="head">
+              <h2>☔ 비·눈 시작 및 종료 전망 (기상청 초단기·단기 병합)</h2>
+              <span class="pill" id="kmaSourceBadge">3·6·12시간 전망</span>
+            </div>
+            <div class="rain-timing-grid">
+              <div class="timing-box start-box">
+                <span class="timing-eyebrow">☔ 예상 강수(비·눈) 시작</span>
+                <strong id="rainStartText">확인 중</strong>
+                <small id="rainStartSub">기상청 실황 및 12시간 시간별 예보 기준</small>
+              </div>
+              <div class="timing-box end-box">
+                <span class="timing-eyebrow">☀ 예상 강수(비·눈) 종료</span>
+                <strong id="rainEndText">확인 중</strong>
+                <small id="rainEndSub">연속 2시간 무강수 예보가 이어질 때 추정</small>
+              </div>
+            </div>
+            <div id="horizonBadges" class="horizon-badges"></div>
+            <div class="timeline-wrap">
+              <div class="timeline-head">
+                <b>향후 12시간 강수 타임라인</b>
+                <small>파랑: 비 · 보라: 눈/진눈깨비 · 노랑: 강수 가능성(≥50%) · 회색: 신호 없음</small>
+              </div>
+              <div id="kmaTimeline" class="kma-timeline" role="list" aria-label="12시간 강수 타임라인"></div>
+            </div>
+          </section>
+
+          <!-- Cumulative Precipitation -->
+          <section class="card">
+            <div class="head">
+              <h2>🌧️ 누적 강수 및 실측 노면 현황</h2>
+              <select id="period" aria-label="누적 기간">
+                <option value="today">오늘 0시부터</option>
+                <option value="last24">최근 24시간</option>
+              </select>
+            </div>
+            <div class="metrics" id="metrics"></div>
+            <small id="totaltime"></small>
+            <details class="legend">
+              <summary>강수량·강설량 및 광학 노면온도(TR1) 읽는 법</summary>
+              <p>총강수량은 기상청 도로기상관측소(광주대구선 14번) 일 누적강수량 또는 모델 환산 강수량(mm), 강우량은 액체 강수(mm), 신적설은 새로 내린 눈(cm)입니다. 노면온도(TR1)는 고속도로 노면 광학센서 실측값입니다.</p>
+            </details>
+          </section>
+
+          <!-- Hourly Forecast Table (6h Ensemble & 12h KMA) -->
+          <section class="card">
+            <div class="head">
+              <h2>⏱️ 시간별 강수·기온 전망</h2>
+              <div class="table-mode-tabs">
+                <button type="button" id="tab6h" class="tmode active">앞으로 6시간 (ICON 앙상블)</button>
+                <button type="button" id="tab12h" class="tmode">앞으로 12시간 (기상청 예보)</button>
+              </div>
+            </div>
+            <div class="scroll">
+              <table>
+                <thead id="forecastHead">
+                  <tr><th>시각</th><th>기온</th><th>강수확률</th><th>비 / 눈 확률¹</th><th>강수량</th><th>강우량</th><th>강설량</th></tr>
+                </thead>
+                <tbody id="forecast"></tbody>
+              </table>
+            </div>
+            <small id="forecastFootnote">¹ ICON 앙상블에서 한 시간 비 0.1 mm 이상, 눈 0.1 cm 이상을 각각 예측한 멤버의 비율입니다. 기상청 초단기·단기예보와 병합하여 표시합니다.</small>
+          </section>
+        </div>
+
+        <aside class="layout-aside">
+          <!-- Road Icing & 3-Stage Snowplow / Flood Decision Card -->
+          <section class="card" id="iceCard">
+            <div class="head">
+              <h2>❄️ 도로 살얼음 · 제설 · 수방 의사결정</h2>
+              <span class="symbol" id="iceBadgePill">❄ 판단 대기</span>
+            </div>
+            <h3 id="ice">판단 대기</h3>
+            <p id="reason">선택 지역의 기온·이슬점·노면온도와 수분 조건을 확인합니다.</p>
+            <div id="iceTimes" aria-label="시간대별 살얼음 전망"></div>
+            <p class="bridge-note">* 교량·응달·터널 출입구는 대기 기온보다 노면 온도가 2~4°C 낮아 야간 1.5°C(주간 0.5°C) 이하부터 즉각 결빙 위험이 있습니다.</p>
+
+            <!-- Action Timeline & Flood/Wind Guides -->
+            <div id="actionGuides" class="action-guides" aria-live="polite"></div>
+
+            <a class="rwis" href="https://rwis.kma.go.kr/comis5/uis/gis/map-e-risk.do" target="_blank" rel="noopener">기상청 도로살얼음 위험지도 (RWIS) ↗</a>
+            <details>
+              <summary>도로관리청 판정 기준 (교량 복사냉각 · 잔설 재결빙 · 3단계 제설)</summary>
+              <ul class="iceguide">
+                <li><b>살얼음 주의</b>: 어는 비·착빙성 안개 예보, 강수·안개 시 야간(21~08시) 1.5°C 이하 / 주간 0.5°C 이하, 직전 24시간 강설·잔설 후 0.5°C 이하 재결빙, 영하권 이슬점 편차(T-Td) 1.5°C 이하 서리 착빙</li>
+                <li><b>살얼음 관심</b>: 기온 4°C 이하 + 최근 6시간 강수·안개·습도 90% 이상 또는 야간 저온·고습·약풍</li>
+                <li><b>3단계 제설 역산</b>: 결빙·강설 예상 3시간 전 <b>제설차 시동·살포기 유압 예열</b> → 1~2시간 전 <b>습염 사전 살포</b> → 강설 1cm/h 이상 시 <b>본 제설</b> (-6°C 이하 염화칼슘 배합 상향)</li>
+                <li><b>도로 수방 경보</b>: 시간당 10mm 이상 배수로 점검, 30mm 이상(누적 80mm) 지하차도·사면 주의, 50mm 이상(누적 120mm) 긴급 통제 검토</li>
+              </ul>
+            </details>
+          </section>
+
+          <!-- All Weather Warnings Card -->
+          <section class="card">
+            <div class="head">
+              <h2>🚨 기상특보 발효 및 해제 예정 현황</h2>
+              <span class="pill" id="detailWrnCount">조회 중</span>
+            </div>
+            <div id="warnings" aria-live="polite"></div>
+            <button id="notify" type="button" class="minor">기기 알림 켜기</button>
+          </section>
+
+          <!-- External Imagery Links -->
+          <section class="card media">
+            <h2>🛰️ 레이더 · 위성 · 고속도로 기상 영상</h2>
+            <p id="imagery">구름 분포와 주변 강수대의 이동을 확인하세요.</p>
+            <a id="radarLink" href="https://www.windy.com/-Weather-radar-radar?radar,35.52,127.725,10" target="_blank" rel="noopener">Windy 실시간 강수 레이더 <b>↗</b></a>
+            <a href="https://www.weather.go.kr/w/weather/satellite/gk2a.do" target="_blank" rel="noopener">천리안 2A호 구름영상 <b>↗</b></a>
+            <a href="https://www.weather.go.kr/w/weather/warning/status.do" target="_blank" rel="noopener">기상청 전국 특보 발효 현황 <b>↗</b></a>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <!-- Floating Warning Tooltip (PC Hover & Mobile Tap) -->
+  <div id="wrnTooltip" class="wrn-tooltip" role="tooltip" hidden></div>
+
+  <!-- Settings Popover Panel (Requirement 7) -->
+  <aside id="settingsPanel" class="settings-panel" aria-label="감시 및 화면 설정" hidden>
+    <div class="settings-head">
+      <strong>⚙ 감시 및 화면 설정</strong>
+      <button type="button" id="closeSettings" class="settings-close" aria-label="설정 닫기">✕</button>
+    </div>
+    <div class="settings-list">
+      <div class="setting-row">
+        <div>
+          <b>🖥️ 전체화면 감시 모드</b>
+          <small>브라우저 주소창 숨김 (F11 연동)</small>
+        </div>
+        <button type="button" id="toggleFullscreen" class="toggle-pill" aria-pressed="false">꺼짐 OFF</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <b>🔔 특보 발효·해제 알림 소리</b>
+          <small>변동 시 경고 차임벨 재생 <button type="button" id="testSoundBtn" class="inline-link-btn">[🔊 테스트]</button></small>
+        </div>
+        <button type="button" id="toggleSound" class="toggle-pill on" aria-pressed="true">켜짐 ON</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <b>👁️ 화면 계속 켜두기 (감시모드)</b>
+          <small>모바일·PC 화면 절전 진입 방지</small>
+        </div>
+        <button type="button" id="toggleWakeLock" class="toggle-pill on" aria-pressed="true">켜짐 ON</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <b>⚠️ 위험 지역 상단 우선 정렬</b>
+          <small>특보·살얼음·강수 발생 지역 좌상단 배치</small>
+        </div>
+        <button type="button" id="toggleSortRisk" class="toggle-pill on" aria-pressed="true">켜짐 ON</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <b>🌙 야간 다크 모드</b>
+          <small>상황실·야간 순찰 저조도 테마</small>
+        </div>
+        <button type="button" id="toggleDark" class="toggle-pill" aria-pressed="false">꺼짐 OFF</button>
+      </div>
+      <div class="setting-row setting-row-sim">
+        <div>
+          <b>🧪 동절기 대설·결빙 시안 훈련모드</b>
+          <small>특보·살얼음·제설 3단계 시안 즉시 검증</small>
+        </div>
+        <button type="button" id="toggleSimMode" class="toggle-pill" aria-pressed="false">실제 데이터</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- In-App Alert Toast Banner (Requirement 5) -->
+  <div id="alertToast" class="alert-toast" role="alert" aria-live="assertive" hidden>
+    <div class="toast-body">
+      <span id="toastBadge" class="toast-badge">🚨 특보 발효</span>
+      <span id="toastText" class="toast-text"></span>
+    </div>
+    <div class="toast-actions">
+      <button type="button" id="toastDetailBtn" class="toast-btn">상세 보기 →</button>
+      <button type="button" id="toastCloseBtn" class="toast-btn toast-close" aria-label="알림 닫기">✕ 닫기</button>
+    </div>
+  </div>
+
+  <!-- Unified Bottom Timestamp Bar (Requirement 2.2) -->
+  <footer class="global-footer">
+    <div class="wrap footer-inner">
+      <span id="globalStamp">기준 자료: 확인 중 · 5분마다 자동 갱신 (모든 카드 통합 기준 시각)</span>
+      <span class="footer-sources">자료 출처: <a href="https://www.weather.go.kr" target="_blank" rel="noopener">기상청(도로기상관측 광주대구선14번·단기예보·CAP 특보)</a> · <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo(단기예보·ICON 앙상블)</a> · 자체 도로살얼음 판정 모델(KST)</span>
+    </div>
+  </footer>
+
+  <!-- Location Management Dialog -->
+  <dialog id="dialog" aria-labelledby="dialogTitle">
+    <form id="locationForm">
+      <div class="head">
+        <h2 id="dialogTitle">📍 관심지역 관리 (최대 8곳)</h2>
+        <button type="button" id="close" aria-label="닫기">×</button>
+      </div>
+      <div id="manage"></div>
+      <div class="dialog-preset-bar">
+        <button type="button" id="restorePresetsBtn" class="minor-btn">↺ 광주대구선 8개 기본 관심지역으로 초기화</button>
+        <button id="locate" type="button" class="minor-btn">◎ 현재 위치(GPS) 추가</button>
+      </div>
+      <label>지역명 검색 (국내 시·군·구 및 읍·면·동)<input id="query" placeholder="예: 대구 달성군, 함양, 거창, 고령, 남원, 서울"></label>
+      <div id="results"></div>
+      <details id="custom">
+        <summary>위도·경도 좌표로 직접 지정</summary>
+        <div class="pair">
+          <label>대표 지점명(선택)<input id="siteInput" placeholder="예: 남상면, 현풍읍"></label>
+          <label>위도<input id="lat" type="number" step="any" min="32" max="40" placeholder="35.644"></label>
+          <label>경도<input id="lon" type="number" step="any" min="124" max="132" placeholder="127.910"></label>
+        </div>
+        <button class="save" type="submit">이 좌표 저장</button>
+      </details>
+      <p id="formstatus" role="status"></p>
+      <small>관심지역은 이 브라우저에 저장되며, API 인증키는 서버 환경변수에만 안전하게 보관됩니다.</small>
+    </form>
+  </dialog>
+
+  <!-- 1:1 Square (1080x1080) JPG Share Preview Modal (Requirement 6) -->
+  <dialog id="shareDialog" class="share-dialog" aria-labelledby="shareDialogTitle">
+    <div class="head">
+      <h2 id="shareDialogTitle">📤 1:1 정방형(1080×1080) 브리핑 JPG 공유</h2>
+      <button type="button" id="closeShareDialog" aria-label="닫기">×</button>
+    </div>
+    <p id="shareSubtitle" class="share-sub">상황실 보고 및 메신저(카카오톡·문자·업무망) 공유용 고해상도 정방형 브리핑 이미지입니다.</p>
+    <div class="share-preview-box">
+      <img id="sharePreviewImg" alt="1080x1080 정방형 기상 브리핑 미리보기">
+    </div>
+    <div class="share-actions">
+      <button type="button" id="downloadJpgBtn" class="save">📥 JPG 파일 저장 (1080×1080)</button>
+      <button type="button" id="copyImageBtn" type="button">📋 클립보드 이미지 복사</button>
+      <button type="button" id="nativeShareBtn" type="button">📤 기기 공유 (메신저 전송)</button>
+    </div>
+    <p id="shareStatus" class="share-status" role="status"></p>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
