@@ -453,7 +453,7 @@ function updateSourceStatus() {
   const stampText = `단기예보 ${shortStr} 발표 · 초단기 ${ultraStr} · 1회 통합 호출(${uniqCount}격자)`;
   stamp.textContent = stampText;
   if (footerStamp) {
-    footerStamp.textContent = `기준 자료: ${stampText} · 갱신 ${formatMdHm(p.updatedAt)} · 5분마다 자동 갱신`;
+    footerStamp.textContent = `기준 자료: ${stampText} · 갱신 ${formatMdHm(p.updatedAt)} · 매 정시(00분)·5분마다 자동 갱신`;
   }
 }
 
@@ -511,48 +511,77 @@ function flashKpiCells(kind, cardEl) {
   }, 1650);
 }
 
+let hourlyFetchInFlight = null;
+let lastLoadedHourKst = null;
+let topOfHourTimer = null;
+
+const currentKstHourKey = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 13);
+
 async function fetchShortTerm12Data(force = false) {
+  if (hourlyFetchInFlight) return hourlyFetchInFlight;
   const btn = $('reloadHourlyBtn');
   if (btn) btn.classList.add('is-busy');
 
-  try {
-    const endpoint = apiUrl('/api/short-term-12' + (force ? '?force=1' : ''));
-    const r = await fetch(endpoint, {
-      signal: AbortSignal.timeout(15000),
-      ...(force ? { cache: 'no-store' } : {})
-    });
-    if (r.ok) {
-      const data = await r.json();
-      if (data?.ok && Array.isArray(data.regions)) {
-        state.payload = data;
-        state.fromSnapshot = false;
-        state.lastLoadedAt = Date.now();
-        updateSourceStatus();
-        renderSheet();
-        return;
+  hourlyFetchInFlight = (async () => {
+    try {
+      const endpoint = apiUrl('/api/short-term-12' + (force ? '?force=1' : ''));
+      const r = await fetch(endpoint, {
+        signal: AbortSignal.timeout(15000),
+        ...(force ? { cache: 'no-store' } : {})
+      });
+      if (r.ok) {
+        const data = await r.json();
+        if (data?.ok && Array.isArray(data.regions)) {
+          state.payload = data;
+          state.fromSnapshot = false;
+          state.lastLoadedAt = Date.now();
+          lastLoadedHourKst = currentKstHourKey();
+          updateSourceStatus();
+          renderSheet();
+          if ($('detailDialog')?.open && state.selectedRegionId) openRegionDetail(state.selectedRegionId);
+          return;
+        }
       }
-    }
-  } catch {}
+    } catch {}
 
-  // Fallback to static snapshot JSON generated at build time
-  try {
-    const r2 = await fetch('./api/short-term-12.json', { signal: AbortSignal.timeout(8000) });
-    if (r2.ok) {
-      const snap = await r2.json();
-      if (snap?.ok && Array.isArray(snap.regions)) {
-        state.payload = snap;
-        state.fromSnapshot = true;
-        state.lastLoadedAt = Date.now();
-        updateSourceStatus();
-        renderSheet();
-        return;
+    // Fallback to static snapshot JSON generated at build time
+    try {
+      const r2 = await fetch('./api/short-term-12.json', { signal: AbortSignal.timeout(8000) });
+      if (r2.ok) {
+        const snap = await r2.json();
+        if (snap?.ok && Array.isArray(snap.regions)) {
+          state.payload = snap;
+          state.fromSnapshot = true;
+          state.lastLoadedAt = Date.now();
+          lastLoadedHourKst = currentKstHourKey();
+          updateSourceStatus();
+          renderSheet();
+          if ($('detailDialog')?.open && state.selectedRegionId) openRegionDetail(state.selectedRegionId);
+          return;
+        }
       }
-    }
-  } catch {}
+    } catch {}
 
-  state.payload = null;
-  updateSourceStatus();
-  $('sheet').innerHTML = '<div class="hr-loading">단기예보 API 서버에 연결하지 못했습니다. 상단 [API 연결]에서 Worker 주소를 확인한 뒤 다시 시도해 주세요.</div>';
+    state.payload = null;
+    updateSourceStatus();
+    $('sheet').innerHTML = '<div class="hr-loading">단기예보 API 서버에 연결하지 못했습니다. 상단 [API 연결]에서 Worker 주소를 확인한 뒤 다시 시도해 주세요.</div>';
+  })().finally(() => {
+    hourlyFetchInFlight = null;
+    if (btn) btn.classList.remove('is-busy');
+  });
+  return hourlyFetchInFlight;
+}
+
+export function msUntilNextTopOfHour(nowMs = Date.now(), marginMs = 1500) {
+  return (3600000 - (nowMs % 3600000)) + marginMs;
+}
+
+function scheduleTopOfHourRefresh() {
+  clearTimeout(topOfHourTimer);
+  const waitMs = msUntilNextTopOfHour(Date.now(), 1500);
+  topOfHourTimer = setTimeout(() => {
+    fetchShortTerm12Data(true).finally(scheduleTopOfHourRefresh);
+  }, waitMs);
 }
 
 function bindEvents() {
@@ -629,9 +658,26 @@ function bindEvents() {
     fetchShortTerm12Data(true);
   });
 
-  // 5분마다 자동 갱신 (초단기예보 최신 반영)
+  // 1) 매 정시(HH:00:01.5 KST) 정확한 자동 새로고침 스케줄링
+  scheduleTopOfHourRefresh();
+
+  // 2) 백그라운드 스로틀/절전 복귀로 정시가 지난 경우 즉시 보정 새로고침
+  const checkHourRollover = () => {
+    if (lastLoadedHourKst && currentKstHourKey() !== lastLoadedHourKst) {
+      scheduleTopOfHourRefresh();
+      fetchShortTerm12Data(true);
+    }
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkHourRollover();
+  });
+  setInterval(checkHourRollover, 60000);
+
+  // 3) 5분마다 주기적 자동 갱신 (초단기예보 최신 반영)
   setInterval(() => fetchShortTerm12Data(false), 5 * 60000);
 }
 
-bindEvents();
-fetchShortTerm12Data(false);
+if (typeof document !== 'undefined') {
+  bindEvents();
+  fetchShortTerm12Data(false);
+}
