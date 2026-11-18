@@ -490,8 +490,8 @@ body.dark-mode .hr-sum-overlap { color: #fca5a5; }
   overflow: hidden;
   transition: opacity 0.24s ease, filter 0.24s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.hr-sheet.is-dimming .hr-cell:not(.flash-wet):not(.flash-freezing):not(.flash-overlap) {
-  opacity: 0.4;
+.hr-scroller.is-dimming .hr-cell:not(.flash-wet):not(.flash-freezing):not(.flash-overlap) {
+  opacity: 0.42;
   filter: saturate(0.65);
 }
 .hr-cell.is-night {
@@ -586,11 +586,15 @@ body.dark-mode .hr-cell.flash-overlap::after {
 .hr-cell.flash-wet { animation: hrFlashWet 1.55s cubic-bezier(0.22, 1, 0.36, 1); }
 .hr-cell.flash-freezing { animation: hrFlashFreezing 1.55s cubic-bezier(0.22, 1, 0.36, 1); }
 .hr-cell.flash-overlap { animation: hrFlashOverlap 1.55s cubic-bezier(0.22, 1, 0.36, 1); }
-.hr-datarow.flash-row .hr-namecol {
-  background-color: rgba(14, 165, 233, 0.11);
+.hr-datarow.flash-row .hr-namecol,
+.hr-datarow:nth-child(even).flash-row .hr-namecol {
+  background-color: #e6f4fc;
   transition: background-color 0.24s ease;
 }
-body.dark-mode .hr-datarow.flash-row .hr-namecol { background-color: rgba(56, 189, 248, 0.16); }
+body.dark-mode .hr-datarow.flash-row .hr-namecol,
+body.dark-mode .hr-datarow:nth-child(even).flash-row .hr-namecol {
+  background-color: #173a48;
+}
 
 .hr-c1 {
   display: inline-flex;
@@ -859,19 +863,19 @@ body.dark-mode .hr-link-btn.is-primary {
   .hr-toolbar { margin-bottom: 7px; padding: 5px 11px; }
   .hr-headrow { min-height: 38px; }
   .hr-datarow {
-    height: clamp(41px, calc((100dvh - 284px) / 12), 68px);
+    height: clamp(41px, calc((100dvh - 344px) / 12), 62px);
     min-height: 41px;
   }
   .hr-c1 {
-    font-size: clamp(12.5px, calc(8.5px + 0.38vh), 15.5px);
+    font-size: clamp(13.5px, calc(10.5px + 0.42vh), 16px);
     gap: 4px;
   }
   .hr-c1 .kma-sym {
-    width: clamp(20px, calc(12px + 1vh), 27px);
-    height: clamp(20px, calc(12px + 1vh), 27px);
+    width: clamp(22px, calc(15px + 1vh), 28px);
+    height: clamp(22px, calc(15px + 1vh), 28px);
   }
   .hr-c2 {
-    font-size: clamp(9.8px, calc(7px + 0.26vh), 11.5px);
+    font-size: clamp(10px, calc(7.6px + 0.26vh), 11.5px);
   }
   .hr-geo-main { font-size: 13px; }
   .hr-sum-top { font-size: 11px; }
@@ -886,11 +890,20 @@ body.dark-mode .hr-link-btn.is-primary {
   .hr-sumcol {
     position: static;
     left: auto;
+    z-index: 1;
     box-shadow: none;
   }
-  .hr-th-name,
-  .hr-namecol {
+  .hr-th-name {
+    z-index: 12;
     box-shadow: var(--hr-sticky-shadow);
+  }
+  .hr-namecol {
+    z-index: 8;
+    background-color: var(--card-bg);
+    box-shadow: var(--hr-sticky-shadow);
+  }
+  .hr-datarow:nth-child(even) .hr-namecol {
+    background-color: var(--hr-surface-alt);
   }
 }
 

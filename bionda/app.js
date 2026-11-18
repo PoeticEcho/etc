@@ -1971,6 +1971,7 @@ export async function refresh(force = false) {
         }
         bundledKeys.add(coord(p));
       }
+      render();
     }
   } else {
     loadRoadStations(14).then(stns => {

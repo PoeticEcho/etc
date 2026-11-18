@@ -39,7 +39,7 @@ async function requestOpenMeteo(endpoint, query) {
 
   for (const url of urls) {
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(12000) });
+      const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
       if (response.status === 429) {
         if (endpoint === 'ensemble') ensembleCooldownUntil = Date.now() + 15 * 60000;
         continue;
