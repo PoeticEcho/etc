@@ -340,13 +340,15 @@
 .hs-star-t2 { animation: hsTwinkle 5.6s ease-in-out 1.4s infinite; }
 .hs-star-t3 { animation: hsTwinkle 3.6s ease-in-out 2.5s infinite; }
 
-@keyframes hsCloudDrift {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(-18px); }
+@keyframes hsCloudFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(calc(var(--hs-cloud-dx, -14px) * 0.45), calc(var(--hs-cloud-dy, 2.2px) * -1), 0); }
+  50% { transform: translate3d(var(--hs-cloud-dx, -14px), 0.5px, 0); }
+  75% { transform: translate3d(calc(var(--hs-cloud-dx, -14px) * 0.42), var(--hs-cloud-dy, 2.2px), 0); }
 }
-.hs-cloud-drift-a { animation: hsCloudDrift 26s ease-in-out infinite; }
-.hs-cloud-drift-b { animation: hsCloudDrift 20s ease-in-out -7s infinite; }
-.hs-cloud-drift-slow { animation: hsCloudDrift 34s ease-in-out -12s infinite; }
+.hs-cloud-drift-a { animation: hsCloudFloat var(--hs-cloud-dur, 28s) ease-in-out infinite; will-change: transform; }
+.hs-cloud-drift-b { animation: hsCloudFloat calc(var(--hs-cloud-dur, 28s) * 0.82) ease-in-out -7s infinite; will-change: transform; }
+.hs-cloud-drift-slow { animation: hsCloudFloat calc(var(--hs-cloud-dur, 28s) * 1.28) ease-in-out -12s infinite; will-change: transform; }
 
 @keyframes hsThunderPulse {
   0%, 72%, 100% { opacity: 0.72; }

@@ -34,49 +34,49 @@ export const ICE_RANK_META = {
   0: {
     rank: 0,
     key: 'calm',
-    label: '0단계 평온·건조',
-    shortLabel: '0단계 평온',
+    label: '살얼음 평온·건조',
+    shortLabel: '평온',
     accent: '#10b981',
     railColor: '#34d399',
     edgeLine: '#e2e8f0',
     centerLine: '#f59e0b',
-    beaconGlow: 'rgba(16, 185, 129, 0.35)',
+    beaconGlow: 'rgba(16, 185, 129, 0.38)',
     iceAlpha: 0
   },
   1: {
     rank: 1,
     key: 'watch',
-    label: '1단계 살얼음 관심',
-    shortLabel: '1단계 관심',
+    label: '살얼음 관심',
+    shortLabel: '살얼음 관심',
     accent: '#eab308',
     railColor: '#facc15',
     edgeLine: '#fde047',
     centerLine: '#f59e0b',
-    beaconGlow: 'rgba(234, 179, 8, 0.55)',
+    beaconGlow: 'rgba(234, 179, 8, 0.58)',
     iceAlpha: 0.16
   },
   2: {
     rank: 2,
     key: 'caution',
-    label: '2단계 살얼음 주의',
-    shortLabel: '2단계 주의',
+    label: '살얼음 주의',
+    shortLabel: '살얼음 주의',
     accent: '#f97316',
     railColor: '#fb923c',
     edgeLine: '#fdba74',
     centerLine: '#fb923c',
-    beaconGlow: 'rgba(249, 115, 22, 0.68)',
+    beaconGlow: 'rgba(249, 115, 22, 0.72)',
     iceAlpha: 0.34
   },
   3: {
     rank: 3,
     key: 'danger',
-    label: '3단계 살얼음 위험',
-    shortLabel: '3단계 위험',
+    label: '살얼음 위험',
+    shortLabel: '살얼음 위험',
     accent: '#ef4444',
     railColor: '#f87171',
     edgeLine: '#fca5a5',
     centerLine: '#f87171',
-    beaconGlow: 'rgba(239, 68, 68, 0.85)',
+    beaconGlow: 'rgba(239, 68, 68, 0.88)',
     iceAlpha: 0.56
   }
 };
@@ -333,6 +333,27 @@ export function formatTyphoonHeadline(typhoonInfo) {
   return `${no} 태풍 ${name}`.trim();
 }
 
+const DEFAULT_WIND_BY_WEATHER = {
+  clear: 1.4,
+  partly_cloudy: 2.0,
+  overcast: 2.4,
+  fog: 0.6,
+  rain: 4.2,
+  thunder: 11.5,
+  typhoon: 24.0,
+  snow: 3.1,
+  heavy_snow: 9.2
+};
+
+export function computeCloudDrift(windMsInput) {
+  const windMs = Number.isFinite(Number(windMsInput)) ? clamp(Number(windMsInput), 0.2, 45) : 2.0;
+  const norm = Math.pow(clamp(windMs / 18, 0, 1), 0.68);
+  const durSec = Number((40 - norm * 28.5).toFixed(1));
+  const dx = Number((8 + norm * 16).toFixed(1));
+  const dy = Number((1.5 + norm * 2.5).toFixed(1));
+  return { windMs: Number(windMs.toFixed(1)), durSec, dx, dy };
+}
+
 /**
  * 입력 옵션을 정규화해 완전한 장면 명세 객체 생성
  */
@@ -351,6 +372,8 @@ export function resolveHeroScene(input = {}) {
       ? { ...DEFAULT_TYPHOON_INFO, ...input.typhoonInfo }
       : { ...DEFAULT_TYPHOON_INFO })
     : null;
+  const rawWind = input.windSpeed ?? input.wind ?? (typhoon ? typhoon.maxWindMs : null) ?? DEFAULT_WIND_BY_WEATHER[weather];
+  const cloudDrift = computeCloudDrift(rawWind);
 
   return {
     weather,
@@ -361,6 +384,8 @@ export function resolveHeroScene(input = {}) {
     iceMeta,
     blackIce,
     coldWave,
+    windMs: cloudDrift.windMs,
+    cloudDrift,
     typhoon,
     typhoonTitle: weather === 'typhoon' ? formatTyphoonHeadline(input.typhoonInfo || typhoon) : '',
     lunar,
@@ -592,7 +617,10 @@ function renderCloudsLayer(scene, uid) {
     ? `<path class="hs-cloud-drift-slow" d="M180,-12 L920,-12 L920,62 C882,78 832,74 796,60 C754,76 704,76 664,58 C620,78 558,76 520,56 C474,76 412,72 374,56 C322,74 252,70 212,50 Z" fill="url(#${uid}cg)" opacity="${weather === 'overcast' ? 0.72 : 0.85}"/>`
     : '';
 
-  return `<svg class="hs-layer hs-clouds" viewBox="0 0 900 200" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+  const cd = scene.cloudDrift || computeCloudDrift(scene.windMs);
+  const cloudStyle = `--hs-cloud-dx:-${cd.dx}px;--hs-cloud-dy:${cd.dy}px;--hs-cloud-dur:${cd.durSec}s`;
+
+  return `<svg class="hs-layer hs-clouds" style="${cloudStyle}" viewBox="0 0 900 200" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
     <defs>
       <linearGradient id="${uid}cg" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${topColor}"/>
@@ -705,8 +733,47 @@ function getTerrainColors(scene) {
   return { back: '#4e8679', front: '#2f655f', cap: '#d9f2cc', capAlpha: 0.16 };
 }
 
+export const HIGHWAY_TOP_RAIL = [-20, 161, 340, 160, 760, 151, 1220, 143];
+export const HIGHWAY_BOT_RAIL = [-20, 172, 340, 175, 760, 173, 1220, 171];
+export const HIGHWAY_BEACON_TS = [0.55, 0.64, 0.73, 0.82, 0.90, 0.965];
+
+export function evalCubicBezier(c, t) {
+  const mt = 1 - t;
+  const mt2 = mt * mt;
+  const t2 = t * t;
+  const a = mt2 * mt;
+  const b = 3 * mt2 * t;
+  const d = 3 * mt * t2;
+  const e = t2 * t;
+  return {
+    x: a * c[0] + b * c[2] + d * c[4] + e * c[6],
+    y: a * c[1] + b * c[3] + d * c[5] + e * c[7]
+  };
+}
+
+function lerpCubic(cTop, cBot, v) {
+  return [
+    cTop[0] + (cBot[0] - cTop[0]) * v,
+    cTop[1] + (cBot[1] - cTop[1]) * v,
+    cTop[2] + (cBot[2] - cTop[2]) * v,
+    cTop[3] + (cBot[3] - cTop[3]) * v,
+    cTop[4] + (cBot[4] - cTop[4]) * v,
+    cTop[5] + (cBot[5] - cTop[5]) * v,
+    cTop[6] + (cBot[6] - cTop[6]) * v,
+    cTop[7] + (cBot[7] - cTop[7]) * v
+  ];
+}
+
+function cubicPathD(c) {
+  return `M${c[0].toFixed(1)},${c[1].toFixed(1)} C${c[2].toFixed(1)},${c[3].toFixed(1)} ${c[4].toFixed(1)},${c[5].toFixed(1)} ${c[6].toFixed(1)},${c[7].toFixed(1)}`;
+}
+
+function ribbonPathD(cUpper, cLower) {
+  return `${cubicPathD(cUpper)} L${cLower[6].toFixed(1)},${cLower[7].toFixed(1)} C${cLower[4].toFixed(1)},${cLower[5].toFixed(1)} ${cLower[2].toFixed(1)},${cLower[3].toFixed(1)} ${cLower[0].toFixed(1)},${cLower[1].toFixed(1)} Z`;
+}
+
 /**
- * 풀블리드(-20..1220) 산악 능선 + 원근 고속도로 벡터(좌우 끊김 없음 · 좌측 텍스트부 부드러운 그라데이션 페이드 · 0~3단계 살얼음 색상 연동)
+ * 풀블리드(-20..1220) 산악 능선 + 눕힌 원근 고속도로 벡터(도로 경계 정확 정렬 비콘 · 좌측 부드러운 페이드 · 0~3단계 색상 연동)
  */
 function renderTerrainLayer(scene, uid) {
   const t = getTerrainColors(scene);
@@ -716,32 +783,58 @@ function renderTerrainLayer(scene, uid) {
   const frontPts = '-10,176 165,160 290,165 425,142 520,148 665,104 768,122 895,78 1020,98 1145,62 1215,74 1215,186 -10,186';
   const ridgeCap = 'M370,126 L450,136 L585,84 L662,104 L795,52 L872,78 L1015,34 L1135,66 L1215,58';
 
+  const topRailC = HIGHWAY_TOP_RAIL;
+  const botRailC = HIGHWAY_BOT_RAIL;
+  const deckTopC = lerpCubic(topRailC, botRailC, -0.06);
+  const deckBotC = lerpCubic(topRailC, botRailC, 1.16);
+  const asphTopC = lerpCubic(topRailC, botRailC, 0.04);
+  const asphBotC = lerpCubic(topRailC, botRailC, 0.94);
+  const edgeTopC = lerpCubic(topRailC, botRailC, 0.14);
+  const edgeBotC = lerpCubic(topRailC, botRailC, 0.87);
+  const laneTopC = lerpCubic(topRailC, botRailC, 0.31);
+  const centerC = lerpCubic(topRailC, botRailC, 0.48);
+  const laneBotC = lerpCubic(topRailC, botRailC, 0.67);
+
   const asphaltTop = scene.iceRank >= 3 ? '#1a2736' : scene.iceRank === 2 ? '#1f2833' : '#222933';
   const asphaltBot = scene.iceRank >= 3 ? '#0e1b29' : '#151a21';
 
+  const glintPts = [0.72, 0.84, 0.93].map(gt => {
+    const pTop = evalCubicBezier(topRailC, gt);
+    const pBot = evalCubicBezier(botRailC, gt);
+    return { x: pTop.x.toFixed(1), y: (pTop.y + (pBot.y - pTop.y) * 0.45).toFixed(1) };
+  });
+
   const roadIcePatch = ice.iceAlpha > 0
-    ? `<path d="M-20,169 C320,164 690,141 1220,124 L1220,152 C710,158 340,176 -20,182 Z" fill="url(#${uid}roadIceGrad)" opacity="${ice.iceAlpha.toFixed(2)}"/>
-       <g class="hs-ice-sheen" stroke="#e0f2fe" stroke-width="1.25" stroke-linecap="round" opacity="${Math.min(0.92, ice.iceAlpha + 0.3).toFixed(2)}">
-         <g transform="translate(835,148)"><path d="M0,-4.5 V4.5 M-3.9,-2.2 L3.9,2.2 M-3.9,2.2 L3.9,-2.2"/></g>
-         <g transform="translate(975,137)"><path d="M0,-5.5 V5.5 M-4.8,-2.7 L4.8,2.7 M-4.8,2.7 L4.8,-2.7"/></g>
-         <g transform="translate(1110,132)"><path d="M0,-5 V5 M-4.3,-2.5 L4.3,2.5 M-4.3,2.5 L4.3,-2.5"/></g>
+    ? `<path d="${ribbonPathD(edgeTopC, edgeBotC)}" fill="url(#${uid}roadIceGrad)" opacity="${ice.iceAlpha.toFixed(2)}"/>
+       <g class="hs-ice-sheen" stroke="#e0f2fe" stroke-width="1.2" stroke-linecap="round" opacity="${Math.min(0.92, ice.iceAlpha + 0.3).toFixed(2)}">
+         <g transform="translate(${glintPts[0].x},${glintPts[0].y})"><path d="M0,-4 V4 M-3.5,-2 L3.5,2 M-3.5,2 L3.5,-2"/></g>
+         <g transform="translate(${glintPts[1].x},${glintPts[1].y})"><path d="M0,-4.8 V4.8 M-4.2,-2.4 L4.2,2.4 M-4.2,2.4 L4.2,-2.4"/></g>
+         <g transform="translate(${glintPts[2].x},${glintPts[2].y})"><path d="M0,-4.4 V4.4 M-3.8,-2.2 L3.8,2.2 M-3.8,2.2 L3.8,-2.2"/></g>
        </g>`
     : isWet
-      ? `<path d="M-20,169 C320,164 690,141 1220,124 L1220,152 C710,158 340,176 -20,182 Z" fill="rgba(147,197,253,0.12)"/>`
+      ? `<path d="${ribbonPathD(edgeTopC, edgeBotC)}" fill="rgba(147,197,253,0.12)"/>`
       : '';
 
   const roadSnowBank = scene.isSnowTerrain
-    ? `<path d="M-20,164 C310,160 680,134 1220,116 L1220,122 C680,139 310,163 -20,168 Z" fill="rgba(241,245,249,0.72)"/>
-       <path d="M-20,183 C340,181 710,166 1220,156 L1220,164 C710,171 340,185 -20,188 Z" fill="rgba(241,245,249,0.68)"/>`
+    ? `<path d="${ribbonPathD(lerpCubic(topRailC, botRailC, -0.06), lerpCubic(topRailC, botRailC, 0.08))}" fill="rgba(241,245,249,0.72)"/>
+       <path d="${ribbonPathD(lerpCubic(topRailC, botRailC, 0.92), lerpCubic(topRailC, botRailC, 1.12))}" fill="rgba(241,245,249,0.68)"/>`
     : '';
 
-  // 갓길/난간 델리네이터 비콘(좌→우 자연스러운 원근 간격)
-  const beacons = [
-    [615, 145], [730, 138], [848, 131], [966, 125], [1085, 121], [1175, 118]
-  ].map(([bx, by]) => `
-    <circle cx="${bx}" cy="${by}" r="${scene.iceRank >= 2 ? 4.8 : 3.4}" fill="${ice.beaconGlow}"/>
-    <circle cx="${bx}" cy="${by}" r="${scene.iceRank >= 2 ? 2.1 : 1.5}" fill="${ice.railColor}"/>
-  `).join('');
+  const piers = [0.62, 0.74, 0.86, 0.96].map(ptT => {
+    const p = evalCubicBezier(botRailC, ptT);
+    return `<line x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${p.x.toFixed(1)}" y2="186"/>`;
+  }).join('');
+
+  // 갓길 방호벽 상단 경계선(topRailC) 위에 정확히 안착하는 델리네이터 비콘 (차선·갓길 침범 제로)
+  const beacons = HIGHWAY_BEACON_TS.map(bt => {
+    const pt = evalCubicBezier(topRailC, bt);
+    const bx = pt.x.toFixed(1);
+    const by = (pt.y - 0.8).toFixed(1);
+    return `
+      <circle cx="${bx}" cy="${by}" r="${scene.iceRank >= 2 ? 3.8 : 2.9}" fill="${ice.beaconGlow}"/>
+      <circle cx="${bx}" cy="${by}" r="${scene.iceRank >= 2 ? 1.65 : 1.35}" fill="${ice.railColor}"/>
+    `;
+  }).join('');
 
   return `<svg class="hs-layer hs-terrain" viewBox="0 0 1200 180" preserveAspectRatio="none" aria-hidden="true">
     <defs>
@@ -783,39 +876,33 @@ function renderTerrainLayer(scene, uid) {
       <polygon points="${frontPts}" fill="${t.front}" opacity="0.94"/>
     </g>
 
-    <!-- 화면 좌측(-20)부터 우측(1220) 끝까지 끊김 없이 이어지는 고속도로 + 부드러운 그라데이션 페이드 -->
+    <!-- 눕힌 원근 풀블리드 고속도로(-20..1220) + 방호벽 경계 정확 비콘 -->
     <g mask="url(#${uid}roadMask)">
-      <!-- 고가 교각 -->
-      <g stroke="rgba(12, 18, 28, 0.58)" stroke-width="4.5">
-        <line x1="740" y1="168" x2="740" y2="186"/>
-        <line x1="875" y1="163" x2="875" y2="186"/>
-        <line x1="1015" y1="159" x2="1015" y2="186"/>
-        <line x1="1145" y1="157" x2="1145" y2="186"/>
-      </g>
+      <g stroke="rgba(12, 18, 28, 0.60)" stroke-width="4.5">${piers}</g>
 
       <!-- 노반·방호벽 외곽 -->
-      <path d="M-20,164 C310,160 680,134 1220,116 L1220,164 C710,171 340,185 -20,188 Z" fill="#334155" opacity="0.92"/>
+      <path d="${ribbonPathD(deckTopC, deckBotC)}" fill="#334155" opacity="0.92"/>
 
       <!-- 실제 아스팔트 노면 -->
-      <path d="M-20,166 C315,162 685,137 1220,119 L1220,157 C710,165 340,183 -20,185 Z" fill="url(#${uid}roadAsph)"/>
+      <path d="${ribbonPathD(asphTopC, asphBotC)}" fill="url(#${uid}roadAsph)"/>
 
       ${roadIcePatch}
       ${roadSnowBank}
 
       <!-- 양쪽 갓길 실선 (노면 경계) -->
-      <path d="M-20,168 C316,164 686,140 1220,122.5" fill="none" stroke="${ice.edgeLine}" stroke-width="1.3" opacity="0.88"/>
-      <path d="M-20,183.5 C340,181 710,163 1220,154.5" fill="none" stroke="${ice.edgeLine}" stroke-width="1.6" opacity="0.92"/>
+      <path d="${cubicPathD(edgeTopC)}" fill="none" stroke="${ice.edgeLine}" stroke-width="1.15" opacity="0.88"/>
+      <path d="${cubicPathD(edgeBotC)}" fill="none" stroke="${ice.edgeLine}" stroke-width="1.45" opacity="0.92"/>
 
       <!-- 상·하행 차선 점선 -->
-      <path d="M-20,172 C324,168 694,146 1220,130.5" fill="none" stroke="rgba(248,250,252,0.50)" stroke-width="1.15" stroke-dasharray="12 10"/>
-      <path d="M-20,179.5 C334,176.5 704,157 1220,146.5" fill="none" stroke="rgba(248,250,252,0.58)" stroke-width="1.25" stroke-dasharray="15 11"/>
+      <path d="${cubicPathD(laneTopC)}" fill="none" stroke="rgba(248,250,252,0.50)" stroke-width="1.05" stroke-dasharray="12 10"/>
+      <path d="${cubicPathD(laneBotC)}" fill="none" stroke="rgba(248,250,252,0.58)" stroke-width="1.15" stroke-dasharray="15 11"/>
 
       <!-- 도로 황색 중심선 -->
-      <path d="M-20,175.8 C329,172.2 699,151.5 1220,138.5" fill="none" stroke="${ice.centerLine}" stroke-width="1.75" opacity="0.92"/>
+      <path d="${cubicPathD(centerC)}" fill="none" stroke="${ice.centerLine}" stroke-width="1.55" opacity="0.92"/>
 
-      <!-- 0·1·2·3단계 살얼음 직관 방호벽 컬러 라인 + 비콘 -->
-      <path class="${scene.iceRank >= 3 ? 'hs-ice-sheen' : ''}" d="M-20,165.5 C312,161.5 682,135.5 1220,117.5" fill="none" stroke="${ice.accent}" stroke-width="${scene.iceRank >= 2 ? 2.5 : 1.7}" opacity="0.96"/>
-      <path d="M-20,185 C340,182.5 710,166.5 1220,158.5" fill="none" stroke="${ice.accent}" stroke-width="${scene.iceRank >= 2 ? 2.7 : 1.9}" opacity="0.96"/>
+      <!-- 0·1·2·3단계 살얼음 직관 방호벽 컬러 라인 + 경계 비콘 -->
+      <path class="${scene.iceRank >= 3 ? 'hs-ice-sheen' : ''}" d="${cubicPathD(topRailC)}" fill="none" stroke="${ice.accent}" stroke-width="${scene.iceRank >= 2 ? 2.2 : 1.6}" opacity="0.96"/>
+      <path d="${cubicPathD(botRailC)}" fill="none" stroke="${ice.accent}" stroke-width="${scene.iceRank >= 2 ? 2.4 : 1.7}" opacity="0.96"/>
       ${beacons}
     </g>
   </svg>`;
@@ -860,6 +947,7 @@ export function applyHeroScene(heroEl, input = {}) {
   heroEl.dataset.blackIce = scene.blackIce ? 'true' : 'false';
   heroEl.dataset.iceRank = String(scene.iceRank);
   heroEl.dataset.coldWave = scene.coldWave ? 'true' : 'false';
+  heroEl.dataset.windMs = String(scene.windMs);
   heroEl.classList.add('has-dynamic-scene');
 
   let horizonEl = heroEl.querySelector('.horizon');
