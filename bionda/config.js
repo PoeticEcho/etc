@@ -5,7 +5,7 @@
  * - GitHub Pages(*.github.io) / Cloudflare Pages(*.pages.dev)에서 접속 시 별도 입력 없이 자동으로 아래 Worker를 사용합니다.
  * - 로컬(localhost/127.0.0.1) 및 Render/Railway 자체 Node 호스팅에서는 동일 도메인 '/api/*'를 자동 사용합니다.
  */
-export const DEFAULT_API_BASE = 'https://bionda-api.herego.workers.dev';
+export const DEFAULT_API_BASE = 'https://bionda.herego.workers.dev';
 
 const API_BASE_STORAGE_KEY = 'weather-watch:api-base';
 
@@ -36,7 +36,11 @@ export function getApiBase() {
   try {
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem(API_BASE_STORAGE_KEY);
-      if (saved !== null) return sanitizeApiBase(saved);
+      if (saved !== null) {
+        const clean = sanitizeApiBase(saved);
+        if (clean === 'https://bionda-api.herego.workers.dev') return sanitizeApiBase(DEFAULT_API_BASE);
+        return clean;
+      }
     }
   } catch {}
   return shouldUseDefaultExternalBase() ? sanitizeApiBase(DEFAULT_API_BASE) : '';
