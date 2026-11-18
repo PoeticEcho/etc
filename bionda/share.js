@@ -182,15 +182,15 @@ export function renderOverviewCanvas(places, getRecord, stampStr, summaryFn) {
     ctx.lineTo(x + cardW - 20, y + 120);
     ctx.stroke();
 
-    // Row 4: Today Precip & 6h Max POP + Rain Start/End
+    // Row 4: Today Precip & 6h Max POP + Intuitive Rain Start~End
     const dayP = o?.dayPrecip ?? w?.today?.precip ?? 0;
     const maxPop = w?.rows?.length ? Math.max(...w.rows.map(r => Number.isFinite(r.pop) ? r.pop : 0)) : 0;
     const kmaStart = w?.kma?.analysis?.start?.time ? w.kma.analysis.start.time.slice(11, 16) : null;
     const kmaEnd = w?.kma?.analysis?.end?.time ? w.kma.analysis.end.time.slice(11, 16) : null;
     const popSuffix = w?.kma?.analysis?.now?.wet
-      ? ' (강수중)'
+      ? (kmaEnd ? ` (현재~${kmaEnd} 강수중)` : ' (강수중)')
       : kmaStart
-      ? ` (${kmaStart} 강수예상${kmaEnd ? '→' + kmaEnd + '종료' : ''})`
+      ? ` (${kmaStart}~${kmaEnd || '지속'} 강수예상)`
       : '';
 
     ctx.fillStyle = '#647d7a';
@@ -328,14 +328,20 @@ export function renderDetailCanvas(place, rec, stampStr, summaryFn) {
     ctx.fillText(src, mx + 14, my + 80);
   });
 
-  // Start / End timing strip inside Card 1
+  // Start ~ End timing strip inside Card 1
   const a = w?.kma?.analysis;
-  const startTxt = a?.now?.wet ? '현재 강수 관측 중' : a?.start ? `${a.start.time.slice(11, 16)}경 강수 시작 예상` : '12시간 내 강수 신호 없음';
-  const endTxt = a?.end ? `${a.end.time.slice(11, 16)}경 종료 추정(2시간 무강수)` : a?.start ? '12시간 이후 지속 가능' : '해당 없음';
+  const st = a?.start?.time ? a.start.time.slice(11, 16) : null;
+  const ed = a?.end?.time ? a.end.time.slice(11, 16) : null;
+  const startTxt = a?.now?.wet
+    ? (ed ? `현재 ~ ${ed} 강수 관측중` : '현재 강수 관측중(지속)')
+    : st
+    ? `${st} ~ ${ed || '지속'} 강수예상`
+    : '12시간 내 강수 신호 없음';
+  const endTxt = ed ? `${ed}경 종료 추정(2시간 무강수)` : st ? '12시간 이후 지속 가능' : '해당 없음';
   fillRoundRect(ctx, 56, 362, 464, 34, 8, '#eaf4f8');
   ctx.fillStyle = '#184d68';
   ctx.font = `700 13.5px ${FONT}`;
-  ctx.fillText(`☔ 시작: ${startTxt}   |   ☀ 종료: ${endTxt}`, 70, 380);
+  ctx.fillText(`☔ 강수시간: ${startTxt}   |   ☀ 종료: ${endTxt}`, 70, 380);
 
   // Left Column Card 2: 6-Hour Forecast Table
   fillRoundRect(ctx, 36, 428, 504, 566, 16, '#ffffff', '#d8e3de', 1.2);

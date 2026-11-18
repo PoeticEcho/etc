@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#103c3e">
-  <meta name="description" content="광주대구선(14번) 8개 관심지역의 비·눈 시작·종료 시각, 도로 살얼음, 제설·수방 의사결정 및 기상특보를 한눈에 감시하는 고밀도 기상 모니터">
+  <meta name="description" content="광주대구선(14번) 8개 관심지역의 비·눈 시작~종료 시각, 도로 살얼음, 제설·수방 의사결정 및 기상특보를 한눈에 감시하는 고밀도 기상 모니터">
   <title>날씨봇 × 비온다? | 관심지역 상시 기상·도로살얼음 모니터</title>
   <link rel="stylesheet" href="./styles.css">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
@@ -14,7 +14,7 @@
     <div class="wrap bar">
       <a class="brandhome" href="#overview" aria-label="날씨봇 관심지역 기상 모니터 홈">
         <b class="brand"><i>≋</i> 날씨봇</b>
-        <span class="tag">관심지역 상시 기상 모니터 (PC·모바일 감시 모드 · 광주대구선 14번)</span>
+        <span class="tag">관심지역 상시 기상 모니터 (광주대구선 14번 · 비·눈 시작~종료)</span>
       </a>
       <div class="header-actions">
         <button id="reloadAll" type="button" class="hdr-btn" title="전체 기상자료 새로고침">
@@ -34,93 +34,119 @@
   </header>
 
   <main class="wrap main-wrap">
+    <!-- Top Filter & Layout Switch Bar -->
+    <div id="topSubbar" class="subbar">
+      <nav id="groups" aria-label="지역 모아보기 및 모바일 미니맵·영상 페이지 전환"></nav>
+      <div class="pc-layout-tools">
+        <button type="button" id="pcLayoutToggleBtn" class="layout-switch-btn" title="PC 화면 배치 전환 (상하 기본 배치 ↔ 좌우 FHD 분할 배치)">
+          📐 배치: <strong id="pcLayoutLabel">상하 기본</strong>
+        </button>
+      </div>
+    </div>
+
     <!-- OVERVIEW SECTION -->
     <section id="overview" aria-label="관심지역 종합 상황판">
-      <div class="overviewhead">
-        <div>
-          <h1>관심지역 기상·도로살얼음 모니터</h1>
-          <p id="overviewCaption">저장한 지역 8 / 8 · 비·눈 시작/종료 · 광주대구선(14번) 도로기상 실황 연동</p>
+      <div id="overviewContainer" class="overview-container layout-stacked">
+        <!-- 8-Region Cards Pane -->
+        <div id="cardsPane" class="overview-cards-pane">
+          <div id="grid" class="region-grid" aria-live="polite"></div>
+          <div id="quick" class="quick-bar"></div>
+        </div>
+
+        <!-- Mini-Map + Road Sensors & Windy/Radar Split Section (Mobile: Dedicated Separate Page #map) -->
+        <div id="mapSection" class="map-radar-workspace" aria-label="광주대구선 노선 미니맵 및 실시간 위성·레이더">
+          <div class="mobile-map-nav">
+            <a href="#overview" class="back-to-cards-btn">← 8개 관심지역 상황판으로 돌아가기</a>
+            <span class="mobile-map-badge">광주대구선(14번) 노선·영상</span>
+          </div>
+
+          <!-- Left / Top Sub-Pane: Route 14 Mini-Map + Compact Road Weather Grid -->
+          <div id="minimapPane" class="map-panel card compact-card">
+            <div class="head map-head">
+              <div>
+                <span class="section-kicker">ROUTE 14 HIGHWAY CORRIDOR</span>
+                <h2>광주대구선(14번) 8개 관심지역 · 도로노면 미니맵</h2>
+              </div>
+              <div class="map-legend">
+                <span><i class="dot-calm"></i>평온</span>
+                <span><i class="dot-watch"></i>강수·주의</span>
+                <span><i class="dot-danger"></i>결빙·경고</span>
+              </div>
+            </div>
+            <div id="minimapContainer" class="minimap-box" role="region" aria-label="광주대구선 8개 관심지역 미니맵"></div>
+
+            <div class="road-grid-header">
+              <b>🛣️ 광주대구선(14번) 도로기상관측소 노면온도(TR1) · 기온</b>
+              <small>지점 클릭 시 Windy 이동 · 더블클릭 시 상세</small>
+            </div>
+            <div id="roadStnStrip" class="road-stn-grid" aria-label="광주대구선 실시간 도로기상관측소 요약"></div>
+          </div>
+
+          <!-- Interactive Resizable Splitter Bar (PC Stacked Mode) -->
+          <div id="mapSplitter" class="map-splitter" role="separator" aria-orientation="vertical" title="좌우로 드래그하여 미니맵과 Windy/레이더 영상 비율을 조절하세요">
+            <span class="splitter-grip">⋮</span>
+          </div>
+
+          <!-- Right / Bottom Sub-Pane: Windy Satellite/Radar + KMA HSR Radar -->
+          <div id="visualPane" class="windy-panel card compact-card">
+            <div class="head map-head">
+              <div>
+                <span class="section-kicker">LIVE SATELLITE &amp; KMA RADAR</span>
+                <h2 id="visualPanelTitle">실시간 위성 · 강수 레이더 영상</h2>
+              </div>
+              <div class="visual-tabs" role="tablist">
+                <button type="button" id="tabWindy" class="vtab active" role="tab" aria-selected="true">🛰️ Windy 위성·레이더</button>
+                <button type="button" id="tabKmaRadar" class="vtab" role="tab" aria-selected="false">📡 기상청 HSR 레이더</button>
+              </div>
+            </div>
+
+            <div id="windyBox" class="visual-body">
+              <div class="windy-controls">
+                <span class="wc-label">레이어:</span>
+                <button type="button" class="wc-btn active" data-overlay="satellite">위성(구름)</button>
+                <button type="button" class="wc-btn" data-overlay="radar">강수레이더</button>
+                <button type="button" class="wc-btn" data-overlay="rain">비·눈(mm)</button>
+                <button type="button" class="wc-btn" data-overlay="wind">바람</button>
+                <button type="button" class="wc-btn" data-overlay="temp">기온</button>
+                <div class="split-preset-btns" title="미니맵 대 영상 영역 비율 빠른 조절">
+                  <button type="button" class="sp-btn" data-split="35">영상크게</button>
+                  <button type="button" class="sp-btn active" data-split="43">기본비율</button>
+                  <button type="button" class="sp-btn" data-split="55">미니맵크게</button>
+                </div>
+              </div>
+              <div class="windy-subbar">
+                <span id="windyFocusLabel" class="wc-focus">중심: 함양·지리산 (35.47, 127.725)</span>
+                <label class="windy-detail-toggle">
+                  <input type="checkbox" id="windyDetailCheck" checked>
+                  <span>하단 시간별 예보표 표시</span>
+                </label>
+              </div>
+              <div class="iframe-wrap">
+                <iframe
+                  id="windyIframe"
+                  title="Windy 실시간 위성 및 기상 레이더"
+                  width="650"
+                  height="450"
+                  src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=default&zoom=11&overlay=satellite&product=satellite&level=surface&lat=35.47&lon=127.725&detailLat=35.52&detailLon=127.725&detail=true&pressure=true&message=true"
+                  frameborder="0"
+                  loading="lazy"
+                  allowfullscreen>
+                </iframe>
+              </div>
+            </div>
+
+            <div id="kmaRadarBox" class="visual-body" hidden>
+              <div class="windy-controls">
+                <span>자료: 기상청 API허브 전국 레이더 HSR 합성영상</span>
+                <button type="button" id="radarRefreshBtn" class="wc-btn">↻ 레이더 새로고침</button>
+              </div>
+              <div id="kmaRadarContainer" class="kma-radar-container">
+                <div class="radar-placeholder">기상청 공식 레이더 합성영상을 불러오는 중…</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <div class="subbar">
-        <nav id="groups" aria-label="지역 모아보기 필터"></nav>
-        <div id="monitorStatus" class="monitor-status" aria-live="polite">
-          <span class="status-dot active" id="wakeDot"></span>
-          <span id="statusSummaryText">👁️ 계속 켜두기(Wake Lock) 작동 중 · 🔔 알림 소리 ON · 위험지역 정렬됨</span>
-        </div>
-      </div>
-
-      <!-- 8-Region High-Density Card Grid -->
-      <div id="grid" class="region-grid" aria-live="polite"></div>
-      <div id="quick" class="quick-bar"></div>
-
-      <!-- Gwangju-Daegu Route 14 Mini-Map + Windy Satellite/Radar + KMA HSR Radar -->
-      <section id="mapSection" class="map-radar-section" aria-label="광주대구선 노선 미니맵 및 기상 영상">
-        <div class="map-panel card">
-          <div class="head map-head">
-            <div>
-              <span class="section-kicker">ROUTE 14 CORRIDOR MINIMAP</span>
-              <h2>광주대구선(14번) 8개 관심지역 · 도로기상 미니맵</h2>
-            </div>
-            <div class="map-legend">
-              <span><i class="dot-calm"></i>평온</span>
-              <span><i class="dot-watch"></i>주의·강수</span>
-              <span><i class="dot-danger"></i>경고·결빙</span>
-            </div>
-          </div>
-          <p class="map-sub">마커를 누르면 우측 Windy 위성·레이더 지도가 해당 지점으로 이동하며, 더블클릭 또는 하단 버튼으로 상세 분석을 봅니다.</p>
-          <div id="minimapContainer" class="minimap-box" role="region" aria-label="광주대구선 8개 관심지역 미니맵"></div>
-          <div id="roadStnStrip" class="road-stn-strip" aria-label="광주대구선 실시간 도로기상관측소 요약"></div>
-        </div>
-
-        <div class="windy-panel card">
-          <div class="head map-head">
-            <div>
-              <span class="section-kicker">LIVE SATELLITE &amp; KMA RADAR</span>
-              <h2 id="visualPanelTitle">실시간 위성 · 강수 레이더 영상</h2>
-            </div>
-            <div class="visual-tabs" role="tablist">
-              <button type="button" id="tabWindy" class="vtab active" role="tab" aria-selected="true">🛰️ Windy 위성·레이더</button>
-              <button type="button" id="tabKmaRadar" class="vtab" role="tab" aria-selected="false">📡 기상청 HSR 레이더</button>
-            </div>
-          </div>
-
-          <div id="windyBox" class="visual-body">
-            <div class="windy-controls">
-              <span class="wc-label">레이어:</span>
-              <button type="button" class="wc-btn active" data-overlay="satellite">위성(구름)</button>
-              <button type="button" class="wc-btn" data-overlay="radar">강수레이더</button>
-              <button type="button" class="wc-btn" data-overlay="rain">비·눈(mm)</button>
-              <button type="button" class="wc-btn" data-overlay="wind">바람(풍속)</button>
-              <button type="button" class="wc-btn" data-overlay="temp">기온(°C)</button>
-              <span id="windyFocusLabel" class="wc-focus">중심: 함양·지리산 (35.47, 127.725)</span>
-            </div>
-            <div class="iframe-wrap">
-              <iframe
-                id="windyIframe"
-                title="Windy 실시간 위성 및 기상 레이더"
-                width="650"
-                height="450"
-                src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=default&zoom=11&overlay=satellite&product=satellite&level=surface&lat=35.47&lon=127.725&detailLat=35.52&detailLon=127.725&detail=true&pressure=true&message=true"
-                frameborder="0"
-                loading="lazy"
-                allowfullscreen>
-              </iframe>
-            </div>
-          </div>
-
-          <div id="kmaRadarBox" class="visual-body" hidden>
-            <div class="windy-controls">
-              <span>자료: 기상청 API허브 전국 레이더 HSR 합성영상</span>
-              <button type="button" id="radarRefreshBtn" class="wc-btn">↻ 레이더 새로고침</button>
-            </div>
-            <div id="kmaRadarContainer" class="kma-radar-container">
-              <div class="radar-placeholder">기상청 공식 레이더 합성영상을 불러오는 중…</div>
-            </div>
-          </div>
-        </div>
-      </section>
     </section>
 
     <!-- DETAIL SECTION -->
@@ -159,17 +185,17 @@
           <!-- Rain/Snow Start & End Timing + 12-Hour KMA Timeline -->
           <section class="card">
             <div class="head">
-              <h2>☔ 비·눈 시작 및 종료 전망 (기상청 초단기·단기 병합)</h2>
+              <h2>☔ 비·눈 시작 ~ 종료 전망 (기상청 초단기·단기 병합)</h2>
               <span class="pill" id="kmaSourceBadge">3·6·12시간 전망</span>
             </div>
             <div class="rain-timing-grid">
               <div class="timing-box start-box">
-                <span class="timing-eyebrow">☔ 예상 강수(비·눈) 시작</span>
+                <span class="timing-eyebrow">☔ 예상 강수(비·눈) 시간대</span>
                 <strong id="rainStartText">확인 중</strong>
                 <small id="rainStartSub">기상청 실황 및 12시간 시간별 예보 기준</small>
               </div>
               <div class="timing-box end-box">
-                <span class="timing-eyebrow">☀ 예상 강수(비·눈) 종료</span>
+                <span class="timing-eyebrow">☀ 예상 강수 종료 시각</span>
                 <strong id="rainEndText">확인 중</strong>
                 <small id="rainEndSub">연속 2시간 무강수 예보가 이어질 때 추정</small>
               </div>
@@ -178,7 +204,7 @@
             <div class="timeline-wrap">
               <div class="timeline-head">
                 <b>향후 12시간 강수 타임라인</b>
-                <small>파랑: 비 · 보라: 눈/진눈깨비 · 노랑: 강수 가능성(≥50%) · 회색: 신호 없음</small>
+                <small>파랑: 비 · 보라: 눈/진눈깨비 · 노랑: 강수 가능성(≥50%) · 회색: 무강수</small>
               </div>
               <div id="kmaTimeline" class="kma-timeline" role="list" aria-label="12시간 강수 타임라인"></div>
             </div>
@@ -275,13 +301,24 @@
   <!-- Floating Warning Tooltip (PC Hover & Mobile Tap) -->
   <div id="wrnTooltip" class="wrn-tooltip" role="tooltip" hidden></div>
 
-  <!-- Settings Popover Panel (Requirement 7) -->
+  <!-- Settings Popover Panel (Requirement 7 — Monitoring status shown inside Settings!) -->
   <aside id="settingsPanel" class="settings-panel" aria-label="감시 및 화면 설정" hidden>
     <div class="settings-head">
       <strong>⚙ 감시 및 화면 설정</strong>
       <button type="button" id="closeSettings" class="settings-close" aria-label="설정 닫기">✕</button>
     </div>
+    <div id="monitorStatus" class="settings-status-banner" aria-live="polite">
+      <span class="status-dot active" id="wakeDot"></span>
+      <span id="statusSummaryText">👁️ 상시감시 작동 중 · 🔔 알림 소리 ON · 위험지역 우선 정렬</span>
+    </div>
     <div class="settings-list">
+      <div class="setting-row">
+        <div>
+          <b>📐 PC 화면 레이아웃 배치</b>
+          <small>상하 기본(4×2 카드+하단 맵) ↔ 좌우 분할(좌 8패널+우 상하 맵)</small>
+        </div>
+        <button type="button" id="togglePcLayout" class="toggle-pill" aria-pressed="false">상하 기본</button>
+      </div>
       <div class="setting-row">
         <div>
           <b>🖥️ 전체화면 감시 모드</b>

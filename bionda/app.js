@@ -1,7 +1,6 @@
 import { loadWeather, loadProbabilities } from './weather.js';
 import { loadObservation, loadRoadStations } from './observations.js';
 import { fetchPlaceWarnings, buildWarningSummary } from './warnings.js';
-import { iceOutlook } from './ice.js';
 import { renderOverviewCanvas, renderDetailCanvas, canvasToJpgBlob } from './share.js';
 
 const $ = id => document.getElementById(id);
@@ -24,7 +23,6 @@ export const presets = [
   ['거창', '거창읍', 35.687, 127.910]
 ].map(([name, site, lat, lon]) => ({ name, site, lat, lon }));
 
-// 전국 주요 시·군·구 빠른 검색 사전
 const NATIONWIDE_PLACES = [
   ...presets,
   ['서울 종로구', '광화문', 37.5729, 126.9794],
@@ -49,7 +47,7 @@ const NATIONWIDE_PLACES = [
 ].map(x => (Array.isArray(x) ? { name: x[0], site: x[1], lat: x[2], lon: x[3] } : x));
 
 const STORAGE_KEY = 'weather-watch:locations:v3';
-const SETTINGS_KEY = 'weather-watch:settings:v1';
+const SETTINGS_KEY = 'weather-watch:settings:v2';
 
 const valid = p =>
   p &&
@@ -77,14 +75,16 @@ function persist() {
   } catch {}
 }
 
-// 감시 설정 상태 (요구사항 7)
+// 감시 및 레이아웃 설정 상태
 const settings = {
   fullscreen: false,
   sound: true,
   wakeLock: true,
   sortRisk: true,
   darkMode: false,
-  simMode: false
+  simMode: false,
+  pcLayout: 'stacked', // 'stacked' (상하 기본 4x2 + 하단 분할) | 'split' (좌우 FHD 분할: 좌 2x4 + 우 상하)
+  mapSplitPct: 43 // 미니맵 영역 폭 비율 (30 ~ 68%)
 };
 try {
   const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
@@ -93,6 +93,10 @@ try {
     settings.wakeLock = savedSettings.wakeLock ?? true;
     settings.sortRisk = savedSettings.sortRisk ?? true;
     settings.darkMode = savedSettings.darkMode ?? false;
+    settings.pcLayout = savedSettings.pcLayout === 'split' ? 'split' : 'stacked';
+    if (Number.isFinite(savedSettings.mapSplitPct)) {
+      settings.mapSplitPct = Math.max(30, Math.min(68, savedSettings.mapSplitPct));
+    }
   }
 } catch {}
 
@@ -104,7 +108,9 @@ function persistSettings() {
         sound: settings.sound,
         wakeLock: settings.wakeLock,
         sortRisk: settings.sortRisk,
-        darkMode: settings.darkMode
+        darkMode: settings.darkMode,
+        pcLayout: settings.pcLayout,
+        mapSplitPct: settings.mapSplitPct
       })
     );
   } catch {}
@@ -149,6 +155,7 @@ const records = new Map();
 let roadStations = [];
 let filter = 'all';
 let detailPlace = null;
+let mobileMapView = false;
 let tableMode = '6h'; // '6h' | '12h'
 let windyState = {
   overlay: 'satellite',
@@ -156,6 +163,7 @@ let windyState = {
   lon: 127.725,
   detailLat: 35.52,
   detailLon: 127.725,
+  detailOpen: true,
   label: '함양·지리산 (35.52, 127.725)'
 };
 let initialSnapshotDone = false;
@@ -180,7 +188,6 @@ function getEffectiveRecord(p) {
   const baseRec = record(p);
   if (!settings.simMode) return baseRec;
 
-  // 시안과 동일한 동절기 대설·한파·살얼음 경보 상황 시뮬레이션
   const simMap = {
     '거창군남부': {
       temp: -1.4,
@@ -378,26 +385,18 @@ async function syncWakeLock() {
   updateMonitorStatusBar();
 }
 
+// 감시 상태 요약은 [⚙ 설정] 패널 내부 상단에 직관적으로 표시!
 function updateMonitorStatusBar() {
   const dot = $('wakeDot');
   const txt = $('statusSummaryText');
   if (!dot || !txt) return;
   dot.classList.toggle('active', settings.wakeLock);
-  const isMobile = window.innerWidth <= 768;
-  if (isMobile) {
-    const parts = [
-      settings.wakeLock ? '👁️ 상시감시' : '절전허용',
-      settings.sound ? '🔔 소리ON' : '소리OFF'
-    ];
-    txt.textContent = parts.join(' · ');
-  } else {
-    const parts = [
-      settings.wakeLock ? '👁️ 계속 켜두기(Wake Lock) 작동 중' : '👁️ 화면 절전 기본',
-      settings.sound ? '🔔 알림 소리 ON' : '🔕 알림 소리 OFF',
-      settings.sortRisk ? '위험지역 정렬됨' : '기본순서'
-    ];
-    txt.textContent = parts.join(' · ');
-  }
+  const parts = [
+    settings.wakeLock ? '👁️ 계속 켜두기 작동 중' : '👁️ 절전 기본',
+    settings.sound ? '🔔 알림 소리 ON' : '🔕 소리 OFF',
+    settings.sortRisk ? '위험지역 정렬됨' : '기본순서'
+  ];
+  txt.textContent = parts.join(' · ');
 }
 
 // 인앱 특보/위험 변동 토스트 배너 (요구사항 5)
@@ -559,26 +558,54 @@ function precipitationStrip(rows = []) {
 
 const detailURL = p => '#region/' + encodeURIComponent(p.name) + '/' + coord(p);
 
-// 비·눈 시작/종료 한줄 요약 텍스트 생성
-function rainTimingSummary(w, o) {
+/**
+ * 직관적 강수 시간대 요약 생성 ("19:00 ~ 23:00 강수예상" 형식)
+ */
+export function rainTimingSummary(w, o) {
   const a = w?.kma?.analysis;
-  const roadTempStr = Number.isFinite(o?.roadTemp) ? ` · 노면 ${o.roadTemp.toFixed(1)}°C` : '';
+  const isMob = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const roadText = Number.isFinite(o?.roadTemp) ? `노면 ${o.roadTemp.toFixed(1)}°${isMob ? '' : 'C'}` : '';
+  const hasSnow = a?.horizons?.some(h => h.kinds?.some(k => k.includes('눈'))) || a?.now?.type?.includes('눈');
+  const icon = hasSnow ? '❄️' : '☔';
+  const kindWord = hasSnow ? '눈예상' : '강수예상';
+  const tilde = isMob ? '~' : ' ~ ';
+
   if (!a) {
-    return { text: `기상청 예보 연동 중${roadTempStr}`, active: false };
+    return { mainText: '기상청 예보 연동 중', roadText, shortMapText: '예보 연동', active: false };
   }
   if (a.now?.wet) {
-    const endPart = a.end ? ` → ${a.end.time.slice(11, 16)}경 종료 추정` : ' → 지속 예상';
-    return { text: `☔ 지금 ${a.now.type} 관측 중${endPart}${roadTempStr}`, active: true };
+    const ed = a.end ? a.end.time.slice(11, 16) : null;
+    return {
+      mainText: ed ? `${icon} 현재${tilde}${ed} ${a.now.type}중` : `${icon} 현재 ${a.now.type}중(지속)`,
+      roadText,
+      shortMapText: ed ? `현재~${ed} ${a.now.type}` : `현재 ${a.now.type}중`,
+      active: true
+    };
   }
   if (a.start) {
     const st = a.start.time.slice(11, 16);
-    const ed = a.end ? ` → ${a.end.time.slice(11, 16)}경 종료 추정` : '';
-    return { text: `☔ ${st}경 강수 시작 예상${ed}${roadTempStr}`, active: true };
+    const ed = a.end ? a.end.time.slice(11, 16) : null;
+    return {
+      mainText: ed ? `${icon} ${st}${tilde}${ed} ${kindWord}` : `${icon} ${st}${tilde}지속 ${kindWord}`,
+      roadText,
+      shortMapText: ed ? `${st.slice(0, 2)}~${ed.slice(0, 2)}시 비` : `${st.slice(0, 2)}시~ 비`,
+      active: true
+    };
   }
   if (a.horizons?.some(h => h.hasRisk)) {
-    return { text: `◇ 12h 내 강수 가능성(≥50%)${roadTempStr}`, active: false };
+    return {
+      mainText: '◇ 12h 강수 가능성',
+      roadText,
+      shortMapText: '강수가능',
+      active: false
+    };
   }
-  return { text: `☀ 12h 무강수 예보${roadTempStr}`, active: false };
+  return {
+    mainText: '☀ 12h 무강수 예보',
+    roadText,
+    shortMapText: '무강수',
+    active: false
+  };
 }
 
 function updateUnifiedGlobalStamp() {
@@ -593,23 +620,26 @@ function updateUnifiedGlobalStamp() {
   return stampFormatted;
 }
 
-// 광주대구선(14번 노선) 8개 관심지역 & 도로기상관측소 미니맵 렌더링
+/**
+ * 광주대구선(14번 노선) 8개 관심지역 & 도로기상관측소 미니맵 렌더링
+ * 2단 정렬 콜아웃 레일(상단 4개·하단 4개) + 실제 좌표 리더라인 구조로 어떤 해상도에서도 글자 겹침 0건 보장!
+ */
 function renderMiniMap() {
   const container = $('minimapContainer');
   const strip = $('roadStnStrip');
   if (!container) return;
 
-  // Bounding box covering Namwon (127.34) to Daegu Dalseong (128.48), Lat 35.35 to 35.79
-  const minLon = 127.30, maxLon = 128.52;
-  const minLat = 35.34, maxLat = 35.80;
-  const W = 640, H = 280;
+  const minLon = 127.32, maxLon = 128.50;
+  const minLat = 35.36, maxLat = 35.78;
+  const W = 540, H = 236;
+  // Highway curve occupies the middle band (y = 78 .. 158)
   const project = (lat, lon) => {
-    const x = 36 + ((lon - minLon) / (maxLon - minLon)) * (W - 72);
-    const y = H - 34 - ((lat - minLat) / (maxLat - minLat)) * (H - 68);
+    const x = 38 + ((lon - minLon) / (maxLon - minLon)) * (W - 76);
+    const y = 158 - ((lat - minLat) / (maxLat - minLat)) * 80;
     return [Number(x.toFixed(1)), Number(y.toFixed(1))];
   };
 
-  // 광주대구선(14번) 고속도로 선형 좌표열 (남원 -> 지리산휴 -> 번암교 -> 옥계1교 -> 함양 -> 지곡 -> 죽산천교 -> 남상 -> 거창휴 -> 야로 -> 고령 -> 논공/달성)
+  // 광주대구선(14번) 고속도로 선형 좌표열
   const routeWaypoints = [
     [35.416, 127.345],
     [35.475, 127.544],
@@ -631,46 +661,58 @@ function renderMiniMap() {
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="광주대구고속도로 14번 노선 및 8개 관심지역 기상 미니맵">
     <defs>
       <linearGradient id="hwyGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#38b2ac" stop-opacity="0.7"/>
-        <stop offset="50%" stop-color="#7fe3b3" stop-opacity="0.9"/>
-        <stop offset="100%" stop-color="#63b3ed" stop-opacity="0.7"/>
+        <stop offset="0%" stop-color="#38b2ac" stop-opacity="0.85"/>
+        <stop offset="50%" stop-color="#7fe3b3" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="#63b3ed" stop-opacity="0.85"/>
       </linearGradient>
     </defs>
-    <!-- Grid lines -->
-    <line x1="30" y1="70" x2="${W - 30}" y2="70" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
-    <line x1="30" y1="140" x2="${W - 30}" y2="140" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
-    <line x1="30" y1="210" x2="${W - 30}" y2="210" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
-    <text x="16" y="24" fill="#9bc7c3" font-size="11" font-weight="700">🛣️ 고속국도 제12호선 (무안광주대구선 · 노선코드 14) 실시간 기상·노면온도 미니맵</text>
+    <!-- Top Header Band -->
+    <rect x="0" y="0" width="${W}" height="24" fill="rgba(7, 24, 27, 0.55)"/>
+    <rect x="10" y="4" width="96" height="16" rx="4" fill="#1b5e57" stroke="#4fd1c5" stroke-width="0.8"/>
+    <text x="58" y="15" text-anchor="middle" fill="#e6fffa" font-size="9.5" font-weight="800">고속국도 12 · 노선 14</text>
+    <text x="114" y="15.5" fill="#a8d5cf" font-size="10" font-weight="700">광주대구선 실시간 노면·기상 상황도</text>
+    <text x="${W - 12}" y="15" text-anchor="end" fill="#81bfb7" font-size="9.5" font-weight="600">◀ 남원·함양  |  거창·고령·대구 ▶</text>
+
+    <!-- Middle Corridor Band Guide Lines -->
+    <line x1="20" y1="84" x2="${W - 20}" y2="84" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
+    <line x1="20" y1="122" x2="${W - 20}" y2="122" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
+    <line x1="20" y1="160" x2="${W - 20}" y2="160" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
+
     <!-- Highway Corridor Glow & Line -->
-    <polyline points="${polyPoints}" fill="none" stroke="rgba(127,227,179,0.22)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="${polyPoints}" fill="none" stroke="url(#hwyGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${polyPoints}" fill="none" stroke="rgba(127,227,179,0.20)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${polyPoints}" fill="none" stroke="url(#hwyGrad)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
   `;
 
-  // Plot Route 14 KMA Road Weather Stations as subtle diamond markers
+  // Plot Route 14 KMA Road Weather Stations as subtle diamond sensors on the highway
   const corridorStns = roadStations.filter(s => s.lon >= minLon && s.lon <= maxLon);
   for (const stn of corridorStns) {
     const [sx, sy] = project(stn.lat, stn.lon);
     const trTxt = stn.roadTemp !== null ? `노면 ${stn.roadTemp.toFixed(1)}°C` : '';
     svg += `<g class="stn-dot" transform="translate(${sx},${sy})">
       <title>[도로기상관측] ${stn.name} (${stn.stationType}, 고도 ${stn.elevation ?? '—'}m) ${trTxt}</title>
-      <rect x="-3" y="-3" width="6" height="6" fill="#81e6d9" opacity="0.65" transform="rotate(45)"/>
+      <rect x="-2.8" y="-2.8" width="5.6" height="5.6" fill="#81e6d9" opacity="0.7" transform="rotate(45)"/>
     </g>`;
   }
 
-  // Plot the 8 watched regions with staggered label offsets and leader lines so nearby nodes never overlap
-  const labelOffsets = {
-    '남원': [44, -26],
-    '함양': [-44, 28],
-    '함양중부': [-62, -26],
-    '거창군남부': [58, 26],
-    '거창': [-46, -28],
-    '합천군서북부': [-6, 30],
-    '고령군': [6, -28],
-    '대구 달성군남부': [-22, 28]
+  // Fixed non-overlapping 2-Rail Callout Slots (4 Top Rail, 4 Bottom Rail, sorted West-to-East)
+  // Top Rail (y = 32): 함양중부, 거창, 합천군서북부, 고령군
+  // Bottom Rail (y = 184): 남원, 함양, 거창군남부, 대구 달성군남부
+  const slotMap = {
+    '함양중부': { cx: 74, cy: 50, anchorY: 68 },
+    '거창': { cx: 202, cy: 50, anchorY: 68 },
+    '합천군서북부': { cx: 330, cy: 50, anchorY: 68 },
+    '고령군': { cx: 458, cy: 50, anchorY: 68 },
+    '남원': { cx: 74, cy: 204, anchorY: 186 },
+    '함양': { cx: 202, cy: 204, anchorY: 186 },
+    '거창군남부': { cx: 330, cy: 204, anchorY: 186 },
+    '대구 달성군남부': { cx: 458, cy: 204, anchorY: 186 }
   };
 
-  places.forEach(p => {
-    const [px, py] = project(p.lat, p.lon);
+  // Fallback slot assignment if user added custom places
+  let customTopIdx = 0, customBotIdx = 0;
+
+  places.forEach((p, idx) => {
+    const [px, py] = project(Math.max(minLat, Math.min(maxLat, p.lat)), Math.max(minLon, Math.min(maxLon, p.lon)));
     const rec = getEffectiveRecord(p);
     const iceRank = rec.w?.ice?.rank || 0;
     const floodRank = rec.w?.ice?.flood?.rank || 0;
@@ -682,19 +724,34 @@ function renderMiniMap() {
     const ringCol = isDanger ? 'rgba(239,68,68,0.38)' : isWatch ? 'rgba(245,158,11,0.35)' : 'rgba(16,185,129,0.28)';
     const tempVal = rec.o?.temp ?? rec.w?.current?.temp;
     const roadVal = rec.o?.roadTemp;
-    const [ox, oy] = labelOffsets[p.name] || [0, -24];
+    const timing = rainTimingSummary(rec.w, rec.o);
+
+    let slot = slotMap[p.name];
+    if (!slot) {
+      const isTop = idx % 2 === 0;
+      const col = isTop ? (customTopIdx++ % 4) : (customBotIdx++ % 4);
+      slot = {
+        cx: 74 + col * 128,
+        cy: isTop ? 50 : 204,
+        anchorY: isTop ? 68 : 186
+      };
+    }
 
     const shortName = p.name.replace('대구 ', '');
-    const subTag = roadVal != null ? `노면 ${roadVal.toFixed(1)}°` : (p.site || '');
+    const roadPart = roadVal != null ? `노면 ${roadVal.toFixed(1)}°` : (p.site || '');
+    const statusPart = hasWrn ? rec.wrn.top.title : timing.shortMapText;
 
-    svg += `<g class="map-node" data-coord="${coord(p)}" style="cursor:pointer" transform="translate(${px},${py})">
-      <line x1="0" y1="0" x2="${ox}" y2="${oy}" stroke="${fillCol}" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.85"/>
-      <circle r="14" fill="${ringCol}"/>
-      <circle r="7.5" fill="${fillCol}" stroke="#ffffff" stroke-width="2"/>
-      <g transform="translate(${ox},${oy})">
-        <rect x="-52" y="-14" width="104" height="29" rx="6" fill="rgba(9, 28, 31, 0.92)" stroke="${fillCol}" stroke-width="1.2"/>
-        <text x="0" y="-1" text-anchor="middle" fill="#ffffff" font-size="10.2" font-weight="800">${shortName} ${n(tempVal, 1)}°</text>
-        <text x="0" y="11" text-anchor="middle" fill="#b8e6dc" font-size="9" font-weight="600">${subTag}${hasWrn ? ' · ' + rec.wrn.top.title : ''}</text>
+    svg += `<g class="map-node" data-coord="${coord(p)}" style="cursor:pointer">
+      <!-- Leader line from Highway GPS pin to Callout Box -->
+      <line x1="${px}" y1="${py}" x2="${slot.cx}" y2="${slot.anchorY}" stroke="${fillCol}" stroke-width="1.3" stroke-dasharray="2.5,2.5" opacity="0.85"/>
+      <!-- Highway GPS Pin -->
+      <circle cx="${px}" cy="${py}" r="11" fill="${ringCol}"/>
+      <circle cx="${px}" cy="${py}" r="6" fill="${fillCol}" stroke="#ffffff" stroke-width="1.8"/>
+      <!-- Non-Overlapping Callout Card -->
+      <g transform="translate(${slot.cx},${slot.cy})">
+        <rect x="-58" y="-18" width="116" height="36" rx="7" fill="rgba(8, 25, 28, 0.94)" stroke="${fillCol}" stroke-width="1.4"/>
+        <text x="0" y="-3" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800">${shortName} ${n(tempVal, 1)}°</text>
+        <text x="0" y="11" text-anchor="middle" fill="#b5e8de" font-size="9.3" font-weight="650">${roadPart} · ${statusPart}</text>
       </g>
     </g>`;
   });
@@ -714,30 +771,46 @@ function renderMiniMap() {
     });
   });
 
+  // 하단 도로기상관측소 컴팩트 그리드 (가로 스크롤바 없이 깔끔한 2열/4열 카드!)
   if (strip) {
     strip.replaceChildren();
-    const keyStns = roadStations.filter(s => s.lon >= 127.3 && (s.temp !== null || s.roadTemp !== null));
-    if (keyStns.length) {
-      for (const s of keyStns) {
-        const chip = el('button', '', 'road-stn-chip');
-        chip.type = 'button';
-        const b = el('b', `🛣️ ${s.name.replace('(도)', '')}`);
-        const details = [
-          s.temp !== null ? `기온 ${s.temp.toFixed(1)}°C` : '',
-          s.roadTemp !== null ? `노면 ${s.roadTemp.toFixed(1)}°C(${s.surfaceState || '건조'})` : ''
-        ].filter(Boolean).join(' · ');
-        const sp = el('span', details);
-        chip.append(b, sp);
-        chip.onclick = () => {
-          windyState.lat = s.lat;
-          windyState.lon = s.lon;
-          windyState.detailLat = s.lat;
-          windyState.detailLon = s.lon;
-          windyState.label = `${s.name} (${s.lat.toFixed(3)}, ${s.lon.toFixed(3)})`;
-          updateWindyIframe();
-        };
-        strip.append(chip);
-      }
+    // 광주대구선 핵심 8개 도로기상관측소 우선 표출
+    const priorityNames = ['남원주차장', '지리산휴', '번암교', '옥계1교', '함양', '죽산천교', '남상졸음', '거창휴', '양전교', '논공교', '논공휴'];
+    const corridor = roadStations
+      .filter(s => s.lon >= 127.3 && (s.temp !== null || s.roadTemp !== null))
+      .sort((a, b) => a.lon - b.lon);
+
+    const picked = corridor.filter(s => priorityNames.some(pn => s.name.includes(pn))).slice(0, 8);
+    const listToShow = picked.length ? picked : corridor.slice(0, 8);
+
+    for (const s of listToShow) {
+      const chip = el('button', '', 'road-stn-chip');
+      chip.type = 'button';
+
+      const topRow = el('div', '', 'road-stn-top');
+      const cleanName = s.name.replace('(도)', '');
+      const elevStr = s.elevation && s.elevation >= 300 ? `(${s.elevation}m)` : s.stationType?.includes('결빙') ? '(교량)' : '';
+      topRow.append(el('b', `${cleanName}${elevStr}`));
+
+      const stateTxt = s.surfaceState || (s.stationType?.includes('결빙') ? '교량센서' : '건조');
+      const isWarnState = s.surfaceCode >= 2 || (s.roadTemp !== null && s.roadTemp <= 1.0);
+      topRow.append(el('span', stateTxt, 'road-stn-state' + (isWarnState ? ' warn' : '')));
+
+      const valRow = el('div', '', 'road-stn-vals');
+      const roadSpan = el('em', s.roadTemp !== null ? `노면 ${s.roadTemp.toFixed(1)}°C` : '노면 —');
+      const airTxt = s.temp !== null ? ` · 기온 ${s.temp.toFixed(1)}°C` : ' · 교량결빙감시';
+      valRow.append(roadSpan, document.createTextNode(airTxt));
+
+      chip.append(topRow, valRow);
+      chip.onclick = () => {
+        windyState.lat = s.lat;
+        windyState.lon = s.lon;
+        windyState.detailLat = s.lat;
+        windyState.detailLon = s.lon;
+        windyState.label = `${s.name} (${s.lat.toFixed(3)}, ${s.lon.toFixed(3)})`;
+        updateWindyIframe();
+      };
+      strip.append(chip);
     }
   }
 }
@@ -754,10 +827,11 @@ function focusWindyOnPlace(p) {
 function updateWindyIframe() {
   const iframe = $('windyIframe');
   const lbl = $('windyFocusLabel');
-  if (lbl) lbl.textContent = `중심: ${windyState.label} · 더블클릭 시 상세 이동`;
+  if (lbl) lbl.textContent = `중심: ${windyState.label}`;
   if (!iframe) return;
   const product = windyState.overlay === 'satellite' ? 'satellite' : windyState.overlay === 'radar' ? 'radar' : 'ecmwf';
-  const nextSrc = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=default&zoom=11&overlay=${windyState.overlay}&product=${product}&level=surface&lat=${windyState.lat}&lon=${windyState.lon}&detailLat=${windyState.detailLat}&detailLon=${windyState.detailLon}&detail=true&pressure=true&message=true`;
+  const detailParam = windyState.detailOpen ? '&detail=true' : '';
+  const nextSrc = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=default&zoom=11&overlay=${windyState.overlay}&product=${product}&level=surface&lat=${windyState.lat}&lon=${windyState.lon}&detailLat=${windyState.detailLat}&detailLon=${windyState.detailLon}${detailParam}&pressure=true&message=true`;
   if (iframe.src !== nextSrc) iframe.src = nextSrc;
 }
 
@@ -793,21 +867,34 @@ export function board() {
   const mkFilterBtn = (label, id, extraCls = '') => {
     const b = el('button', label, extraCls);
     b.type = 'button';
-    b.setAttribute('aria-pressed', String(filter === id));
+    b.setAttribute('aria-pressed', String(!mobileMapView && filter === id));
     b.onclick = () => {
       filter = id;
-      board();
+      if (mobileMapView) {
+        location.hash = 'overview';
+      } else {
+        board();
+      }
     };
     return b;
   };
 
-  const mapJumpBtn = el('button', '🗺️ 노선 미니맵 · Windy');
+  const isMob = window.innerWidth <= 1024;
+  const mapJumpBtn = el('button', isMob ? '🗺️ 노선 미니맵 · Windy (별도화면)' : '🗺️ 노선 미니맵 · Windy', 'grp-map');
   mapJumpBtn.type = 'button';
+  mapJumpBtn.setAttribute('aria-pressed', String(mobileMapView));
   mapJumpBtn.onclick = () => {
-    $('mapSection')?.scrollIntoView({ behavior: 'smooth' });
+    if (window.innerWidth <= 1024) {
+      if (mobileMapView) {
+        location.hash = 'overview';
+      } else {
+        location.hash = 'map';
+      }
+    } else {
+      $('mapSection')?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
-  const isMob = window.innerWidth <= 768;
   $('groups').replaceChildren(
     mkFilterBtn(`전체 ${places.length}`, 'all'),
     mkFilterBtn(isMob ? `⚠️ 특보·결빙 ${riskPlaces.length}` : `⚠️ 위험·특보 발효 ${riskPlaces.length}`, 'risk', 'grp-warn'),
@@ -844,7 +931,7 @@ export function board() {
       top.append(el('h2', p.name), topRight);
       a.append(top);
 
-      // 2. 대표 지점명("대표 지점 · " 접두어 제거) + 인라인 살얼음/수방 배지 + 특보 요약 배지 (요구사항 2.1)
+      // 2. 대표 지점명 + 인라인 살얼음/수방 배지 + 특보 요약 배지
       const siteLine = el('div', '', 'site-line');
       siteLine.append(el('span', p.site || coord(p), 'site-name'));
 
@@ -908,12 +995,16 @@ export function board() {
       );
       a.append(conditions);
 
-      // 4. 비·눈 시작/종료 타이밍 & 노면온도 한줄 요약
+      // 4. 직관적 비·눈 시간대("19:00 ~ 23:00 강수예상") + 우측 노면온도
       const timing = rainTimingSummary(w, o);
-      const timingEl = el('div', timing.text, 'rain-timing-chip' + (timing.active ? ' active-rain' : ''));
+      const timingEl = el('div', '', 'rain-timing-chip' + (timing.active ? ' active-rain' : ''));
+      timingEl.append(
+        el('span', timing.mainText, 'rain-timing-main'),
+        timing.roadText ? el('span', timing.roadText, 'rain-timing-road') : ''
+      );
       a.append(timingEl);
 
-      // 5. 오늘 강수 & 6시간 최대 강수확률 + 미니 바 차트 (개별 카드 하단 중복 시각은 제거!)
+      // 5. 오늘 강수 & 6시간 최대 강수확률 + 미니 바 차트
       const nums = el('div', '', 'readings');
       const maxPop =
         w?.rows?.length && w.rows.some(x => Number.isFinite(x.pop))
@@ -921,11 +1012,11 @@ export function board() {
           : null;
 
       const leftMetric = el('div');
-      leftMetric.append(el('small', isMob ? '오늘강수' : '오늘 강수'), el('b', amount(o?.dayPrecip ?? w?.today?.precip, 'mm')));
+      leftMetric.append(el('small', window.innerWidth <= 768 ? '오늘강수' : '오늘 강수'), el('b', amount(o?.dayPrecip ?? w?.today?.precip, 'mm')));
 
       const rightMetric = el('div', '', 'popmetric');
       rightMetric.append(
-        el('small', isMob ? '6h 강수확률' : '6시간 최대 강수확률'),
+        el('small', window.innerWidth <= 768 ? '6h 강수확률' : '6시간 최대 강수확률'),
         el('b', Number.isFinite(maxPop) ? `${n(maxPop, 0)}%` : '—'),
         precipitationStrip(w?.rows)
       );
@@ -936,7 +1027,6 @@ export function board() {
     })
   );
 
-  // 누락된 기본 관심지역이 있을 때 빠른 복원 버튼
   const missing = presets.filter(p => !places.some(q => coord(q) === coord(p)));
   $('quick').replaceChildren();
   if (missing.length && places.length < 8) {
@@ -985,14 +1075,16 @@ function renderDetail() {
     o?.snowDepth != null ? `관측 적설 ${n(o.snowDepth, 1)} cm` : ''
   ].filter(Boolean).join('   /   ') || '자료 시각 확인 중';
 
-  // 비·눈 시작 및 종료 전망 + 12시간 타임라인
+  // 비·눈 시작~종료 전망 + 12시간 타임라인
   const a = w?.kma?.analysis;
   const kHours = w?.kma?.hours || [];
   if (a) {
+    const st = a.start?.time?.slice(11, 16);
+    const ed = a.end?.time?.slice(11, 16);
     $('rainStartText').textContent = a.now?.wet
-      ? `지금 ${a.now.type} 관측 중`
-      : a.start
-      ? `${a.start.time.slice(11, 16)} 전후 시작 예상`
+      ? ed ? `현재 ~ ${ed} ${a.now.type} 관측중` : `현재 ${a.now.type} 관측중 (지속)`
+      : st
+      ? ed ? `${st} ~ ${ed} 강수예상` : `${st} ~ 지속 강수예상`
       : a.horizons?.some(h => h.hasRisk)
       ? '강수 가능성(≥50%) 있음'
       : '12시간 내 강수 신호 없음';
@@ -1000,9 +1092,9 @@ function renderDetail() {
       ? '기상청 초단기실황 관측 기준'
       : '기상청 초단기·단기예보 12시간 병합 기준';
 
-    $('rainEndText').textContent = a.end
-      ? `${a.end.time.slice(11, 16)} 전후 종료 추정`
-      : a.start || a.now?.wet
+    $('rainEndText').textContent = ed
+      ? `${ed}경 종료 추정`
+      : st || a.now?.wet
       ? '12시간 이후까지 이어질 수 있음'
       : '해당 없음 (무강수)';
     $('rainEndSub').textContent = a.end ? a.end.rule : '연속 2시간 무강수 예보 시 종료 시각 추정';
@@ -1061,7 +1153,7 @@ function renderDetail() {
     day ? '오늘 00시부터' : '최근 24시간 누적'
   ].filter(Boolean).join(' · ');
 
-  // 시간별 강수·기온 전망 표 (6h ICON 앙상블 vs 12h 기상청)
+  // 시간별 강수·기온 전망 표
   const tbody = $('forecast');
   const thead = $('forecastHead');
   tbody.replaceChildren();
@@ -1109,7 +1201,7 @@ function renderDetail() {
     }
   }
 
-  // 도로 살얼음 전망 & 제설 3단계 역산 타임라인 & 수방/강풍 지침 (요구사항 4)
+  // 도로 살얼음 전망 & 제설 3단계 역산 타임라인
   const iceLevel = w && !w.stale ? w.ice.level : '판단 보류';
   const iceRank = w?.ice?.rank || 0;
   $('ice').textContent = iceLevel;
@@ -1150,7 +1242,7 @@ function renderDetail() {
     guideContainer.append(el('div', w.ice.windAlert.guide, 'guide-banner rank-1'));
   }
 
-  // 기상특보 발효 및 해제 예정 현황 (요구사항 3)
+  // 기상특보 발효 및 해제 예정 현황
   $('detailWrnCount').textContent = wrn?.count ? `${wrn.count}건 발효중` : '특보 없음';
   const wrnBox = $('warnings');
   wrnBox.replaceChildren();
@@ -1253,8 +1345,11 @@ export async function refresh(force = false) {
 }
 
 function route() {
-  const m = location.hash.match(/^#region\/([^/]+)\/([\d.]+),([\d.]+)$/);
+  const hash = location.hash;
+  const m = hash.match(/^#region\/([^/]+)\/([\d.]+),([\d.]+)$/);
   detailPlace = null;
+  mobileMapView = hash === '#map';
+
   if (m) {
     try {
       const candidate = { name: decodeURIComponent(m[1]), lat: Number(m[2]), lon: Number(m[3]) };
@@ -1263,9 +1358,13 @@ function route() {
       }
     } catch {}
   }
+
+  document.body.classList.toggle('mobile-map-mode', mobileMapView && !detailPlace);
+  $('topSubbar').hidden = !!detailPlace;
   $('detail').hidden = !detailPlace;
   $('overview').hidden = !!detailPlace;
-  document.title = (detailPlace ? `${detailPlace.name} 상세 브리핑` : '관심지역 상시 기상 모니터') + ' | 날씨봇 × 비온다?';
+
+  document.title = (detailPlace ? `${detailPlace.name} 상세 브리핑` : mobileMapView ? '광주대구선 노선 미니맵·Windy' : '관심지역 상시 기상 모니터') + ' | 날씨봇 × 비온다?';
   if (detailPlace) {
     const select = $('jump');
     select.replaceChildren(
@@ -1280,7 +1379,7 @@ function route() {
   refresh();
 }
 
-// 1:1 정방형(1080x1080) JPG 공유 모달 및 다운로드/클립보드/Web Share 연동 (요구사항 6)
+// 1:1 정방형(1080x1080) JPG 공유 모달
 let currentShareBlob = null;
 let currentShareFilename = 'weather-briefing-1080x1080.jpg';
 
@@ -1358,9 +1457,66 @@ $('nativeShareBtn').onclick = async () => {
   $('downloadJpgBtn').click();
 };
 
+// PC 레이아웃 모드 및 미니맵:Windy 분할 비율 적용
+function applyLayoutAndSplit() {
+  const container = $('overviewContainer');
+  if (container) {
+    container.classList.toggle('layout-stacked', settings.pcLayout !== 'split');
+    container.classList.toggle('layout-fhd-split', settings.pcLayout === 'split');
+  }
+  document.documentElement.style.setProperty('--map-split', `${settings.mapSplitPct}%`);
+  if ($('pcLayoutLabel')) {
+    $('pcLayoutLabel').textContent = settings.pcLayout === 'split' ? '좌우 분할(FHD)' : '상하 기본';
+  }
+  document.querySelectorAll('.sp-btn[data-split]').forEach(btn => {
+    btn.classList.toggle('active', Math.abs(Number(btn.dataset.split) - settings.mapSplitPct) <= 3);
+  });
+}
+
+// 드래그 리사이즈 바(#mapSplitter) 이벤트 바인딩
+function bindSplitterDrag() {
+  const splitter = $('mapSplitter');
+  const workspace = $('mapSection');
+  if (!splitter || !workspace) return;
+
+  let dragging = false;
+  const onMove = clientX => {
+    if (!dragging) return;
+    const rect = workspace.getBoundingClientRect();
+    if (rect.width < 500) return;
+    const pct = Math.round(((clientX - rect.left) / rect.width) * 100);
+    settings.mapSplitPct = Math.max(30, Math.min(68, pct));
+    applyLayoutAndSplit();
+  };
+
+  splitter.addEventListener('mousedown', e => {
+    e.preventDefault();
+    dragging = true;
+    document.body.classList.add('is-resizing');
+  });
+  window.addEventListener('mousemove', e => onMove(e.clientX));
+  window.addEventListener('mouseup', () => {
+    if (dragging) {
+      dragging = false;
+      document.body.classList.remove('is-resizing');
+      persistSettings();
+    }
+  });
+
+  // 빠른 비율 프리셋 버튼
+  document.querySelectorAll('.sp-btn[data-split]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      settings.mapSplitPct = Number(btn.dataset.split);
+      applyLayoutAndSplit();
+      persistSettings();
+    });
+  });
+}
+
 // 설정 메뉴 바인딩 (요구사항 7)
 function syncSettingsUI() {
   document.body.classList.toggle('dark-mode', settings.darkMode);
+  applyLayoutAndSplit();
   const setPill = (id, on, onTxt = '켜짐 ON', offTxt = '꺼짐 OFF') => {
     const b = $(id);
     if (!b) return;
@@ -1368,6 +1524,7 @@ function syncSettingsUI() {
     b.setAttribute('aria-pressed', String(on));
     b.textContent = on ? onTxt : offTxt;
   };
+  setPill('togglePcLayout', settings.pcLayout === 'split', '좌우 분할', '상하 기본');
   setPill('toggleFullscreen', !!document.fullscreenElement);
   setPill('toggleSound', settings.sound);
   setPill('toggleWakeLock', settings.wakeLock);
@@ -1376,6 +1533,14 @@ function syncSettingsUI() {
   setPill('toggleSimMode', settings.simMode, '훈련시안 ON', '실제 데이터');
   updateMonitorStatusBar();
 }
+
+function togglePcLayoutMode() {
+  settings.pcLayout = settings.pcLayout === 'split' ? 'stacked' : 'split';
+  persistSettings();
+  syncSettingsUI();
+}
+$('pcLayoutToggleBtn').onclick = togglePcLayoutMode;
+$('togglePcLayout').onclick = togglePcLayoutMode;
 
 $('settingsBtn').onclick = () => {
   const panel = $('settingsPanel');
@@ -1485,6 +1650,11 @@ document.querySelectorAll('.wc-btn[data-overlay]').forEach(btn => {
   });
 });
 
+$('windyDetailCheck').onchange = e => {
+  windyState.detailOpen = e.target.checked;
+  updateWindyIframe();
+};
+
 // 상세페이지 시간별 전망 표 6h / 12h 전환
 $('tab6h').onclick = () => {
   tableMode = '6h';
@@ -1553,7 +1723,7 @@ $('refresh').onclick = $('reloadAll').onclick = () => refresh(true);
 $('period').onchange = renderDetail;
 window.addEventListener('hashchange', route);
 window.addEventListener('resize', () => {
-  updateMonitorStatusBar();
+  board();
 });
 
 let searchId = 0, timer;
@@ -1676,6 +1846,7 @@ $('locate').onclick = () => {
 };
 
 // 초기화
+bindSplitterDrag();
 syncSettingsUI();
 syncWakeLock();
 notificationState();
