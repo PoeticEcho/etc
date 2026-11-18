@@ -57,3 +57,31 @@ export async function loadRoadStations(line = 14) {
   if (Array.isArray(snap?.roadStations)) return snap.roadStations;
   return [];
 }
+
+const roadRiskMemCache = new Map();
+
+export async function loadRoadRisk(roadNum = '012', force = false) {
+  const key = String(roadNum || '012');
+  const cached = roadRiskMemCache.get(key);
+  if (!force && cached && Date.now() < cached.expires) {
+    return cached.data;
+  }
+  if (await isBackendAvailable()) {
+    try {
+      const response = await fetch(apiUrl('/api/road-risk?roadNum=' + encodeURIComponent(roadNum)), {
+        signal: AbortSignal.timeout(12000)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.ok) {
+          const out = { ...data, _fromSnapshot: false };
+          roadRiskMemCache.set(key, { expires: Date.now() + 9 * 60000, data: out });
+          return out;
+        }
+      }
+    } catch {}
+  }
+  const snap = await getSnapshotFallback();
+  if (snap?.roadRisk?.ok) return { ...snap.roadRisk, _fromSnapshot: true };
+  return null;
+}

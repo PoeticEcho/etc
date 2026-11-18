@@ -1,6 +1,6 @@
 {
   "schema": "bionda-briefing-archive-v1",
-  "updatedAt": "2026-11-18T13:04:40.171Z",
+  "updatedAt": "2026-11-18T14:47:04.200Z",
   "scheduleKst": [
     "08:00",
     "18:00"
@@ -12,7 +12,7 @@
     "slotLabelKst": "2026-11-18 18:00 KST",
     "url": "./api/briefing/goryeong-2026-11-18-1800.jpg",
     "latestAliasUrl": "./api/briefing/latest.jpg",
-    "sizeBytes": 133757,
+    "sizeBytes": 125024,
     "quality": 0.72
   },
   "archives": [
@@ -21,7 +21,7 @@
       "slotLabelKst": "2026-11-18 18:00 KST",
       "filename": "goryeong-2026-11-18-1800.jpg",
       "url": "./api/briefing/goryeong-2026-11-18-1800.jpg",
-      "sizeBytes": 133757
+      "sizeBytes": 125024
     }
   ]
 }

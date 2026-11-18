@@ -424,11 +424,24 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
   };
 }
 
+export const ROAD_RISK_LABELS = ['정보없음', '관심', '주의', '위험'];
+export const FOG_RISK_LABELS = ['안개없음', '관심', '주의', '위험'];
+
+/**
+ * 기상청 도로 위험기상정보(0~3단계) 격상 판정: 0→2, 0→3, 1→2, 1→3, 2→3
+ */
+export function isRoadRiskEscalated(prevLv, currLv) {
+  if (!Number.isFinite(prevLv) || !Number.isFinite(currLv)) return false;
+  return (prevLv <= 1 && currLv >= 2) || (prevLv === 2 && currLv === 3);
+}
+
 /**
  * 4단계 통합 색상 등급 분류 (0: 회색/평온 -> 1: 노랑/관심 -> 2: 주황/제설·수방지시 -> 3: 빨강/눈·심한비·긴급·경보)
  */
-export function classifySeverityTier({ w = null, o = null, wrn = null } = {}) {
+export function classifySeverityTier({ w = null, o = null, wrn = null, roadRisk = null } = {}) {
   const iceRank = w?.ice?.rank || 0;
+  const roadIce = roadRisk?.iceLevel || 0;
+  const roadFog = roadRisk?.fogLevel || 0;
   const floodRank = w?.ice?.flood?.rank || 0;
   const windActive = !!w?.ice?.windAlert?.active;
   const cards = w?.ice?.decisionCards || [];
@@ -461,13 +474,13 @@ export function classifySeverityTier({ w = null, o = null, wrn = null } = {}) {
     (wrn?.count || 0) > 0 &&
     (topWrn?.level === '경보' || ['대설', '호우', '태풍'].includes(topWrn?.kind));
 
-  if (isSnowingNow || isHeavyRainNow || iceRank === 2 || floodRank === 2 || hasUrgentCard || isSevereWrn) {
+  if (isSnowingNow || isHeavyRainNow || iceRank === 2 || roadIce >= 3 || roadFog >= 3 || floodRank === 2 || hasUrgentCard || isSevereWrn) {
     return { tier: 3, key: 'danger', cls: 'tier-danger', pinColor: '#ef4444', ringColor: 'rgba(239,68,68,0.38)', label: '긴급·경고' };
   }
-  if (hasWatchCard || iceRank === 1 || floodRank === 1 || windActive) {
+  if (hasWatchCard || iceRank === 1 || roadIce === 2 || roadFog === 2 || floodRank === 1 || windActive) {
     return { tier: 2, key: 'directive', cls: 'tier-directive', pinColor: '#f97316', ringColor: 'rgba(249,115,22,0.36)', label: '지시·주의' };
   }
-  if ((wrn?.count || 0) > 0 || nowWet || surfaceCode === 2 || surfaceCode === 3) {
+  if ((wrn?.count || 0) > 0 || nowWet || surfaceCode === 2 || surfaceCode === 3 || roadIce === 1 || roadFog === 1) {
     return { tier: 1, key: 'watch', cls: 'tier-watch', pinColor: '#eab308', ringColor: 'rgba(234,179,8,0.34)', label: '관심' };
   }
   return { tier: 0, key: 'calm', cls: 'tier-calm', pinColor: '#10b981', ringColor: 'rgba(16,185,129,0.28)', label: '평온' };

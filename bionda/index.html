@@ -97,9 +97,10 @@
             <div id="minimapContainer" class="minimap-box" role="region" aria-label="광주대구선 8개 관심지역 및 도로관측소 미니맵"></div>
 
             <div class="road-grid-header">
-              <b>🛣️ 광주대구선(12호선) 도로기상관측소 노면온도(TR1) · 이정(km) 현황</b>
+              <b>🛣️ 광주대구선(12호선) 도로기상관측소 노면온도(TR1) · 이정(km) · 012선 살얼음</b>
               <small>남원(50k)~고령지사(80k~176k) 전 지점 · 클릭 시 영상 포커스</small>
             </div>
+            <div id="corridorRiskSummary" class="corridor-risk-strip" aria-live="polite" hidden></div>
             <div id="roadStnStrip" class="road-stn-grid" aria-label="광주대구선 실시간 도로기상관측소 전체 목록"></div>
           </div>
 
@@ -241,6 +242,7 @@
               </select>
             </div>
             <div class="metrics" id="metrics"></div>
+            <div id="detailRoadRiskBar" class="detail-road-risk" aria-live="polite" hidden></div>
             <small id="totaltime"></small>
             <details class="info-accordion">
               <summary><span>강수량·강설량 및 광학 노면온도(TR1) 읽는 법</span><em class="acc-more">더보기 ▾</em></summary>

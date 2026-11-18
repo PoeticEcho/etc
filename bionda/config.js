@@ -1,12 +1,11 @@
 // 공개 백엔드 API 서버 설정 및 실시간/정적 모드 판별 (API 키 등 비밀정보는 절대 여기에 저장하지 않음)
 
 /**
- * Node 백엔드(server.js) 공개 HTTPS 주소
- * - 같은 서버(Node server.js · Render · Railway · localhost)에서 접속할 때는 ''(빈 문자열)이면 동일 도메인 '/api/*'를 사용합니다.
- * - GitHub Pages 등 정적 호스팅에서 별도 Node 백엔드(예: Render)의 실시간 기상청 관측을 연동하려면
- *   아래 DEFAULT_API_BASE에 'https://your-service.onrender.com' 형태를 지정하거나 설정 메뉴에서 입력할 수 있습니다.
+ * GitHub Pages 등 정적 호스팅에서 기본으로 자동 연결할 Cloudflare Workers 백엔드 HTTPS 주소
+ * - GitHub Pages(*.github.io) / Cloudflare Pages(*.pages.dev)에서 접속 시 별도 입력 없이 자동으로 아래 Worker를 사용합니다.
+ * - 로컬(localhost/127.0.0.1) 및 Render/Railway 자체 Node 호스팅에서는 동일 도메인 '/api/*'를 자동 사용합니다.
  */
-export const DEFAULT_API_BASE = '';
+export const DEFAULT_API_BASE = 'https://bionda-api.herego.workers.dev';
 
 const API_BASE_STORAGE_KEY = 'weather-watch:api-base';
 
@@ -23,27 +22,38 @@ export function sanitizeApiBase(raw) {
   return '';
 }
 
+function shouldUseDefaultExternalBase() {
+  try {
+    if (typeof window === 'undefined' || !window.location) return false;
+    const h = String(window.location.hostname || '').toLowerCase();
+    return h.endsWith('.github.io') || h.endsWith('.pages.dev') || window.location.protocol === 'file:';
+  } catch {
+    return false;
+  }
+}
+
 export function getApiBase() {
   try {
     if (typeof localStorage !== 'undefined') {
-      const saved = sanitizeApiBase(localStorage.getItem(API_BASE_STORAGE_KEY) || '');
-      if (saved) return saved;
+      const saved = localStorage.getItem(API_BASE_STORAGE_KEY);
+      if (saved !== null) return sanitizeApiBase(saved);
     }
   } catch {}
-  return sanitizeApiBase(DEFAULT_API_BASE);
+  return shouldUseDefaultExternalBase() ? sanitizeApiBase(DEFAULT_API_BASE) : '';
 }
 
 export function setApiBase(raw) {
-  const clean = sanitizeApiBase(raw);
+  const trimmed = String(raw || '').trim();
+  const clean = sanitizeApiBase(trimmed);
   try {
     if (typeof localStorage !== 'undefined') {
-      if (clean) localStorage.setItem(API_BASE_STORAGE_KEY, clean);
+      if (trimmed) localStorage.setItem(API_BASE_STORAGE_KEY, clean);
       else localStorage.removeItem(API_BASE_STORAGE_KEY);
     }
   } catch {}
   backendState = null;
   backendPromise = null;
-  return clean;
+  return getApiBase();
 }
 
 export function apiUrl(path) {

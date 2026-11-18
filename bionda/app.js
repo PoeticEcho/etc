@@ -1,7 +1,7 @@
 import { loadWeather, loadProbabilities, prefetchOpenMeteo } from './weather.js';
-import { loadObservation, loadRoadStations } from './observations.js';
+import { loadObservation, loadRoadStations, loadRoadRisk } from './observations.js';
 import { fetchPlaceWarnings, buildWarningSummary } from './warnings.js';
-import { classifySeverityTier } from './ice.js';
+import { classifySeverityTier, isRoadRiskEscalated, ROAD_RISK_LABELS, FOG_RISK_LABELS } from './ice.js';
 import { renderOverviewCanvas, renderDetailCanvas, canvasToJpgBlob } from './share.js';
 import { apiUrl, getApiBase, setApiBase, probeBackend, isBackendAvailable, getBackendStatusSnapshot } from './config.js';
 
@@ -171,6 +171,10 @@ const toEpochMs = t => {
 
 const records = new Map();
 let roadStations = [];
+let roadRiskData = null;
+let initialRoadRiskDone = false;
+const prevRoadRiskSnapshot = new Map();
+const recentEscalations = [];
 let filter = 'all';
 let actionStageFilter = null; // null | 'preheat' | 'presalt' | 'mainplow' | 'floodwind'
 let selectedWindyKey = null; // 'place:...' | 'stn:...'
@@ -204,9 +208,48 @@ export function record(p) {
 }
 
 // 시안(preview_pc.jpg / preview_mobile.jpg) 검증 및 상황실 훈련용 데이터 오버레이
+function findPlaceRoadRisk(p) {
+  if (!roadRiskData?.ok) return null;
+  const direct = roadRiskData.placeRisks?.[coord(p)];
+  if (direct) return { ...direct, tmKst: roadRiskData.tmKst, tmUtc: roadRiskData.tmUtc };
+  const stns = roadRiskData.stationRisks || [];
+  if (!stns.length) return null;
+  let best = stns[0], bestD = Infinity;
+  for (const s of stns) {
+    const d = (s.lat - p.lat) ** 2 + (s.lon - p.lon) ** 2;
+    if (d < bestD) { bestD = d; best = s; }
+  }
+  const distKm = Number((Math.sqrt(bestD) * 102).toFixed(2));
+  return {
+    stationId: best.stnId,
+    stationName: best.name,
+    stationKm: best.km,
+    stationType: best.stationType,
+    stationDistanceKm: distKm,
+    iceLevel: best.iceLevel,
+    iceLabel: best.iceLabel,
+    fogLevel: best.fogLevel,
+    fogLabel: best.fogLabel,
+    flagLabel: best.flagLabel,
+    segmentCount: best.segmentCount,
+    tmKst: roadRiskData.tmKst,
+    tmUtc: roadRiskData.tmUtc
+  };
+}
+
+function findStationRoadRisk(stn) {
+  if (!roadRiskData?.ok || !stn) return null;
+  return (
+    roadRiskData.stationRisks?.find(s => String(s.stnId) === String(stn.stnId)) ||
+    roadRiskData.stationRisks?.find(s => s.name === stn.name) ||
+    null
+  );
+}
+
 function getEffectiveRecord(p) {
   const baseRec = record(p);
-  if (!settings.simMode) return baseRec;
+  const withRisk = { ...baseRec, roadRisk: baseRec.roadRisk || findPlaceRoadRisk(p) };
+  if (!settings.simMode) return withRisk;
 
   const simMap = {
     '거창군남부': {
@@ -384,7 +427,18 @@ function getEffectiveRecord(p) {
         }
       }
     },
-    wrn: buildWarningSummary(sim.warnings || [])
+    wrn: buildWarningSummary(sim.warnings || []),
+    roadRisk: {
+      stationName: baseRec.o?.roadStationName || `${p.site || p.name}(도)`,
+      stationKm: ROUTE12_PLACE_KM[p.name] ?? null,
+      stationDistanceKm: baseRec.o?.distanceKm ?? 1.2,
+      iceLevel: p.name === '거창군남부' ? 3 : sim.iceRank === 2 ? 2 : sim.iceRank === 1 ? 1 : 0,
+      iceLabel: p.name === '거창군남부' ? '위험' : sim.iceRank === 2 ? '주의' : sim.iceRank === 1 ? '관심' : '정보없음',
+      fogLevel: p.name === '합천군서북부' ? 1 : 0,
+      fogLabel: p.name === '합천군서북부' ? '관심' : '안개없음',
+      flagLabel: '분석',
+      tmKst: '2026-11-18T14:40:00+09:00'
+    }
   };
 }
 
@@ -546,6 +600,90 @@ function checkRiskDiffs() {
   initialSnapshotDone = true;
 }
 
+function findNearestPlace(lat, lon) {
+  let best = places[0], bestD = Infinity;
+  for (const p of places) {
+    const d = (p.lat - lat) ** 2 + (p.lon - lon) ** 2;
+    if (d < bestD) { bestD = d; best = p; }
+  }
+  return best;
+}
+
+function sendDesktopEscalationNotify(title, body, targetPlace) {
+  try {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    const nObj = new Notification(title, { body, tag: 'bionda-road-risk' });
+    nObj.onclick = () => {
+      window.focus();
+      if (targetPlace) location.hash = detailURL(targetPlace);
+    };
+  } catch {}
+}
+
+function checkRoadRiskEscalations(payload) {
+  if (!payload?.ok) return;
+  const targetsList = [];
+  for (const s of payload.stationRisks || []) {
+    targetsList.push({
+      id: `stn:${s.stnId}`,
+      label: `${s.name}(${s.km}k)`,
+      iceLevel: s.iceLevel || 0,
+      fogLevel: s.fogLevel || 0,
+      linkedPlace: findNearestPlace(s.lat, s.lon)
+    });
+  }
+  for (const p of places) {
+    const pr = findPlaceRoadRisk(p);
+    if (!pr) continue;
+    targetsList.push({
+      id: `place:${coord(p)}`,
+      label: `${p.name}${pr.stationName ? ` · ${pr.stationName}` : ''}`,
+      iceLevel: pr.iceLevel || 0,
+      fogLevel: pr.fogLevel || 0,
+      linkedPlace: p
+    });
+  }
+
+  let notified = false;
+  const tmShort = payload.tmKst ? fmt(payload.tmKst) : '방금';
+  for (const item of targetsList) {
+    const prev = prevRoadRiskSnapshot.get(item.id);
+    prevRoadRiskSnapshot.set(item.id, { iceLevel: item.iceLevel, fogLevel: item.fogLevel });
+    if (!initialRoadRiskDone || !prev) continue;
+
+    if (isRoadRiskEscalated(prev.iceLevel, item.iceLevel)) {
+      const fromLbl = ROAD_RISK_LABELS[prev.iceLevel] || `${prev.iceLevel}단계`;
+      const toLbl = ROAD_RISK_LABELS[item.iceLevel] || `${item.iceLevel}단계`;
+      const summaryLine = `${item.label} · 살얼음 ${prev.iceLevel}→${item.iceLevel}단계 [${toLbl}] (${tmShort})`;
+      recentEscalations.unshift({ kind: '살얼음', from: prev.iceLevel, to: item.iceLevel, label: item.label, text: summaryLine, time: tmShort });
+      if (recentEscalations.length > 4) recentEscalations.pop();
+      if (!notified) {
+        const badge = item.iceLevel === 3 ? '🚨 살얼음 위험(3단계) 격상' : '⚠️ 살얼음 주의(2단계) 격상';
+        showAlertToast(item.linkedPlace, badge, `${item.label} · ${prev.iceLevel}단계(${fromLbl}) → ${item.iceLevel}단계 [${toLbl}] 격상`, false);
+        sendDesktopEscalationNotify(badge, `${item.label} 구간 살얼음 ${prev.iceLevel}→${item.iceLevel}단계 [${toLbl}]`, item.linkedPlace);
+        playAlertTone('warning');
+        notified = true;
+      }
+    }
+
+    if (isRoadRiskEscalated(prev.fogLevel, item.fogLevel)) {
+      const fromLbl = FOG_RISK_LABELS[prev.fogLevel] || `${prev.fogLevel}단계`;
+      const toLbl = FOG_RISK_LABELS[item.fogLevel] || `${item.fogLevel}단계`;
+      const summaryLine = `${item.label} · 안개 ${prev.fogLevel}→${item.fogLevel}단계 [${toLbl}] (${tmShort})`;
+      recentEscalations.unshift({ kind: '안개', from: prev.fogLevel, to: item.fogLevel, label: item.label, text: summaryLine, time: tmShort });
+      if (recentEscalations.length > 4) recentEscalations.pop();
+      if (!notified) {
+        const badge = item.fogLevel === 3 ? '🌫️ 안개 위험(3단계) 격상' : '🌫️ 안개 주의(2단계) 격상';
+        showAlertToast(item.linkedPlace, badge, `${item.label} · ${prev.fogLevel}단계(${fromLbl}) → ${item.fogLevel}단계 [${toLbl}] 격상`, false);
+        sendDesktopEscalationNotify(badge, `${item.label} 구간 안개 ${prev.fogLevel}→${item.fogLevel}단계 [${toLbl}]`, item.linkedPlace);
+        playAlertTone('warning');
+        notified = true;
+      }
+    }
+  }
+  initialRoadRiskDone = true;
+}
+
 // 위험도 점수 계산 (4단계 등급 빨강>주황>노랑>회색 순 상단 우선 정렬)
 function placeDangerScore(p) {
   const rec = getEffectiveRecord(p);
@@ -556,8 +694,10 @@ function placeDangerScore(p) {
     score += Math.max(0, 50 - (rec.wrn.top.priorityScore % 100));
   }
   const iceRank = rec.w?.ice?.rank || 0;
+  const roadIce = rec.roadRisk?.iceLevel || 0;
+  const roadFog = rec.roadRisk?.fogLevel || 0;
   const floodRank = rec.w?.ice?.flood?.rank || 0;
-  score += Math.max(iceRank, floodRank) * 200;
+  score += Math.max(iceRank, roadIce, roadFog, floodRank) * 200;
   if (rec.w?.kma?.analysis?.now?.wet) score += 90;
   else if (rec.w?.kma?.analysis?.start) score += 45;
   return score;
@@ -571,6 +711,8 @@ function isRiskPlace(p) {
   return (
     (rec.wrn?.count || 0) > 0 ||
     (rec.w?.ice?.rank || 0) > 0 ||
+    (rec.roadRisk?.iceLevel || 0) > 0 ||
+    (rec.roadRisk?.fogLevel || 0) > 0 ||
     (rec.w?.ice?.flood?.rank || 0) > 0 ||
     !!rec.w?.kma?.analysis?.now?.wet
   );
@@ -951,9 +1093,12 @@ function renderMiniMap() {
     .sort((a, b) => (a.resolvedKm ?? 999) - (b.resolvedKm ?? 999) || a.lon - b.lon);
 
   const classifyStnCol = s => {
-    if (s.surfaceCode >= 4 || (s.roadTemp !== null && s.roadTemp <= 0.0)) return '#ef4444';
-    if (s.surfaceCode === 3 || (s.roadTemp !== null && s.roadTemp <= 2.5)) return '#f97316';
-    if (s.surfaceCode === 2 || (s.roadTemp !== null && s.roadTemp <= 4.5)) return '#eab308';
+    const rRisk = findStationRoadRisk(s);
+    const iceLv = rRisk?.iceLevel || 0;
+    const fogLv = rRisk?.fogLevel || 0;
+    if (iceLv >= 3 || fogLv >= 3 || s.surfaceCode >= 4 || (s.roadTemp !== null && s.roadTemp <= 0.0)) return '#ef4444';
+    if (iceLv === 2 || fogLv === 2 || s.surfaceCode === 3 || (s.roadTemp !== null && s.roadTemp <= 2.5)) return '#f97316';
+    if (iceLv === 1 || fogLv === 1 || s.surfaceCode === 2 || (s.roadTemp !== null && s.roadTemp <= 4.5)) return '#eab308';
     return '#10b981';
   };
 
@@ -961,10 +1106,12 @@ function renderMiniMap() {
     const [sx, sy] = project(stn.lat, stn.lon);
     const kmTxt = stn.resolvedKm !== null ? `${stn.resolvedKm.toFixed(1)}k ` : '';
     const trTxt = stn.roadTemp !== null ? `노면 ${stn.roadTemp.toFixed(1)}°C` : '';
+    const stnRisk = findStationRoadRisk(stn);
+    const riskTxt = stnRisk?.iceLevel ? ` · 012선 살얼음 ${stnRisk.iceLevel}단계(${stnRisk.iceLabel})` : '';
     const dotCol = classifyStnCol(stn);
     const isSel = selectedWindyKey === `stn:${stn.stnId}`;
     svg += `<g class="stn-dot" data-stnid="${escHtml(stn.stnId)}" role="button" tabindex="0" transform="translate(${sx},${sy})" style="cursor:pointer">
-      <title>[도로기상 ${escHtml(kmTxt)}] ${escHtml(stn.name)} (${escHtml(stn.stationType)}, 고도 ${escHtml(stn.elevation ?? '—')}m) ${escHtml(trTxt)} · 클릭 시 위성·레이더 이동</title>
+      <title>[도로기상 ${escHtml(kmTxt)}] ${escHtml(stn.name)} (${escHtml(stn.stationType)}, 고도 ${escHtml(stn.elevation ?? '—')}m) ${escHtml(trTxt)}${escHtml(riskTxt)} · 클릭 시 위성·레이더 이동</title>
       <circle cx="0" cy="0" r="10.5" fill="transparent"/>
       ${isSel ? '<circle cx="0" cy="0" r="9.5" fill="rgba(56,189,248,0.28)" stroke="#38bdf8" stroke-width="1.3"/>' : ''}
       <circle class="stn-marker-core" cx="0" cy="0" r="4.6" fill="${dotCol}" stroke="#082427" stroke-width="1.3"/>
@@ -973,15 +1120,6 @@ function renderMiniMap() {
 
   svg += `</svg>`;
   container.innerHTML = svg;
-
-  const findNearestPlace = (lat, lon) => {
-    let best = places[0], bestD = Infinity;
-    for (const p of places) {
-      const d = (p.lat - lat) ** 2 + (p.lon - lon) ** 2;
-      if (d < bestD) { bestD = d; best = p; }
-    }
-    return best;
-  };
 
   container.querySelectorAll('.map-node').forEach(node => {
     node.addEventListener('click', () => {
@@ -1018,6 +1156,33 @@ function renderMiniMap() {
     });
   });
 
+  const riskSummaryEl = $('corridorRiskSummary');
+  if (riskSummaryEl) {
+    if (roadRiskData?.ok) {
+      const sum = roadRiskData.branchSummary || roadRiskData.corridorSummary || {};
+      const cnt = sum.iceCounts || [0, 0, 0, 0];
+      const fogCnt = sum.fogCounts || [0, 0, 0, 0];
+      const tmLabel = roadRiskData.tmKst ? fmt(roadRiskData.tmKst) : roadRiskData.tmUtc || '';
+      const areaTitle = roadRiskData.branchSummary?.rangeLabel
+        ? `🛣️ 고령지사[${roadRiskData.branchSummary.rangeLabel}]`
+        : '🛣️ 012선 도로살얼음';
+      const infoSpan = el(
+        'span',
+        `${areaTitle}(${tmLabel} · 10분갱신): 위험 ${cnt[3] || 0} · 주의 ${cnt[2] || 0} · 관심 ${cnt[1] || 0}` +
+          (fogCnt[1] + fogCnt[2] + fogCnt[3] > 0 ? ` | 🌫️ 안개 위험 ${fogCnt[3] || 0} · 주의 ${fogCnt[2] || 0} · 관심 ${fogCnt[1] || 0}` : '')
+      );
+      const children = [infoSpan];
+      if (recentEscalations.length) {
+        const latestEsc = recentEscalations[0];
+        children.push(el('span', `▲ 최근 격상: ${latestEsc.text}`, 'esc-tag'));
+      }
+      riskSummaryEl.replaceChildren(...children);
+      riskSummaryEl.hidden = false;
+    } else {
+      riskSummaryEl.hidden = true;
+    }
+  }
+
   // 하단 도로기상관측소 전체 목록 (고속국도 12호선 이정표 오름차순 50.8k -> 171.3k 전구간 표출)
   if (strip) {
     strip.replaceChildren();
@@ -1045,6 +1210,17 @@ function renderMiniMap() {
       valRow.append(roadSpan, document.createTextNode(airTxt));
 
       chip.append(topRow, valRow);
+      const stnRisk = findStationRoadRisk(s);
+      if (stnRisk && (stnRisk.iceLevel >= 1 || stnRisk.fogLevel >= 1)) {
+        const riskRow = el('div', '', 'road-stn-risk-row');
+        if (stnRisk.iceLevel >= 1) {
+          riskRow.append(el('span', `${stnRisk.iceLevel === 3 ? '🚨' : '❄'} 살얼음 ${stnRisk.iceLabel}`, `badge-ice rank-${stnRisk.iceLevel}`));
+        }
+        if (stnRisk.fogLevel >= 1) {
+          riskRow.append(el('span', `🌫️ 안개 ${stnRisk.fogLabel}`, `badge-ice rank-${stnRisk.fogLevel}`));
+        }
+        chip.append(riskRow);
+      }
       chip.onclick = () => focusWindyOnStation(s);
       strip.append(chip);
     }
@@ -1407,15 +1583,24 @@ export function board() {
       top.append(el('h2', p.name), topRight);
       a.append(top);
 
-      // 2. 대표 지점명 + 인라인 살얼음/수방 배지 + 특보 요약 배지
+      // 2. 대표 지점명 + 인라인 살얼음[관심/주의/위험]·안개·수방 배지 + 특보 요약 배지
       const siteLine = el('div', '', 'site-line');
       siteLine.append(el('span', p.site || coord(p), 'site-name'));
 
-      if (iceRank > 0) {
-        const iceBadge = el('span', '', `badge-ice rank-${iceRank}`);
+      const rr = r.roadRisk;
+      const officialIceLv = rr?.iceLevel || 0;
+      const officialFogLv = rr?.fogLevel || 0;
+      const combinedIceStage = Math.max(officialIceLv, iceRank);
+
+      if (combinedIceStage > 0) {
+        const iceLbl = ROAD_RISK_LABELS[combinedIceStage] || w?.ice?.level || '관심';
+        const icon = combinedIceStage === 3 ? '🚨' : '❄';
+        const iceBadge = el('span', '', `badge-ice rank-${combinedIceStage}`);
+        const stnNote = rr?.stationName ? ` · 연계 ${rr.stationName}(${rr.stationKm}k)` : '';
+        iceBadge.title = `도로살얼음 ${combinedIceStage}단계 [${iceLbl}]${stnNote}` + (officialIceLv ? ` (012선 KMA: ${rr.iceLabel})` : ' (자체 예보모델)');
         iceBadge.append(
-          el('span', `❄ 살얼음 ${w.ice.level}`, 'badge-full'),
-          el('span', `❄${w.ice.level}`, 'badge-short')
+          el('span', `${icon} 살얼음 ${iceLbl}`, 'badge-full'),
+          el('span', `${icon}${iceLbl}`, 'badge-short')
         );
         siteLine.append(iceBadge);
       } else if (floodRank > 0) {
@@ -1432,6 +1617,17 @@ export function board() {
           el('span', w.ice.windAlert.shortBadge, 'badge-short')
         );
         siteLine.append(wBadge);
+      }
+
+      if (officialFogLv >= 1) {
+        const fogLbl = FOG_RISK_LABELS[officialFogLv] || '관심';
+        const fogBadge = el('span', '', `badge-ice rank-${officialFogLv}`);
+        fogBadge.title = `012선 도로 가시거리(안개) ${officialFogLv}단계 [${fogLbl}]`;
+        fogBadge.append(
+          el('span', `🌫️ 안개 ${fogLbl}`, 'badge-full'),
+          el('span', `🌫${fogLbl}`, 'badge-short')
+        );
+        siteLine.append(fogBadge);
       }
 
       if (hasWarning) {
@@ -1660,6 +1856,40 @@ function renderDetail() {
     day ? '오늘 00시부터' : '최근 24시간 누적'
   ].filter(Boolean).join(' · ');
 
+  const rr = r.roadRisk;
+  const riskBar = $('detailRoadRiskBar');
+  if (riskBar) {
+    const stnName = o?.roadStationName || rr?.stationName || o?.name || null;
+    const stnKm = o?.roadMilepostKm ?? rr?.stationKm;
+    const stnDist = o?.roadDistanceKm ?? rr?.stationDistanceKm;
+    const trTxt = Number.isFinite(o?.roadTemp) ? `실측 노면 ${o.roadTemp.toFixed(1)}°C (${o.surfaceState || '건조'})` : '도로기상 연계 중';
+    const bridgeTxt = o?.bridgeStationName && Number.isFinite(o.bridgeRoadTemp)
+      ? ` · 결빙목표 ${o.bridgeStationName} ${o.bridgeRoadTemp.toFixed(1)}°C`
+      : '';
+    if (stnName || rr) {
+      const leftDiv = el('div', '', 'detail-road-station');
+      const stnLabel = stnName ? `${stnName}${stnKm != null ? `(${stnKm}k)` : ''}${stnDist != null ? ` · ${n(stnDist, 1)}km` : ''}` : '고속국도 12호선 연계';
+      leftDiv.append(
+        el('strong', `🛣️ 모니터링 개소: ${stnLabel} · ${trTxt}`),
+        el('small', `012 무안광주대구선 도로위험기상${rr?.tmKst ? ` · ${fmt(rr.tmKst)} (${rr.flagLabel || '분석'})` : ''}${bridgeTxt}`)
+      );
+      const rightDiv = el('div', '', 'detail-road-pills');
+      const iceLv = rr?.iceLevel ?? 0;
+      const fogLv = rr?.fogLevel ?? 0;
+      const iceLbl = ROAD_RISK_LABELS[iceLv] || '정보없음';
+      const fogLbl = FOG_RISK_LABELS[fogLv] || '안개없음';
+      const iceBadge = el('span', `${iceLv === 3 ? '🚨' : '❄'} 살얼음 ${iceLbl} (${iceLv}단계)`, `badge-ice rank-${iceLv}`);
+      iceBadge.title = '기상청 012선 도로살얼음 위험수준: 0 정보없음 / 1 관심 / 2 주의 / 3 위험';
+      const fogBadge = el('span', `🌫️ 안개 ${fogLbl} (${fogLv}단계)`, `badge-ice rank-${fogLv}`);
+      fogBadge.title = '기상청 012선 도로 가시거리 위험수준: 0 안개없음 / 1 관심 / 2 주의 / 3 위험';
+      rightDiv.append(iceBadge, fogBadge);
+      riskBar.replaceChildren(leftDiv, rightDiv);
+      riskBar.hidden = false;
+    } else {
+      riskBar.hidden = true;
+    }
+  }
+
   // 시간별 강수·기온 전망 표
   const tbody = $('forecast');
   const thead = $('forecastHead');
@@ -1708,13 +1938,31 @@ function renderDetail() {
     }
   }
 
-  // 도로 살얼음 전망 & 결빙 조건 6지표 카드 & 4단계 의사결정 지시 카드
-  const iceLevel = w && !w.stale ? w.ice.level : '판단 보류';
+  // 도로 살얼음 전망 & 결빙 조건 6지표 카드 & 4단계 의사결정 지시 카드 (012선 공식 3단계 반영)
+  const officialIceLv = r.roadRisk?.iceLevel || 0;
   const iceRank = w?.ice?.rank || 0;
+  const effectiveIceRank = Math.max(officialIceLv, iceRank);
+  const iceLevel = officialIceLv === 3
+    ? '위험 (012선 3단계)'
+    : w && !w.stale
+    ? (officialIceLv === 2 && iceRank < 2 ? '주의 (012선 2단계)' : w.ice.level)
+    : officialIceLv >= 1
+    ? `${ROAD_RISK_LABELS[officialIceLv]} (012선 ${officialIceLv}단계)`
+    : '판단 보류';
   $('ice').textContent = iceLevel;
-  $('ice').className = `rank-${iceRank}`;
-  $('iceBadgePill').textContent = iceRank === 2 ? '❄ 주의 (최고단계)' : iceRank === 1 ? '❄ 관심 단계' : '❄ 정상 (위험없음)';
-  $('reason').textContent = w && !w.stale ? (w.ice.shortReason || w.ice.reason) : '최신 예보 확인 중';
+  $('ice').className = `rank-${Math.min(3, effectiveIceRank)}`;
+  $('iceBadgePill').textContent = effectiveIceRank >= 3
+    ? '🚨 위험 (3단계 · 즉시 순찰)'
+    : effectiveIceRank === 2
+    ? '❄ 주의 (2단계)'
+    : effectiveIceRank === 1
+    ? '❄ 관심 (1단계)'
+    : '❄ 정상 (위험없음)';
+  $('reason').textContent = w && !w.stale
+    ? (officialIceLv >= 2 && iceRank < officialIceLv
+        ? `012선(${r.roadRisk?.stationName || '인접구간'}) 도로살얼음 ${ROAD_RISK_LABELS[officialIceLv]}(${officialIceLv}단계) 감지 · ${w.ice.shortReason || w.ice.reason}`
+        : (w.ice.shortReason || w.ice.reason))
+    : '최신 예보 확인 중';
 
   const metricsGrid = $('iceMetricsGrid');
   if (metricsGrid) {
@@ -1871,6 +2119,16 @@ export async function refresh(force = false) {
     if (stns?.length) {
       roadStations = stns;
       if (!detailPlace) renderMiniMap();
+    }
+  }).catch(() => {});
+  loadRoadRisk('012', force).then(riskPayload => {
+    if (riskPayload?.ok) {
+      roadRiskData = riskPayload;
+      checkRoadRiskEscalations(riskPayload);
+      for (const p of targets()) {
+        record(p).roadRisk = findPlaceRoadRisk(p);
+      }
+      render();
     }
   }).catch(() => {});
   pollWarnings();
