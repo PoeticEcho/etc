@@ -14,7 +14,7 @@
     <div class="wrap bar">
       <a class="brandhome" href="#overview" aria-label="날씨봇 관심지역 기상 모니터 홈">
         <b class="brand"><i>≋</i> 날씨봇</b>
-        <span class="tag">관심지역 상시 기상 모니터 (광주대구선 14번 · 비·눈 시작~종료)</span>
+        <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 광주대구선(고속국도 12호선) 상시 기상·도로살얼음 모니터</span>
       </a>
       <div class="header-actions">
         <button id="reloadAll" type="button" class="hdr-btn" title="전체 기상자료 새로고침">
@@ -37,10 +37,13 @@
     <!-- Top Filter & Layout Switch Bar -->
     <div id="topSubbar" class="subbar">
       <nav id="groups" aria-label="지역 모아보기 및 모바일 미니맵·영상 페이지 전환"></nav>
-      <div class="pc-layout-tools">
-        <button type="button" id="pcLayoutToggleBtn" class="layout-switch-btn" title="PC 화면 배치 전환 (상하 기본 배치 ↔ 좌우 FHD 분할 배치)">
-          📐 배치: <strong id="pcLayoutLabel">상하 기본</strong>
-        </button>
+      <div class="pc-right-tools">
+        <div id="actionSummaryBar" class="action-summary-bar" aria-live="polite" hidden></div>
+        <div class="pc-layout-tools">
+          <button type="button" id="pcLayoutToggleBtn" class="layout-switch-btn" title="PC 화면 배치 전환 (상하 기본 배치 ↔ 좌우 FHD 분할 배치)">
+            📐 배치: <strong id="pcLayoutLabel">상하 기본</strong>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -60,12 +63,15 @@
             <span class="mobile-map-badge">광주대구선(14번) 노선·영상</span>
           </div>
 
-          <!-- Left / Top Sub-Pane: Route 14 Mini-Map + Compact Road Weather Grid -->
+          <!-- Left / Top Sub-Pane: Route 12 (KMA ID 14) Mini-Map + All Corridor Road Weather Grid -->
           <div id="minimapPane" class="map-panel card compact-card">
             <div class="head map-head">
-              <div>
-                <span class="section-kicker">ROUTE 14 HIGHWAY CORRIDOR</span>
-                <h2>광주대구선(14번) 8개 관심지역 · 도로노면 미니맵</h2>
+              <div class="map-title-with-shield">
+                <img src="./route12.svg" alt="고속국도 제12호선" class="route12-shield">
+                <div>
+                  <span class="section-kicker">EXPRESSWAY NO.12 · KMA ID 14 (50k ~ 176k)</span>
+                  <h2>광주대구선 전 지점 · 도로노면 미니맵</h2>
+                </div>
               </div>
               <div class="map-legend">
                 <span><i class="dot-calm"></i>평온</span>
@@ -73,13 +79,13 @@
                 <span><i class="dot-danger"></i>결빙·경고</span>
               </div>
             </div>
-            <div id="minimapContainer" class="minimap-box" role="region" aria-label="광주대구선 8개 관심지역 미니맵"></div>
+            <div id="minimapContainer" class="minimap-box" role="region" aria-label="광주대구선 8개 관심지역 및 도로관측소 미니맵"></div>
 
             <div class="road-grid-header">
-              <b>🛣️ 광주대구선(14번) 도로기상관측소 노면온도(TR1) · 기온</b>
-              <small>지점 클릭 시 Windy 이동 · 더블클릭 시 상세</small>
+              <b>🛣️ 광주대구선(12호선) 도로기상관측소 노면온도(TR1) · 이정(km) 현황</b>
+              <small>남원(50k)~고령지사(80k~176k) 전 지점 · 클릭 시 Windy 이동</small>
             </div>
-            <div id="roadStnStrip" class="road-stn-grid" aria-label="광주대구선 실시간 도로기상관측소 요약"></div>
+            <div id="roadStnStrip" class="road-stn-grid" aria-label="광주대구선 실시간 도로기상관측소 전체 목록"></div>
           </div>
 
           <!-- Interactive Resizable Splitter Bar (PC Stacked Mode) -->
@@ -203,10 +209,10 @@
             <div id="horizonBadges" class="horizon-badges"></div>
             <div class="timeline-wrap">
               <div class="timeline-head">
-                <b>향후 12시간 강수 타임라인</b>
-                <small>파랑: 비 · 보라: 눈/진눈깨비 · 노랑: 강수 가능성(≥50%) · 회색: 무강수</small>
+                <b>향후 12시간 강수·기온 타임라인</b>
+                <small>파랑: 비 · 보라: 눈/진눈깨비 · 노랑: 강수 가능성(≥50%) · 모든 시간대 기온 병기</small>
               </div>
-              <div id="kmaTimeline" class="kma-timeline" role="list" aria-label="12시간 강수 타임라인"></div>
+              <div id="kmaTimeline" class="kma-timeline" role="list" aria-label="12시간 강수 및 기온 타임라인"></div>
             </div>
           </section>
 
@@ -221,9 +227,11 @@
             </div>
             <div class="metrics" id="metrics"></div>
             <small id="totaltime"></small>
-            <details class="legend">
-              <summary>강수량·강설량 및 광학 노면온도(TR1) 읽는 법</summary>
-              <p>총강수량은 기상청 도로기상관측소(광주대구선 14번) 일 누적강수량 또는 모델 환산 강수량(mm), 강우량은 액체 강수(mm), 신적설은 새로 내린 눈(cm)입니다. 노면온도(TR1)는 고속도로 노면 광학센서 실측값입니다.</p>
+            <details class="info-accordion">
+              <summary><span>강수량·강설량 및 광학 노면온도(TR1) 읽는 법</span><em class="acc-more">더보기 ▾</em></summary>
+              <div class="info-accordion-body">
+                <p>총강수량은 기상청 도로기상관측소(고속국도 12호선 광주대구선 · API 14번) 일 누적강수량 또는 모델 환산 강수량(mm), 강우량은 액체 강수(mm), 신적설은 새로 내린 눈(cm)입니다. 광학 노면온도(TR1)는 고속도로 노면 광학센서 실측값입니다.</p>
+              </div>
             </details>
           </section>
 
@@ -274,25 +282,29 @@
             <div id="actionGuides" class="action-guides" aria-live="polite"></div>
 
             <a class="rwis" href="https://rwis.kma.go.kr/comis5/uis/gis/map-e-risk.do" target="_blank" rel="noopener">기상청 도로살얼음 위험지도 (RWIS) ↗</a>
-            <details>
-              <summary>도로관리청 판정 기준 (교량 복사냉각 · 잔설 재결빙 · 3단계 제설)</summary>
-              <ul class="iceguide">
-                <li><b>살얼음 주의</b>: 어는 비·착빙성 안개 예보, 강수·안개 시 야간(21~08시) 1.5°C 이하 / 주간 0.5°C 이하, 직전 24시간 강설·잔설 후 0.5°C 이하 재결빙, 영하권 이슬점 편차(T-Td) 1.5°C 이하 서리 착빙</li>
-                <li><b>살얼음 관심</b>: 기온 4°C 이하 + 최근 6시간 강수·안개·습도 90% 이상 또는 야간 저온·고습·약풍</li>
-                <li><b>3단계 제설 역산</b>: 결빙·강설 예상 3시간 전 <b>제설차 시동 ON(살포기 유압 예열)</b> → 1~2시간 전 <b>예비살포(습염)</b> → 강설 1cm/h 이상 시 <b>본살포</b> (-6°C 이하 염화칼슘 배합 상향)</li>
-                <li><b>도로 수방 경보</b>: 시간당 10mm 이상 배수로 점검, 30mm 이상(누적 80mm) 지하차도·사면 주의, 50mm 이상(누적 120mm) 긴급 통제 검토</li>
-              </ul>
+            <details class="info-accordion">
+              <summary><span>도로관리청 판정 기준 (교량 복사냉각 · 잔설 재결빙 · 3단계 제설)</span><em class="acc-more">더보기 ▾</em></summary>
+              <div class="info-accordion-body">
+                <ul class="iceguide">
+                  <li><b>살얼음 주의</b>: 어는 비·착빙성 안개 예보, 강수·안개 시 야간(21~08시) 1.5°C 이하 / 주간 0.5°C 이하, 직전 24시간 강설·잔설 후 0.5°C 이하 재결빙, 영하권 이슬점 편차(T-Td) 1.5°C 이하 서리 착빙</li>
+                  <li><b>살얼음 관심</b>: 기온 4°C 이하 + 최근 6시간 강수·안개·습도 90% 이상 또는 야간 저온·고습·약풍</li>
+                  <li><b>3단계 제설 역산</b>: 결빙·강설 예상 3시간 전 <b>제설차 시동 ON(살포기 유압 예열)</b> → 1~2시간 전 <b>예비살포(습염)</b> → 강설 1cm/h 이상 시 <b>본살포</b> (-6°C 이하 염화칼슘 배합 상향)</li>
+                  <li><b>도로 수방 경보</b>: 시간당 10mm 이상 배수로 점검, 30mm 이상(누적 80mm) 지하차도·사면 주의, 50mm 이상(누적 120mm) 긴급 통제 검토</li>
+                </ul>
+              </div>
             </details>
           </section>
 
-          <!-- All Weather Warnings Card -->
+          <!-- All Weather Warnings Card (Notification ON/OFF Icon moved to Top-Right Pill Header!) -->
           <section class="card">
             <div class="head">
               <h2>🚨 기상특보 발효 및 해제 예정 현황</h2>
-              <span class="pill" id="detailWrnCount">조회 중</span>
+              <div class="wrn-head-pills">
+                <button id="notify" type="button" class="notify-pill" title="브라우저 기기 알림 ON/OFF 전환">🔕 알림 OFF</button>
+                <span class="pill" id="detailWrnCount">조회 중</span>
+              </div>
             </div>
             <div id="warnings" aria-live="polite"></div>
-            <button id="notify" type="button" class="minor">기기 알림 켜기</button>
           </section>
 
           <!-- External Imagery Links -->

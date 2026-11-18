@@ -23,7 +23,7 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     if (kh?.time) kmaByClock.set(kh.time.slice(0, 16), kh);
   }
 
-  const samples = [current, ...(forecast || [])].map((rawRow, index) => {
+  const samples = [current, ...(forecast || []).slice(0, 6)].map((rawRow, index) => {
     const r = { ...rawRow };
     const kmaMatch = r.time ? kmaByClock.get(r.time.slice(0, 16)) : null;
 
@@ -148,28 +148,55 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     { label: '현재풍속', value: Number.isFinite(curWind) ? `${curWind.toFixed(1)} m/s` : '—', warn: Number.isFinite(curWind) && curWind >= 10 }
   ];
 
-  // 2. 제설차 시동(살포기 예열) → 사전 제설제(예비 살포) → 본 제설 3단계 역산 타임라인 (요구사항 4.2)
+  // 2. 제설차 시동(살포기 예열) → 사전 제설제(예비 살포) → 본 제설 3단계 역산 타임라인 (6시간 기준, 요구사항 4.2)
   const snowActions = [];
   const firstCriticalIdx = samples.findIndex(s => s.rank === 2 || s.snowNow);
-  let preheatCard = { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle' };
-  let presaltCard = { title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle' };
-  let mainPlowCard = { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle' };
+  let preheatCard = { stageId: 'preheat', title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle', pcChip: null, mobChip: null };
+  let presaltCard = { stageId: 'presalt', title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle', pcChip: null, mobChip: null };
+  let mainPlowCard = { stageId: 'mainplow', title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle', pcChip: null, mobChip: null };
 
   if (firstCriticalIdx >= 0) {
     const targetSample = samples[firstCriticalIdx];
     const targetClock = (targetSample.time || '').slice(11, 16) || '곧';
-    if (firstCriticalIdx === 0 || firstCriticalIdx <= 2) {
+    if (firstCriticalIdx <= 2) {
+      const presaltClk = addHoursClock(targetClock, -1);
+      const presaltHr = presaltClk.slice(0, 2) + '시';
+      const presaltHrsLeft = Math.max(0, firstCriticalIdx - 1);
       snowActions.push({
         stage: 'immediate',
         rank: 2,
         text: `🚨 [즉시 제설차 시동·살포기 예열 및 살포 준비] 현재 또는 2시간 내(${targetClock}) 결빙·강설 진행 중 — 즉시 유압 예열 및 습염 살포 출동`
       });
-      preheatCard = { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '즉시 시동', detail: `${targetClock} 결빙·강설 임박`, state: 'urgent' };
-      presaltCard = { title: '예비살포', subtitle: '(습염 사전 살포)', status: '즉시 출동', detail: '고속도로·교량 즉시 살포', state: 'urgent' };
+      preheatCard = {
+        stageId: 'preheat',
+        title: '제설차 시동 ON',
+        subtitle: '(살포기 유압 예열)',
+        status: '즉시 시동',
+        detail: `${targetClock} 결빙·강설 임박`,
+        state: 'urgent',
+        hoursLeft: 0,
+        pcChip: '🚨 시동ON · 즉시',
+        mobChip: '🚨 즉시'
+      };
+      presaltCard = {
+        stageId: 'presalt',
+        title: '예비살포',
+        subtitle: '(습염 사전 살포)',
+        status: presaltHrsLeft === 0 ? '즉시 출동' : `${presaltHrsLeft}h내(${presaltHr})`,
+        detail: '고속도로·교량 즉시 살포',
+        state: 'urgent',
+        hoursLeft: presaltHrsLeft,
+        pcChip: presaltHrsLeft === 0 ? '🚜 예비살포 · 즉시' : `🚜 예비살포 · ${presaltHrsLeft}h내(${presaltHr})`,
+        mobChip: presaltHrsLeft === 0 ? '🚜 즉시' : `🚜 ${presaltHrsLeft}h·${presaltHr}`
+      };
     } else {
       const preheatClock = addHoursClock(targetClock, -3);
       const presaltStart = addHoursClock(targetClock, -2);
       const presaltEnd = addHoursClock(targetClock, -1);
+      const preheatHrs = firstCriticalIdx - 3;
+      const presaltHrs = firstCriticalIdx - 2;
+      const preheatHr = preheatClock.slice(0, 2) + '시';
+      const presaltHr = presaltStart.slice(0, 2) + '시';
       snowActions.push({
         stage: 'preheat',
         rank: 2,
@@ -180,35 +207,84 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
         rank: 2,
         text: `🚜 [사전 제설(예비살포) 권장] ${presaltStart}~${presaltEnd} 이전 습염 사전 살포 출동 (${targetClock} 결빙·강설 예상)`
       });
-      preheatCard = { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: `${preheatClock} 시동`, detail: `예상(${targetClock}) 3시간 전`, state: 'watch' };
-      presaltCard = { title: '예비살포', subtitle: '(습염 사전 살포)', status: `${presaltStart}~${presaltEnd}`, detail: '결빙 1~2시간 전 살포', state: 'urgent' };
+      preheatCard = {
+        stageId: 'preheat',
+        title: '제설차 시동 ON',
+        subtitle: '(살포기 유압 예열)',
+        status: preheatHrs === 0 ? `즉시(${preheatHr})` : `${preheatHrs}h내(${preheatHr})`,
+        detail: `예상(${targetClock}) 3시간 전`,
+        state: preheatHrs === 0 ? 'urgent' : 'watch',
+        hoursLeft: preheatHrs,
+        pcChip: preheatHrs === 0 ? `🔑 시동ON · 즉시(${preheatHr})` : `🔑 시동ON · ${preheatHrs}h내(${preheatHr})`,
+        mobChip: preheatHrs === 0 ? `🔑 즉시` : `🔑 ${preheatHrs}h·${preheatHr}`
+      };
+      presaltCard = {
+        stageId: 'presalt',
+        title: '예비살포',
+        subtitle: '(습염 사전 살포)',
+        status: `${presaltHrs}h내(${presaltStart}~${presaltEnd})`,
+        detail: '결빙 1~2시간 전 살포',
+        state: 'urgent',
+        hoursLeft: presaltHrs,
+        pcChip: `🚜 예비살포 · ${presaltHrs}h내(${presaltHr})`,
+        mobChip: `🚜 ${presaltHrs}h·${presaltHr}`
+      };
     }
   } else if (peak.rank === 1) {
+    const watchIdx = Math.max(0, samples.findIndex(s => s.rank === 1));
     const watchClock = (peak.time || '').slice(11, 16) || '야간';
     const preheatClock = addHoursClock(watchClock, -3);
+    const watchHrs = Math.max(0, watchIdx - 3);
+    const preheatHr = preheatClock.slice(0, 2) + '시';
     snowActions.push({
       stage: 'watch',
       rank: 1,
       text: `🔑 [교량·응달 순찰 및 살포기 점검] ${watchClock}경 살얼음 관심 (${preheatClock}경 제설차 예열 대기 권장)`
     });
-    preheatCard = { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: `${preheatClock} 점검`, detail: `${watchClock}경 살얼음 관심`, state: 'watch' };
-    presaltCard = { title: '예비살포', subtitle: '(습염 사전 살포)', status: '순찰 대기', detail: '교량·응달 노면 점검', state: 'watch' };
+    preheatCard = {
+      stageId: 'preheat',
+      title: '제설차 시동 ON',
+      subtitle: '(살포기 유압 예열)',
+      status: watchHrs === 0 ? `점검(${preheatHr})` : `${watchHrs}h내(${preheatHr})`,
+      detail: `${watchClock}경 살얼음 관심`,
+      state: 'watch',
+      hoursLeft: watchHrs,
+      pcChip: watchHrs === 0 ? `🔑 예열점검 · 즉시` : `🔑 예열점검 · ${watchHrs}h내(${preheatHr})`,
+      mobChip: watchHrs === 0 ? '🔑 점검' : `🔑 ${watchHrs}h·${preheatHr}`
+    };
+    presaltCard = {
+      stageId: 'presalt',
+      title: '예비살포',
+      subtitle: '(습염 사전 살포)',
+      status: '순찰 대기',
+      detail: '교량·응달 노면 점검',
+      state: 'watch',
+      hoursLeft: Math.max(0, watchIdx - 1),
+      pcChip: null,
+      mobChip: null
+    };
   }
 
   const maxSnowHourly = Math.max(0, ...samples.map(s => Number.isFinite(s.snow) ? s.snow : 0));
   const totalSnow6h = samples.slice(1).reduce((sum, s) => sum + (Number.isFinite(s.snow) ? s.snow : 0), 0);
   if (maxSnowHourly >= 1.0 || totalSnow6h >= 3.0) {
+    const snowIdx = Math.max(0, samples.findIndex(s => Number.isFinite(s.snow) && s.snow >= 1.0));
+    const snowHr = (samples[snowIdx]?.time || '').slice(11, 13) + '시';
     snowActions.push({
       stage: 'mainplow',
       rank: 2,
       text: `🚨 [본 제설 준비] 예상 강설 최대 ${maxSnowHourly.toFixed(1)} cm/h (누적 ${totalSnow6h.toFixed(1)} cm) · 제설삽날 장착 및 연속 제설 대비`
     });
     mainPlowCard = {
+      stageId: 'mainplow',
       title: '본살포',
       subtitle: '(제설삽날·연속 살포)',
-      status: '본제설 투입',
+      status: snowIdx <= 0 ? '즉시 투입' : `${snowIdx}h내(${snowHr})`,
       detail: `최대 ${maxSnowHourly.toFixed(1)}cm/h · 누적 ${totalSnow6h.toFixed(1)}cm`,
-      state: 'urgent'
+      state: 'urgent',
+      hoursLeft: snowIdx,
+      pcChip: snowIdx <= 0 ? '🚨 본살포 · 즉시' : `🚨 본살포 · ${snowIdx}h내(${snowHr})`,
+      mobChip: snowIdx <= 0 ? '🚨 본살포' : `🚨 ${snowIdx}h·${snowHr}`
     };
   }
   if (minTempVal !== null && minTempVal <= -6.0) {
@@ -218,11 +294,15 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
       text: `⚠️ [저온 결빙 주의] 최저 ${minTempVal.toFixed(1)}°C (-6°C 이하 소금 NaCl 융빙력 급감 · 염화칼슘 CaCl₂ 배합 상향 필요)`
     });
     mainPlowCard = {
+      stageId: 'mainplow',
       title: '본살포',
       subtitle: '(CaCl₂ 저온 배합 상향)',
       status: `${minTempVal.toFixed(1)}°C 저온`,
       detail: '염화칼슘 배합 상향 필요',
-      state: mainPlowCard.state === 'urgent' ? 'urgent' : 'watch'
+      state: mainPlowCard.state === 'urgent' ? 'urgent' : 'watch',
+      hoursLeft: mainPlowCard.hoursLeft ?? 0,
+      pcChip: mainPlowCard.pcChip || '⚠️ 본살포 · CaCl₂배합',
+      mobChip: mainPlowCard.mobChip || '⚠️ CaCl₂'
     };
   }
 
@@ -277,13 +357,54 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     guide: `💨 [교량 횡풍 주의] 최대 풍속 ${maxWind.toFixed(1)} m/s — 고가교량(죽산천교·옥계1교·논공교 등) 화물차 횡풍 위험 및 도로 표지판·가시설물 점검`
   } : { active: false, maxWind: Number(maxWind.toFixed(1)), badge: null, shortBadge: null, guide: null };
 
+  const rainIdx = samples.findIndex(s => Number.isFinite(s.precip) && s.precip >= 10);
+  const rainHr = rainIdx > 0 && samples[rainIdx]?.time ? samples[rainIdx].time.slice(11, 13) + '시' : '';
   const floodWindCard = flood.rank === 2
-    ? { title: '수방 · 통제', subtitle: '(지하차도·사면·배수)', status: flood.shortBadge, detail: `최대 ${maxRainHourly.toFixed(1)}mm/h · 누적 ${combinedWater.toFixed(1)}mm`, state: 'urgent' }
+    ? {
+        stageId: 'floodwind',
+        title: '수방 · 통제',
+        subtitle: '(지하차도·사면·배수)',
+        status: flood.shortBadge,
+        detail: `최대 ${maxRainHourly.toFixed(1)}mm/h · 누적 ${combinedWater.toFixed(1)}mm`,
+        state: 'urgent',
+        hoursLeft: Math.max(0, rainIdx),
+        pcChip: rainIdx > 0 ? `🌊 수방주의 · ${rainIdx}h내(${rainHr})` : '🌊 수방통제 · 즉시',
+        mobChip: rainIdx > 0 ? `🌊 ${rainIdx}h·${rainHr}` : '🌊 즉시'
+      }
     : flood.rank === 1
-    ? { title: '수방 · 배수점검', subtitle: '(배수로·집수정)', status: '배수 점검', detail: `시간당 ${maxRainHourly.toFixed(1)}mm/h · 오늘 ${todayPrecip.toFixed(1)}mm`, state: 'watch' }
+    ? {
+        stageId: 'floodwind',
+        title: '수방 · 배수점검',
+        subtitle: '(배수로·집수정)',
+        status: rainIdx > 0 ? `${rainIdx}h내(${rainHr})` : '배수 점검',
+        detail: `시간당 ${maxRainHourly.toFixed(1)}mm/h · 오늘 ${todayPrecip.toFixed(1)}mm`,
+        state: 'watch',
+        hoursLeft: Math.max(0, rainIdx),
+        pcChip: rainIdx > 0 ? `🌧️ 배수점검 · ${rainIdx}h내(${rainHr})` : '🌧️ 배수점검 · 즉시',
+        mobChip: rainIdx > 0 ? `🌧️ ${rainIdx}h·${rainHr}` : '🌧️ 점검'
+      }
     : windAlert.active
-    ? { title: '교량 횡풍 주의', subtitle: '(고가교·표지판)', status: `최대 ${windAlert.maxWind}m/s`, detail: '화물차 횡풍 주의', state: 'watch' }
-    : { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: `강수 ${maxRainHourly.toFixed(1)}mm/h · 풍속 ${windAlert.maxWind}m/s`, state: 'idle' };
+    ? {
+        stageId: 'floodwind',
+        title: '교량 횡풍 주의',
+        subtitle: '(고가교·표지판)',
+        status: `최대 ${windAlert.maxWind}m/s`,
+        detail: '화물차 횡풍 주의',
+        state: 'watch',
+        hoursLeft: 0,
+        pcChip: `💨 횡풍주의 · ${windAlert.maxWind}m/s`,
+        mobChip: `💨 ${windAlert.maxWind}m`
+      }
+    : {
+        stageId: 'floodwind',
+        title: '수방 · 횡풍',
+        subtitle: '(배수로·교량 안전)',
+        status: '정상',
+        detail: `강수 ${maxRainHourly.toFixed(1)}mm/h · 풍속 ${windAlert.maxWind}m/s`,
+        state: 'idle',
+        pcChip: null,
+        mobChip: null
+      };
 
   return {
     level,

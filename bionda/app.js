@@ -83,6 +83,7 @@ const settings = {
   sortRisk: true,
   darkMode: false,
   simMode: false,
+  desktopNotify: true,
   pcLayout: 'stacked', // 'stacked' (상하 기본 4x2 + 하단 분할) | 'split' (좌우 FHD 분할: 좌 2x4 + 우 상하)
   mapSplitPct: 43 // 미니맵 영역 폭 비율 (30 ~ 68%)
 };
@@ -93,6 +94,7 @@ try {
     settings.wakeLock = savedSettings.wakeLock ?? true;
     settings.sortRisk = savedSettings.sortRisk ?? true;
     settings.darkMode = savedSettings.darkMode ?? false;
+    settings.desktopNotify = savedSettings.desktopNotify ?? true;
     settings.pcLayout = savedSettings.pcLayout === 'split' ? 'split' : 'stacked';
     if (Number.isFinite(savedSettings.mapSplitPct)) {
       settings.mapSplitPct = Math.max(30, Math.min(68, savedSettings.mapSplitPct));
@@ -109,6 +111,7 @@ function persistSettings() {
         wakeLock: settings.wakeLock,
         sortRisk: settings.sortRisk,
         darkMode: settings.darkMode,
+        desktopNotify: settings.desktopNotify,
         pcLayout: settings.pcLayout,
         mapSplitPct: settings.mapSplitPct
       })
@@ -154,6 +157,7 @@ const fmt = t => (t ? t.slice(5, 16).replace('T', ' ') : '—');
 const records = new Map();
 let roadStations = [];
 let filter = 'all';
+let actionStageFilter = null; // null | 'preheat' | 'presalt' | 'mainplow' | 'floodwind'
 let detailPlace = null;
 let mobileMapView = false;
 let tableMode = '6h'; // '6h' | '12h'
@@ -311,20 +315,20 @@ function getEffectiveRecord(p) {
           { label: '현재풍속', value: '2.4 m/s', warn: false }
         ],
         decisionCards: sim.iceRank === 2 ? [
-          { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '즉시 시동', detail: '결빙·강설 임박 즉시 예열', state: 'urgent' },
-          { title: '예비살포', subtitle: '(습염 사전 살포)', status: '즉시 출동', detail: '고속도로·교량 습염 살포', state: 'urgent' },
-          { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: sim.snowDepth >= 2 ? '삽날 대기' : '적설 감시', detail: sim.snowDepth ? `적설 ${sim.snowDepth}cm` : '강설 1cm/h 이상 시', state: sim.snowDepth >= 2 ? 'urgent' : 'watch' },
-          { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle' }
+          { stageId: 'preheat', title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '즉시 시동', detail: '결빙·강설 임박 즉시 예열', state: 'urgent', hoursLeft: 0, pcChip: '🚨 시동ON · 즉시', mobChip: '🚨 즉시' },
+          { stageId: 'presalt', title: '예비살포', subtitle: '(습염 사전 살포)', status: '즉시 출동', detail: '고속도로·교량 습염 살포', state: 'urgent', hoursLeft: 0, pcChip: '🚜 예비살포 · 즉시', mobChip: '🚜 즉시' },
+          { stageId: 'mainplow', title: '본살포', subtitle: '(제설삽날·연속 살포)', status: sim.snowDepth >= 2 ? '삽날 대기' : '적설 감시', detail: sim.snowDepth ? `적설 ${sim.snowDepth}cm` : '강설 1cm/h 이상 시', state: sim.snowDepth >= 2 ? 'urgent' : 'watch', hoursLeft: sim.snowDepth >= 2 ? 0 : 1, pcChip: sim.snowDepth >= 2 ? '❄ 본살포 · 즉시' : '❄ 본살포 · 1h내(15시)', mobChip: sim.snowDepth >= 2 ? '❄ 삽날' : '❄ 1h·15시' },
+          { stageId: 'floodwind', title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle', pcChip: null, mobChip: null }
         ] : sim.iceRank === 1 ? [
-          { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '15:00 점검', detail: '18:00 살얼음 관심 대비', state: 'watch' },
-          { title: '예비살포', subtitle: '(습염 사전 살포)', status: '순찰 대기', detail: '교량·응달 노면 점검', state: 'watch' },
-          { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 신호 없음', state: 'idle' },
-          { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle' }
+          { stageId: 'preheat', title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '3h내(18시)', detail: '18:00 살얼음 관심 대비', state: 'watch', hoursLeft: 3, pcChip: '🔑 시동ON · 3h내(18시)', mobChip: '🔑 3h·18시' },
+          { stageId: 'presalt', title: '예비살포', subtitle: '(습염 사전 살포)', status: '4h내(19시)', detail: '교량·응달 노면 점검', state: 'watch', hoursLeft: 4, pcChip: '🚜 예비살포 · 4h내(19시)', mobChip: '🚜 4h·19시' },
+          { stageId: 'mainplow', title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 신호 없음', state: 'idle', pcChip: null, mobChip: null },
+          { stageId: 'floodwind', title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle', pcChip: null, mobChip: null }
         ] : [
-          { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle' },
-          { title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle' },
-          { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle' },
-          { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle' }
+          { stageId: 'preheat', title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle', pcChip: null, mobChip: null },
+          { stageId: 'presalt', title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle', pcChip: null, mobChip: null },
+          { stageId: 'mainplow', title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle', pcChip: null, mobChip: null },
+          { stageId: 'floodwind', title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle', pcChip: null, mobChip: null }
         ],
         reason: sim.reason || '결빙 위험 신호 없음',
         samples: [{ time: '현재', level: sim.iceRank ? sim.iceLevel : '정상', rank: sim.iceRank }, ...baseRows.map(r => ({ time: r.time, level: sim.iceRank ? sim.iceLevel : '정상', rank: sim.iceRank }))],
@@ -352,6 +356,11 @@ function getEffectiveRecord(p) {
             { hours: 3, hasPrecipitation: sim.maxPop >= 80, hasRisk: sim.maxPop >= 50, kinds: [sim.temp <= 0 ? '눈' : '비'] },
             { hours: 6, hasPrecipitation: sim.maxPop >= 80, hasRisk: sim.maxPop >= 50, kinds: [sim.temp <= 0 ? '눈' : '비'] },
             { hours: 12, hasPrecipitation: sim.maxPop >= 80, hasRisk: sim.maxPop >= 50, kinds: [sim.temp <= 0 ? '눈' : '비'] }
+          ],
+          horizonRanges: [
+            { label: '향후 3시간', minOffset: 1, maxOffset: 3, hasPrecipitation: sim.maxPop >= 80, hasRisk: sim.maxPop >= 50, kinds: [sim.temp <= 0 ? '눈' : '비'] },
+            { label: '3~6시간', minOffset: 4, maxOffset: 6, hasPrecipitation: sim.maxPop >= 80, hasRisk: sim.maxPop >= 50, kinds: [sim.temp <= 0 ? '눈' : '비'] },
+            { label: '향후 6~12시간', minOffset: 7, maxOffset: 12, hasPrecipitation: false, hasRisk: false, kinds: [] }
           ]
         }
       }
@@ -671,95 +680,137 @@ function updateUnifiedGlobalStamp() {
   return stampFormatted;
 }
 
+const ROUTE12_POLYLINE_KM = [
+  [48.8, 35.4117, 127.3233], [52.8, 35.4248, 127.3630], [56.8, 35.4334, 127.4033], [60.8, 35.4497, 127.4411],
+  [64.8, 35.4720, 127.4698], [68.8, 35.4910, 127.5061], [72.8, 35.4751, 127.5438], [76.8, 35.4831, 127.5846],
+  [80.8, 35.5119, 127.6065], [84.8, 35.5335, 127.6409], [88.8, 35.5415, 127.6835], [92.8, 35.5378, 127.7262],
+  [96.8, 35.5341, 127.7688], [100.8, 35.5512, 127.8065], [104.8, 35.5627, 127.8397], [108.8, 35.5903, 127.8668],
+  [112.8, 35.6197, 127.8887], [116.8, 35.6434, 127.9207], [120.8, 35.6772, 127.9330], [124.8, 35.7049, 127.9561],
+  [128.8, 35.7036, 127.9972], [132.8, 35.7074, 128.0397], [136.8, 35.7079, 128.0838], [140.8, 35.7058, 128.1275],
+  [144.8, 35.6927, 128.1672], [148.8, 35.7029, 128.2087], [152.8, 35.7016, 128.2507], [156.8, 35.7132, 128.2912],
+  [160.8, 35.7394, 128.3176], [164.8, 35.7527, 128.3578], [168.8, 35.7624, 128.3988], [172.8, 35.7744, 128.4371],
+  [175.9, 35.7918, 128.4629], [176.0, 35.7925, 128.4635]
+];
+
+const ROUTE12_ICS = [
+  ['남원56k', 35.430, 127.394, -10],
+  ['지리산77k', 35.487, 127.589, 12],
+  ['함양95k', 35.535, 127.752, 12],
+  ['거창121k', 35.678, 127.934, -9],
+  ['해인사146k', 35.696, 128.183, 12],
+  ['고령153k', 35.702, 128.252, -9],
+  ['옥포176k', 35.792, 128.463, -8]
+];
+
+const ROUTE12_PLACE_KM = {
+  '남원': 55.5,
+  '함양': 93.5,
+  '함양중부': 99.2,
+  '거창군남부': 115.9,
+  '거창': 120.5,
+  '합천군서북부': 145.5,
+  '고령군': 154.6,
+  '대구 달성군남부': 171.6
+};
+
+const ROUTE12_STN_KM_FALLBACK = [
+  ['남원주차장', 50.8], ['번암교', 72.9], ['지리산휴', 75.4], ['옥계1교', 86.2],
+  ['함양', 95.0], ['죽산천교', 102.9], ['남상졸음', 115.3], ['거창휴', 134.1],
+  ['양전교', 158.2], ['논공휴', 169.2], ['논공교', 171.3]
+];
+
+function resolveStationKm(s) {
+  if (Number.isFinite(s?.milepostKm)) return s.milepostKm;
+  const match = ROUTE12_STN_KM_FALLBACK.find(([key]) => (s?.name || '').includes(key));
+  return match ? match[1] : null;
+}
+
 /**
- * 광주대구선(14번 노선) 8개 관심지역 & 도로기상관측소 미니맵 렌더링
- * 2단 정렬 콜아웃 레일(상단 4개·하단 4개) + 실제 좌표 리더라인 구조로 어떤 해상도에서도 글자 겹침 0건 보장!
+ * 고속국도 제12호선(광주대구선 · KMA 14번) 8개 관심지역 & 전구간 도로기상관측소 미니맵 렌더링
+ * 고령지사 MMF DB 실제 34포인트 노선 선형(48.8k~176.0k) 및 11개 도로관측소 이정표 매칭
  */
 function renderMiniMap() {
   const container = $('minimapContainer');
   const strip = $('roadStnStrip');
   if (!container) return;
 
-  const minLon = 127.32, maxLon = 128.50;
-  const minLat = 35.36, maxLat = 35.78;
+  const minLon = 127.30, maxLon = 128.49;
+  const minLat = 35.38, maxLat = 35.80;
   const W = 540, H = 236;
-  // Highway curve occupies the middle band (y = 78 .. 158)
   const project = (lat, lon) => {
-    const x = 38 + ((lon - minLon) / (maxLon - minLon)) * (W - 76);
-    const y = 158 - ((lat - minLat) / (maxLat - minLat)) * 80;
+    const x = 34 + ((lon - minLon) / (maxLon - minLon)) * (W - 68);
+    const y = 158 - ((lat - minLat) / (maxLat - minLat)) * 78;
     return [Number(x.toFixed(1)), Number(y.toFixed(1))];
   };
 
-  // 광주대구선(14번) 고속도로 선형 좌표열
-  const routeWaypoints = [
-    [35.416, 127.345],
-    [35.475, 127.544],
-    [35.483, 127.569],
-    [35.538, 127.655],
-    [35.533, 127.749],
-    [35.566, 127.774],
-    [35.549, 127.829],
-    [35.637, 127.907],
-    [35.687, 127.910],
-    [35.707, 128.054],
-    [35.706, 128.168],
-    [35.725, 128.298],
-    [35.765, 128.402],
-    [35.697, 128.447]
-  ];
-  const polyPoints = routeWaypoints.map(([la, lo]) => project(la, lo).join(',')).join(' ');
+  const fullPoly = ROUTE12_POLYLINE_KM.map(([, la, lo]) => project(la, lo).join(',')).join(' ');
+  const goryeongPoly = ROUTE12_POLYLINE_KM.filter(([km]) => km >= 92.8).map(([, la, lo]) => project(la, lo).join(',')).join(' ');
 
-  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="광주대구고속도로 14번 노선 및 8개 관심지역 기상 미니맵">
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="고속국도 제12호선 광주대구선 실시간 노면·기상 미니맵">
     <defs>
       <linearGradient id="hwyGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#38b2ac" stop-opacity="0.85"/>
-        <stop offset="50%" stop-color="#7fe3b3" stop-opacity="0.95"/>
-        <stop offset="100%" stop-color="#63b3ed" stop-opacity="0.85"/>
+        <stop offset="0%" stop-color="#38b2ac" stop-opacity="0.88"/>
+        <stop offset="45%" stop-color="#7fe3b3" stop-opacity="0.96"/>
+        <stop offset="100%" stop-color="#63b3ed" stop-opacity="0.90"/>
       </linearGradient>
     </defs>
-    <!-- Top Header Band -->
-    <rect x="0" y="0" width="${W}" height="24" fill="rgba(7, 24, 27, 0.55)"/>
-    <rect x="10" y="4" width="96" height="16" rx="4" fill="#1b5e57" stroke="#4fd1c5" stroke-width="0.8"/>
-    <text x="58" y="15" text-anchor="middle" fill="#e6fffa" font-size="9.5" font-weight="800">고속국도 12 · 노선 14</text>
-    <text x="114" y="15.5" fill="#a8d5cf" font-size="10" font-weight="700">광주대구선 실시간 노면·기상 상황도</text>
-    <text x="${W - 12}" y="15" text-anchor="end" fill="#81bfb7" font-size="9.5" font-weight="600">◀ 남원·함양  |  거창·고령·대구 ▶</text>
+    <!-- Top Header Band with Route 12 Shield -->
+    <rect x="0" y="0" width="${W}" height="25" fill="rgba(7, 24, 27, 0.62)"/>
+    <image href="./route12.svg" x="8" y="3.5" width="18" height="18"/>
+    <text x="31" y="16" fill="#e6fffa" font-size="10" font-weight="800">고속국도 12 광주대구선 (기상청 14번)</text>
+    <text x="${W - 10}" y="15.5" text-anchor="end" fill="#9fd6cf" font-size="9.2" font-weight="650">남원 50k ──▶ 고령 80k+ ──▶ 옥포 176k</text>
 
-    <!-- Middle Corridor Band Guide Lines -->
+    <!-- Middle Corridor Guide Lines -->
     <line x1="20" y1="84" x2="${W - 20}" y2="84" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
     <line x1="20" y1="122" x2="${W - 20}" y2="122" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
     <line x1="20" y1="160" x2="${W - 20}" y2="160" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
 
-    <!-- Highway Corridor Glow & Line -->
-    <polyline points="${polyPoints}" fill="none" stroke="rgba(127,227,179,0.20)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="${polyPoints}" fill="none" stroke="url(#hwyGrad)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Full Route 12 Corridor (48.8k ~ 176.0k) -->
+    <polyline points="${fullPoly}" fill="none" stroke="rgba(127,227,179,0.18)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${fullPoly}" fill="none" stroke="url(#hwyGrad)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Goryeong Branch Section (94.4k ~ 176.0k) accent -->
+    <polyline points="${goryeongPoly}" fill="none" stroke="rgba(251, 191, 36, 0.35)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
   `;
 
-  // Plot Route 14 KMA Road Weather Stations as subtle diamond sensors on the highway
-  const corridorStns = roadStations.filter(s => s.lon >= minLon && s.lon <= maxLon);
-  for (const stn of corridorStns) {
-    const [sx, sy] = project(stn.lat, stn.lon);
-    const trTxt = stn.roadTemp !== null ? `노면 ${stn.roadTemp.toFixed(1)}°C` : '';
-    svg += `<g class="stn-dot" transform="translate(${sx},${sy})">
-      <title>[도로기상관측] ${stn.name} (${stn.stationType}, 고도 ${stn.elevation ?? '—'}m) ${trTxt}</title>
-      <rect x="-2.8" y="-2.8" width="5.6" height="5.6" fill="#81e6d9" opacity="0.7" transform="rotate(45)"/>
+  // Key IC/JC Milepost Markers along the highway
+  for (const [label, ila, ilo, dy] of ROUTE12_ICS) {
+    const [ix, iy] = project(ila, ilo);
+    svg += `<g class="ic-tick">
+      <circle cx="${ix}" cy="${iy}" r="2.2" fill="#e6fffa" opacity="0.75"/>
+      <text x="${ix}" y="${(iy + dy).toFixed(1)}" text-anchor="middle" fill="#89c4bc" font-size="8" font-weight="700" opacity="0.88">${label}</text>
     </g>`;
   }
 
-  // Fixed non-overlapping 2-Rail Callout Slots (4 Top Rail, 4 Bottom Rail, sorted West-to-East)
-  // Top Rail (y = 32): 함양중부, 거창, 합천군서북부, 고령군
-  // Bottom Rail (y = 184): 남원, 함양, 거창군남부, 대구 달성군남부
+  // Plot all Corridor KMA Road Weather Stations sorted Eastbound (50.8k -> 171.3k)
+  const corridorStns = roadStations
+    .filter(s => s.lon >= minLon && s.lon <= maxLon && (s.temp !== null || s.roadTemp !== null))
+    .map(s => ({ ...s, resolvedKm: resolveStationKm(s) }))
+    .sort((a, b) => (a.resolvedKm ?? 999) - (b.resolvedKm ?? 999) || a.lon - b.lon);
+
+  for (const stn of corridorStns) {
+    const [sx, sy] = project(stn.lat, stn.lon);
+    const kmTxt = stn.resolvedKm !== null ? `${stn.resolvedKm.toFixed(1)}k ` : '';
+    const trTxt = stn.roadTemp !== null ? `노면 ${stn.roadTemp.toFixed(1)}°C` : '';
+    const isStnWarn = stn.surfaceCode >= 2 || (stn.roadTemp !== null && stn.roadTemp <= 1.0);
+    const dotCol = isStnWarn ? '#fbbf24' : '#81e6d9';
+    svg += `<g class="stn-dot" transform="translate(${sx},${sy})">
+      <title>[도로기상 ${kmTxt}] ${stn.name} (${stn.stationType}, 고도 ${stn.elevation ?? '—'}m) ${trTxt}</title>
+      <rect x="-2.9" y="-2.9" width="5.8" height="5.8" fill="${dotCol}" stroke="#0b2427" stroke-width="0.7" transform="rotate(45)"/>
+    </g>`;
+  }
+
+  // Fixed non-overlapping 2-Rail Callout Slots (4 Top Rail, 4 Bottom Rail, West-to-East)
   const slotMap = {
-    '함양중부': { cx: 74, cy: 50, anchorY: 68 },
-    '거창': { cx: 202, cy: 50, anchorY: 68 },
-    '합천군서북부': { cx: 330, cy: 50, anchorY: 68 },
-    '고령군': { cx: 458, cy: 50, anchorY: 68 },
-    '남원': { cx: 74, cy: 204, anchorY: 186 },
-    '함양': { cx: 202, cy: 204, anchorY: 186 },
-    '거창군남부': { cx: 330, cy: 204, anchorY: 186 },
-    '대구 달성군남부': { cx: 458, cy: 204, anchorY: 186 }
+    '함양중부': { cx: 68, cy: 50, anchorY: 68 },
+    '거창': { cx: 201, cy: 50, anchorY: 68 },
+    '합천군서북부': { cx: 334, cy: 50, anchorY: 68 },
+    '고령군': { cx: 467, cy: 50, anchorY: 68 },
+    '남원': { cx: 68, cy: 204, anchorY: 186 },
+    '함양': { cx: 201, cy: 204, anchorY: 186 },
+    '거창군남부': { cx: 334, cy: 204, anchorY: 186 },
+    '대구 달성군남부': { cx: 467, cy: 204, anchorY: 186 }
   };
 
-  // Fallback slot assignment if user added custom places
   let customTopIdx = 0, customBotIdx = 0;
 
   places.forEach((p, idx) => {
@@ -782,27 +833,26 @@ function renderMiniMap() {
       const isTop = idx % 2 === 0;
       const col = isTop ? (customTopIdx++ % 4) : (customBotIdx++ % 4);
       slot = {
-        cx: 74 + col * 128,
+        cx: 68 + col * 133,
         cy: isTop ? 50 : 204,
         anchorY: isTop ? 68 : 186
       };
     }
 
     const shortName = p.name.replace('대구 ', '');
+    const kmVal = ROUTE12_PLACE_KM[p.name];
+    const titleLabel = kmVal ? `${shortName}(${Math.round(kmVal)}k) ${n(tempVal, 1)}°` : `${shortName} ${n(tempVal, 1)}°`;
     const roadPart = roadVal != null ? `노면 ${roadVal.toFixed(1)}°` : (p.site || '');
     const statusPart = hasWrn ? rec.wrn.top.title : timing.shortMapText;
 
     svg += `<g class="map-node" data-coord="${coord(p)}" style="cursor:pointer">
-      <!-- Leader line from Highway GPS pin to Callout Box -->
       <line x1="${px}" y1="${py}" x2="${slot.cx}" y2="${slot.anchorY}" stroke="${fillCol}" stroke-width="1.3" stroke-dasharray="2.5,2.5" opacity="0.85"/>
-      <!-- Highway GPS Pin -->
-      <circle cx="${px}" cy="${py}" r="11" fill="${ringCol}"/>
-      <circle cx="${px}" cy="${py}" r="6" fill="${fillCol}" stroke="#ffffff" stroke-width="1.8"/>
-      <!-- Non-Overlapping Callout Card -->
+      <circle cx="${px}" cy="${py}" r="10.5" fill="${ringCol}"/>
+      <circle cx="${px}" cy="${py}" r="5.5" fill="${fillCol}" stroke="#ffffff" stroke-width="1.7"/>
       <g transform="translate(${slot.cx},${slot.cy})">
-        <rect x="-58" y="-18" width="116" height="36" rx="7" fill="rgba(8, 25, 28, 0.94)" stroke="${fillCol}" stroke-width="1.4"/>
-        <text x="0" y="-3" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800">${shortName} ${n(tempVal, 1)}°</text>
-        <text x="0" y="11" text-anchor="middle" fill="#b5e8de" font-size="9.3" font-weight="650">${roadPart} · ${statusPart}</text>
+        <rect x="-62" y="-18" width="124" height="36" rx="7" fill="rgba(8, 25, 28, 0.94)" stroke="${fillCol}" stroke-width="1.4"/>
+        <text x="0" y="-3" text-anchor="middle" fill="#ffffff" font-size="10.4" font-weight="800">${titleLabel}</text>
+        <text x="0" y="11" text-anchor="middle" fill="#b5e8de" font-size="9" font-weight="650">${roadPart} · ${statusPart}</text>
       </g>
     </g>`;
   });
@@ -822,26 +872,20 @@ function renderMiniMap() {
     });
   });
 
-  // 하단 도로기상관측소 컴팩트 그리드 (가로 스크롤바 없이 깔끔한 2열/4열 카드!)
+  // 하단 도로기상관측소 전체 목록 (고속국도 12호선 이정표 오름차순 50.8k -> 171.3k 전구간 표출)
   if (strip) {
     strip.replaceChildren();
-    // 광주대구선 핵심 8개 도로기상관측소 우선 표출
-    const priorityNames = ['남원주차장', '지리산휴', '번암교', '옥계1교', '함양', '죽산천교', '남상졸음', '거창휴', '양전교', '논공교', '논공휴'];
-    const corridor = roadStations
-      .filter(s => s.lon >= 127.3 && (s.temp !== null || s.roadTemp !== null))
-      .sort((a, b) => a.lon - b.lon);
-
-    const picked = corridor.filter(s => priorityNames.some(pn => s.name.includes(pn))).slice(0, 8);
-    const listToShow = picked.length ? picked : corridor.slice(0, 8);
-
-    for (const s of listToShow) {
+    for (const s of corridorStns) {
       const chip = el('button', '', 'road-stn-chip');
       chip.type = 'button';
 
       const topRow = el('div', '', 'road-stn-top');
       const cleanName = s.name.replace('(도)', '');
+      const kmTag = s.resolvedKm !== null ? `${s.resolvedKm.toFixed(1)}k ` : '';
       const elevStr = s.elevation && s.elevation >= 300 ? `(${s.elevation}m)` : s.stationType?.includes('결빙') ? '(교량)' : '';
-      topRow.append(el('b', `${cleanName}${elevStr}`));
+      const labelEl = el('b', `${kmTag}${cleanName}${elevStr}`);
+      labelEl.title = `${kmTag}${cleanName}${elevStr}`;
+      topRow.append(labelEl);
 
       const stateTxt = s.surfaceState || (s.stationType?.includes('결빙') ? '교량센서' : '건조');
       const isWarnState = s.surfaceCode >= 2 || (s.roadTemp !== null && s.roadTemp <= 1.0);
@@ -858,7 +902,7 @@ function renderMiniMap() {
         windyState.lon = s.lon;
         windyState.detailLat = s.lat;
         windyState.detailLon = s.lon;
-        windyState.label = `${s.name} (${s.lat.toFixed(3)}, ${s.lon.toFixed(3)})`;
+        windyState.label = `${kmTag}${s.name} (${s.lat.toFixed(3)}, ${s.lon.toFixed(3)})`;
         updateWindyIframe();
       };
       strip.append(chip);
@@ -906,6 +950,41 @@ async function loadKmaRadarImage(force = false) {
   img.src = '/api/radar?t=' + (force ? Date.now() : Math.floor(Date.now() / 180000));
 }
 
+const ACTION_STAGE_META = [
+  { id: 'preheat', icon: '🔑', label: '시동ON' },
+  { id: 'presalt', icon: '🚜', label: '예비살포' },
+  { id: 'mainplow', icon: '❄', label: '본살포' },
+  { id: 'floodwind', icon: '🌊', label: '수방·횡풍' }
+];
+const ACTION_STAGE_ORDER = { preheat: 0, presalt: 1, mainplow: 2, floodwind: 3 };
+
+function getActiveActionCards(rec) {
+  const cards = rec?.w?.ice?.decisionCards || [];
+  return cards
+    .filter(c => c && (c.state === 'urgent' || c.state === 'watch'))
+    .sort((a, b) => {
+      if (a.state !== b.state) return a.state === 'urgent' ? -1 : 1;
+      const ha = Number.isFinite(a.hoursLeft) ? a.hoursLeft : 9;
+      const hb = Number.isFinite(b.hoursLeft) ? b.hoursLeft : 9;
+      if (ha !== hb) return ha - hb;
+      return (ACTION_STAGE_ORDER[a.stageId] ?? 9) - (ACTION_STAGE_ORDER[b.stageId] ?? 9);
+    });
+}
+
+function buildCardActionChips(activeCards) {
+  if (!activeCards.length) return null;
+  const wrap = el('div', '', 'card-action-chips');
+  for (const c of activeCards.slice(0, 2)) {
+    const pcTxt = c.pcChip || `${c.title} · ${c.status}`;
+    const mobTxt = c.mobChip || c.status;
+    const chip = el('span', '', `card-act-chip state-${c.state}`);
+    chip.title = `${c.title}: ${c.status}${c.detail ? ' — ' + c.detail : ''}`;
+    chip.append(el('span', pcTxt, 'act-full'), el('span', mobTxt, 'act-short'));
+    wrap.append(chip);
+  }
+  return wrap;
+}
+
 // 메인 대시보드(8개 지역 고밀도 카드 그리드) 렌더링 (요구사항 1, 2, 3)
 export function board() {
   $('addBtnText').textContent = `지역 관리 (${places.length}/8)`;
@@ -913,7 +992,13 @@ export function board() {
   updateUnifiedGlobalStamp();
 
   const riskPlaces = places.filter(isRiskPlace);
+  const actionPlaces = places.filter(p => getActiveActionCards(getEffectiveRecord(p)).length > 0);
   const extras = places.filter(isExtra);
+
+  if (filter === 'action' && !actionPlaces.length) {
+    filter = 'all';
+    actionStageFilter = null;
+  }
 
   const mkFilterBtn = (label, id, extraCls = '') => {
     const b = el('button', label, extraCls);
@@ -921,6 +1006,7 @@ export function board() {
     b.setAttribute('aria-pressed', String(!mobileMapView && filter === id));
     b.onclick = () => {
       filter = id;
+      actionStageFilter = null;
       if (mobileMapView) {
         location.hash = 'overview';
       } else {
@@ -946,14 +1032,63 @@ export function board() {
     }
   };
 
-  $('groups').replaceChildren(
-    mkFilterBtn(`전체 ${places.length}`, 'all'),
+  const groupBtns = [mkFilterBtn(`전체 ${places.length}`, 'all')];
+  if (actionPlaces.length > 0) {
+    groupBtns.push(
+      mkFilterBtn(isMob ? `🚜 지시 ${actionPlaces.length}` : `🚜 제설·수방 지시 ${actionPlaces.length}`, 'action', 'grp-action')
+    );
+  }
+  groupBtns.push(
     mkFilterBtn(isMob ? `⚠️ 특보·결빙 ${riskPlaces.length}` : `⚠️ 위험·특보 발효 ${riskPlaces.length}`, 'risk', 'grp-warn'),
     mkFilterBtn(`남원·함양·거창 ${extras.length}`, 'extra'),
     mapJumpBtn
   );
+  $('groups').replaceChildren(...groupBtns);
 
-  let visible = filter === 'risk' ? riskPlaces : filter === 'extra' ? extras : [...places];
+  const summaryBar = $('actionSummaryBar');
+  if (summaryBar) {
+    const stagePills = [];
+    for (const meta of ACTION_STAGE_META) {
+      let count = 0;
+      let hasUrgent = false;
+      for (const p of places) {
+        const match = getActiveActionCards(getEffectiveRecord(p)).find(c => c.stageId === meta.id);
+        if (match) {
+          count++;
+          if (match.state === 'urgent') hasUrgent = true;
+        }
+      }
+      if (count > 0) {
+        const pill = el('button', `${meta.icon} ${meta.label} ${count}`, `act-pill${hasUrgent ? '' : ' state-watch'}`);
+        pill.type = 'button';
+        pill.setAttribute('aria-pressed', String(filter === 'action' && actionStageFilter === meta.id));
+        pill.onclick = () => {
+          if (filter === 'action' && actionStageFilter === meta.id) {
+            actionStageFilter = null;
+            filter = 'all';
+          } else {
+            filter = 'action';
+            actionStageFilter = meta.id;
+          }
+          board();
+        };
+        stagePills.push(pill);
+      }
+    }
+    summaryBar.replaceChildren(...stagePills);
+    summaryBar.hidden = stagePills.length === 0;
+  }
+
+  let visible =
+    filter === 'action'
+      ? actionStageFilter
+        ? places.filter(p => getActiveActionCards(getEffectiveRecord(p)).some(c => c.stageId === actionStageFilter))
+        : actionPlaces
+      : filter === 'risk'
+      ? riskPlaces
+      : filter === 'extra'
+      ? extras
+      : [...places];
   if (settings.sortRisk) {
     visible = [...visible].sort((a, b) => placeDangerScore(b) - placeDangerScore(a));
   }
@@ -974,9 +1109,11 @@ export function board() {
       const a = el('a', '', cardCls);
       a.href = detailURL(p);
 
-      // 1. 카드 상단 지역명 + 지연 배지 + 화살표
+      // 1. 카드 상단 지역명 + 제설·수방 지시 칩 + 지연 배지 + 화살표
       const top = el('div', '', 'cardline');
       const topRight = el('span', '', 'cardline-right');
+      const actionChips = buildCardActionChips(getActiveActionCards(r));
+      if (actionChips) topRight.append(actionChips);
       if (w?.stale) topRight.append(el('span', '지연', 'stale-badge'));
       topRight.append(el('span', '↗'));
       top.append(el('h2', p.name), topRight);
@@ -1154,12 +1291,36 @@ function renderDetail() {
       ? (a.secondStartTime ? `${a.end.rule} · 이후 ${a.secondStartTime.slice(11, 16)} 재강수 신호` : a.end.rule)
       : '연속 2시간 무강수 예보 시 종료 시각 추정';
 
+    const horizonList = Array.isArray(a.horizonRanges) && a.horizonRanges.length === 3
+      ? a.horizonRanges.map((r, idx) => ({
+          label: idx === 2 ? '향후 6~12시간' : (r.label || ['향후 3시간', '3~6시간', '향후 6~12시간'][idx]),
+          hasPrecipitation: r.hasPrecipitation || (idx === 0 && !!a.now?.wet),
+          hasRisk: r.hasRisk || (idx === 0 && !!a.now?.wet),
+          kinds: idx === 0 && a.now?.wet && !r.kinds?.length ? [a.now.type] : (r.kinds || [])
+        }))
+      : [
+          { label: '향후 3시간', min: 1, max: 3 },
+          { label: '3~6시간', min: 4, max: 6 },
+          { label: '향후 6~12시간', min: 7, max: 12 }
+        ].map((rng, idx) => {
+          const block = kHours.slice(rng.min - 1, rng.max);
+          const precip = block.filter(h => h?.wet);
+          const risk = block.filter(h => h?.wet || h?.risk);
+          const nowWet = idx === 0 && !!a.now?.wet;
+          return {
+            label: rng.label,
+            hasPrecipitation: precip.length > 0 || nowWet,
+            hasRisk: risk.length > 0 || nowWet,
+            kinds: nowWet && !precip.length ? [a.now.type] : [...new Set(precip.map(h => h.type))]
+          };
+        });
+
     $('horizonBadges').replaceChildren(
-      ...(a.horizons || []).map(h => {
+      ...horizonList.map(h => {
         const cls = h.hasPrecipitation ? 'wet' : h.hasRisk ? 'risk' : 'clear';
         const lbl = h.hasPrecipitation ? (h.kinds.join('·') || '비·눈') + ' 예상' : h.hasRisk ? '강수 가능성' : '신호 없음';
         const d = el('div', '', `h-badge ${cls}`);
-        d.append(el('span', `향후 ${h.hours}시간`), el('strong', lbl));
+        d.append(el('span', h.label), el('strong', lbl));
         return d;
       })
     );
@@ -1171,9 +1332,12 @@ function renderDetail() {
       if (!kh) return el('div', '—', 'tl-slot');
       const cls = kh.wet ? (kh.type?.includes('눈') ? 'snow' : 'wet') : kh.risk ? 'risk' : '';
       const slot = el('div', '', `tl-slot ${cls}`.trim());
+      const stateLabel = kh.wet ? kh.type : kh.risk ? `${kh.chance}%` : (kh.chance != null ? `${kh.chance}%` : '맑음');
+      const tempText = kh.temp != null && kh.temp !== '' ? `${kh.temp}°` : '—';
       slot.append(
         el('b', kh.time.slice(11, 13) + '시'),
-        el('span', kh.wet ? kh.type : kh.risk ? `${kh.chance}%` : `${kh.temp}°`)
+        el('span', stateLabel),
+        el('em', tempText)
       );
       slot.title = `${kh.time.slice(11, 16)} · ${kh.wet ? kh.type + ' (' + kh.amount + ')' : '강수없음'} · 강수확률 ${kh.chance ?? 0}% · 기온 ${kh.temp}°C`;
       return slot;
@@ -1894,17 +2058,44 @@ $('locationForm').onsubmit = e => {
 };
 
 function notificationState() {
-  $('notify').textContent = !('Notification' in window)
-    ? '기기 알림 미지원'
-    : Notification.permission === 'granted'
-    ? '기기 알림 사용 중'
-    : Notification.permission === 'denied'
-    ? '기기 알림 차단됨'
-    : '기기 알림 켜기';
+  const btn = $('notify');
+  if (!btn) return;
+  const supported = 'Notification' in window;
+  const perm = supported ? Notification.permission : 'unsupported';
+  const isOn = perm === 'granted' && settings.desktopNotify;
+  btn.classList.toggle('on', isOn);
+  btn.setAttribute('aria-pressed', String(isOn));
+  btn.textContent = !supported
+    ? '🔕 미지원'
+    : perm === 'denied'
+    ? '🔕 알림 차단'
+    : isOn
+    ? '🔔 알림 ON'
+    : '🔕 알림 OFF';
+  btn.title = !supported
+    ? '현재 브라우저는 기기 알림을 지원하지 않습니다'
+    : perm === 'denied'
+    ? '브라우저 사이트 설정에서 알림 차단을 해제하세요'
+    : isOn
+    ? '기기 위험·특보 알림 ON (클릭하여 끄기)'
+    : '기기 위험·특보 알림 OFF (클릭하여 켜기)';
 }
 $('notify').onclick = async () => {
-  if ('Notification' in window && Notification.permission === 'default') {
-    try { await Notification.requestPermission(); } catch {}
+  if (!('Notification' in window)) {
+    notificationState();
+    return;
+  }
+  if (Notification.permission === 'default') {
+    try {
+      const res = await Notification.requestPermission();
+      if (res === 'granted') {
+        settings.desktopNotify = true;
+        persistSettings();
+      }
+    } catch {}
+  } else if (Notification.permission === 'granted') {
+    settings.desktopNotify = !settings.desktopNotify;
+    persistSettings();
   }
   notificationState();
 };
