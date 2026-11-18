@@ -65,6 +65,42 @@ function formatMdHm(isoStr) {
   return `${pad2(k.getUTCMonth() + 1)}-${pad2(k.getUTCDate())} ${pad2(k.getUTCHours())}:${pad2(k.getUTCMinutes())}`;
 }
 
+export function alignHourlyMatrix(regions = [], range = '12') {
+  const colMap = new Map();
+  for (const r of regions) {
+    for (const h of r?.hours || []) {
+      const k = String(h?.time || '').slice(0, 13);
+      if (k && !colMap.has(k)) colMap.set(k, h);
+    }
+  }
+  let allCols = [...colMap.values()].sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  if (range !== 'tomorrow') {
+    const n = Number(range) || 12;
+    allCols = allCols.slice(0, n);
+  }
+  const headerHours = allCols;
+
+  const rows = regions.map(r => {
+    const rMap = new Map();
+    for (const h of r?.hours || []) {
+      const k = String(h?.time || '').slice(0, 13);
+      if (k) rMap.set(k, h);
+    }
+    const cells = headerHours.map(col => rMap.get(String(col.time).slice(0, 13)) || null);
+    const validHours = cells.filter(Boolean);
+    return {
+      region: r,
+      cells,
+      hours: validHours,
+      validCount: validHours.length,
+      missingCount: Math.max(0, headerHours.length - validHours.length),
+      sum: summarizeRegionSlice(validHours)
+    };
+  });
+
+  return { headerHours, rows };
+}
+
 function getWindowHours(region) {
   const hrs = Array.isArray(region?.hours) ? region.hours : [];
   if (state.range === 'tomorrow') return hrs;
@@ -248,15 +284,15 @@ function renderSheet() {
     return;
   }
 
-  const regionsWithSlices = regions.map(r => {
-    const slice = getWindowHours(r);
-    return { region: r, hours: slice, sum: summarizeRegionSlice(slice) };
-  });
-
+  const { headerHours, rows: regionsWithSlices } = alignHourlyMatrix(regions, state.range);
   renderKPIs(regionsWithSlices);
 
-  const headerHours = regionsWithSlices[0]?.hours || [];
-  const colCount = Math.max(1, headerHours.length);
+  if (!headerHours.length) {
+    sheet.innerHTML = '<div class="hr-loading">12개 지역 모두 예보 시간 데이터를 불러오지 못했습니다. 잠시 후 [새로고침]을 눌러 주세요.</div>';
+    return;
+  }
+
+  const colCount = headerHours.length;
   const minColPx = state.range === '6' ? 88 : state.range === '12' ? 66 : 56;
   sheet.style.setProperty('--hr-cols', String(colCount));
   sheet.style.setProperty('--hr-min-col', `${minColPx}px`);
@@ -286,24 +322,47 @@ function renderSheet() {
   }
   html += '</div>';
 
-  // 12 Region Rows
+  // 12 Region Rows (모든 행이 headerHours와 동일한 colCount 열을 시간 키 매칭으로 유지 → 1곳 누락 시에도 격자 깨짐 없음)
   for (let idx = 0; idx < regionsWithSlices.length; idx++) {
-    const { region: r, hours, sum } = regionsWithSlices[idx];
+    const { region: r, cells, validCount, missingCount, sum } = regionsWithSlices[idx];
     const prevRegion = idx > 0 ? regionsWithSlices[idx - 1].region : null;
     const isGroupStart = state.sort === 'group' && (!prevRegion || prevRegion.group !== r.group);
-    const wetTxt = sum.firstWetTime ? `강수 ${formatHm(sum.firstWetTime)}~` : '무강수';
-    const frzTxt = sum.firstFreezingTime ? `영하 ${formatHm(sum.firstFreezingTime)}↓` : '영상';
-    const tempRange = sum.minTemp !== null ? `${sum.minTemp}~${sum.maxTemp}°` : '—';
-    const overlapBadge = sum.overlapHours > 0 ? `<span class="hr-sum-overlap">겹침 ${sum.overlapHours}h</span>` : `<span>최대 ${sum.maxPop}%</span>`;
+    const allMissing = validCount === 0;
 
-    html += `<div class="hr-datarow ${isGroupStart ? 'groupstart' : ''}" tabindex="0" role="button" data-region-id="${esc(r.id)}" aria-label="${esc(r.county)} ${esc(r.name)} 1시간 상세예보 보기">`;
+    let sumTopHtml;
+    let sumBotHtml;
+    if (allMissing) {
+      sumTopHtml = `<span class="hr-sum-missing">자료 누락</span><span class="hr-sum-freeze">일시 지연</span>`;
+      sumBotHtml = `<span>—</span><span>수신 대기</span>`;
+    } else {
+      const wetTxt = sum.firstWetTime ? `강수 ${formatHm(sum.firstWetTime)}~` : '무강수';
+      const frzTxt = sum.firstFreezingTime ? `영하 ${formatHm(sum.firstFreezingTime)}↓` : '영상';
+      const tempRange = sum.minTemp !== null ? `${sum.minTemp}~${sum.maxTemp}°` : '—';
+      const botRight = sum.overlapHours > 0
+        ? `<span class="hr-sum-overlap">겹침 ${sum.overlapHours}h</span>`
+        : missingCount > 0
+          ? `<span class="hr-sum-missing">누락 ${missingCount}h</span>`
+          : `<span>최대 ${sum.maxPop}%</span>`;
+      sumTopHtml = `<span class="hr-sum-onset ${sum.wetHours > 0 ? 'is-wet' : ''}">${esc(wetTxt)}</span><span class="hr-sum-freeze ${sum.freezingHours > 0 ? 'is-cold' : ''}">${esc(frzTxt)}</span>`;
+      sumBotHtml = `<span>${esc(tempRange)}</span>${botRight}`;
+    }
+
+    html += `<div class="hr-datarow ${isGroupStart ? 'groupstart' : ''} ${allMissing ? 'is-missing-row' : ''}" tabindex="0" role="button" data-region-id="${esc(r.id)}" aria-label="${esc(r.county)} ${esc(r.name)} 1시간 상세예보 보기">`;
     html += `<div class="hr-namecol"><span class="hr-groupbar" style="background:${esc(r.color)}"></span><div class="hr-geo"><div class="hr-geo-main">${esc(r.county)} ${esc(r.name)}</div><div class="hr-geo-sub">${esc(r.admin)} · ${state.sort === 'route' ? `노선 ${r.routeOrder}/12` : `${esc(r.group)}권역`}</div></div></div>`;
-    html += `<div class="hr-sumcol"><div class="hr-sum-top"><span class="hr-sum-onset ${sum.wetHours > 0 ? 'is-wet' : ''}">${esc(wetTxt)}</span><span class="hr-sum-freeze ${sum.freezingHours > 0 ? 'is-cold' : ''}">${esc(frzTxt)}</span></div><div class="hr-sum-bot"><span>${esc(tempRange)}</span>${overlapBadge}</div></div>`;
+    html += `<div class="hr-sumcol"><div class="hr-sum-top">${sumTopHtml}</div><div class="hr-sum-bot">${sumBotHtml}</div></div>`;
 
-    for (let j = 0; j < hours.length; j++) {
-      const h = hours[j];
-      const prevH = j > 0 ? hours[j - 1] : null;
-      const isBoundary = prevH && prevH.dayNum !== h.dayNum;
+    for (let j = 0; j < headerHours.length; j++) {
+      const col = headerHours[j];
+      const h = cells[j];
+      const prevCol = j > 0 ? headerHours[j - 1] : null;
+      const isBoundary = prevCol && prevCol.dayNum !== col.dayNum;
+
+      if (!h) {
+        const missCls = ['hr-cell', 'is-missing', col.isNight ? 'is-night' : '', isBoundary ? 'is-day-boundary' : ''].filter(Boolean).join(' ');
+        html += `<div class="${missCls}" title="${esc(r.name)} ${esc(col.dateLabel)} ${String(col.hourKst).padStart(2, '0')}:00 · 예보 자료 일시 누락"><div class="hr-c1"><span class="hr-miss">—</span></div><div class="hr-c2">미수신</div><div class="hr-rainbar"><b style="width:0%"></b></div></div>`;
+        continue;
+      }
+
       const iconInfo = getKmaIconInfo({ sky: h.sky, pty: h.pty, isNight: h.isNight, lightning: h.lightning });
       const isSnow = h.wet && (h.snowCm > 0 || ['2', '3', '6', '7'].includes(String(h.pty)));
       const isSubzero = h.temp != null && h.temp < 0;
@@ -365,6 +424,14 @@ function openRegionDetail(regionId) {
   `;
 
   // 기상청 날씨누리 short-term.do 형식 다행 상세표
+  if (!hours.length) {
+    $('dKmaTable').innerHTML = '<div class="hr-loading">이 지역의 기상청 단기·초단기예보 자료를 일시적으로 불러오지 못했습니다. 상단 [새로고침]을 눌러 다시 조회해 주세요.</div>';
+    $('dCorridorLink').href = nearestWatchPointUrl(region);
+    const dlg = $('detailDialog');
+    if (!dlg.open) dlg.showModal();
+    return;
+  }
+
   let tbl = '<table class="hr-kma-tbl"><thead><tr><th>항목</th>';
   for (const h of hours) {
     tbl += `<th>${esc(h.dateLabel.slice(3))}일<br>${String(h.hourKst).padStart(2, '0')}시</th>`;

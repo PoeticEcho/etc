@@ -475,6 +475,25 @@ body.dark-mode .hr-sum-freeze.is-cold { color: #93c5fd; }
   font-weight: 850;
 }
 body.dark-mode .hr-sum-overlap { color: #fca5a5; }
+.hr-sum-missing {
+  color: #b45309;
+  font-weight: 800;
+}
+body.dark-mode .hr-sum-missing { color: #fbbf24; }
+.hr-datarow.is-missing-row {
+  background-color: rgba(245, 158, 11, 0.04);
+}
+.hr-cell.is-missing {
+  background-color: rgba(148, 163, 184, 0.07);
+}
+body.dark-mode .hr-cell.is-missing {
+  background-color: rgba(15, 23, 42, 0.25);
+}
+.hr-miss {
+  color: var(--muted);
+  opacity: 0.72;
+  font-weight: 700;
+}
 
 /* Hourly Data Cells */
 .hr-cell {
