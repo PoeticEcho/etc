@@ -1,5 +1,5 @@
 import { loadWeather, loadProbabilities, prefetchOpenMeteo } from './weather.js';
-import { loadObservation, loadRoadStations, loadRoadRisk } from './observations.js';
+import { loadObservation, loadRoadStations, loadRoadRisk, getLastObsError } from './observations.js';
 import { fetchPlaceWarnings, buildWarningSummary } from './warnings.js';
 import { classifySeverityTier, isRoadRiskEscalated, ROAD_RISK_LABELS, FOG_RISK_LABELS } from './ice.js';
 import { renderOverviewCanvas, renderDetailCanvas, canvasToJpgBlob } from './share.js';
@@ -507,16 +507,19 @@ function syncBackendStatusUI() {
     badge.textContent = '확인중';
     label.textContent = base ? `연결 확인 중 (${base})` : '동일 서버 /api 및 정적 스냅샷 확인 중…';
   } else if (st.available) {
-    badge.textContent = '🟢 실시간 KMA';
-    badge.classList.add('is-live');
-    label.textContent = st.base
-      ? `외부 백엔드 실시간 연동 중 (${st.base})`
-      : '로컬/서버 Node 백엔드(/api/*) 실시간 기상청 관측 연동 중';
+    const obsErr = getLastObsError();
+    badge.textContent = obsErr ? '🟠 일부 지연' : '🟢 실시간 KMA';
+    badge.classList.add(obsErr ? 'is-snapshot' : 'is-live');
+    label.textContent = obsErr
+      ? `백엔드 연결됨(${obsErr}) · 재시도 시 실시간 복구`
+      : st.base
+        ? `외부 백엔드 실시간 연동 중 (${st.base})`
+        : '로컬/서버 Node 백엔드(/api/*) 실시간 기상청 관측 연동 중';
   } else {
     badge.textContent = '🟡 스냅샷+모델';
     badge.classList.add('is-snapshot');
     label.textContent = st.base
-      ? `연결 대기(${st.base}) · 스냅샷 + Open-Meteo 실시간 동작`
+      ? `연결 실패(${st.base}${st.error ? ': ' + st.error : ''}) · 스냅샷 + Open-Meteo 실시간 동작`
       : '정적 호스팅(스냅샷 관측) + Open-Meteo 실시간 모델 동작 중';
   }
 }
@@ -2137,7 +2140,7 @@ export async function refresh(force = false) {
     while (queue.length) {
       const p = queue.shift();
       const r = record(p);
-      if (r.busy || (!force && r.last && Date.now() - r.last < 240000)) continue;
+      if (r.busy || (!force && !r.o?._fromSnapshot && r.last && Date.now() - r.last < 240000)) continue;
       r.busy = true;
       try {
         try {

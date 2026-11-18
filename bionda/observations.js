@@ -3,6 +3,11 @@ import { apiUrl, isBackendAvailable } from './config.js';
 
 let snapshotCache = null;
 let snapshotPromise = null;
+let lastObsError = '';
+
+export function getLastObsError() {
+  return lastObsError;
+}
 
 export async function getSnapshotFallback() {
   if (snapshotCache) return snapshotCache;
@@ -28,12 +33,16 @@ export async function loadObservation(place) {
   const params = new URLSearchParams({ lat: place.lat, lon: place.lon });
   if (await isBackendAvailable()) {
     try {
-      const response = await fetch(apiUrl('/api/observation?' + params), { signal: AbortSignal.timeout(12000) });
+      const response = await fetch(apiUrl('/api/observation?' + params), { signal: AbortSignal.timeout(15000) });
       if (response.ok) {
         const data = await response.json();
+        lastObsError = '';
         return { ...data, _fromSnapshot: false };
       }
-    } catch {}
+      lastObsError = `관측 HTTP ${response.status}`;
+    } catch (e) {
+      lastObsError = e?.name === 'TimeoutError' ? '관측 API 시간초과' : '관측 API 연결 오류';
+    }
   }
   const snap = await getSnapshotFallback();
   const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;

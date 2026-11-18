@@ -72,13 +72,15 @@ let backendPromise = null;
 export async function probeBackend(force = false) {
   const base = getApiBase();
   const now = Date.now();
-  if (!force && backendState && backendState.base === base && now - backendState.checkedAt < 180000) {
+  const ttl = backendState?.available ? 180000 : 45000;
+  if (!force && backendState && backendState.base === base && now - backendState.checkedAt < ttl) {
     return backendState;
   }
   if (!force && backendPromise) return backendPromise;
 
   backendPromise = (async () => {
     const timeoutMs = base ? 9000 : 2500;
+    let errorMsg = '';
     try {
       const res = await fetch(apiUrl('/api/health'), { signal: AbortSignal.timeout(timeoutMs) });
       if (res.ok) {
@@ -88,16 +90,23 @@ export async function probeBackend(force = false) {
             available: true,
             base,
             health,
+            error: '',
             checkedAt: Date.now()
           };
           return backendState;
         }
+        errorMsg = '응답 형식 오류';
+      } else {
+        errorMsg = `HTTP ${res.status}`;
       }
-    } catch {}
+    } catch (e) {
+      errorMsg = e?.name === 'TimeoutError' ? '응답 시간초과' : '연결 차단(TLS/네트워크) 또는 오프라인';
+    }
     backendState = {
       available: false,
       base,
       health: null,
+      error: errorMsg,
       checkedAt: Date.now()
     };
     return backendState;
