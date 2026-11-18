@@ -301,6 +301,31 @@ function getEffectiveRecord(p) {
         level: sim.iceLevel,
         rank: sim.iceRank,
         shortCause: sim.shortCause || '',
+        shortReason: sim.iceRank === 2 ? `15:00 ${sim.shortCause} (최저 ${(sim.temp - 2.7).toFixed(1)}°C)` : sim.iceRank === 1 ? '18:00 야간 교량 복사냉각 관심' : '향후 6시간 결빙 위험 조건 없음 (정상)',
+        conditionMetrics: [
+          { label: '최저기온(6h)', value: `${(sim.temp - 2.7).toFixed(1)}°C`, warn: sim.temp - 2.7 <= 1.5 },
+          { label: '현재기온', value: `${sim.temp.toFixed(1)}°C`, warn: sim.temp <= 1.5 },
+          { label: '교량·노면', value: `${sim.roadTemp.toFixed(1)}°C`, warn: sim.roadTemp <= 0.5 },
+          { label: '이슬점(Td)', value: `${(sim.temp - 1.2).toFixed(1)}°C`, sub: '편차 1.2°', warn: sim.temp <= 0 },
+          { label: '상대습도', value: `${sim.humidity}%`, warn: sim.humidity >= 90 },
+          { label: '현재풍속', value: '2.4 m/s', warn: false }
+        ],
+        decisionCards: sim.iceRank === 2 ? [
+          { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '즉시 시동', detail: '결빙·강설 임박 즉시 예열', state: 'urgent' },
+          { title: '예비살포', subtitle: '(습염 사전 살포)', status: '즉시 출동', detail: '고속도로·교량 습염 살포', state: 'urgent' },
+          { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: sim.snowDepth >= 2 ? '삽날 대기' : '적설 감시', detail: sim.snowDepth ? `적설 ${sim.snowDepth}cm` : '강설 1cm/h 이상 시', state: sim.snowDepth >= 2 ? 'urgent' : 'watch' },
+          { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle' }
+        ] : sim.iceRank === 1 ? [
+          { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '15:00 점검', detail: '18:00 살얼음 관심 대비', state: 'watch' },
+          { title: '예비살포', subtitle: '(습염 사전 살포)', status: '순찰 대기', detail: '교량·응달 노면 점검', state: 'watch' },
+          { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 신호 없음', state: 'idle' },
+          { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle' }
+        ] : [
+          { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle' },
+          { title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle' },
+          { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle' },
+          { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle' }
+        ],
         reason: sim.reason || '결빙 위험 신호 없음',
         samples: [{ time: '현재', level: sim.iceRank ? sim.iceLevel : '정상', rank: sim.iceRank }, ...baseRows.map(r => ({ time: r.time, level: sim.iceRank ? sim.iceLevel : '정상', rank: sim.iceRank }))],
         snowActions: sim.snowActions || [],
@@ -559,7 +584,8 @@ function precipitationStrip(rows = []) {
 const detailURL = p => '#region/' + encodeURIComponent(p.name) + '/' + coord(p);
 
 /**
- * 직관적 강수 시간대 요약 생성 ("19:00 ~ 23:00 강수예상" 형식)
+ * 직관적 강수 시간대 요약 생성 ("19:00 ~ 23:00 강수예상", 12시간 전구간 강수 시 "19:00 ~ 06:00+ 계속")
+ * - 기상청 초단기·단기예보 향후 12시간 창 기준
  */
 export function rainTimingSummary(w, o) {
   const a = w?.kma?.analysis;
@@ -571,24 +597,47 @@ export function rainTimingSummary(w, o) {
   const tilde = isMob ? '~' : ' ~ ';
 
   if (!a) {
-    return { mainText: '기상청 예보 연동 중', roadText, shortMapText: '예보 연동', active: false };
+    return { mainText: '기상청 예보 연동 중', roadText, shortMapText: '예보 연동', tooltip: '기상청 12시간 예보 불러오는 중', active: false };
   }
+  const winEnd = (a.lastWetTime || a.windowEndTime)?.slice(11, 16);
   if (a.now?.wet) {
     const ed = a.end ? a.end.time.slice(11, 16) : null;
+    if (ed) {
+      return {
+        mainText: `${icon} 현재${tilde}${ed} ${a.now.type}중`,
+        roadText,
+        shortMapText: `현재~${ed} ${a.now.type}`,
+        tooltip: `기상청 12시간 예보 기준: 현재 ${a.now.type} 관측중 · ${ed}경 종료 추정(연속 2시간 무강수 기준)`,
+        active: true
+      };
+    }
     return {
-      mainText: ed ? `${icon} 현재${tilde}${ed} ${a.now.type}중` : `${icon} 현재 ${a.now.type}중(지속)`,
+      mainText: winEnd ? `${icon} 현재${tilde}${winEnd}+ 계속` : `${icon} 현재 ${a.now.type}중(지속)`,
       roadText,
-      shortMapText: ed ? `현재~${ed} ${a.now.type}` : `현재 ${a.now.type}중`,
+      shortMapText: winEnd ? `현재~${winEnd}+` : `현재 ${a.now.type}중`,
+      tooltip: `기상청 12시간 예보 기준: 현재부터 ${winEnd || '12시간 이후'}까지 연속 강수(2시간 무강수 구간 없음)`,
       active: true
     };
   }
   if (a.start) {
     const st = a.start.time.slice(11, 16);
     const ed = a.end ? a.end.time.slice(11, 16) : null;
+    if (ed) {
+      const reRain = a.secondStartTime ? ` (+${a.secondStartTime.slice(11, 16)} 재강수)` : '';
+      return {
+        mainText: `${icon} ${st}${tilde}${ed} ${kindWord}`,
+        roadText,
+        shortMapText: `${st.slice(0, 2)}~${ed.slice(0, 2)}시 비`,
+        tooltip: `기상청 12시간 예보 기준: ${st} 시작 ~ ${ed}경 종료 추정${reRain}`,
+        active: true
+      };
+    }
+    const label12h = a.allWindowWet ? '12h 계속' : '계속';
     return {
-      mainText: ed ? `${icon} ${st}${tilde}${ed} ${kindWord}` : `${icon} ${st}${tilde}지속 ${kindWord}`,
+      mainText: winEnd ? `${icon} ${st}${tilde}${winEnd}+ ${isMob ? '계속' : label12h}` : `${icon} ${st}${tilde}지속 ${kindWord}`,
       roadText,
-      shortMapText: ed ? `${st.slice(0, 2)}~${ed.slice(0, 2)}시 비` : `${st.slice(0, 2)}시~ 비`,
+      shortMapText: winEnd ? `${st.slice(0, 2)}~${winEnd.slice(0, 2)}시+` : `${st.slice(0, 2)}시~ 비`,
+      tooltip: `기상청 12시간 예보 기준: ${st}부터 ${winEnd || '12시간'} 이후까지 계속 강수 예상(2시간 이상 무강수 종료 구간 없음)`,
       active: true
     };
   }
@@ -597,6 +646,7 @@ export function rainTimingSummary(w, o) {
       mainText: '◇ 12h 강수 가능성',
       roadText,
       shortMapText: '강수가능',
+      tooltip: '기상청 12시간 예보 기준 강수확률 50% 이상 시간대 존재',
       active: false
     };
   }
@@ -604,6 +654,7 @@ export function rainTimingSummary(w, o) {
     mainText: '☀ 12h 무강수 예보',
     roadText,
     shortMapText: '무강수',
+    tooltip: '기상청 초단기·단기 12시간 예보 기준 강수 신호 없음',
     active: false
   };
 }
@@ -995,9 +1046,10 @@ export function board() {
       );
       a.append(conditions);
 
-      // 4. 직관적 비·눈 시간대("19:00 ~ 23:00 강수예상") + 우측 노면온도
+      // 4. 직관적 비·눈 시간대("19:00 ~ 23:00 강수예상" / 12h 지속 시 "19:00 ~ 06:00+ 12h 계속") + 우측 노면온도
       const timing = rainTimingSummary(w, o);
       const timingEl = el('div', '', 'rain-timing-chip' + (timing.active ? ' active-rain' : ''));
+      if (timing.tooltip) timingEl.title = timing.tooltip;
       timingEl.append(
         el('span', timing.mainText, 'rain-timing-main'),
         timing.roadText ? el('span', timing.roadText, 'rain-timing-road') : ''
@@ -1081,23 +1133,26 @@ function renderDetail() {
   if (a) {
     const st = a.start?.time?.slice(11, 16);
     const ed = a.end?.time?.slice(11, 16);
+    const winEnd = (a.lastWetTime || a.windowEndTime)?.slice(11, 16);
     $('rainStartText').textContent = a.now?.wet
-      ? ed ? `현재 ~ ${ed} ${a.now.type} 관측중` : `현재 ${a.now.type} 관측중 (지속)`
+      ? ed ? `현재 ~ ${ed} ${a.now.type} 관측중` : `현재 ~ ${winEnd || '12h'}+ 계속`
       : st
-      ? ed ? `${st} ~ ${ed} 강수예상` : `${st} ~ 지속 강수예상`
+      ? ed ? `${st} ~ ${ed} 강수예상` : `${st} ~ ${winEnd || '12h'}+ 계속`
       : a.horizons?.some(h => h.hasRisk)
       ? '강수 가능성(≥50%) 있음'
       : '12시간 내 강수 신호 없음';
     $('rainStartSub').textContent = a.now?.wet
-      ? '기상청 초단기실황 관측 기준'
+      ? '기상청 초단기실황 관측 + 12시간 예보 기준'
       : '기상청 초단기·단기예보 12시간 병합 기준';
 
     $('rainEndText').textContent = ed
       ? `${ed}경 종료 추정`
       : st || a.now?.wet
-      ? '12시간 이후까지 이어질 수 있음'
+      ? `${winEnd ? winEnd + ' 이후 계속 (12h 내 종료없음)' : '12시간 이후까지 이어질 수 있음'}`
       : '해당 없음 (무강수)';
-    $('rainEndSub').textContent = a.end ? a.end.rule : '연속 2시간 무강수 예보 시 종료 시각 추정';
+    $('rainEndSub').textContent = a.end
+      ? (a.secondStartTime ? `${a.end.rule} · 이후 ${a.secondStartTime.slice(11, 16)} 재강수 신호` : a.end.rule)
+      : '연속 2시간 무강수 예보 시 종료 시각 추정';
 
     $('horizonBadges').replaceChildren(
       ...(a.horizons || []).map(h => {
@@ -1201,13 +1256,33 @@ function renderDetail() {
     }
   }
 
-  // 도로 살얼음 전망 & 제설 3단계 역산 타임라인
+  // 도로 살얼음 전망 & 결빙 조건 6지표 카드 & 4단계 의사결정 지시 카드
   const iceLevel = w && !w.stale ? w.ice.level : '판단 보류';
   const iceRank = w?.ice?.rank || 0;
   $('ice').textContent = iceLevel;
   $('ice').className = `rank-${iceRank}`;
-  $('iceBadgePill').textContent = iceRank === 2 ? '❄ 주의 (최고단계)' : iceRank === 1 ? '❄ 관심 단계' : '❄ 신호 없음';
-  $('reason').textContent = w && !w.stale ? w.ice.reason : '최신 예보가 있어야 기온과 노면 수분 조건을 함께 판단할 수 있습니다.';
+  $('iceBadgePill').textContent = iceRank === 2 ? '❄ 주의 (최고단계)' : iceRank === 1 ? '❄ 관심 단계' : '❄ 정상 (위험없음)';
+  $('reason').textContent = w && !w.stale ? (w.ice.shortReason || w.ice.reason) : '최신 예보 확인 중';
+
+  const metricsGrid = $('iceMetricsGrid');
+  if (metricsGrid) {
+    const cMetrics = w?.ice?.conditionMetrics || [
+      { label: '최저기온(6h)', value: Number.isFinite(w?.ice?.minTemp) ? `${w.ice.minTemp.toFixed(1)}°C` : '—' },
+      { label: '현재기온', value: Number.isFinite(temp) ? `${n(temp, 1)}°C` : '—' },
+      { label: '교량·노면', value: Number.isFinite(o?.roadTemp ?? w?.ice?.bridgeTemp) ? `${n(o?.roadTemp ?? w?.ice?.bridgeTemp, 1)}°C` : '—' },
+      { label: '이슬점(Td)', value: Number.isFinite(w?.ice?.dewPoint) ? `${w.ice.dewPoint.toFixed(1)}°C` : '—' },
+      { label: '상대습도', value: Number.isFinite(hum) ? `${n(hum, 0)}%` : '—' },
+      { label: '현재풍속', value: Number.isFinite(wind) ? `${n(wind, 1)} m/s` : '—' }
+    ];
+    metricsGrid.replaceChildren(
+      ...cMetrics.map(m => {
+        const card = el('div', '', 'ice-metric-card' + (m.warn ? ' is-warn' : ''));
+        card.append(el('small', m.label), el('strong', m.value));
+        if (m.sub) card.append(el('em', m.sub));
+        return card;
+      })
+    );
+  }
 
   const samples = w && !w.stale ? w.ice.samples : [];
   $('iceTimes').replaceChildren(
@@ -1220,20 +1295,33 @@ function renderDetail() {
     })
   );
 
+  const decisionGrid = $('decisionCardsGrid');
+  if (decisionGrid) {
+    const cardsList = w?.ice?.decisionCards || [
+      { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle' },
+      { title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle' },
+      { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle' },
+      { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수·강풍 특이사항 없음', state: 'idle' }
+    ];
+    decisionGrid.replaceChildren(
+      ...cardsList.map(dc => {
+        const card = el('div', '', `decision-card state-${dc.state || 'idle'}`);
+        const top = el('div', '', 'dc-top');
+        const titleWrap = el('div');
+        titleWrap.append(el('div', dc.title, 'dc-title'), el('div', dc.subtitle, 'dc-sub'));
+        top.append(titleWrap, el('span', dc.status, 'dc-badge'));
+        card.append(top, el('div', dc.detail, 'dc-detail'));
+        return card;
+      })
+    );
+  }
+
   const guideContainer = $('actionGuides');
   guideContainer.replaceChildren();
   if (w?.ice?.snowActions?.length) {
     for (const sa of w.ice.snowActions) {
       guideContainer.append(el('div', sa.text, `guide-banner rank-${sa.rank}`));
     }
-  } else {
-    guideContainer.append(
-      el(
-        'div',
-        '🔑 [제설차 예열·사전살포 기준] 강설·결빙 예상 3시간 전(예비살포 1시간 전) 제설차 시동·살포기 유압 예열 → 1~2시간 전 습염 사전 살포',
-        'guide-banner'
-      )
-    );
   }
   if (w?.ice?.flood?.guide) {
     guideContainer.append(el('div', w.ice.flood.guide, 'guide-banner flood'));

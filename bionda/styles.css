@@ -1077,10 +1077,64 @@ th, td {
 }
 th:first-child, td:first-child { text-align: left; font-weight: 700; }
 
-/* Ice & Action Guides */
-#ice { font-size: 20px; margin: 8px 0 4px; color: #196b5c; }
+/* Ice & Structured Decision Cards */
+.ice-status-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 6px;
+}
+#ice { font-size: 20px; margin: 0; color: #196b5c; }
 #ice.rank-2 { color: var(--danger); }
 #ice.rank-1 { color: var(--watch); }
+.ice-short-reason {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ice-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 6px 0 8px;
+}
+.ice-metric-card {
+  background: rgba(20, 70, 68, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ice-metric-card.is-warn {
+  background: #fff3e0;
+  border-color: #efad4d;
+}
+body.dark-mode .ice-metric-card.is-warn {
+  background: #2f2314;
+  border-color: #a66a1e;
+}
+.ice-metric-card small {
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 650;
+}
+.ice-metric-card strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.ice-metric-card em {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--muted);
+}
+
 #iceTimes {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -1099,11 +1153,93 @@ th:first-child, td:first-child { text-align: left; font-weight: 700; }
 .icehour[data-rank="2"] { border-color: #be522b; background: #ffeadf; color: #8c1d0b; }
 .bridge-note { font-size: 11px; color: var(--muted); margin: 4px 0 8px; }
 
+.decision-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 10px 0 6px;
+  font-size: 12px;
+}
+.decision-head b { color: var(--ink); }
+.decision-head small { color: var(--muted); font-size: 10.5px; }
+
+.decision-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 8px;
+}
+.decision-card {
+  border-radius: 10px;
+  padding: 9px 10px;
+  border: 1.5px solid var(--border);
+  background: rgba(20, 70, 68, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.decision-card.state-watch {
+  border-color: var(--watch);
+  background: #fff9ec;
+}
+.decision-card.state-urgent {
+  border-color: var(--danger);
+  background: #fff2ef;
+}
+body.dark-mode .decision-card.state-watch {
+  background: #2b2213;
+}
+body.dark-mode .decision-card.state-urgent {
+  background: #2e1918;
+}
+.dc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.dc-title {
+  font-size: 13px;
+  font-weight: 850;
+  color: var(--ink);
+  line-height: 1.2;
+}
+.dc-sub {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.dc-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #e1ece8;
+  color: #2c594f;
+  white-space: nowrap;
+}
+.decision-card.state-watch .dc-badge {
+  background: #e08b00;
+  color: #fff;
+}
+.decision-card.state-urgent .dc-badge {
+  background: #d9381e;
+  color: #fff;
+}
+.dc-detail {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-top: 1px;
+}
+
 .action-guides {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin: 8px 0 10px;
+  margin: 6px 0 8px;
 }
 .guide-banner {
   padding: 8px 10px;

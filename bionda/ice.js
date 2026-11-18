@@ -113,7 +113,11 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
   const incomplete = samples.some(x => x.missing);
   const level = peak.rank ? peak.level : incomplete ? '판단 보류' : '뚜렷한 신호 없음';
 
+  const curTemp = samples[0]?.temp;
+  const curHum = samples[0]?.humidity;
+  const curWind = samples[0]?.wind;
   const curDew = samples[0]?.dewPoint;
+  const curDewSpread = samples[0]?.dewSpread;
   const curBridge = samples[0]?.effectiveRoadTemp;
   const evidence = [
     Number.isFinite(peak.temp) ? '기온 ' + peak.temp.toFixed(1) + '°C' : '',
@@ -123,15 +127,34 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     Number.isFinite(peak.wind) ? '풍속 ' + peak.wind.toFixed(1) + ' m/s' : ''
   ].filter(Boolean).join(' · ');
 
+  const shortReason = peak.rank
+    ? `${(peak.time || '').slice(11, 16) || '현재'} ${peak.cause}`
+    : incomplete
+    ? '일부 시간대 자료 부족'
+    : '향후 6시간 결빙 위험 조건 없음 (정상)';
+
   const reason = peak.rank
     ? `${(peak.time || '').slice(11, 16) || '현재'} ${peak.cause} (최저 ${low}) · ${evidence}`
     : incomplete
     ? '일부 시간대에 필요한 모델값이 빠져 있습니다.'
     : `현재부터 6시간 뒤까지 최저 기온 ${low} (${evidence || '기상 정상'}). 검토한 시간대에서 결빙 관심 조건이 나타나지 않았습니다.`;
 
+  const conditionMetrics = [
+    { label: '최저기온(6h)', value: Number.isFinite(minTempVal) ? `${minTempVal.toFixed(1)}°C` : '—', warn: minTempVal !== null && minTempVal <= 1.5 },
+    { label: '현재기온', value: Number.isFinite(curTemp) ? `${curTemp.toFixed(1)}°C` : '—', warn: Number.isFinite(curTemp) && curTemp <= 1.5 },
+    { label: '교량·노면', value: Number.isFinite(curBridge) ? `${curBridge.toFixed(1)}°C` : '—', warn: Number.isFinite(curBridge) && curBridge <= 0.5 },
+    { label: '이슬점(Td)', value: Number.isFinite(curDew) ? `${curDew.toFixed(1)}°C` : '—', sub: Number.isFinite(curDewSpread) ? `편차 ${curDewSpread}°` : '', warn: Number.isFinite(curTemp) && curTemp <= 0 && curDewSpread !== null && curDewSpread <= 1.5 },
+    { label: '상대습도', value: Number.isFinite(curHum) ? `${Math.round(curHum)}%` : '—', warn: Number.isFinite(curHum) && curHum >= 90 },
+    { label: '현재풍속', value: Number.isFinite(curWind) ? `${curWind.toFixed(1)} m/s` : '—', warn: Number.isFinite(curWind) && curWind >= 10 }
+  ];
+
   // 2. 제설차 시동(살포기 예열) → 사전 제설제(예비 살포) → 본 제설 3단계 역산 타임라인 (요구사항 4.2)
   const snowActions = [];
   const firstCriticalIdx = samples.findIndex(s => s.rank === 2 || s.snowNow);
+  let preheatCard = { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle' };
+  let presaltCard = { title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle' };
+  let mainPlowCard = { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle' };
+
   if (firstCriticalIdx >= 0) {
     const targetSample = samples[firstCriticalIdx];
     const targetClock = (targetSample.time || '').slice(11, 16) || '곧';
@@ -141,6 +164,8 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
         rank: 2,
         text: `🚨 [즉시 제설차 시동·살포기 예열 및 살포 준비] 현재 또는 2시간 내(${targetClock}) 결빙·강설 진행 중 — 즉시 유압 예열 및 습염 살포 출동`
       });
+      preheatCard = { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '즉시 시동', detail: `${targetClock} 결빙·강설 임박`, state: 'urgent' };
+      presaltCard = { title: '예비살포', subtitle: '(습염 사전 살포)', status: '즉시 출동', detail: '고속도로·교량 즉시 살포', state: 'urgent' };
     } else {
       const preheatClock = addHoursClock(targetClock, -3);
       const presaltStart = addHoursClock(targetClock, -2);
@@ -155,6 +180,8 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
         rank: 2,
         text: `🚜 [사전 제설(예비살포) 권장] ${presaltStart}~${presaltEnd} 이전 습염 사전 살포 출동 (${targetClock} 결빙·강설 예상)`
       });
+      preheatCard = { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: `${preheatClock} 시동`, detail: `예상(${targetClock}) 3시간 전`, state: 'watch' };
+      presaltCard = { title: '예비살포', subtitle: '(습염 사전 살포)', status: `${presaltStart}~${presaltEnd}`, detail: '결빙 1~2시간 전 살포', state: 'urgent' };
     }
   } else if (peak.rank === 1) {
     const watchClock = (peak.time || '').slice(11, 16) || '야간';
@@ -164,6 +191,8 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
       rank: 1,
       text: `🔑 [교량·응달 순찰 및 살포기 점검] ${watchClock}경 살얼음 관심 (${preheatClock}경 제설차 예열 대기 권장)`
     });
+    preheatCard = { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: `${preheatClock} 점검`, detail: `${watchClock}경 살얼음 관심`, state: 'watch' };
+    presaltCard = { title: '예비살포', subtitle: '(습염 사전 살포)', status: '순찰 대기', detail: '교량·응달 노면 점검', state: 'watch' };
   }
 
   const maxSnowHourly = Math.max(0, ...samples.map(s => Number.isFinite(s.snow) ? s.snow : 0));
@@ -174,6 +203,13 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
       rank: 2,
       text: `🚨 [본 제설 준비] 예상 강설 최대 ${maxSnowHourly.toFixed(1)} cm/h (누적 ${totalSnow6h.toFixed(1)} cm) · 제설삽날 장착 및 연속 제설 대비`
     });
+    mainPlowCard = {
+      title: '본살포',
+      subtitle: '(제설삽날·연속 살포)',
+      status: '본제설 투입',
+      detail: `최대 ${maxSnowHourly.toFixed(1)}cm/h · 누적 ${totalSnow6h.toFixed(1)}cm`,
+      state: 'urgent'
+    };
   }
   if (minTempVal !== null && minTempVal <= -6.0) {
     snowActions.push({
@@ -181,6 +217,13 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
       rank: 2,
       text: `⚠️ [저온 결빙 주의] 최저 ${minTempVal.toFixed(1)}°C (-6°C 이하 소금 NaCl 융빙력 급감 · 염화칼슘 CaCl₂ 배합 상향 필요)`
     });
+    mainPlowCard = {
+      title: '본살포',
+      subtitle: '(CaCl₂ 저온 배합 상향)',
+      status: `${minTempVal.toFixed(1)}°C 저온`,
+      detail: '염화칼슘 배합 상향 필요',
+      state: mainPlowCard.state === 'urgent' ? 'urgent' : 'watch'
+    };
   }
 
   // 3. 하절기·우기 홍수 예방 — 시간당 강우강도(mm/h) 및 선행강수 기반 도로 수방 경보 (요구사항 4.3)
@@ -234,10 +277,21 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     guide: `💨 [교량 횡풍 주의] 최대 풍속 ${maxWind.toFixed(1)} m/s — 고가교량(죽산천교·옥계1교·논공교 등) 화물차 횡풍 위험 및 도로 표지판·가시설물 점검`
   } : { active: false, maxWind: Number(maxWind.toFixed(1)), badge: null, shortBadge: null, guide: null };
 
+  const floodWindCard = flood.rank === 2
+    ? { title: '수방 · 통제', subtitle: '(지하차도·사면·배수)', status: flood.shortBadge, detail: `최대 ${maxRainHourly.toFixed(1)}mm/h · 누적 ${combinedWater.toFixed(1)}mm`, state: 'urgent' }
+    : flood.rank === 1
+    ? { title: '수방 · 배수점검', subtitle: '(배수로·집수정)', status: '배수 점검', detail: `시간당 ${maxRainHourly.toFixed(1)}mm/h · 오늘 ${todayPrecip.toFixed(1)}mm`, state: 'watch' }
+    : windAlert.active
+    ? { title: '교량 횡풍 주의', subtitle: '(고가교·표지판)', status: `최대 ${windAlert.maxWind}m/s`, detail: '화물차 횡풍 주의', state: 'watch' }
+    : { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: `강수 ${maxRainHourly.toFixed(1)}mm/h · 풍속 ${windAlert.maxWind}m/s`, state: 'idle' };
+
   return {
     level,
     rank: peak.rank,
     shortCause: peak.shortCause || '',
+    shortReason,
+    conditionMetrics,
+    decisionCards: [preheatCard, presaltCard, mainPlowCard, floodWindCard],
     minTemp: minTempVal,
     dewPoint: curDew,
     bridgeTemp: curBridge,

@@ -255,12 +255,22 @@
               <h2>❄️ 도로 살얼음 · 제설 · 수방 의사결정</h2>
               <span class="symbol" id="iceBadgePill">❄ 판단 대기</span>
             </div>
-            <h3 id="ice">판단 대기</h3>
-            <p id="reason">선택 지역의 기온·이슬점·노면온도와 수분 조건을 확인합니다.</p>
-            <div id="iceTimes" aria-label="시간대별 살얼음 전망"></div>
-            <p class="bridge-note">* 교량·응달·터널 출입구는 대기 기온보다 노면 온도가 2~4°C 낮아 야간 1.5°C(주간 0.5°C) 이하부터 즉각 결빙 위험이 있습니다.</p>
+            <div class="ice-status-row">
+              <h3 id="ice">판단 대기</h3>
+              <p id="reason" class="ice-short-reason">조건 확인 중</p>
+            </div>
+            <!-- 6-Cell Compact Condition Indicators -->
+            <div id="iceMetricsGrid" class="ice-metrics-grid" aria-label="결빙 판단 기상 조건"></div>
 
-            <!-- Action Timeline & Flood/Wind Guides -->
+            <div id="iceTimes" aria-label="시간대별 살얼음 전망"></div>
+            <p class="bridge-note">* 교량·응달·터널 출입구는 대기보다 2~4°C 낮아 야간 1.5°C(주간 0.5°C) 이하부터 즉각 결빙 위험</p>
+
+            <!-- 4 Structured Decision Command Cards (시동ON·예열 / 예비살포 / 본살포 / 수방·횡풍) -->
+            <div class="decision-head">
+              <b>🚜 제설 · 수방 단계별 지시 카드</b>
+              <small>결빙·강설 3h전 예열 → 1~2h전 예비살포 → 본살포</small>
+            </div>
+            <div id="decisionCardsGrid" class="decision-cards-grid" aria-live="polite"></div>
             <div id="actionGuides" class="action-guides" aria-live="polite"></div>
 
             <a class="rwis" href="https://rwis.kma.go.kr/comis5/uis/gis/map-e-risk.do" target="_blank" rel="noopener">기상청 도로살얼음 위험지도 (RWIS) ↗</a>
@@ -269,7 +279,7 @@
               <ul class="iceguide">
                 <li><b>살얼음 주의</b>: 어는 비·착빙성 안개 예보, 강수·안개 시 야간(21~08시) 1.5°C 이하 / 주간 0.5°C 이하, 직전 24시간 강설·잔설 후 0.5°C 이하 재결빙, 영하권 이슬점 편차(T-Td) 1.5°C 이하 서리 착빙</li>
                 <li><b>살얼음 관심</b>: 기온 4°C 이하 + 최근 6시간 강수·안개·습도 90% 이상 또는 야간 저온·고습·약풍</li>
-                <li><b>3단계 제설 역산</b>: 결빙·강설 예상 3시간 전 <b>제설차 시동·살포기 유압 예열</b> → 1~2시간 전 <b>습염 사전 살포</b> → 강설 1cm/h 이상 시 <b>본 제설</b> (-6°C 이하 염화칼슘 배합 상향)</li>
+                <li><b>3단계 제설 역산</b>: 결빙·강설 예상 3시간 전 <b>제설차 시동 ON(살포기 유압 예열)</b> → 1~2시간 전 <b>예비살포(습염)</b> → 강설 1cm/h 이상 시 <b>본살포</b> (-6°C 이하 염화칼슘 배합 상향)</li>
                 <li><b>도로 수방 경보</b>: 시간당 10mm 이상 배수로 점검, 30mm 이상(누적 80mm) 지하차도·사면 주의, 50mm 이상(누적 120mm) 긴급 통제 검토</li>
               </ul>
             </details>

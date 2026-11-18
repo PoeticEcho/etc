@@ -182,15 +182,17 @@ export function renderOverviewCanvas(places, getRecord, stampStr, summaryFn) {
     ctx.lineTo(x + cardW - 20, y + 120);
     ctx.stroke();
 
-    // Row 4: Today Precip & 6h Max POP + Intuitive Rain Start~End
+    // Row 4: Today Precip & 6h Max POP + Intuitive Rain Start~End (12h KMA window)
     const dayP = o?.dayPrecip ?? w?.today?.precip ?? 0;
     const maxPop = w?.rows?.length ? Math.max(...w.rows.map(r => Number.isFinite(r.pop) ? r.pop : 0)) : 0;
-    const kmaStart = w?.kma?.analysis?.start?.time ? w.kma.analysis.start.time.slice(11, 16) : null;
-    const kmaEnd = w?.kma?.analysis?.end?.time ? w.kma.analysis.end.time.slice(11, 16) : null;
-    const popSuffix = w?.kma?.analysis?.now?.wet
-      ? (kmaEnd ? ` (현재~${kmaEnd} 강수중)` : ' (강수중)')
+    const kmaA = w?.kma?.analysis;
+    const kmaStart = kmaA?.start?.time ? kmaA.start.time.slice(11, 16) : null;
+    const kmaEnd = kmaA?.end?.time ? kmaA.end.time.slice(11, 16) : null;
+    const kmaWinEnd = (kmaA?.lastWetTime || kmaA?.windowEndTime)?.slice(11, 16);
+    const popSuffix = kmaA?.now?.wet
+      ? (kmaEnd ? ` (현재~${kmaEnd})` : ` (현재~${kmaWinEnd || '12h'}+)`)
       : kmaStart
-      ? ` (${kmaStart}~${kmaEnd || '지속'} 강수예상)`
+      ? (kmaEnd ? ` (${kmaStart}~${kmaEnd} 강수)` : ` (${kmaStart}~${kmaWinEnd || '12h'}+ 계속)`)
       : '';
 
     ctx.fillStyle = '#647d7a';
@@ -332,16 +334,17 @@ export function renderDetailCanvas(place, rec, stampStr, summaryFn) {
   const a = w?.kma?.analysis;
   const st = a?.start?.time ? a.start.time.slice(11, 16) : null;
   const ed = a?.end?.time ? a.end.time.slice(11, 16) : null;
+  const winEnd = (a?.lastWetTime || a?.windowEndTime)?.slice(11, 16);
   const startTxt = a?.now?.wet
-    ? (ed ? `현재 ~ ${ed} 강수 관측중` : '현재 강수 관측중(지속)')
+    ? (ed ? `현재 ~ ${ed} 강수중` : `현재 ~ ${winEnd || '12h'}+ 계속`)
     : st
-    ? `${st} ~ ${ed || '지속'} 강수예상`
+    ? (ed ? `${st} ~ ${ed} 강수예상` : `${st} ~ ${winEnd || '12h'}+ 계속`)
     : '12시간 내 강수 신호 없음';
-  const endTxt = ed ? `${ed}경 종료 추정(2시간 무강수)` : st ? '12시간 이후 지속 가능' : '해당 없음';
+  const endTxt = ed ? `${ed}경 종료 추정` : st ? `${winEnd || '12h'} 이후 계속` : '해당 없음';
   fillRoundRect(ctx, 56, 362, 464, 34, 8, '#eaf4f8');
   ctx.fillStyle = '#184d68';
   ctx.font = `700 13.5px ${FONT}`;
-  ctx.fillText(`☔ 강수시간: ${startTxt}   |   ☀ 종료: ${endTxt}`, 70, 380);
+  ctx.fillText(`☔ 강수시간(12h): ${startTxt}   |   ☀ 종료: ${endTxt}`, 70, 380);
 
   // Left Column Card 2: 6-Hour Forecast Table
   fillRoundRect(ctx, 36, 428, 504, 566, 16, '#ffffff', '#d8e3de', 1.2);
