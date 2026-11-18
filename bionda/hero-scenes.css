@@ -1,0 +1,339 @@
+/* 상세 페이지 상단 히어로(.hero) 기상·주야간·달령·노면위험 동적 연출 스타일 */
+
+.hero.has-dynamic-scene {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: #ffffff;
+  transition: background 0.55s ease, box-shadow 0.45s ease;
+  /* 기본 주간 맑음(12호선 청록 시그니처) */
+  background: linear-gradient(108deg, #0d3a40 6%, #175255 58%, #367b6d 100%);
+}
+
+/* 왼쪽 텍스트 영역 가독성 보호용 그라데이션 스크림 */
+.hero.has-dynamic-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    94deg,
+    rgba(6, 20, 26, 0.54) 0%,
+    rgba(6, 20, 26, 0.34) 40%,
+    rgba(6, 20, 26, 0.08) 68%,
+    rgba(6, 20, 26, 0) 100%
+  );
+}
+
+.hero.has-dynamic-scene .herodata {
+  position: relative;
+  z-index: 2;
+  text-shadow: 0 1px 10px rgba(4, 14, 22, 0.34);
+}
+
+.hero.has-dynamic-scene #refresh {
+  z-index: 3;
+}
+
+.hero.has-dynamic-scene .horizon {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* --- 레이어 적층 순서 --- */
+.hs-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hs-stars { z-index: 1; }
+.hs-celestial {
+  position: absolute;
+  right: 11.5%;
+  top: 6px;
+  width: 124px;
+  height: 124px;
+  z-index: 2;
+  pointer-events: none;
+  transition: transform 0.5s ease, opacity 0.4s ease;
+}
+.hs-celestial.is-low {
+  top: 22px;
+  right: 11%;
+}
+.hs-orb-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.hs-clouds { z-index: 3; }
+.hs-terrain {
+  top: auto;
+  bottom: 0;
+  left: 16%;
+  width: 84%;
+  height: 76%;
+  z-index: 4;
+}
+.hs-fx { z-index: 5; }
+
+/* ================================
+   주야간 × 날씨별 하늘 배경 팔레트
+   ================================ */
+
+/* [주간 DAY] */
+.hero.has-dynamic-scene[data-dayphase="day"][data-weather="clear"] {
+  background: linear-gradient(108deg, #0d3a40 6%, #175255 58%, #367b6d 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="day"][data-weather="partly_cloudy"] {
+  background: linear-gradient(108deg, #163f4c 6%, #26606d 58%, #4d888c 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="day"][data-weather="overcast"] {
+  background: linear-gradient(108deg, #25363d 6%, #364b54 58%, #546a72 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="day"][data-weather="fog"] {
+  background: linear-gradient(108deg, #2b3e42 6%, #455c60 58%, #6d8486 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="day"][data-weather="rain"] {
+  background: linear-gradient(108deg, #162936 6%, #243f52 58%, #3a5b6e 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="day"][data-weather="thunder"] {
+  background: linear-gradient(108deg, #15172b 6%, #242746 58%, #3c3a5e 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="day"][data-weather="typhoon"] {
+  background: linear-gradient(108deg, #112233 6%, #1c364d 58%, #2e5369 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="day"][data-weather="snow"] {
+  background: linear-gradient(108deg, #1e3547 6%, #31536b 58%, #577b91 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="day"][data-weather="heavy_snow"] {
+  background: linear-gradient(108deg, #243442 6%, #3a5263 58%, #637f91 100%);
+}
+
+/* [새벽·여명 DAWN] */
+.hero.has-dynamic-scene[data-dayphase="dawn"][data-weather="clear"] {
+  background: linear-gradient(106deg, #102a3b 6%, #23475c 46%, #7d5c62 82%, #b77e5d 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dawn"][data-weather="partly_cloudy"] {
+  background: linear-gradient(106deg, #172d3d 6%, #2e4b5c 50%, #6d616b 84%, #967770 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dawn"][data-weather="fog"] {
+  background: linear-gradient(106deg, #1f313b 6%, #3c4f57 54%, #767d7d 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dawn"][data-weather="overcast"] {
+  background: linear-gradient(106deg, #1d2933 6%, #34414c 58%, #5a5d66 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dawn"][data-weather="rain"],
+.hero.has-dynamic-scene[data-dayphase="dawn"][data-weather="typhoon"] {
+  background: linear-gradient(106deg, #13212e 6%, #233547 58%, #3c4959 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dawn"][data-weather="thunder"] {
+  background: linear-gradient(106deg, #131326 6%, #222340 58%, #3b3554 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dawn"][data-weather="snow"],
+.hero.has-dynamic-scene[data-dayphase="dawn"][data-weather="heavy_snow"] {
+  background: linear-gradient(106deg, #1a2d3d 6%, #31495e 56%, #666c7a 100%);
+}
+
+/* [황혼·해질녘 DUSK] */
+.hero.has-dynamic-scene[data-dayphase="dusk"][data-weather="clear"] {
+  background: linear-gradient(106deg, #112338 6%, #243859 44%, #6e4158 78%, #b56145 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dusk"][data-weather="partly_cloudy"] {
+  background: linear-gradient(106deg, #162538 6%, #2c3a54 48%, #5e4459 82%, #8c5c54 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dusk"][data-weather="fog"] {
+  background: linear-gradient(106deg, #1b2836 6%, #384452 54%, #6a6368 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dusk"][data-weather="overcast"] {
+  background: linear-gradient(106deg, #1a222e 6%, #303947 58%, #53525e 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dusk"][data-weather="rain"],
+.hero.has-dynamic-scene[data-dayphase="dusk"][data-weather="typhoon"] {
+  background: linear-gradient(106deg, #101c29 6%, #1f3042 58%, #394457 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dusk"][data-weather="thunder"] {
+  background: linear-gradient(106deg, #121124 6%, #211f3d 58%, #3c3052 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="dusk"][data-weather="snow"],
+.hero.has-dynamic-scene[data-dayphase="dusk"][data-weather="heavy_snow"] {
+  background: linear-gradient(106deg, #192638 6%, #2f3f57 58%, #5e6073 100%);
+}
+
+/* [야간 NIGHT] */
+.hero.has-dynamic-scene[data-dayphase="night"][data-weather="clear"] {
+  background: linear-gradient(110deg, #061420 5%, #0c2438 56%, #183d54 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="night"][data-weather="partly_cloudy"] {
+  background: linear-gradient(110deg, #091722 5%, #12283a 56%, #223f54 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="night"][data-weather="overcast"] {
+  background: linear-gradient(110deg, #0d161d 5%, #192631 58%, #293a46 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="night"][data-weather="fog"] {
+  background: linear-gradient(110deg, #101b23 5%, #202f39 58%, #344752 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="night"][data-weather="rain"] {
+  background: linear-gradient(110deg, #08121b 5%, #122232 58%, #1e3547 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="night"][data-weather="thunder"] {
+  background: linear-gradient(110deg, #080a17 5%, #14162d 58%, #242142 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="night"][data-weather="typhoon"] {
+  background: linear-gradient(110deg, #07111c 5%, #0f2033 58%, #1c364f 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="night"][data-weather="snow"] {
+  background: linear-gradient(110deg, #0c1926 5%, #193044 58%, #2a4961 100%);
+}
+.hero.has-dynamic-scene[data-dayphase="night"][data-weather="heavy_snow"] {
+  background: linear-gradient(110deg, #111d29 5%, #213445 58%, #374f63 100%);
+}
+
+/* [한파 / 살얼음 빙점 톤 보강] */
+.hero.has-dynamic-scene[data-cold-wave="true"][data-dayphase="day"][data-weather="clear"],
+.hero.has-dynamic-scene[data-cold-wave="true"][data-dayphase="day"][data-weather="partly_cloudy"] {
+  background: linear-gradient(108deg, #0c2942 6%, #17496b 58%, #357594 100%);
+}
+.hero.has-dynamic-scene[data-cold-wave="true"][data-dayphase="night"][data-weather="clear"],
+.hero.has-dynamic-scene[data-cold-wave="true"][data-dayphase="night"][data-weather="partly_cloudy"] {
+  background: linear-gradient(110deg, #051024 5%, #0a1f40 56%, #173c68 100%);
+}
+.hero.has-dynamic-scene[data-black-ice="true"] {
+  box-shadow: inset 0 -2px 0 rgba(125, 211, 252, 0.55), 0 8px 22px rgba(14, 116, 144, 0.16);
+}
+.hero.has-dynamic-scene[data-cold-wave="true"] {
+  box-shadow: inset 0 1px 0 rgba(224, 242, 254, 0.42), inset 0 -1px 0 rgba(186, 230, 253, 0.35);
+}
+
+/* ================================
+   은은하고 자연스러운 애니메이션
+   ================================ */
+@keyframes hsTwinkle {
+  0%, 100% { opacity: 0.92; }
+  50% { opacity: 0.32; }
+}
+.hs-star-t1 { animation: hsTwinkle 4.2s ease-in-out infinite; }
+.hs-star-t2 { animation: hsTwinkle 5.6s ease-in-out 1.4s infinite; }
+.hs-star-t3 { animation: hsTwinkle 3.6s ease-in-out 2.5s infinite; }
+
+@keyframes hsCloudDrift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-18px); }
+}
+.hs-cloud-drift-a { animation: hsCloudDrift 26s ease-in-out infinite; }
+.hs-cloud-drift-b { animation: hsCloudDrift 20s ease-in-out -7s infinite; }
+.hs-cloud-drift-slow { animation: hsCloudDrift 34s ease-in-out -12s infinite; }
+
+@keyframes hsRainFall {
+  0% { transform: translate(6px, -22px); opacity: 0; }
+  15% { opacity: 0.65; }
+  85% { opacity: 0.55; }
+  100% { transform: translate(-12px, 28px); opacity: 0; }
+}
+.hs-rain-a { animation: hsRainFall 1.15s linear infinite; }
+.hs-rain-b { animation: hsRainFall 1.45s linear -0.6s infinite; }
+
+@keyframes hsGaleFall {
+  0% { transform: translate(18px, -20px); opacity: 0; }
+  20% { opacity: 0.72; }
+  100% { transform: translate(-34px, 32px); opacity: 0; }
+}
+.hs-gale-streak { animation: hsGaleFall 0.75s linear infinite; }
+
+@keyframes hsVortexSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.hs-vortex {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hsVortexSpin 9s linear infinite;
+}
+
+@keyframes hsWindSlide {
+  0% { stroke-dashoffset: 180; opacity: 0.25; }
+  50% { opacity: 0.75; }
+  100% { stroke-dashoffset: 0; opacity: 0.25; }
+}
+.hs-wind-line {
+  stroke-dasharray: 120 70;
+  animation: hsWindSlide 2.2s linear infinite;
+}
+.hs-wind-2 { animation-delay: -0.7s; }
+.hs-wind-3 { animation-delay: -1.4s; }
+
+@keyframes hsThunderPulse {
+  0%, 72%, 100% { opacity: 0.72; }
+  74% { opacity: 1; }
+  77% { opacity: 0.78; }
+  80% { opacity: 0.98; }
+  85% { opacity: 0.72; }
+}
+@keyframes hsThunderGlow {
+  0%, 70%, 100% { opacity: 0.16; }
+  75% { opacity: 0.62; }
+  82% { opacity: 0.22; }
+}
+.hs-bolt-1 { animation: hsThunderPulse 4.6s ease-in-out infinite; }
+.hs-bolt-2 { animation: hsThunderPulse 4.6s ease-in-out -2.1s infinite; }
+.hs-thunder-glow { animation: hsThunderGlow 4.6s ease-in-out infinite; }
+
+@keyframes hsFogDrift {
+  0%, 100% { transform: translateX(-14px); }
+  50% { transform: translateX(18px); }
+}
+.hs-fog-1 { animation: hsFogDrift 18s ease-in-out infinite; }
+.hs-fog-2 { animation: hsFogDrift 24s ease-in-out -6s infinite; }
+.hs-fog-3 { animation: hsFogDrift 29s ease-in-out -14s infinite; }
+
+@keyframes hsSnowDriftA {
+  0% { transform: translate(0, -14px); }
+  50% { transform: translate(-8px, 8px); }
+  100% { transform: translate(4px, 28px); }
+}
+@keyframes hsSnowDriftB {
+  0% { transform: translate(0, -16px); }
+  50% { transform: translate(9px, 6px); }
+  100% { transform: translate(-6px, 28px); }
+}
+.hs-snow-a { animation: hsSnowDriftA 4.8s ease-in-out infinite; }
+.hs-snow-b { animation: hsSnowDriftB 5.6s ease-in-out -1.8s infinite; }
+.hs-snow-c { animation: hsSnowDriftA 6.4s ease-in-out -3.2s infinite; }
+
+@keyframes hsIceGlint {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.95; }
+}
+.hs-ice-sheen { animation: hsIceGlint 3.4s ease-in-out infinite; }
+
+@media (max-width: 720px) {
+  .hero.has-dynamic-scene .eyebrow {
+    display: block;
+    padding-right: 96px;
+  }
+  .hs-celestial {
+    right: 6%;
+    top: 4px;
+    width: 96px;
+    height: 96px;
+  }
+  .hs-celestial.is-low {
+    top: 14px;
+    right: 6%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero.has-dynamic-scene * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
