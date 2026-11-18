@@ -383,6 +383,9 @@
     display: block;
     padding-right: 96px;
   }
+  .hero.has-dynamic-scene[data-weather="typhoon"] {
+    padding-bottom: 56px;
+  }
   .hs-celestial {
     right: 6%;
     top: 4px;
@@ -394,13 +397,10 @@
     right: 6%;
   }
   .hs-typhoon-cluster {
-    right: 12px;
-    top: 56px;
-    gap: 6px;
-  }
-  .hs-typhoon-svg {
-    width: 64px;
-    height: 64px;
+    left: 14px;
+    bottom: 8px;
+    top: auto;
+    right: auto;
   }
   .hs-typhoon-tag {
     padding: 4px 8px;
