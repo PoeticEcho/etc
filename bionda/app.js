@@ -1,6 +1,6 @@
-import { loadWeather, loadProbabilities, prefetchOpenMeteo } from './weather.js';
-import { loadObservation, loadRoadStations, loadRoadRisk, getLastObsError } from './observations.js';
-import { fetchPlaceWarnings, buildWarningSummary } from './warnings.js';
+import { loadWeather, loadProbabilities, prefetchOpenMeteo, seedKmaForecast } from './weather.js';
+import { loadOverviewBundle, loadObservation, loadRoadStations, loadRoadRisk, getLastObsError } from './observations.js';
+import { fetchPlaceWarnings, buildWarningSummary, buildWarningsFromApi } from './warnings.js';
 import { classifySeverityTier, isRoadRiskEscalated, ROAD_RISK_LABELS, FOG_RISK_LABELS } from './ice.js';
 import { renderOverviewCanvas, renderDetailCanvas, canvasToJpgBlob } from './share.js';
 import { apiUrl, getApiBase, setApiBase, probeBackend, isBackendAvailable, getBackendStatusSnapshot } from './config.js';
@@ -84,7 +84,7 @@ const settings = {
   wakeLock: true,
   sortRisk: true,
   darkMode: false,
-  simMode: false,
+  showActionCards: true,
   desktopNotify: true,
   pcLayout: 'stacked', // 'stacked' (상하 기본 4x2 + 하단 분할) | 'split' (좌우 FHD 분할: 좌 2x4 + 우 상하 레이더/미니맵)
   mapSplitPct: 43, // 미니맵 영역 폭 비율 (30 ~ 68%)
@@ -97,6 +97,7 @@ try {
     settings.wakeLock = savedSettings.wakeLock ?? true;
     settings.sortRisk = savedSettings.sortRisk ?? true;
     settings.darkMode = savedSettings.darkMode ?? false;
+    settings.showActionCards = savedSettings.showActionCards ?? true;
     settings.desktopNotify = savedSettings.desktopNotify ?? true;
     settings.pcLayout = savedSettings.pcLayout === 'split' ? 'split' : 'stacked';
     if (Number.isFinite(savedSettings.mapSplitPct)) {
@@ -117,6 +118,7 @@ function persistSettings() {
         wakeLock: settings.wakeLock,
         sortRisk: settings.sortRisk,
         darkMode: settings.darkMode,
+        showActionCards: settings.showActionCards,
         desktopNotify: settings.desktopNotify,
         pcLayout: settings.pcLayout,
         mapSplitPct: settings.mapSplitPct,
@@ -248,198 +250,7 @@ function findStationRoadRisk(stn) {
 
 function getEffectiveRecord(p) {
   const baseRec = record(p);
-  const withRisk = { ...baseRec, roadRisk: baseRec.roadRisk || findPlaceRoadRisk(p) };
-  if (!settings.simMode) return withRisk;
-
-  const simMap = {
-    '거창군남부': {
-      temp: -1.4,
-      humidity: 92,
-      roadTemp: -2.1,
-      surfaceState: '적설·결빙주의',
-      snowDepth: 2.3,
-      dayPrecip: 6.4,
-      description: '눈 (적설 2.3cm)',
-      maxPop: 90,
-      iceLevel: '주의',
-      iceRank: 2,
-      shortCause: '야간 영하·강수',
-      reason: '15:00 강설·강수 흔적 + 영하권 기온 지속 및 야간 복사냉각 (최저 -4.1°C) · 기온 -1.4°C · 습도 92%',
-      snowActions: [
-        { stage: 'preheat', rank: 2, text: '🔑 [제설차 시동·살포기 예열] 예비살포 1시간 전 시동·유압 예열 필수' },
-        { stage: 'immediate', rank: 2, text: '🚜 [현장 대응 단계] 즉시 제설차 시동·예열 및 습염 살포 / 삽날 제설 대기' }
-      ],
-      warnings: [
-        { kind: '대설', level: '경보', title: '대설경보', effectiveText: '11-18 14:00', isFutureEffective: false, expiresText: '19일 09:00 해제예정', priorityScore: 102 },
-        { kind: '한파', level: '주의보', title: '한파주의보', effectiveText: '11-18 21:00', isFutureEffective: true, expiresText: '20일 12:00 해제예정', priorityScore: 206 },
-        { kind: '강풍', level: '주의보', title: '강풍주의보', effectiveText: '11-18 11:00', isFutureEffective: false, expiresText: '19일 06:00 해제예정', priorityScore: 207 }
-      ]
-    },
-    '함양중부': {
-      temp: 0.2,
-      humidity: 89,
-      roadTemp: -0.4,
-      surfaceState: '습윤·결빙주의',
-      snowDepth: 0.5,
-      dayPrecip: 3.1,
-      description: '진눈깨비',
-      maxPop: 80,
-      iceLevel: '주의',
-      iceRank: 2,
-      shortCause: '0.2°C·진눈깨비',
-      reason: '15:00 진눈깨비 및 교량 복사냉각 결빙 위험 · 기온 0.2°C · 습도 89%',
-      snowActions: [
-        { stage: 'presalt', rank: 2, text: '🚜 [사전 제설(예비살포) 권장] 즉시 죽산천교·함양구간 습염 사전 살포 출동' }
-      ],
-      warnings: [
-        { kind: '대설', level: '주의보', title: '대설주의보', effectiveText: '11-18 13:30', isFutureEffective: false, expiresText: '19일 06:00 해제예정', priorityScore: 202 },
-        { kind: '강풍', level: '주의보', title: '강풍주의보', effectiveText: '11-18 11:00', isFutureEffective: false, expiresText: '19일 06:00 해제예정', priorityScore: 207 }
-      ]
-    },
-    '합천군서북부': {
-      temp: 1.3,
-      humidity: 85,
-      roadTemp: 0.4,
-      surfaceState: '습윤',
-      snowDepth: 0,
-      dayPrecip: 0.8,
-      description: '흐림 (교량 결빙주의)',
-      maxPop: 40,
-      iceLevel: '관심',
-      iceRank: 1,
-      shortCause: '야간 교량 냉각',
-      reason: '18:00 최근 강수와 야간 교량 복사냉각 관심 · 기온 1.3°C · 습도 85%',
-      snowActions: [
-        { stage: 'preheat', rank: 1, text: '🔑 [제설차 시동·살포기 예열] 15:00 시동 권장 (살포기 유압 예열 → 16:00 예비살포 → 18:00 결빙 예상)' }
-      ],
-      warnings: [
-        { kind: '한파', level: '주의보', title: '한파주의보', effectiveText: '11-18 21:00', isFutureEffective: true, expiresText: '20일 12:00 해제예정', priorityScore: 206 }
-      ]
-    },
-    '대구 달성군남부': { temp: 6.8, humidity: 52, roadTemp: 9.2, surfaceState: '건조', dayPrecip: 0, description: '구름 조금', maxPop: 10, iceLevel: '뚜렷한 신호 없음', iceRank: 0, warnings: [] },
-    '고령군': { temp: 6.1, humidity: 55, roadTemp: 8.5, surfaceState: '건조', dayPrecip: 0, description: '대체로 맑음', maxPop: 10, iceLevel: '뚜렷한 신호 없음', iceRank: 0, warnings: [] },
-    '남원': { temp: 4.5, humidity: 68, roadTemp: 6.1, surfaceState: '건조', dayPrecip: 0.2, description: '흐림', maxPop: 20, iceLevel: '뚜렷한 신호 없음', iceRank: 0, warnings: [] },
-    '함양': { temp: 3.4, humidity: 74, roadTemp: 4.8, surfaceState: '건조', dayPrecip: 0.5, description: '흐림', maxPop: 30, iceLevel: '뚜렷한 신호 없음', iceRank: 0, warnings: [] },
-    '거창': { temp: 2.8, humidity: 77, roadTemp: 4.1, surfaceState: '건조', dayPrecip: 1.0, description: '흐림', maxPop: 30, iceLevel: '뚜렷한 신호 없음', iceRank: 0, warnings: [] }
-  };
-
-  const sim = simMap[p.name];
-  if (!sim) return baseRec;
-
-  const baseRows = [
-    { time: '2026-11-18T15:00', temp: sim.temp - 0.1, pop: sim.maxPop, rainPop: sim.temp > 1 ? sim.maxPop : 10, snowPop: sim.temp <= 1 ? Math.max(0, sim.maxPop - 5) : 0, precip: sim.maxPop >= 80 ? 1.2 : 0, rain: sim.temp > 1 && sim.maxPop >= 80 ? 1.2 : 0, snow: sim.temp <= 1 && sim.maxPop >= 80 ? 1.1 : 0 },
-    { time: '2026-11-18T16:00', temp: sim.temp - 0.4, pop: Math.max(10, sim.maxPop - 10), rainPop: 5, snowPop: sim.temp <= 1 ? Math.max(0, sim.maxPop - 10) : 0, precip: sim.maxPop >= 80 ? 0.9 : 0, rain: 0, snow: sim.temp <= 1 && sim.maxPop >= 80 ? 0.9 : 0 },
-    { time: '2026-11-18T17:00', temp: sim.temp - 0.8, pop: Math.max(10, sim.maxPop - 20), rainPop: 0, snowPop: sim.temp <= 1 ? Math.max(0, sim.maxPop - 20) : 0, precip: sim.maxPop >= 80 ? 0.6 : 0, rain: 0, snow: sim.temp <= 1 && sim.maxPop >= 80 ? 0.6 : 0 },
-    { time: '2026-11-18T18:00', temp: sim.temp - 1.5, pop: Math.max(10, sim.maxPop - 40), rainPop: 0, snowPop: sim.temp <= 1 ? Math.max(0, sim.maxPop - 45) : 0, precip: sim.maxPop >= 80 ? 0.2 : 0, rain: 0, snow: sim.temp <= 1 && sim.maxPop >= 80 ? 0.2 : 0 },
-    { time: '2026-11-18T19:00', temp: sim.temp - 2.1, pop: Math.max(10, sim.maxPop - 60), rainPop: 0, snowPop: sim.temp <= 1 ? 25 : 0, precip: 0, rain: 0, snow: 0 },
-    { time: '2026-11-18T20:00', temp: sim.temp - 2.7, pop: Math.max(10, sim.maxPop - 70), rainPop: 0, snowPop: sim.temp <= 1 ? 15 : 0, precip: 0, rain: 0, snow: 0 }
-  ];
-
-  return {
-    ...baseRec,
-    o: {
-      ...(baseRec.o || {}),
-      name: baseRec.o?.name || `${p.name} 관측소`,
-      roadStationName: baseRec.o?.roadStationName || `${p.site || p.name}(도)`,
-      distanceKm: baseRec.o?.distanceKm ?? 1.2,
-      time: '2026-11-18T14:40:00+09:00',
-      temp: sim.temp,
-      roadTemp: sim.roadTemp,
-      surfaceCode: sim.iceRank === 2 ? 4 : 1,
-      surfaceState: sim.surfaceState,
-      humidity: sim.humidity,
-      dayPrecip: sim.dayPrecip,
-      snowDepth: sim.snowDepth ?? null,
-      windSpeed: 2.4,
-      code: sim.iceRank === 2 ? 71 : 3,
-      precip: sim.iceRank === 2 ? 1.2 : 0,
-      description: sim.description
-    },
-    w: {
-      ...(baseRec.w || {}),
-      stale: false,
-      through: '2026-11-18T14:40',
-      current: { time: '2026-11-18T14:40', temp: sim.temp, humidity: sim.humidity, wind: 2.4, code: sim.iceRank === 2 ? 71 : 3, precip: sim.iceRank === 2 ? 1.2 : 0 },
-      today: { precip: sim.dayPrecip, rain: Number((sim.dayPrecip * 0.28).toFixed(1)), snow: sim.snowDepth ? Number((sim.snowDepth * 2).toFixed(1)) : 0 },
-      last24: { precip: sim.dayPrecip, rain: Number((sim.dayPrecip * 0.28).toFixed(1)), snow: sim.snowDepth ? Number((sim.snowDepth * 2).toFixed(1)) : 0 },
-      rows: baseRows,
-      ice: {
-        level: sim.iceLevel,
-        rank: sim.iceRank,
-        shortCause: sim.shortCause || '',
-        shortReason: sim.iceRank === 2 ? `15:00 ${sim.shortCause} (최저 ${(sim.temp - 2.7).toFixed(1)}°C)` : sim.iceRank === 1 ? '18:00 야간 교량 복사냉각 관심' : '향후 6시간 결빙 위험 조건 없음 (정상)',
-        conditionMetrics: [
-          { label: '최저기온(6h)', value: `${(sim.temp - 2.7).toFixed(1)}°C`, warn: sim.temp - 2.7 <= 1.5 },
-          { label: '현재기온', value: `${sim.temp.toFixed(1)}°C`, warn: sim.temp <= 1.5 },
-          { label: '교량·노면', value: `${sim.roadTemp.toFixed(1)}°C`, warn: sim.roadTemp <= 0.5 },
-          { label: '이슬점(Td)', value: `${(sim.temp - 1.2).toFixed(1)}°C`, sub: '편차 1.2°', warn: sim.temp <= 0 },
-          { label: '상대습도', value: `${sim.humidity}%`, warn: sim.humidity >= 90 },
-          { label: '현재풍속', value: '2.4 m/s', warn: false }
-        ],
-        decisionCards: sim.iceRank === 2 ? [
-          { stageId: 'preheat', title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '즉시 시동', detail: '결빙·강설 임박 즉시 예열', state: 'urgent', hoursLeft: 0, pcChip: '🚨 시동ON · 즉시', mobChip: '🚨 즉시' },
-          { stageId: 'presalt', title: '예비살포', subtitle: '(습염 사전 살포)', status: '즉시 출동', detail: '고속도로·교량 습염 살포', state: 'urgent', hoursLeft: 0, pcChip: '🚜 예비살포 · 즉시', mobChip: '🚜 즉시' },
-          { stageId: 'mainplow', title: '본살포', subtitle: '(제설삽날·연속 살포)', status: sim.snowDepth >= 2 ? '삽날 대기' : '적설 감시', detail: sim.snowDepth ? `적설 ${sim.snowDepth}cm` : '강설 1cm/h 이상 시', state: sim.snowDepth >= 2 ? 'urgent' : 'watch', hoursLeft: sim.snowDepth >= 2 ? 0 : 1, pcChip: sim.snowDepth >= 2 ? '❄ 본살포 · 즉시' : '❄ 본살포 · 1h내(15시)', mobChip: sim.snowDepth >= 2 ? '❄ 삽날' : '❄ 1h·15시' },
-          { stageId: 'floodwind', title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle', pcChip: null, mobChip: null }
-        ] : sim.iceRank === 1 ? [
-          { stageId: 'preheat', title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '3h내(18시)', detail: '18:00 살얼음 관심 대비', state: 'watch', hoursLeft: 3, pcChip: '🔑 시동ON · 3h내(18시)', mobChip: '🔑 3h·18시' },
-          { stageId: 'presalt', title: '예비살포', subtitle: '(습염 사전 살포)', status: '4h내(19시)', detail: '교량·응달 노면 점검', state: 'watch', hoursLeft: 4, pcChip: '🚜 예비살포 · 4h내(19시)', mobChip: '🚜 4h·19시' },
-          { stageId: 'mainplow', title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 신호 없음', state: 'idle', pcChip: null, mobChip: null },
-          { stageId: 'floodwind', title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle', pcChip: null, mobChip: null }
-        ] : [
-          { stageId: 'preheat', title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle', pcChip: null, mobChip: null },
-          { stageId: 'presalt', title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle', pcChip: null, mobChip: null },
-          { stageId: 'mainplow', title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle', pcChip: null, mobChip: null },
-          { stageId: 'floodwind', title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수 0mm/h · 풍속 2.4m/s', state: 'idle', pcChip: null, mobChip: null }
-        ],
-        reason: sim.reason || '결빙 위험 신호 없음',
-        samples: [{ time: '현재', level: sim.iceRank ? sim.iceLevel : '정상', rank: sim.iceRank }, ...baseRows.map(r => ({ time: r.time, level: sim.iceRank ? sim.iceLevel : '정상', rank: sim.iceRank }))],
-        snowActions: sim.snowActions || [],
-        flood: { rank: 0 },
-        windAlert: { active: false }
-      },
-      kma: baseRec.w?.kma || {
-        ok: true,
-        hours: baseRows.map((r, i) => ({
-          time: r.time + ':00+09:00',
-          offset: i + 1,
-          type: r.snow > 0 ? '눈' : r.precip > 0 ? '비' : '없음',
-          wet: r.precip > 0 || r.snow > 0,
-          chance: r.pop,
-          risk: r.pop >= 50 && !(r.precip > 0),
-          amount: r.precip > 0 ? `${r.precip}mm` : '강수없음',
-          temp: String(r.temp.toFixed(1))
-        })),
-        analysis: {
-          now: { wet: sim.maxPop >= 80, type: sim.temp <= 0 ? '눈' : '비' },
-          start: sim.maxPop >= 80 ? { time: '2026-11-18T15:00:00+09:00', current: true } : null,
-          end: sim.maxPop >= 80 ? { time: '2026-11-18T19:00:00+09:00', rule: '연속 2시간 무강수 예보' } : null,
-          horizons: [
-            { hours: 3, hasPrecipitation: sim.maxPop >= 80, hasRisk: sim.maxPop >= 50, kinds: [sim.temp <= 0 ? '눈' : '비'] },
-            { hours: 6, hasPrecipitation: sim.maxPop >= 80, hasRisk: sim.maxPop >= 50, kinds: [sim.temp <= 0 ? '눈' : '비'] },
-            { hours: 12, hasPrecipitation: sim.maxPop >= 80, hasRisk: sim.maxPop >= 50, kinds: [sim.temp <= 0 ? '눈' : '비'] }
-          ],
-          horizonRanges: [
-            { label: '향후 3시간', minOffset: 1, maxOffset: 3, hasPrecipitation: sim.maxPop >= 80, hasRisk: sim.maxPop >= 50, kinds: [sim.temp <= 0 ? '눈' : '비'] },
-            { label: '3~6시간', minOffset: 4, maxOffset: 6, hasPrecipitation: sim.maxPop >= 80, hasRisk: sim.maxPop >= 50, kinds: [sim.temp <= 0 ? '눈' : '비'] },
-            { label: '향후 6~12시간', minOffset: 7, maxOffset: 12, hasPrecipitation: false, hasRisk: false, kinds: [] }
-          ]
-        }
-      }
-    },
-    wrn: buildWarningSummary(sim.warnings || []),
-    roadRisk: {
-      stationName: baseRec.o?.roadStationName || `${p.site || p.name}(도)`,
-      stationKm: ROUTE12_PLACE_KM[p.name] ?? null,
-      stationDistanceKm: baseRec.o?.distanceKm ?? 1.2,
-      iceLevel: p.name === '거창군남부' ? 3 : sim.iceRank === 2 ? 2 : sim.iceRank === 1 ? 1 : 0,
-      iceLabel: p.name === '거창군남부' ? '위험' : sim.iceRank === 2 ? '주의' : sim.iceRank === 1 ? '관심' : '정보없음',
-      fogLevel: p.name === '합천군서북부' ? 1 : 0,
-      fogLabel: p.name === '합천군서북부' ? '관심' : '안개없음',
-      flagLabel: '분석',
-      tmKst: '2026-11-18T14:40:00+09:00'
-    }
-  };
+  return { ...baseRec, roadRisk: baseRec.roadRisk || findPlaceRoadRisk(p) };
 }
 
 // Web Audio API 합성 차임벨 (요구사항 7.2)
@@ -1455,7 +1266,7 @@ export function board() {
   }).length;
   const extras = places.filter(isExtra);
 
-  if (filter === 'action' && !actionPlaces.length) {
+  if ((!settings.showActionCards || !actionPlaces.length) && filter === 'action') {
     filter = 'all';
     actionStageFilter = null;
   }
@@ -1493,7 +1304,7 @@ export function board() {
   };
 
   const groupBtns = [mkFilterBtn(`전체 ${places.length}`, 'all')];
-  if (actionPlaces.length > 0) {
+  if (settings.showActionCards && actionPlaces.length > 0) {
     groupBtns.push(
       mkFilterBtn(isMob ? `🚜 지시 ${actionPlaces.length}` : `🚜 제설·수방 지시 ${actionPlaces.length}`, 'action', 'grp-action')
     );
@@ -1508,45 +1319,47 @@ export function board() {
   const summaryBar = $('actionSummaryBar');
   if (summaryBar) {
     const stagePills = [];
-    for (const meta of ACTION_STAGE_META) {
-      let count = 0;
-      let hasUrgent = false;
-      for (const p of places) {
-        const match = getUnackedActionCards(p, getEffectiveRecord(p)).find(c => c.stageId === meta.id);
-        if (match) {
-          count++;
-          if (match.state === 'urgent') hasUrgent = true;
+    if (settings.showActionCards) {
+      for (const meta of ACTION_STAGE_META) {
+        let count = 0;
+        let hasUrgent = false;
+        for (const p of places) {
+          const match = getUnackedActionCards(p, getEffectiveRecord(p)).find(c => c.stageId === meta.id);
+          if (match) {
+            count++;
+            if (match.state === 'urgent') hasUrgent = true;
+          }
+        }
+        if (count > 0) {
+          const pill = el('button', `${meta.icon} ${meta.label} ${count}`, `act-pill${hasUrgent ? '' : ' state-watch'}`);
+          pill.type = 'button';
+          pill.setAttribute('aria-pressed', String(filter === 'action' && actionStageFilter === meta.id));
+          pill.onclick = () => {
+            if (filter === 'action' && actionStageFilter === meta.id) {
+              actionStageFilter = null;
+              filter = 'all';
+            } else {
+              filter = 'action';
+              actionStageFilter = meta.id;
+            }
+            board();
+          };
+          stagePills.push(pill);
         }
       }
-      if (count > 0) {
-        const pill = el('button', `${meta.icon} ${meta.label} ${count}`, `act-pill${hasUrgent ? '' : ' state-watch'}`);
-        pill.type = 'button';
-        pill.setAttribute('aria-pressed', String(filter === 'action' && actionStageFilter === meta.id));
-        pill.onclick = () => {
-          if (filter === 'action' && actionStageFilter === meta.id) {
-            actionStageFilter = null;
-            filter = 'all';
-          } else {
-            filter = 'action';
-            actionStageFilter = meta.id;
-          }
+      if (ackedCount > 0) {
+        const restoreBtn = el('button', `✓ 확인됨 ${ackedCount} · 다시보기`, 'act-ack-restore');
+        restoreBtn.type = 'button';
+        restoreBtn.onclick = () => {
+          acknowledgedActions = {};
+          persistAck();
           board();
         };
-        stagePills.push(pill);
+        stagePills.push(restoreBtn);
       }
     }
-    if (ackedCount > 0) {
-      const restoreBtn = el('button', `✓ 확인됨 ${ackedCount} · 다시보기`, 'act-ack-restore');
-      restoreBtn.type = 'button';
-      restoreBtn.onclick = () => {
-        acknowledgedActions = {};
-        persistAck();
-        board();
-      };
-      stagePills.push(restoreBtn);
-    }
     summaryBar.replaceChildren(...stagePills);
-    summaryBar.hidden = stagePills.length === 0;
+    summaryBar.hidden = !settings.showActionCards || stagePills.length === 0;
   }
 
   let visible =
@@ -1579,7 +1392,7 @@ export function board() {
       // 1. 카드 상단 지역명 + 제설·수방 지시 칩(1칩+N) + 지연 배지 + 화살표
       const top = el('div', '', 'cardline');
       const topRight = el('span', '', 'cardline-right');
-      const actionChips = buildCardActionChips(p, getUnackedActionCards(p, r));
+      const actionChips = settings.showActionCards ? buildCardActionChips(p, getUnackedActionCards(p, r)) : null;
       if (actionChips) topRight.append(actionChips);
       if (w?.stale) topRight.append(el('span', '지연', 'stale-badge'));
       topRight.append(el('span', '↗'));
@@ -1998,39 +1811,49 @@ function renderDetail() {
     })
   );
 
+  const decisionHead = $('decisionHead');
+  if (decisionHead) decisionHead.hidden = !settings.showActionCards;
   const decisionGrid = $('decisionCardsGrid');
   if (decisionGrid) {
-    const cardsList = w?.ice?.decisionCards || [
-      { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle' },
-      { title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle' },
-      { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle' },
-      { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수·강풍 특이사항 없음', state: 'idle' }
-    ];
-    decisionGrid.replaceChildren(
-      ...cardsList.map(dc => {
-        const card = el('div', '', `decision-card state-${dc.state || 'idle'}`);
-        const top = el('div', '', 'dc-top');
-        const titleWrap = el('div');
-        titleWrap.append(el('div', dc.title, 'dc-title'), el('div', dc.subtitle, 'dc-sub'));
-        top.append(titleWrap, el('span', dc.status, 'dc-badge'));
-        card.append(top, el('div', dc.detail, 'dc-detail'));
-        return card;
-      })
-    );
+    decisionGrid.hidden = !settings.showActionCards;
+    if (settings.showActionCards) {
+      const cardsList = w?.ice?.decisionCards || [
+        { title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle' },
+        { title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle' },
+        { title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle' },
+        { title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수·강풍 특이사항 없음', state: 'idle' }
+      ];
+      decisionGrid.replaceChildren(
+        ...cardsList.map(dc => {
+          const card = el('div', '', `decision-card state-${dc.state || 'idle'}`);
+          const top = el('div', '', 'dc-top');
+          const titleWrap = el('div');
+          titleWrap.append(el('div', dc.title, 'dc-title'), el('div', dc.subtitle, 'dc-sub'));
+          top.append(titleWrap, el('span', dc.status, 'dc-badge'));
+          card.append(top, el('div', dc.detail, 'dc-detail'));
+          return card;
+        })
+      );
+    } else {
+      decisionGrid.replaceChildren();
+    }
   }
 
   const guideContainer = $('actionGuides');
+  guideContainer.hidden = !settings.showActionCards;
   guideContainer.replaceChildren();
-  if (w?.ice?.snowActions?.length) {
-    for (const sa of w.ice.snowActions) {
-      guideContainer.append(el('div', sa.text, `guide-banner rank-${sa.rank}`));
+  if (settings.showActionCards) {
+    if (w?.ice?.snowActions?.length) {
+      for (const sa of w.ice.snowActions) {
+        guideContainer.append(el('div', sa.text, `guide-banner rank-${sa.rank}`));
+      }
     }
-  }
-  if (w?.ice?.flood?.guide) {
-    guideContainer.append(el('div', w.ice.flood.guide, 'guide-banner flood'));
-  }
-  if (w?.ice?.windAlert?.guide) {
-    guideContainer.append(el('div', w.ice.windAlert.guide, 'guide-banner rank-1'));
+    if (w?.ice?.flood?.guide) {
+      guideContainer.append(el('div', w.ice.flood.guide, 'guide-banner flood'));
+    }
+    if (w?.ice?.windAlert?.guide) {
+      guideContainer.append(el('div', w.ice.windAlert.guide, 'guide-banner rank-1'));
+    }
   }
 
   // 기상특보 발효 및 해제 예정 현황 (기상청 특보 원문 링크 연결)
@@ -2115,37 +1938,78 @@ export async function refresh(force = false) {
     queue.sort((a, b) => Number(coord(b) === coord(detailPlace)) - Number(coord(a) === coord(detailPlace)));
   }
 
-  // Open-Meteo 8개 지역 다중 좌표 일괄 선행 조회 (forecast 1회 + cached ensemble 1회)
+  // Open-Meteo 8개 지역 다중 좌표 일괄 선행 조회 + 백엔드 KMA 통합 번들(관측·단기·특보·도로·012위험) 1회 동시 호출
   const omBatchTask = prefetchOpenMeteo(queue, { force });
+  const bundleTask = loadOverviewBundle(queue, { line: 14, roadNum: '012', force });
 
-  loadRoadStations(14).then(stns => {
-    if (stns?.length) {
-      roadStations = stns;
+  const bundle = await bundleTask;
+  const bundledKeys = new Set();
+
+  if (bundle?.ok) {
+    if (bundle.roadStations?.length) {
+      roadStations = bundle.roadStations;
       if (!detailPlace) renderMiniMap();
     }
-  }).catch(() => {});
-  loadRoadRisk('012', force).then(riskPayload => {
-    if (riskPayload?.ok) {
-      roadRiskData = riskPayload;
-      checkRoadRiskEscalations(riskPayload);
+    if (bundle.roadRisk?.ok) {
+      roadRiskData = { ...bundle.roadRisk, _fromSnapshot: false };
+      checkRoadRiskEscalations(roadRiskData);
       for (const p of targets()) {
         record(p).roadRisk = findPlaceRoadRisk(p);
       }
       render();
     }
-  }).catch(() => {});
-  pollWarnings();
+    if (bundle.items) {
+      for (const p of queue) {
+        const entry = bundle.items[coord(p)];
+        if (!entry) continue;
+        const r = record(p);
+        if (entry.observation) r.o = { ...entry.observation, _fromSnapshot: false };
+        if (entry.forecast?.ok) seedKmaForecast(p, entry.forecast);
+        if (Array.isArray(entry.warnings)) {
+          r.wrn = buildWarningsFromApi(entry.warnings);
+          r.checked = Date.now();
+        }
+        bundledKeys.add(coord(p));
+      }
+    }
+  } else {
+    loadRoadStations(14).then(stns => {
+      if (stns?.length) {
+        roadStations = stns;
+        if (!detailPlace) renderMiniMap();
+      }
+    }).catch(() => {});
+    loadRoadRisk('012', force).then(riskPayload => {
+      if (riskPayload?.ok) {
+        roadRiskData = riskPayload;
+        checkRoadRiskEscalations(riskPayload);
+        for (const p of targets()) {
+          record(p).roadRisk = findPlaceRoadRisk(p);
+        }
+        render();
+      }
+    }).catch(() => {});
+  }
+
+  // 번들에 포함되지 않은 지점(또는 번들 실패 시)만 보조 특보 조회 수행
+  const missingWarnings = queue.filter(p => !bundledKeys.has(coord(p)));
+  if (missingWarnings.length) {
+    pollWarnings();
+  }
 
   async function worker() {
     while (queue.length) {
       const p = queue.shift();
       const r = record(p);
-      if (r.busy || (!force && !r.o?._fromSnapshot && r.last && Date.now() - r.last < 240000)) continue;
+      const isFreshObs = !force && !r.o?._fromSnapshot && r.last && Date.now() - r.last < 240000;
+      if (!bundledKeys.has(coord(p)) && isFreshObs) continue;
       r.busy = true;
       try {
-        try {
-          r.o = await loadObservation(p);
-        } catch {}
+        if (!r.o || r.o._fromSnapshot || force || !bundledKeys.has(coord(p))) {
+          try {
+            r.o = await loadObservation(p);
+          } catch {}
+        }
         try {
           await omBatchTask;
           r.w = await loadWeather(p, r.o);
@@ -2409,7 +2273,7 @@ function syncSettingsUI() {
   setPill('toggleWakeLock', settings.wakeLock);
   setPill('toggleSortRisk', settings.sortRisk);
   setPill('toggleDark', settings.darkMode);
-  setPill('toggleSimMode', settings.simMode, '훈련시안 ON', '실제 데이터');
+  setPill('toggleActionCards', settings.showActionCards, '켜짐 ON', '꺼짐 OFF');
   updateMonitorStatusBar();
 }
 
@@ -2472,22 +2336,11 @@ $('toggleDark').onclick = () => {
   persistSettings();
   syncSettingsUI();
 };
-$('toggleSimMode').onclick = () => {
-  settings.simMode = !settings.simMode;
+$('toggleActionCards').onclick = () => {
+  settings.showActionCards = !settings.showActionCards;
+  persistSettings();
   syncSettingsUI();
   render();
-  if (settings.simMode) {
-    const target = places.find(p => p.name === '거창군남부') || places[0];
-    showAlertToast(
-      target,
-      '🚨 특보 상향 발효',
-      '거창군남부(남상면) · 대설경보 변경 발효 (11-18 14:00)  해제예정: 11-19 오전(09:00) · 도로 살얼음 \'주의\' 단계 동시 발효 중',
-      false
-    );
-    playAlertTone('warning');
-  } else {
-    $('alertToast').hidden = true;
-  }
 };
 
 $('saveApiBaseBtn').onclick = async () => {

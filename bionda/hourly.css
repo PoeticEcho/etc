@@ -487,6 +487,12 @@ body.dark-mode .hr-sum-overlap { color: #fca5a5; }
   padding: 3px 2px 5px;
   min-width: 0;
   gap: 1px;
+  overflow: hidden;
+  transition: opacity 0.24s ease, filter 0.24s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hr-sheet.is-dimming .hr-cell:not(.flash-wet):not(.flash-freezing):not(.flash-overlap) {
+  opacity: 0.4;
+  filter: saturate(0.65);
 }
 .hr-cell.is-night {
   background-color: rgba(16, 46, 62, 0.03);
@@ -518,27 +524,73 @@ body.dark-mode .hr-cell.is-overlap {
   box-shadow: inset 0 0 0 1.5px rgba(248, 113, 113, 0.7);
 }
 
-/* KPI Click Cell Flash Highlights */
+/* KPI Click Cell Focus Shimmer + Aurora Glow */
+@keyframes hrLightSweep {
+  0% { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
+  25% { opacity: 0.95; }
+  85% { opacity: 0.9; }
+  100% { transform: translateX(180%) skewX(-18deg); opacity: 0; }
+}
 @keyframes hrFlashWet {
-  0%, 100% { box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.35); transform: scale(1); }
-  22%, 62% { background-color: rgba(14, 165, 233, 0.42); box-shadow: inset 0 0 0 2.5px #0284c7, 0 0 12px rgba(14, 165, 233, 0.48); transform: scale(1.03); z-index: 4; }
-  42%, 82% { background-color: rgba(14, 165, 233, 0.16); transform: scale(1); }
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.4); transform: translateY(0) scale(1); }
+  24%, 64% {
+    background-color: rgba(14, 165, 233, 0.34);
+    box-shadow: inset 0 0 0 2px #0ea5e9, 0 4px 16px rgba(14, 165, 233, 0.42), 0 0 0 3px rgba(56, 189, 248, 0.22);
+    transform: translateY(-1px) scale(1.03);
+    z-index: 4;
+  }
+  44%, 84% { background-color: rgba(14, 165, 233, 0.18); transform: translateY(0) scale(1); }
 }
 @keyframes hrFlashFreezing {
-  0%, 100% { box-shadow: none; transform: scale(1); }
-  22%, 62% { background-color: rgba(56, 189, 248, 0.36); box-shadow: inset 0 0 0 2.5px #0369a1, 0 0 12px rgba(56, 189, 248, 0.45); transform: scale(1.03); z-index: 4; }
-  42%, 82% { background-color: rgba(56, 189, 248, 0.12); transform: scale(1); }
+  0%, 100% { box-shadow: none; transform: translateY(0) scale(1); }
+  24%, 64% {
+    background-color: rgba(56, 189, 248, 0.32);
+    box-shadow: inset 0 0 0 2px #0284c7, 0 4px 16px rgba(2, 132, 199, 0.38), 0 0 0 3px rgba(125, 211, 252, 0.25);
+    transform: translateY(-1px) scale(1.03);
+    z-index: 4;
+  }
+  44%, 84% { background-color: rgba(56, 189, 248, 0.14); transform: translateY(0) scale(1); }
 }
 @keyframes hrFlashOverlap {
-  0%, 100% { box-shadow: inset 0 0 0 1.5px rgba(220, 38, 38, 0.65); transform: scale(1); }
-  22%, 62% { background-color: rgba(239, 68, 68, 0.44); box-shadow: inset 0 0 0 2.5px #dc2626, 0 0 14px rgba(239, 68, 68, 0.55); transform: scale(1.04); z-index: 5; }
-  42%, 82% { background-color: rgba(239, 68, 68, 0.18); transform: scale(1); }
+  0%, 100% { box-shadow: inset 0 0 0 1.5px rgba(220, 38, 38, 0.65); transform: translateY(0) scale(1); }
+  24%, 64% {
+    background-color: rgba(239, 68, 68, 0.38);
+    box-shadow: inset 0 0 0 2px #ef4444, 0 4px 18px rgba(220, 38, 38, 0.5), 0 0 0 3px rgba(252, 165, 165, 0.28);
+    transform: translateY(-1px) scale(1.04);
+    z-index: 5;
+  }
+  44%, 84% { background-color: rgba(239, 68, 68, 0.2); transform: translateY(0) scale(1); }
 }
-.hr-cell.flash-wet { animation: hrFlashWet 1.45s ease-in-out; }
-.hr-cell.flash-freezing { animation: hrFlashFreezing 1.45s ease-in-out; }
-.hr-cell.flash-overlap { animation: hrFlashOverlap 1.45s ease-in-out; }
-.hr-datarow.flash-row .hr-namecol { background-color: rgba(14, 165, 233, 0.09); }
-body.dark-mode .hr-datarow.flash-row .hr-namecol { background-color: rgba(56, 189, 248, 0.12); }
+.hr-cell.flash-wet,
+.hr-cell.flash-freezing,
+.hr-cell.flash-overlap {
+  overflow: hidden;
+  z-index: 4;
+}
+.hr-cell.flash-wet::after,
+.hr-cell.flash-freezing::after,
+.hr-cell.flash-overlap::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+  width: 55%;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0.72) 50%, transparent 100%);
+  pointer-events: none;
+  animation: hrLightSweep 0.78s cubic-bezier(0.22, 1, 0.36, 1) 2;
+}
+body.dark-mode .hr-cell.flash-wet::after,
+body.dark-mode .hr-cell.flash-freezing::after,
+body.dark-mode .hr-cell.flash-overlap::after {
+  background: linear-gradient(105deg, transparent 0%, rgba(224, 242, 254, 0.38) 50%, transparent 100%);
+}
+.hr-cell.flash-wet { animation: hrFlashWet 1.55s cubic-bezier(0.22, 1, 0.36, 1); }
+.hr-cell.flash-freezing { animation: hrFlashFreezing 1.55s cubic-bezier(0.22, 1, 0.36, 1); }
+.hr-cell.flash-overlap { animation: hrFlashOverlap 1.55s cubic-bezier(0.22, 1, 0.36, 1); }
+.hr-datarow.flash-row .hr-namecol {
+  background-color: rgba(14, 165, 233, 0.11);
+  transition: background-color 0.24s ease;
+}
+body.dark-mode .hr-datarow.flash-row .hr-namecol { background-color: rgba(56, 189, 248, 0.16); }
 
 .hr-c1 {
   display: inline-flex;
@@ -798,20 +850,48 @@ body.dark-mode .hr-link-btn.is-primary {
 }
 .hr-api-actions button { flex: 1; padding: 8px 10px; }
 
-/* Laptop / Shorter FHD viewport optimization (no vertical scroll at 12h) */
-@media (max-height: 920px) and (min-width: 1100px) {
-  .hourly-wrap { padding-top: 6px; padding-bottom: 34px; }
-  .hr-subhead { margin-bottom: 5px; }
-  .hr-metrics { margin-bottom: 6px; }
-  .hr-metric { min-height: 52px; padding: 6px 12px; }
-  .hr-toolbar { margin-bottom: 6px; padding: 5px 10px; }
-  .hr-headrow { min-height: 36px; }
-  .hr-datarow { min-height: 41px; }
+/* Desktop / FHD viewport fill optimization: adapt 12 rows to fill 100% height cleanly without empty bottom margin */
+@media (min-width: 1100px) {
+  .hourly-wrap { padding-top: 7px; padding-bottom: 34px; }
+  .hr-subhead { margin-bottom: 6px; }
+  .hr-metrics { margin-bottom: 7px; }
+  .hr-metric { min-height: 54px; padding: 6px 13px; }
+  .hr-toolbar { margin-bottom: 7px; padding: 5px 11px; }
+  .hr-headrow { min-height: 38px; }
+  .hr-datarow {
+    height: clamp(41px, calc((100dvh - 284px) / 12), 68px);
+    min-height: 41px;
+  }
+  .hr-c1 {
+    font-size: clamp(12.5px, calc(8.5px + 0.38vh), 15.5px);
+    gap: 4px;
+  }
+  .hr-c1 .kma-sym {
+    width: clamp(20px, calc(12px + 1vh), 27px);
+    height: clamp(20px, calc(12px + 1vh), 27px);
+  }
+  .hr-c2 {
+    font-size: clamp(9.8px, calc(7px + 0.26vh), 11.5px);
+  }
+  .hr-geo-main { font-size: 13px; }
+  .hr-sum-top { font-size: 11px; }
+  .hr-sum-bot { font-size: 10.5px; }
 }
 
 @media (max-width: 900px) {
   .hr-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hr-hint { display: none; }
+  /* 모바일·태블릿 가로 스크롤 시 '대상 지역' 열만 좌측 고정하고 '시작·요약'은 함께 스크롤해 시간표 가독 공간 극대화 */
+  .hr-th-sum,
+  .hr-sumcol {
+    position: static;
+    left: auto;
+    box-shadow: none;
+  }
+  .hr-th-name,
+  .hr-namecol {
+    box-shadow: var(--hr-sticky-shadow);
+  }
 }
 
 @media (max-width: 640px) {

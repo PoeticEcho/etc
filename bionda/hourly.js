@@ -193,7 +193,7 @@ function renderCellContent(h, iconInfo) {
       ? `${h.rainMm.toFixed(1)}mm`
       : popText;
   return {
-    c1: `${renderKmaIconSvg(iconInfo, 20)}<span class="hr-temp">${tempText}</span>`,
+    c1: `${renderKmaIconSvg(iconInfo, 24)}<span class="hr-temp">${tempText}</span>`,
     c2: esc(amtSub),
     hasAmt: h.wet
   };
@@ -304,7 +304,7 @@ function renderSheet() {
       const h = hours[j];
       const prevH = j > 0 ? hours[j - 1] : null;
       const isBoundary = prevH && prevH.dayNum !== h.dayNum;
-      const iconInfo = getKmaIconInfo({ sky: h.sky, pty: h.pty, isNight: h.isNight });
+      const iconInfo = getKmaIconInfo({ sky: h.sky, pty: h.pty, isNight: h.isNight, lightning: h.lightning });
       const isSnow = h.wet && (h.snowCm > 0 || ['2', '3', '6', '7'].includes(String(h.pty)));
       const isSubzero = h.temp != null && h.temp < 0;
       const isWarm = h.temp != null && h.temp >= 12;
@@ -374,7 +374,7 @@ function openRegionDetail(regionId) {
   // 날씨 (아이콘 + 상태)
   tbl += '<tr><th>날씨</th>';
   for (const h of hours) {
-    const ic = getKmaIconInfo({ sky: h.sky, pty: h.pty, isNight: h.isNight });
+    const ic = getKmaIconInfo({ sky: h.sky, pty: h.pty, isNight: h.isNight, lightning: h.lightning });
     const ovCls = h.wet && h.temp != null && h.temp < 0 ? 'is-overlap-col' : '';
     tbl += `<td class="${ovCls}">${renderKmaIconSvg(ic, 22)}<div style="font-size:10px">${esc(ic.label)}</div></td>`;
   }
@@ -462,6 +462,7 @@ function flashKpiCells(kind, cardEl) {
   const sheet = $('sheet');
   if (!sheet) return;
   const flashClasses = ['flash-wet', 'flash-freezing', 'flash-overlap'];
+  sheet.classList.remove('is-dimming');
   sheet.querySelectorAll('.hr-cell').forEach(c => c.classList.remove(...flashClasses));
   sheet.querySelectorAll('.hr-datarow').forEach(r => r.classList.remove('flash-row'));
   document.querySelectorAll('[data-kpi-flash]').forEach(k => k.classList.remove('is-flashing', 'is-empty-pulse'));
@@ -473,7 +474,7 @@ function flashKpiCells(kind, cardEl) {
       : '.hr-cell.is-overlap';
   const targets = [...sheet.querySelectorAll(selector)];
 
-  // Reflow로 연속 클릭 시 애니메이션 즉시 재시작
+  // Reflow로 연속 클릭 시 스윕 애니메이션 즉시 재시작
   void sheet.offsetWidth;
 
   if (!targets.length) {
@@ -486,6 +487,7 @@ function flashKpiCells(kind, cardEl) {
   }
 
   const cls = `flash-${kind}`;
+  sheet.classList.add('is-dimming');
   if (cardEl) cardEl.classList.add('is-flashing');
   for (const cell of targets) {
     cell.classList.add(cls);
@@ -502,10 +504,11 @@ function flashKpiCells(kind, cardEl) {
 
   clearTimeout(flashClearTimer);
   flashClearTimer = setTimeout(() => {
+    sheet.classList.remove('is-dimming');
     sheet.querySelectorAll('.hr-cell').forEach(c => c.classList.remove(...flashClasses));
     sheet.querySelectorAll('.hr-datarow').forEach(r => r.classList.remove('flash-row'));
     document.querySelectorAll('[data-kpi-flash]').forEach(k => k.classList.remove('is-flashing'));
-  }, 1550);
+  }, 1650);
 }
 
 async function fetchShortTerm12Data(force = false) {

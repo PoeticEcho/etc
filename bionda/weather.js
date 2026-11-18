@@ -12,7 +12,14 @@ const hourlyFields = currentFields + ',precipitation_probability,rain,showers,sn
 const coordKey = p => `${Number(p.lat).toFixed(4)},${Number(p.lon).toFixed(4)}`;
 const omForecastCache = new Map(); // coordKey -> { expires, data }
 const omEnsembleCache = new Map(); // coordKey -> { expires, fetchedAt, data }
+const kmaForecastCache = new Map(); // `${lat.toFixed(3)},${lon.toFixed(3)}` -> { expires, data }
 let ensembleCooldownUntil = 0;
+
+export function seedKmaForecast(place, data) {
+  if (!place || !data?.ok) return;
+  const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
+  kmaForecastCache.set(key, { expires: Date.now() + 4 * 60000, data: { ...data, _fromSnapshot: false } });
+}
 let forecastPrefetchPromise = null;
 let ensemblePrefetchPromise = null;
 
@@ -138,18 +145,26 @@ export async function prefetchOpenMeteo(placesList, { force = false } = {}) {
 }
 
 export async function loadKmaForecast(place) {
+  const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
+  const cached = kmaForecastCache.get(key);
+  if (cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
   const params = new URLSearchParams({ lat: place.lat, lon: place.lon });
   if (await isBackendAvailable()) {
     try {
       const r = await fetch(apiUrl('/api/forecast?' + params.toString()), { signal: AbortSignal.timeout(12000) });
       if (r.ok) {
         const d = await r.json();
-        if (d?.ok) return { ...d, _fromSnapshot: false };
+        if (d?.ok) {
+          const out = { ...d, _fromSnapshot: false };
+          kmaForecastCache.set(key, { expires: Date.now() + 4 * 60000, data: out });
+          return out;
+        }
       }
     } catch {}
   }
   const snap = await getSnapshotFallback();
-  const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
   if (snap?.forecasts?.[key]) {
     return { ...snap.forecasts[key], _fromSnapshot: true, _snapshotGeneratedAt: snap.generatedAt || null };
   }

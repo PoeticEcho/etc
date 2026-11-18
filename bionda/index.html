@@ -299,7 +299,7 @@
             <p class="bridge-note">* 교량·응달·터널 출입구는 대기보다 2~4°C 낮아 야간 1.5°C(주간 0.5°C) 이하부터 즉각 결빙 위험</p>
 
             <!-- 4 Structured Decision Command Cards (시동ON·예열 / 예비살포 / 본살포 / 수방·횡풍) -->
-            <div class="decision-head">
+            <div id="decisionHead" class="decision-head">
               <b>🚜 제설 · 수방 단계별 지시 카드</b>
               <small>결빙·강설 3h전 예열 → 1~2h전 예비살포 → 본살포</small>
             </div>
@@ -401,12 +401,12 @@
         </div>
         <button type="button" id="toggleDark" class="toggle-pill" aria-pressed="false">꺼짐 OFF</button>
       </div>
-      <div class="setting-row setting-row-sim">
+      <div class="setting-row">
         <div>
-          <b>🧪 동절기 대설·결빙 시안 훈련모드</b>
-          <small>특보·살얼음·제설 3단계 시안 즉시 검증</small>
+          <b>🚜 제설·수방 지시 카드 표시</b>
+          <small>해제 시 기온·강수·살얼음 중심의 간결한 화면으로 표시</small>
         </div>
-        <button type="button" id="toggleSimMode" class="toggle-pill" aria-pressed="false">실제 데이터</button>
+        <button type="button" id="toggleActionCards" class="toggle-pill on" aria-pressed="true">켜짐 ON</button>
       </div>
       <div class="setting-row setting-row-col">
         <div class="setting-row-head">

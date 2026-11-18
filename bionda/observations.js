@@ -29,7 +29,55 @@ export async function getSnapshotFallback() {
   }
 }
 
+const obsMemCache = new Map();
+const roadStationsMemCache = new Map();
+const roadRiskMemCache = new Map();
+
+export async function loadOverviewBundle(placesList = [], { line = 14, roadNum = '012', force = false } = {}) {
+  if (!(await isBackendAvailable())) return null;
+  const serialized = (placesList || [])
+    .filter(p => p && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon)))
+    .slice(0, 10)
+    .map(p => `${String(p.name || '').replace(/[;|]/g, ' ').trim()}|${Number(p.lat).toFixed(4)},${Number(p.lon).toFixed(4)}`)
+    .join(';');
+  try {
+    const u = apiUrl(
+      '/api/overview-bundle?line=' + encodeURIComponent(line) +
+      '&roadNum=' + encodeURIComponent(roadNum) +
+      (serialized ? '&places=' + encodeURIComponent(serialized) : '') +
+      (force ? '&force=1' : '')
+    );
+    const r = await fetch(u, { signal: AbortSignal.timeout(15000), ...(force ? { cache: 'no-store' } : {}) });
+    if (!r.ok) return null;
+    const bundle = await r.json();
+    if (!bundle?.ok) return null;
+
+    if (Array.isArray(bundle.roadStations) && bundle.roadStations.length) {
+      roadStationsMemCache.set(String(line), { expires: Date.now() + 90000, data: bundle.roadStations });
+    }
+    if (bundle.roadRisk?.ok) {
+      roadRiskMemCache.set(String(roadNum), { expires: Date.now() + 9 * 60000, data: { ...bundle.roadRisk, _fromSnapshot: false } });
+    }
+    if (bundle.items) {
+      for (const [key, entry] of Object.entries(bundle.items)) {
+        if (entry?.observation) {
+          obsMemCache.set(key, { expires: Date.now() + 90000, data: { ...entry.observation, _fromSnapshot: false } });
+        }
+      }
+    }
+    return bundle;
+  } catch {
+    return null;
+  }
+}
+
 export async function loadObservation(place) {
+  const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
+  const cached = obsMemCache.get(key);
+  if (cached && Date.now() < cached.expires) {
+    lastObsError = '';
+    return cached.data;
+  }
   const params = new URLSearchParams({ lat: place.lat, lon: place.lon });
   if (await isBackendAvailable()) {
     try {
@@ -37,7 +85,9 @@ export async function loadObservation(place) {
       if (response.ok) {
         const data = await response.json();
         lastObsError = '';
-        return { ...data, _fromSnapshot: false };
+        const out = { ...data, _fromSnapshot: false };
+        obsMemCache.set(key, { expires: Date.now() + 90000, data: out });
+        return out;
       }
       lastObsError = `관측 HTTP ${response.status}`;
     } catch (e) {
@@ -45,7 +95,6 @@ export async function loadObservation(place) {
     }
   }
   const snap = await getSnapshotFallback();
-  const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
   if (snap?.observations?.[key]) {
     return { ...snap.observations[key], _fromSnapshot: true, _snapshotGeneratedAt: snap.generatedAt || null };
   }
@@ -53,12 +102,17 @@ export async function loadObservation(place) {
 }
 
 export async function loadRoadStations(line = 14) {
+  const cached = roadStationsMemCache.get(String(line));
+  if (cached && Date.now() < cached.expires) return cached.data;
   if (await isBackendAvailable()) {
     try {
       const response = await fetch(apiUrl('/api/road-obs?line=' + encodeURIComponent(line)), { signal: AbortSignal.timeout(10000) });
       if (response.ok) {
         const data = await response.json();
-        if (Array.isArray(data.stations)) return data.stations;
+        if (Array.isArray(data.stations)) {
+          roadStationsMemCache.set(String(line), { expires: Date.now() + 90000, data: data.stations });
+          return data.stations;
+        }
       }
     } catch {}
   }
@@ -66,8 +120,6 @@ export async function loadRoadStations(line = 14) {
   if (Array.isArray(snap?.roadStations)) return snap.roadStations;
   return [];
 }
-
-const roadRiskMemCache = new Map();
 
 export async function loadRoadRisk(roadNum = '012', force = false) {
   const key = String(roadNum || '012');

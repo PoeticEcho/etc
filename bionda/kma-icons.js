@@ -1,11 +1,17 @@
 /**
  * 기상청 단기예보(weather.go.kr/w/forecast/overall/short-term.do) 스타일 내장 SVG 날씨 아이콘 세트
- * - 외부 PNG 핫링크 없이 자체 내장 벡터 심볼(NB01~NB15 매칭)로 다크/라이트 모드 모두 선명하게 렌더링
+ * - 외부 PNG 핫링크 없이 자체 내장 벡터 심볼(NB01~NB16 · 맑음/구름/흐림/비/눈/소나기/진눈깨비/번개·뇌우 전종)로
+ *   다크/라이트 모드 모두 선명하게 렌더링
  */
 
-export function getKmaIconInfo({ sky = '1', pty = '0', isNight = false } = {}) {
+export function getKmaIconInfo({ sky = '1', pty = '0', isNight = false, lightning = false } = {}) {
   const p = String(pty ?? '0');
   const s = String(sky ?? '1');
+  if (lightning) {
+    if (p === '3' || p === '7') return { code: 'NB16', label: '눈·번개', kind: 'thunder' };
+    if (p !== '0') return { code: 'NB14', label: '비·번개', kind: 'thunder' };
+    return { code: 'NB04', label: '뇌우·번개', kind: 'thunder' };
+  }
   if (p === '1') return { code: 'NB09', label: '비', kind: 'rain' };
   if (p === '2') return { code: 'NB13', label: '비·눈', kind: 'sleet' };
   if (p === '3') return { code: 'NB11', label: '눈', kind: 'snow' };
@@ -13,7 +19,7 @@ export function getKmaIconInfo({ sky = '1', pty = '0', isNight = false } = {}) {
   if (p === '5') return { code: 'NB10', label: '빗방울', kind: 'rain' };
   if (p === '6') return { code: 'NB15', label: '빗방울·눈날림', kind: 'sleet' };
   if (p === '7') return { code: 'NB12', label: '눈날림', kind: 'snow' };
-  if (s === '3') return { code: isNight ? 'NB06' : 'NB05', label: '구름많음', kind: 'partly' };
+  if (s === '2' || s === '3') return { code: isNight ? 'NB06' : 'NB05', label: '구름많음', kind: 'partly' };
   if (s === '4') return { code: 'NB07', label: '흐림', kind: 'cloudy' };
   return { code: isNight ? 'NB02' : 'NB01', label: '맑음', kind: 'clear' };
 }
@@ -84,9 +90,13 @@ const SVG_SLEET = `
     <path d="M22.5 24.5v5M20.3 25.8l4.4 2.4M24.7 25.8l-4.4 2.4"/>
   </g>`;
 
+const SVG_LIGHTNING = `
+  <polygon points="19,17 14,25 18,25 16.5,32 23.5,22.5 19.3,22.5" fill="#fbbf24" stroke="#b45309" stroke-width="0.9" stroke-linejoin="round"/>`;
+
 const ICON_BODY_MAP = {
   NB01: SVG_SUN_FULL,
   NB02: SVG_MOON_FULL,
+  NB04: SVG_RAIN_CLOUD + SVG_LIGHTNING,
   NB05: SVG_SUN_PEEK + SVG_CLOUD_LIGHT,
   NB06: SVG_MOON_PEEK + SVG_CLOUD_LIGHT,
   NB07: SVG_CLOUD_DARK,
@@ -96,7 +106,9 @@ const ICON_BODY_MAP = {
   NB11: SVG_RAIN_CLOUD + SVG_SNOW_CRYSTALS,
   NB12: SVG_RAIN_CLOUD + `<g stroke="#7ed4ff" stroke-width="1.5" stroke-linecap="round"><path d="M18 24.5v5M15.8 25.8l4.4 2.4M20.2 25.8l-4.4 2.4"/></g>`,
   NB13: SVG_RAIN_CLOUD + SVG_SLEET,
-  NB15: SVG_RAIN_CLOUD + SVG_SLEET
+  NB14: SVG_RAIN_CLOUD + `<line x1="12.5" y1="24" x2="10.8" y2="29" stroke="#2fa4ff" stroke-width="2" stroke-linecap="round"/>` + SVG_LIGHTNING,
+  NB15: SVG_RAIN_CLOUD + SVG_SLEET,
+  NB16: SVG_RAIN_CLOUD + `<g stroke="#7ed4ff" stroke-width="1.5" stroke-linecap="round"><path d="M12.5 24.5v5M10.3 25.8l4.4 2.4M14.7 25.8l-4.4 2.4"/></g>` + SVG_LIGHTNING
 };
 
 export function renderKmaIconSvg(specOrHour, size = 22) {

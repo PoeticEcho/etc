@@ -284,11 +284,24 @@ function toActiveWarningItem(w) {
   };
 }
 
+export function buildWarningsFromApi(rawWarnings = []) {
+  const activeByKind = new Map();
+  for (const w of rawWarnings || []) {
+    if (w?.kind) activeByKind.set(w.kind, toActiveWarningItem(w));
+  }
+  const summary = buildWarningSummary([...activeByKind.values()]);
+  return {
+    ...summary,
+    recentEvents: [],
+    officialUrl: official
+  };
+}
+
 export async function fetchPlaceWarnings(place) {
   const activeByKind = new Map();
   const recentEvents = [];
 
-  // 1. Server-side KMA wrn_now_data.php endpoint (/api/warnings) or static snapshot fallback
+  // 1. Server-side KMA wrn_now_data.php + CAP polygon endpoint (/api/warnings)
   let loadedPrimary = false;
   if (await isBackendAvailable()) {
     try {
@@ -317,9 +330,11 @@ export async function fetchPlaceWarnings(place) {
     } catch {}
   }
 
-  // 2. KMA CAP RSS & XML polygon check
-  try {
-    const rssDoc = await loadXml('');
+  // 2. CAP RSS & XML 보조 조회는 백엔드(/api/warnings)가 이미 성공한 경우 중복 호출하지 않고,
+  // 오프라인/백엔드 실패 시에만 fallback으로 동작한다.
+  if (!loadedPrimary) {
+    try {
+      const rssDoc = await loadXml('');
     const files = [];
     for (const item of rssDoc.querySelectorAll('item')) {
       const linkText = text(item, 'link');
@@ -349,14 +364,15 @@ export async function fetchPlaceWarnings(place) {
 
     // Check latest CAP XML <parameter> t6 summary for long-running warnings
     const firstFulfilled = settled.find(x => x.status === 'fulfilled');
-    if (firstFulfilled?.value?.doc) {
-      for (const t6Item of parseT6Summary(firstFulfilled.value.doc, place)) {
-        if (!activeByKind.has(t6Item.kind)) {
-          activeByKind.set(t6Item.kind, t6Item);
+      if (firstFulfilled?.value?.doc) {
+        for (const t6Item of parseT6Summary(firstFulfilled.value.doc, place)) {
+          if (!activeByKind.has(t6Item.kind)) {
+            activeByKind.set(t6Item.kind, t6Item);
+          }
         }
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
   const summary = buildWarningSummary([...activeByKind.values()]);
   return {
