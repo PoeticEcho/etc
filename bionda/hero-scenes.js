@@ -521,9 +521,9 @@ function renderMoonLayer(scene, uid) {
 }
 
 /**
- * 고해상도 기상청 태풍 심볼 SVG (고정밀 캘리그라피 나선 구름 + 눈 + 기압파동) + 태풍 정보 배지
+ * 태풍 특보 정보 배지 (아이콘 없이 깔끔한 기상특보 스타일 배지 + Canvas 바람 궤적 조합)
  */
-function renderTyphoonEmblemLayer(scene, uid) {
+function renderTyphoonInfoLayer(scene) {
   if (scene.weather !== 'typhoon') return '';
   const info = scene.typhoon || DEFAULT_TYPHOON_INFO;
   const subParts = [];
@@ -532,34 +532,9 @@ function renderTyphoonEmblemLayer(scene, uid) {
   const headline = formatTyphoonHeadline(info);
   const subLine = subParts.join(' · ') || info.note || '강풍·호우 주의';
 
-  // 정사각형 SVG로 진원 비율 완벽 유지
   return `<div class="hs-typhoon-cluster" aria-hidden="true">
-    <svg class="hs-typhoon-svg" viewBox="-72 -72 144 144">
-      <defs>
-        <radialGradient id="${uid}tyGlow">
-          <stop offset="0%" stop-color="rgba(56, 189, 248, 0.48)"/>
-          <stop offset="55%" stop-color="rgba(14, 165, 233, 0.16)"/>
-          <stop offset="100%" stop-color="rgba(14, 165, 233, 0)"/>
-        </radialGradient>
-        <linearGradient id="${uid}tyArm" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#f0f9ff"/>
-          <stop offset="55%" stop-color="#7dd3fc"/>
-          <stop offset="100%" stop-color="#0284c7" stop-opacity="0.82"/>
-        </linearGradient>
-      </defs>
-      <circle cx="0" cy="0" r="64" fill="url(#${uid}tyGlow)"/>
-      <circle class="hs-ty-wave" cx="0" cy="0" r="46" fill="none" stroke="rgba(125,211,252,0.34)" stroke-width="1.2" stroke-dasharray="10 7"/>
-      <g class="hs-typhoon-arms">
-        <path d="M0,-13 C18,-13 33,-2 38,16 C40,26 36,36 28,44 C31,26 23,12 10,7 C10,2 6,-3 0,-5 Z" fill="url(#${uid}tyArm)"/>
-        <path d="M0,13 C-18,13 -33,2 -38,-16 C-40,-26 -36,-36 -28,-44 C-31,-26 -23,-12 -10,-7 C-10,-2 -6,3 0,5 Z" fill="url(#${uid}tyArm)"/>
-        <path d="M-44,6 C-46,24 -32,42 -12,48 C-26,38 -32,24 -28,10 Z" fill="rgba(186,230,253,0.45)"/>
-        <path d="M44,-6 C46,-24 32,-42 12,-48 C26,-38 32,-24 28,-10 Z" fill="rgba(186,230,253,0.45)"/>
-      </g>
-      <circle cx="0" cy="0" r="13.5" fill="rgba(15, 23, 42, 0.72)" stroke="#e0f2fe" stroke-width="2.2"/>
-      <circle cx="0" cy="0" r="6.2" fill="#38bdf8" opacity="0.85"/>
-    </svg>
     <div class="hs-typhoon-tag">
-      <strong>🌀 ${esc(headline)}</strong>
+      <strong>태풍 특보 · ${esc(headline)}</strong>
       <span>${esc(subLine)}</span>
     </div>
   </div>`;
@@ -731,49 +706,44 @@ function getTerrainColors(scene) {
 }
 
 /**
- * 산악 능선 + 실제 고속도로 아스팔트 벡터(원근 노면 · 황색 중앙선 · 차선 점선 · 양쪽 갓길 실선 · 교각 · 0~3단계 살얼음 색상 연동)
+ * 풀블리드(-20..1220) 산악 능선 + 원근 고속도로 벡터(좌우 끊김 없음 · 좌측 텍스트부 부드러운 그라데이션 페이드 · 0~3단계 살얼음 색상 연동)
  */
 function renderTerrainLayer(scene, uid) {
   const t = getTerrainColors(scene);
   const ice = scene.iceMeta || ICE_RANK_META[0];
   const isWet = ['rain', 'thunder', 'typhoon'].includes(scene.weather);
-  const backPts = '0,162 110,136 190,140 310,94 375,112 490,62 542,84 628,48 696,76 804,34 960,72 960,180 0,180';
-  const frontPts = '0,174 140,152 245,156 355,114 435,130 565,84 652,108 755,66 862,88 960,64 960,180 0,180';
-  const ridgeCap = 'M310,94 L375,112 L490,62 L542,84 L628,48 L696,76 L804,34 L960,72';
+  const backPts = '-10,168 120,150 245,155 370,126 450,136 585,84 662,104 795,52 872,78 1015,34 1135,66 1215,58 1215,186 -10,186';
+  const frontPts = '-10,176 165,160 290,165 425,142 520,148 665,104 768,122 895,78 1020,98 1145,62 1215,74 1215,186 -10,186';
+  const ridgeCap = 'M370,126 L450,136 L585,84 L662,104 L795,52 L872,78 L1015,34 L1135,66 L1215,58';
 
-  // 원근 곡선 고속도로 (산 능선 앞 우측 하단 490..960을 가로질러 전경 하단으로 확장)
-  // 상단 갓길: M495,155 Q720,124 960,121
-  // 하단 갓길: M585,180 Q765,157 960,156
-  // 중심 황색선: M532,170 Q742,140 960,138.5
   const asphaltTop = scene.iceRank >= 3 ? '#1a2736' : scene.iceRank === 2 ? '#1f2833' : '#222933';
-  const asphaltBot = scene.iceRank >= 3 ? '#101d2b' : '#171c23';
+  const asphaltBot = scene.iceRank >= 3 ? '#0e1b29' : '#151a21';
 
-  // 아스팔트 위 물기/얼음/적설 질감 오버레이
   const roadIcePatch = ice.iceAlpha > 0
-    ? `<path d="M510,166 Q735,134 960,130 L960,148 Q750,151 560,180 Z" fill="url(#${uid}roadIceGrad)" opacity="${ice.iceAlpha.toFixed(2)}"/>
-       <g class="hs-ice-sheen" stroke="#e0f2fe" stroke-width="1.2" stroke-linecap="round" opacity="${Math.min(0.92, ice.iceAlpha + 0.3).toFixed(2)}">
-         <g transform="translate(705,153)"><path d="M0,-4.5 V4.5 M-3.9,-2.2 L3.9,2.2 M-3.9,2.2 L3.9,-2.2"/></g>
-         <g transform="translate(815,141)"><path d="M0,-5.5 V5.5 M-4.8,-2.7 L4.8,2.7 M-4.8,2.7 L4.8,-2.7"/></g>
-         <g transform="translate(902,138)"><path d="M0,-5 V5 M-4.3,-2.5 L4.3,2.5 M-4.3,2.5 L4.3,-2.5"/></g>
+    ? `<path d="M-20,169 C320,164 690,141 1220,124 L1220,152 C710,158 340,176 -20,182 Z" fill="url(#${uid}roadIceGrad)" opacity="${ice.iceAlpha.toFixed(2)}"/>
+       <g class="hs-ice-sheen" stroke="#e0f2fe" stroke-width="1.25" stroke-linecap="round" opacity="${Math.min(0.92, ice.iceAlpha + 0.3).toFixed(2)}">
+         <g transform="translate(835,148)"><path d="M0,-4.5 V4.5 M-3.9,-2.2 L3.9,2.2 M-3.9,2.2 L3.9,-2.2"/></g>
+         <g transform="translate(975,137)"><path d="M0,-5.5 V5.5 M-4.8,-2.7 L4.8,2.7 M-4.8,2.7 L4.8,-2.7"/></g>
+         <g transform="translate(1110,132)"><path d="M0,-5 V5 M-4.3,-2.5 L4.3,2.5 M-4.3,2.5 L4.3,-2.5"/></g>
        </g>`
     : isWet
-      ? `<path d="M510,166 Q735,134 960,130 L960,148 Q750,151 560,180 Z" fill="rgba(147,197,253,0.12)"/>`
+      ? `<path d="M-20,169 C320,164 690,141 1220,124 L1220,152 C710,158 340,176 -20,182 Z" fill="rgba(147,197,253,0.12)"/>`
       : '';
 
   const roadSnowBank = scene.isSnowTerrain
-    ? `<path d="M492,155 Q718,123 960,120 L960,125 Q720,128 498,158 Z" fill="rgba(241,245,249,0.75)"/>
-       <path d="M578,180 Q762,156 960,155 L960,161 Q765,161 595,180 Z" fill="rgba(241,245,249,0.68)"/>`
+    ? `<path d="M-20,164 C310,160 680,134 1220,116 L1220,122 C680,139 310,163 -20,168 Z" fill="rgba(241,245,249,0.72)"/>
+       <path d="M-20,183 C340,181 710,166 1220,156 L1220,164 C710,171 340,185 -20,188 Z" fill="rgba(241,245,249,0.68)"/>`
     : '';
 
-  // 갓길/난간 델리네이터 비콘(0:초록, 1:노랑, 2:주황, 3:빨강)
+  // 갓길/난간 델리네이터 비콘(좌→우 자연스러운 원근 간격)
   const beacons = [
-    [605, 141], [678, 132], [752, 126], [832, 122], [912, 120]
+    [615, 145], [730, 138], [848, 131], [966, 125], [1085, 121], [1175, 118]
   ].map(([bx, by]) => `
     <circle cx="${bx}" cy="${by}" r="${scene.iceRank >= 2 ? 4.8 : 3.4}" fill="${ice.beaconGlow}"/>
     <circle cx="${bx}" cy="${by}" r="${scene.iceRank >= 2 ? 2.1 : 1.5}" fill="${ice.railColor}"/>
   `).join('');
 
-  return `<svg class="hs-layer hs-terrain" viewBox="0 0 960 180" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
+  return `<svg class="hs-layer hs-terrain" viewBox="0 0 1200 180" preserveAspectRatio="none" aria-hidden="true">
     <defs>
       <linearGradient id="${uid}tb" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${t.back}"/>
@@ -784,49 +754,70 @@ function renderTerrainLayer(scene, uid) {
         <stop offset="100%" stop-color="${asphaltBot}"/>
       </linearGradient>
       <linearGradient id="${uid}roadIceGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.15"/>
-        <stop offset="45%" stop-color="#bae6fd" stop-opacity="0.72"/>
-        <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0.48"/>
+        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.1"/>
+        <stop offset="50%" stop-color="#bae6fd" stop-opacity="0.68"/>
+        <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0.52"/>
       </linearGradient>
+      <linearGradient id="${uid}mtnAlpha" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+        <stop offset="28%" stop-color="#ffffff" stop-opacity="0.46"/>
+        <stop offset="52%" stop-color="#ffffff" stop-opacity="0.88"/>
+        <stop offset="72%" stop-color="#ffffff" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="1"/>
+      </linearGradient>
+      <linearGradient id="${uid}roadAlpha" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.10"/>
+        <stop offset="24%" stop-color="#ffffff" stop-opacity="0.16"/>
+        <stop offset="44%" stop-color="#ffffff" stop-opacity="0.58"/>
+        <stop offset="60%" stop-color="#ffffff" stop-opacity="0.96"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="1"/>
+      </linearGradient>
+      <mask id="${uid}mtnMask"><rect x="-20" y="0" width="1240" height="190" fill="url(#${uid}mtnAlpha)"/></mask>
+      <mask id="${uid}roadMask"><rect x="-20" y="0" width="1240" height="190" fill="url(#${uid}roadAlpha)"/></mask>
     </defs>
 
-    <!-- 2중 산악 능선 -->
-    <polygon points="${backPts}" fill="url(#${uid}tb)" opacity="0.88"/>
-    <path d="${ridgeCap}" fill="none" stroke="${t.cap}" stroke-width="${scene.isSnowTerrain ? 4.2 : 1.6}" stroke-linejoin="round" opacity="${t.capAlpha}"/>
-    <polygon points="${frontPts}" fill="${t.front}" opacity="0.95"/>
-
-    <!-- 12호선 고가교각 · 사면 성토 -->
-    <g stroke="rgba(15, 23, 42, 0.55)" stroke-width="4">
-      <line x1="658" y1="168" x2="658" y2="180"/>
-      <line x1="742" y1="161" x2="742" y2="180"/>
-      <line x1="830" y1="158" x2="830" y2="180"/>
-      <line x1="916" y1="156" x2="916" y2="180"/>
+    <!-- 좌측 끝까지 자연스럽게 이어지는 산악 능선 -->
+    <g mask="url(#${uid}mtnMask)">
+      <polygon points="${backPts}" fill="url(#${uid}tb)" opacity="0.88"/>
+      <path d="${ridgeCap}" fill="none" stroke="${t.cap}" stroke-width="${scene.isSnowTerrain ? 4.2 : 1.6}" stroke-linejoin="round" opacity="${t.capAlpha}"/>
+      <polygon points="${frontPts}" fill="${t.front}" opacity="0.94"/>
     </g>
 
-    <!-- 콘크리트 갓길 외곽 방호벽 -->
-    <path d="M490,157 Q720,122 960,118 L960,162 Q768,162 595,180 L488,180 Z" fill="#334155" opacity="0.92"/>
+    <!-- 화면 좌측(-20)부터 우측(1220) 끝까지 끊김 없이 이어지는 고속도로 + 부드러운 그라데이션 페이드 -->
+    <g mask="url(#${uid}roadMask)">
+      <!-- 고가 교각 -->
+      <g stroke="rgba(12, 18, 28, 0.58)" stroke-width="4.5">
+        <line x1="740" y1="168" x2="740" y2="186"/>
+        <line x1="875" y1="163" x2="875" y2="186"/>
+        <line x1="1015" y1="159" x2="1015" y2="186"/>
+        <line x1="1145" y1="157" x2="1145" y2="186"/>
+      </g>
 
-    <!-- 실제 아스팔트 노면 -->
-    <path d="M496,158 Q722,125 960,121 L960,156 Q766,157 586,180 L496,180 Z" fill="url(#${uid}roadAsph)"/>
+      <!-- 노반·방호벽 외곽 -->
+      <path d="M-20,164 C310,160 680,134 1220,116 L1220,164 C710,171 340,185 -20,188 Z" fill="#334155" opacity="0.92"/>
 
-    ${roadIcePatch}
-    ${roadSnowBank}
+      <!-- 실제 아스팔트 노면 -->
+      <path d="M-20,166 C315,162 685,137 1220,119 L1220,157 C710,165 340,183 -20,185 Z" fill="url(#${uid}roadAsph)"/>
 
-    <!-- 양쪽 갓길 실선 (노면 경계선) -->
-    <path d="M502,160 Q724,128 960,124" fill="none" stroke="${ice.edgeLine}" stroke-width="1.35" opacity="0.88"/>
-    <path d="M582,179 Q766,155 960,154" fill="none" stroke="${ice.edgeLine}" stroke-width="1.6" opacity="0.92"/>
+      ${roadIcePatch}
+      ${roadSnowBank}
 
-    <!-- 상·하행 차선 점선 -->
-    <path d="M518,165 Q732,134 960,130.5" fill="none" stroke="rgba(248,250,252,0.52)" stroke-width="1.15" stroke-dasharray="11 10"/>
-    <path d="M558,174 Q752,147 960,145.5" fill="none" stroke="rgba(248,250,252,0.58)" stroke-width="1.25" stroke-dasharray="14 11"/>
+      <!-- 양쪽 갓길 실선 (노면 경계) -->
+      <path d="M-20,168 C316,164 686,140 1220,122.5" fill="none" stroke="${ice.edgeLine}" stroke-width="1.3" opacity="0.88"/>
+      <path d="M-20,183.5 C340,181 710,163 1220,154.5" fill="none" stroke="${ice.edgeLine}" stroke-width="1.6" opacity="0.92"/>
 
-    <!-- 도로 황색 중심선 -->
-    <path d="M538,169.5 Q742,140.5 960,138" fill="none" stroke="${ice.centerLine}" stroke-width="1.75" opacity="0.9"/>
+      <!-- 상·하행 차선 점선 -->
+      <path d="M-20,172 C324,168 694,146 1220,130.5" fill="none" stroke="rgba(248,250,252,0.50)" stroke-width="1.15" stroke-dasharray="12 10"/>
+      <path d="M-20,179.5 C334,176.5 704,157 1220,146.5" fill="none" stroke="rgba(248,250,252,0.58)" stroke-width="1.25" stroke-dasharray="15 11"/>
 
-    <!-- 0·1·2·3단계 살얼음 직관 방호벽 컬러 라인 + 교량 경고 비콘 -->
-    <path class="${scene.iceRank >= 3 ? 'hs-ice-sheen' : ''}" d="M494,157 Q720,123 960,119" fill="none" stroke="${ice.accent}" stroke-width="${scene.iceRank >= 2 ? 2.6 : 1.8}" opacity="0.95"/>
-    <path d="M594,180 Q768,159 960,158" fill="none" stroke="${ice.accent}" stroke-width="${scene.iceRank >= 2 ? 2.8 : 2.0}" opacity="0.95"/>
-    ${beacons}
+      <!-- 도로 황색 중심선 -->
+      <path d="M-20,175.8 C329,172.2 699,151.5 1220,138.5" fill="none" stroke="${ice.centerLine}" stroke-width="1.75" opacity="0.92"/>
+
+      <!-- 0·1·2·3단계 살얼음 직관 방호벽 컬러 라인 + 비콘 -->
+      <path class="${scene.iceRank >= 3 ? 'hs-ice-sheen' : ''}" d="M-20,165.5 C312,161.5 682,135.5 1220,117.5" fill="none" stroke="${ice.accent}" stroke-width="${scene.iceRank >= 2 ? 2.5 : 1.7}" opacity="0.96"/>
+      <path d="M-20,185 C340,182.5 710,166.5 1220,158.5" fill="none" stroke="${ice.accent}" stroke-width="${scene.iceRank >= 2 ? 2.7 : 1.9}" opacity="0.96"/>
+      ${beacons}
+    </g>
   </svg>`;
 }
 
@@ -848,7 +839,7 @@ export function renderHeroSceneMarkup(input = {}) {
       renderStarsLayer(scene.celestial.starOpacity),
       renderSunLayer(scene, uid),
       showMoonFirst ? renderMoonLayer(scene, uid) : '',
-      renderTyphoonEmblemLayer(scene, uid),
+      renderTyphoonInfoLayer(scene),
       renderCloudsLayer(scene, uid),
       renderWeatherFxLayer(scene, uid),
       renderTerrainLayer(scene, uid),
