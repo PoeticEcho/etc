@@ -423,3 +423,52 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     windAlert
   };
 }
+
+/**
+ * 4단계 통합 색상 등급 분류 (0: 회색/평온 -> 1: 노랑/관심 -> 2: 주황/제설·수방지시 -> 3: 빨강/눈·심한비·긴급·경보)
+ */
+export function classifySeverityTier({ w = null, o = null, wrn = null } = {}) {
+  const iceRank = w?.ice?.rank || 0;
+  const floodRank = w?.ice?.flood?.rank || 0;
+  const windActive = !!w?.ice?.windAlert?.active;
+  const cards = w?.ice?.decisionCards || [];
+  const hasUrgentCard = cards.some(c => c?.state === 'urgent');
+  const hasWatchCard = cards.some(c => c?.state === 'watch');
+
+  const nowWet = !!w?.kma?.analysis?.now?.wet;
+  const nowType = String(w?.kma?.analysis?.now?.type || '');
+  const curCode = o?.code ?? w?.current?.code;
+  const surfaceCode = o?.surfaceCode;
+
+  const isSnowingNow =
+    (Number.isFinite(o?.snowDepth) && o.snowDepth > 0) ||
+    nowType.includes('눈') ||
+    nowType.includes('진눈') ||
+    [66, 67, 71, 73, 75, 77, 85, 86].includes(curCode) ||
+    [4, 5, 6].includes(surfaceCode);
+
+  const curRainRate = Math.max(
+    Number.isFinite(o?.precip) ? o.precip : 0,
+    Number.isFinite(w?.current?.precip) ? w.current.precip : 0,
+    nowWet && Number.isFinite(w?.kma?.hours?.[0]?.rainMm) ? w.kma.hours[0].rainMm : 0
+  );
+  const isHeavyRainNow =
+    (nowWet || (Number.isFinite(o?.precip) && o.precip > 0)) &&
+    (curRainRate >= 10.0 || [65, 81, 82, 95, 96, 99].includes(curCode));
+
+  const topWrn = wrn?.top;
+  const isSevereWrn =
+    (wrn?.count || 0) > 0 &&
+    (topWrn?.level === '경보' || ['대설', '호우', '태풍'].includes(topWrn?.kind));
+
+  if (isSnowingNow || isHeavyRainNow || iceRank === 2 || floodRank === 2 || hasUrgentCard || isSevereWrn) {
+    return { tier: 3, key: 'danger', cls: 'tier-danger', pinColor: '#ef4444', ringColor: 'rgba(239,68,68,0.38)', label: '긴급·경고' };
+  }
+  if (hasWatchCard || iceRank === 1 || floodRank === 1 || windActive) {
+    return { tier: 2, key: 'directive', cls: 'tier-directive', pinColor: '#f97316', ringColor: 'rgba(249,115,22,0.36)', label: '지시·주의' };
+  }
+  if ((wrn?.count || 0) > 0 || nowWet || surfaceCode === 2 || surfaceCode === 3) {
+    return { tier: 1, key: 'watch', cls: 'tier-watch', pinColor: '#eab308', ringColor: 'rgba(234,179,8,0.34)', label: '관심' };
+  }
+  return { tier: 0, key: 'calm', cls: 'tier-calm', pinColor: '#10b981', ringColor: 'rgba(16,185,129,0.28)', label: '평온' };
+}

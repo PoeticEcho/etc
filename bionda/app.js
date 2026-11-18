@@ -1,6 +1,7 @@
 import { loadWeather, loadProbabilities } from './weather.js';
 import { loadObservation, loadRoadStations } from './observations.js';
 import { fetchPlaceWarnings, buildWarningSummary } from './warnings.js';
+import { classifySeverityTier } from './ice.js';
 import { renderOverviewCanvas, renderDetailCanvas, canvasToJpgBlob } from './share.js';
 
 const $ = id => document.getElementById(id);
@@ -84,8 +85,9 @@ const settings = {
   darkMode: false,
   simMode: false,
   desktopNotify: true,
-  pcLayout: 'stacked', // 'stacked' (상하 기본 4x2 + 하단 분할) | 'split' (좌우 FHD 분할: 좌 2x4 + 우 상하)
-  mapSplitPct: 43 // 미니맵 영역 폭 비율 (30 ~ 68%)
+  pcLayout: 'stacked', // 'stacked' (상하 기본 4x2 + 하단 분할) | 'split' (좌우 FHD 분할: 좌 2x4 + 우 상하 레이더/미니맵)
+  mapSplitPct: 43, // 미니맵 영역 폭 비율 (30 ~ 68%)
+  splitRadarPx: 380 // 좌우 분할 시 우측 상단 영상 높이 (220 ~ 640px)
 };
 try {
   const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
@@ -98,6 +100,9 @@ try {
     settings.pcLayout = savedSettings.pcLayout === 'split' ? 'split' : 'stacked';
     if (Number.isFinite(savedSettings.mapSplitPct)) {
       settings.mapSplitPct = Math.max(30, Math.min(68, savedSettings.mapSplitPct));
+    }
+    if (Number.isFinite(savedSettings.splitRadarPx)) {
+      settings.splitRadarPx = Math.max(220, Math.min(640, savedSettings.splitRadarPx));
     }
   }
 } catch {}
@@ -113,7 +118,8 @@ function persistSettings() {
         darkMode: settings.darkMode,
         desktopNotify: settings.desktopNotify,
         pcLayout: settings.pcLayout,
-        mapSplitPct: settings.mapSplitPct
+        mapSplitPct: settings.mapSplitPct,
+        splitRadarPx: settings.splitRadarPx
       })
     );
   } catch {}
@@ -158,6 +164,7 @@ const records = new Map();
 let roadStations = [];
 let filter = 'all';
 let actionStageFilter = null; // null | 'preheat' | 'presalt' | 'mainplow' | 'floodwind'
+let selectedWindyKey = null; // 'place:...' | 'stn:...'
 let detailPlace = null;
 let mobileMapView = false;
 let tableMode = '6h'; // '6h' | '12h'
@@ -286,18 +293,21 @@ function getEffectiveRecord(p) {
       time: '2026-11-18T14:40:00+09:00',
       temp: sim.temp,
       roadTemp: sim.roadTemp,
+      surfaceCode: sim.iceRank === 2 ? 4 : 1,
       surfaceState: sim.surfaceState,
       humidity: sim.humidity,
       dayPrecip: sim.dayPrecip,
       snowDepth: sim.snowDepth ?? null,
       windSpeed: 2.4,
+      code: sim.iceRank === 2 ? 71 : 3,
+      precip: sim.iceRank === 2 ? 1.2 : 0,
       description: sim.description
     },
     w: {
       ...(baseRec.w || {}),
       stale: false,
       through: '2026-11-18T14:40',
-      current: { time: '2026-11-18T14:40', temp: sim.temp, humidity: sim.humidity, wind: 2.4, code: 71, precip: sim.dayPrecip },
+      current: { time: '2026-11-18T14:40', temp: sim.temp, humidity: sim.humidity, wind: 2.4, code: sim.iceRank === 2 ? 71 : 3, precip: sim.iceRank === 2 ? 1.2 : 0 },
       today: { precip: sim.dayPrecip, rain: Number((sim.dayPrecip * 0.28).toFixed(1)), snow: sim.snowDepth ? Number((sim.snowDepth * 2).toFixed(1)) : 0 },
       last24: { precip: sim.dayPrecip, rain: Number((sim.dayPrecip * 0.28).toFixed(1)), snow: sim.snowDepth ? Number((sim.snowDepth * 2).toFixed(1)) : 0 },
       rows: baseRows,
@@ -489,12 +499,13 @@ function checkRiskDiffs() {
   initialSnapshotDone = true;
 }
 
-// 위험도 점수 계산 (위험 지역 상단 우선 정렬용)
+// 위험도 점수 계산 (4단계 등급 빨강>주황>노랑>회색 순 상단 우선 정렬)
 function placeDangerScore(p) {
   const rec = getEffectiveRecord(p);
-  let score = 0;
+  const sev = classifySeverityTier(rec);
+  let score = sev.tier * 2000;
   if (rec.wrn?.count > 0) {
-    score += rec.wrn.top.level === '경보' ? 1000 : 500;
+    score += rec.wrn.top.level === '경보' ? 600 : 300;
     score += Math.max(0, 50 - (rec.wrn.top.priorityScore % 100));
   }
   const iceRank = rec.w?.ice?.rank || 0;
@@ -781,25 +792,7 @@ function renderMiniMap() {
     </g>`;
   }
 
-  // Plot all Corridor KMA Road Weather Stations sorted Eastbound (50.8k -> 171.3k)
-  const corridorStns = roadStations
-    .filter(s => s.lon >= minLon && s.lon <= maxLon && (s.temp !== null || s.roadTemp !== null))
-    .map(s => ({ ...s, resolvedKm: resolveStationKm(s) }))
-    .sort((a, b) => (a.resolvedKm ?? 999) - (b.resolvedKm ?? 999) || a.lon - b.lon);
-
-  for (const stn of corridorStns) {
-    const [sx, sy] = project(stn.lat, stn.lon);
-    const kmTxt = stn.resolvedKm !== null ? `${stn.resolvedKm.toFixed(1)}k ` : '';
-    const trTxt = stn.roadTemp !== null ? `노면 ${stn.roadTemp.toFixed(1)}°C` : '';
-    const isStnWarn = stn.surfaceCode >= 2 || (stn.roadTemp !== null && stn.roadTemp <= 1.0);
-    const dotCol = isStnWarn ? '#fbbf24' : '#81e6d9';
-    svg += `<g class="stn-dot" transform="translate(${sx},${sy})">
-      <title>[도로기상 ${kmTxt}] ${stn.name} (${stn.stationType}, 고도 ${stn.elevation ?? '—'}m) ${trTxt}</title>
-      <rect x="-2.9" y="-2.9" width="5.8" height="5.8" fill="${dotCol}" stroke="#0b2427" stroke-width="0.7" transform="rotate(45)"/>
-    </g>`;
-  }
-
-  // Fixed non-overlapping 2-Rail Callout Slots (4 Top Rail, 4 Bottom Rail, West-to-East)
+  // 8 Watched Regions Callouts + GPS Pins (4-Tier Severity Colors: Green -> Yellow -> Orange -> Red)
   const slotMap = {
     '함양중부': { cx: 68, cy: 50, anchorY: 68 },
     '거창': { cx: 201, cy: 50, anchorY: 68 },
@@ -816,17 +809,14 @@ function renderMiniMap() {
   places.forEach((p, idx) => {
     const [px, py] = project(Math.max(minLat, Math.min(maxLat, p.lat)), Math.max(minLon, Math.min(maxLon, p.lon)));
     const rec = getEffectiveRecord(p);
-    const iceRank = rec.w?.ice?.rank || 0;
-    const floodRank = rec.w?.ice?.flood?.rank || 0;
-    const hasWrn = (rec.wrn?.count || 0) > 0;
-    const isDanger = iceRank === 2 || floodRank === 2 || rec.wrn?.top?.level === '경보';
-    const isWatch = !isDanger && (iceRank === 1 || floodRank === 1 || hasWrn || rec.w?.kma?.analysis?.now?.wet || rec.w?.kma?.analysis?.start);
-
-    const fillCol = isDanger ? '#ef4444' : isWatch ? '#f59e0b' : '#10b981';
-    const ringCol = isDanger ? 'rgba(239,68,68,0.38)' : isWatch ? 'rgba(245,158,11,0.35)' : 'rgba(16,185,129,0.28)';
+    const sev = classifySeverityTier(rec);
+    const fillCol = sev.pinColor;
+    const ringCol = sev.ringColor;
     const tempVal = rec.o?.temp ?? rec.w?.current?.temp;
     const roadVal = rec.o?.roadTemp;
     const timing = rainTimingSummary(rec.w, rec.o);
+    const hasWrn = (rec.wrn?.count || 0) > 0;
+    const isPlaceSelected = selectedWindyKey === `place:${coord(p)}`;
 
     let slot = slotMap[p.name];
     if (!slot) {
@@ -847,18 +837,54 @@ function renderMiniMap() {
 
     svg += `<g class="map-node" data-coord="${coord(p)}" style="cursor:pointer">
       <line x1="${px}" y1="${py}" x2="${slot.cx}" y2="${slot.anchorY}" stroke="${fillCol}" stroke-width="1.3" stroke-dasharray="2.5,2.5" opacity="0.85"/>
-      <circle cx="${px}" cy="${py}" r="10.5" fill="${ringCol}"/>
-      <circle cx="${px}" cy="${py}" r="5.5" fill="${fillCol}" stroke="#ffffff" stroke-width="1.7"/>
+      <circle cx="${px}" cy="${py}" r="${isPlaceSelected ? 13 : 10.5}" fill="${ringCol}"/>
+      <circle cx="${px}" cy="${py}" r="5.5" fill="${fillCol}" stroke="${isPlaceSelected ? '#38bdf8' : '#ffffff'}" stroke-width="${isPlaceSelected ? 2.4 : 1.7}"/>
       <g transform="translate(${slot.cx},${slot.cy})">
-        <rect x="-62" y="-18" width="124" height="36" rx="7" fill="rgba(8, 25, 28, 0.94)" stroke="${fillCol}" stroke-width="1.4"/>
+        <rect x="-62" y="-18" width="124" height="36" rx="7" fill="rgba(8, 25, 28, 0.94)" stroke="${isPlaceSelected ? '#38bdf8' : fillCol}" stroke-width="${isPlaceSelected ? 2 : 1.4}"/>
         <text x="0" y="-3" text-anchor="middle" fill="#ffffff" font-size="10.4" font-weight="800">${titleLabel}</text>
         <text x="0" y="11" text-anchor="middle" fill="#b5e8de" font-size="9" font-weight="650">${roadPart} · ${statusPart}</text>
       </g>
     </g>`;
   });
 
+  // All 11 Corridor KMA Road Weather Stations sorted Eastbound (50.8k -> 171.3k), clickable circular markers!
+  const corridorStns = roadStations
+    .filter(s => s.lon >= minLon && s.lon <= maxLon && (s.temp !== null || s.roadTemp !== null))
+    .map(s => ({ ...s, resolvedKm: resolveStationKm(s) }))
+    .sort((a, b) => (a.resolvedKm ?? 999) - (b.resolvedKm ?? 999) || a.lon - b.lon);
+
+  const classifyStnCol = s => {
+    if (s.surfaceCode >= 4 || (s.roadTemp !== null && s.roadTemp <= 0.0)) return '#ef4444';
+    if (s.surfaceCode === 3 || (s.roadTemp !== null && s.roadTemp <= 2.5)) return '#f97316';
+    if (s.surfaceCode === 2 || (s.roadTemp !== null && s.roadTemp <= 4.5)) return '#eab308';
+    return '#10b981';
+  };
+
+  for (const stn of corridorStns) {
+    const [sx, sy] = project(stn.lat, stn.lon);
+    const kmTxt = stn.resolvedKm !== null ? `${stn.resolvedKm.toFixed(1)}k ` : '';
+    const trTxt = stn.roadTemp !== null ? `노면 ${stn.roadTemp.toFixed(1)}°C` : '';
+    const dotCol = classifyStnCol(stn);
+    const isSel = selectedWindyKey === `stn:${stn.stnId}`;
+    svg += `<g class="stn-dot" data-stnid="${stn.stnId}" role="button" tabindex="0" transform="translate(${sx},${sy})" style="cursor:pointer">
+      <title>[도로기상 ${kmTxt}] ${stn.name} (${stn.stationType}, 고도 ${stn.elevation ?? '—'}m) ${trTxt} · 클릭 시 위성·레이더 이동</title>
+      <circle cx="0" cy="0" r="10.5" fill="transparent"/>
+      ${isSel ? '<circle cx="0" cy="0" r="9.5" fill="rgba(56,189,248,0.28)" stroke="#38bdf8" stroke-width="1.3"/>' : ''}
+      <circle class="stn-marker-core" cx="0" cy="0" r="4.6" fill="${dotCol}" stroke="#082427" stroke-width="1.3"/>
+    </g>`;
+  }
+
   svg += `</svg>`;
   container.innerHTML = svg;
+
+  const findNearestPlace = (lat, lon) => {
+    let best = places[0], bestD = Infinity;
+    for (const p of places) {
+      const d = (p.lat - lat) ** 2 + (p.lon - lon) ** 2;
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return best;
+  };
 
   container.querySelectorAll('.map-node').forEach(node => {
     node.addEventListener('click', () => {
@@ -872,12 +898,37 @@ function renderMiniMap() {
     });
   });
 
+  container.querySelectorAll('.stn-dot').forEach(node => {
+    const activateStn = () => {
+      const target = corridorStns.find(s => String(s.stnId) === String(node.dataset.stnid));
+      if (!target) return;
+      focusWindyOnStation(target);
+    };
+    node.addEventListener('click', e => {
+      e.stopPropagation();
+      activateStn();
+    });
+    node.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        activateStn();
+      }
+    });
+    node.addEventListener('dblclick', () => {
+      const stn = corridorStns.find(s => String(s.stnId) === String(node.dataset.stnid));
+      const nearest = stn ? findNearestPlace(stn.lat, stn.lon) : null;
+      if (nearest) location.hash = detailURL(nearest);
+    });
+  });
+
   // 하단 도로기상관측소 전체 목록 (고속국도 12호선 이정표 오름차순 50.8k -> 171.3k 전구간 표출)
   if (strip) {
     strip.replaceChildren();
     for (const s of corridorStns) {
-      const chip = el('button', '', 'road-stn-chip');
+      const stnKey = `stn:${s.stnId}`;
+      const chip = el('button', '', 'road-stn-chip' + (selectedWindyKey === stnKey ? ' is-selected' : ''));
       chip.type = 'button';
+      chip.dataset.stnid = s.stnId;
 
       const topRow = el('div', '', 'road-stn-top');
       const cleanName = s.name.replace('(도)', '');
@@ -897,26 +948,63 @@ function renderMiniMap() {
       valRow.append(roadSpan, document.createTextNode(airTxt));
 
       chip.append(topRow, valRow);
-      chip.onclick = () => {
-        windyState.lat = s.lat;
-        windyState.lon = s.lon;
-        windyState.detailLat = s.lat;
-        windyState.detailLon = s.lon;
-        windyState.label = `${kmTag}${s.name} (${s.lat.toFixed(3)}, ${s.lon.toFixed(3)})`;
-        updateWindyIframe();
-      };
+      chip.onclick = () => focusWindyOnStation(s);
       strip.append(chip);
     }
   }
 }
 
+function focusVisualPaneIntoView() {
+  const pane = $('visualPane');
+  const minimap = $('minimapPane');
+  if (!pane) return;
+  pane.classList.remove('focus-flash');
+  void pane.offsetWidth;
+  pane.classList.add('focus-flash');
+  setTimeout(() => pane.classList.remove('focus-flash'), 1100);
+
+  const vRect = pane.getBoundingClientRect();
+  const mRect = minimap?.getBoundingClientRect();
+  const minimapAbove = mRect && mRect.bottom <= vRect.top + 24;
+  const outOfView = vRect.top < 62 || vRect.bottom > window.innerHeight - 12;
+  if (minimapAbove || outOfView) {
+    const targetY = Math.max(0, window.scrollY + vRect.top - 66);
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
+  }
+}
+
+function syncMiniMapSelectionUI() {
+  document.querySelectorAll('#roadStnStrip .road-stn-chip').forEach(btn => {
+    btn.classList.toggle('is-selected', selectedWindyKey === `stn:${btn.dataset.stnid}`);
+  });
+}
+
+function focusWindyOnStation(s) {
+  const kmVal = resolveStationKm(s);
+  const kmTag = kmVal !== null ? `${kmVal.toFixed(1)}k ` : '';
+  selectedWindyKey = `stn:${s.stnId}`;
+  windyState.lat = Number((s.lat - 0.03).toFixed(3));
+  windyState.lon = Number(s.lon.toFixed(3));
+  windyState.detailLat = Number(s.lat.toFixed(3));
+  windyState.detailLon = Number(s.lon.toFixed(3));
+  windyState.label = `${kmTag}${s.name} (${s.lat.toFixed(3)}, ${s.lon.toFixed(3)})`;
+  updateWindyIframe();
+  renderMiniMap();
+  syncMiniMapSelectionUI();
+  focusVisualPaneIntoView();
+}
+
 function focusWindyOnPlace(p) {
+  selectedWindyKey = `place:${coord(p)}`;
   windyState.lat = Number((p.lat - 0.03).toFixed(3));
   windyState.lon = Number(p.lon.toFixed(3));
   windyState.detailLat = Number(p.lat.toFixed(3));
   windyState.detailLon = Number(p.lon.toFixed(3));
   windyState.label = `${p.name} · ${p.site || ''} (${p.lat.toFixed(3)}, ${p.lon.toFixed(3)})`;
   updateWindyIframe();
+  renderMiniMap();
+  syncMiniMapSelectionUI();
+  focusVisualPaneIntoView();
 }
 
 function updateWindyIframe() {
@@ -1100,12 +1188,9 @@ export function board() {
       const iceRank = w?.ice?.rank || 0;
       const floodRank = w?.ice?.flood?.rank || 0;
       const hasWarning = (wrn?.count || 0) > 0;
-      const isDanger = iceRank === 2 || floodRank === 2 || wrn?.top?.level === '경보';
-      const isWatch =
-        !isDanger &&
-        (iceRank === 1 || floodRank === 1 || hasWarning || w?.kma?.analysis?.now?.wet || w?.kma?.analysis?.start);
+      const sev = classifySeverityTier(r);
 
-      const cardCls = ['regioncard', isDanger ? 'state-danger' : isWatch ? 'state-watch' : ''].filter(Boolean).join(' ');
+      const cardCls = ['regioncard', sev.cls].filter(Boolean).join(' ');
       const a = el('a', '', cardCls);
       a.href = detailURL(p);
 
@@ -1709,31 +1794,72 @@ $('nativeShareBtn').onclick = async () => {
   $('downloadJpgBtn').click();
 };
 
-// PC 레이아웃 모드 및 미니맵:Windy 분할 비율 적용
+// PC 레이아웃 모드 및 미니맵:Windy 분할 비율 적용 (상하=좌우폭% | 좌우FHD=상하영상높이px)
 function applyLayoutAndSplit() {
   const container = $('overviewContainer');
+  const isSplit = settings.pcLayout === 'split';
   if (container) {
-    container.classList.toggle('layout-stacked', settings.pcLayout !== 'split');
-    container.classList.toggle('layout-fhd-split', settings.pcLayout === 'split');
+    container.classList.toggle('layout-stacked', !isSplit);
+    container.classList.toggle('layout-fhd-split', isSplit);
   }
   document.documentElement.style.setProperty('--map-split', `${settings.mapSplitPct}%`);
+  document.documentElement.style.setProperty('--split-radar-h', `${settings.splitRadarPx}px`);
   if ($('pcLayoutLabel')) {
-    $('pcLayoutLabel').textContent = settings.pcLayout === 'split' ? '좌우 분할(FHD)' : '상하 기본';
+    $('pcLayoutLabel').textContent = isSplit ? '좌우 분할(FHD)' : '상하 기본';
+  }
+  const splitter = $('mapSplitter');
+  const grip = $('splitterGrip');
+  if (splitter) {
+    splitter.setAttribute('aria-orientation', isSplit ? 'horizontal' : 'vertical');
+    splitter.title = isSplit
+      ? '위·아래로 드래그하여 상단 위성·레이더 영상과 하단 미니맵 높이를 조절하세요'
+      : '좌·우로 드래그하여 미니맵과 Windy/레이더 영상 폭 비율을 조절하세요';
+  }
+  if (grip) {
+    grip.textContent = isSplit ? '⋯' : '⋮';
   }
   document.querySelectorAll('.sp-btn[data-split]').forEach(btn => {
-    btn.classList.toggle('active', Math.abs(Number(btn.dataset.split) - settings.mapSplitPct) <= 3);
+    const val = Number(btn.dataset.split);
+    const active = isSplit
+      ? val === 35
+        ? settings.splitRadarPx >= 440
+        : val === 55
+        ? settings.splitRadarPx <= 320
+        : settings.splitRadarPx > 320 && settings.splitRadarPx < 440
+      : Math.abs(val - settings.mapSplitPct) <= 3;
+    btn.classList.toggle('active', active);
   });
 }
 
-// 드래그 리사이즈 바(#mapSplitter) 이벤트 바인딩
+// 드래그 리사이즈 바(#mapSplitter) 이벤트 바인딩 (상하=좌우폭 | 좌우분할=상하높이)
 function bindSplitterDrag() {
   const splitter = $('mapSplitter');
   const workspace = $('mapSection');
   if (!splitter || !workspace) return;
 
-  let dragging = false;
-  const onMove = clientX => {
-    if (!dragging) return;
+  let dragState = null; // { mode: 'col'|'row', startY, startRadarH }
+  const startDrag = clientY => {
+    const isRow = settings.pcLayout === 'split' && window.innerWidth > 1024;
+    const radarEl = $('windyBox')?.hidden
+      ? $('kmaRadarContainer')
+      : $('windyBox')?.querySelector('.iframe-wrap');
+    dragState = {
+      mode: isRow ? 'row' : 'col',
+      startY: clientY,
+      startRadarH: radarEl ? radarEl.getBoundingClientRect().height : settings.splitRadarPx
+    };
+    document.body.classList.add('is-resizing');
+    if (isRow) document.body.classList.add('is-resizing-row');
+  };
+
+  const onMove = (clientX, clientY) => {
+    if (!dragState) return;
+    if (dragState.mode === 'row') {
+      const nextH = Math.max(220, Math.min(640, Math.round(dragState.startRadarH + (clientY - dragState.startY))));
+      settings.splitRadarPx = nextH;
+      applyLayoutAndSplit();
+      return;
+    }
     const rect = workspace.getBoundingClientRect();
     if (rect.width < 500) return;
     const pct = Math.round(((clientX - rect.left) / rect.width) * 100);
@@ -1741,24 +1867,37 @@ function bindSplitterDrag() {
     applyLayoutAndSplit();
   };
 
+  const endDrag = () => {
+    if (!dragState) return;
+    dragState = null;
+    document.body.classList.remove('is-resizing', 'is-resizing-row');
+    persistSettings();
+  };
+
   splitter.addEventListener('mousedown', e => {
     e.preventDefault();
-    dragging = true;
-    document.body.classList.add('is-resizing');
+    startDrag(e.clientY);
   });
-  window.addEventListener('mousemove', e => onMove(e.clientX));
-  window.addEventListener('mouseup', () => {
-    if (dragging) {
-      dragging = false;
-      document.body.classList.remove('is-resizing');
-      persistSettings();
-    }
-  });
+  splitter.addEventListener('touchstart', e => {
+    if (!e.touches[0]) return;
+    startDrag(e.touches[0].clientY);
+  }, { passive: true });
+  window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+  window.addEventListener('touchmove', e => {
+    if (e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('touchend', endDrag);
 
-  // 빠른 비율 프리셋 버튼
+  // 빠른 비율 프리셋 버튼 (레이아웃 모드별 자동 매핑)
   document.querySelectorAll('.sp-btn[data-split]').forEach(btn => {
     btn.addEventListener('click', () => {
-      settings.mapSplitPct = Number(btn.dataset.split);
+      const val = Number(btn.dataset.split);
+      if (settings.pcLayout === 'split') {
+        settings.splitRadarPx = val === 35 ? 500 : val === 55 ? 260 : 380;
+      } else {
+        settings.mapSplitPct = val;
+      }
       applyLayoutAndSplit();
       persistSettings();
     });
