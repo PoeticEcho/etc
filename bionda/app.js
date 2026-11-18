@@ -88,7 +88,7 @@ const settings = {
   desktopNotify: true,
   pcLayout: 'stacked', // 'stacked' (상하 기본 4x2 + 하단 분할) | 'split' (좌우 FHD 분할: 좌 2x4 + 우 상하 레이더/미니맵)
   mapSplitPct: 43, // 미니맵 영역 폭 비율 (30 ~ 68%)
-  splitRadarPx: 325 // 좌우 분할 시 우측 상단 영상 높이 (220 ~ 640px)
+  splitRadarPx: 390 // 좌우 분할 시 우측 상단 영상 높이 (220 ~ 640px)
 };
 try {
   const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
@@ -2382,7 +2382,7 @@ function bindSplitterDrag() {
     btn.addEventListener('click', () => {
       const val = Number(btn.dataset.split);
       if (settings.pcLayout === 'split') {
-        settings.splitRadarPx = val === 35 ? 460 : val === 55 ? 250 : 325;
+        settings.splitRadarPx = val === 35 ? 470 : val === 55 ? 270 : 390;
       } else {
         settings.mapSplitPct = val;
       }

@@ -45,16 +45,15 @@
   <main class="hourly-wrap">
     <div class="hr-subhead">
       <div class="hr-subhead-left">
-        <span class="hr-eyebrow">KMA SHORT-TERM FORECAST MATRIX · 1회 API 통합 호출</span>
-        <h1 class="hr-title">12개 지역 1시간 기상예보 비교 상황판</h1>
+        <h1 class="hr-title hr-title-single">기상청 시간별예보 비교상황판 <span class="hr-title-en">· KMA SHORT-TERM FORECAST MATRIX</span></h1>
       </div>
       <div class="hr-subhead-right">
-        <span id="hourlySourcePill" class="hr-status-pill">자료 불러오는 중…</span>
+        <span id="hourlySourcePill" class="hr-status-pill" hidden></span>
         <span id="hourlyStamp" class="hr-stamp">기상청 단기·초단기예보 연동 대기</span>
       </div>
     </div>
 
-    <!-- 4 KPI Cards: Auto-summarizing onset & overlap strictly from forecast values -->
+    <!-- 4 KPI Cards: Auto-summarizing onset & overlap strictly from forecast values (Click KPI cards to flash matching cells) -->
     <section class="hr-metrics" aria-label="예보 조건 자동 요약 지표">
       <article class="hr-metric">
         <div class="hr-metric-copy">
@@ -63,28 +62,34 @@
         </div>
         <span class="hr-mpill">5개 시·군 12개소(11격자)</span>
       </article>
-      <article class="hr-metric">
+      <article id="kpiWetCard" class="hr-metric hr-metric-btn" data-kpi-flash="wet" role="button" tabindex="0" title="클릭하면 강수 예상 시간 셀을 강조해 반짝입니다">
         <div class="hr-metric-copy">
           <div class="hr-mk" id="kpiWetLabel">향후 12시간 강수 예상</div>
           <div class="hr-mn" id="kpiWetCount">—</div>
         </div>
-        <span class="hr-mpill is-rain" id="kpiWetPill">분석 중</span>
+        <div class="hr-mpill-stack">
+          <span class="hr-mpill is-rain" id="kpiWetPill">분석 중</span>
+          <small class="hr-msep">클릭 시 셀 강조 ✨</small>
+        </div>
       </article>
-      <article class="hr-metric">
+      <article id="kpiFreezingCard" class="hr-metric hr-metric-btn" data-kpi-flash="freezing" role="button" tabindex="0" title="클릭하면 영하 기온 예상 셀을 강조해 반짝입니다">
         <div class="hr-metric-copy">
           <div class="hr-mk" id="kpiFreezingLabel">향후 12시간 영하 예상</div>
           <div class="hr-mn" id="kpiFreezingCount">—</div>
         </div>
-        <span class="hr-mpill is-cold" id="kpiFreezingPill">분석 중</span>
+        <div class="hr-mpill-stack">
+          <span class="hr-mpill is-cold" id="kpiFreezingPill">분석 중</span>
+          <small class="hr-msep">클릭 시 셀 강조 ✨</small>
+        </div>
       </article>
-      <article class="hr-metric">
+      <article id="kpiOverlapCard" class="hr-metric hr-metric-btn" data-kpi-flash="overlap" role="button" tabindex="0" title="클릭하면 강수·영하 동시 겹침 셀을 강조해 반짝입니다">
         <div class="hr-metric-copy">
           <div class="hr-mk" id="kpiOverlapLabel">강수·영하 동시 겹침</div>
           <div class="hr-mn" id="kpiOverlapCount">—</div>
         </div>
         <div class="hr-mpill-stack">
           <span class="hr-mpill is-warn" id="kpiOverlapPill">예보 집계</span>
-          <small class="hr-msep">도로 결빙확률 별도</small>
+          <small class="hr-msep">도로 결빙확률 별도 · 클릭 강조 ✨</small>
         </div>
       </article>
     </section>

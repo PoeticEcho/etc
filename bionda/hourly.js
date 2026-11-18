@@ -428,21 +428,23 @@ function updateSourceStatus() {
   const p = state.payload;
 
   if (!p) {
+    pill.hidden = false;
     pill.textContent = '연결 오류';
     pill.className = 'hr-status-pill is-error';
     return;
   }
 
-  const base = getApiBase();
   const shortStr = formatMdHm(p.sources?.shortBase) || '-';
   const ultraStr = formatMdHm(p.sources?.ultraBase) || '-';
 
   if (state.fromSnapshot) {
+    pill.hidden = false;
     pill.textContent = '스냅샷 기준 (백엔드 오프라인)';
     pill.className = 'hr-status-pill is-snapshot';
     if (apiBtnLabel) apiBtnLabel.textContent = '스냅샷';
   } else {
-    pill.textContent = base ? `실시간 Worker 연동 (${new URL(base).host})` : '실시간 로컬 서버';
+    pill.hidden = true;
+    pill.textContent = '';
     pill.className = 'hr-status-pill';
     if (apiBtnLabel) apiBtnLabel.textContent = 'API 연결됨';
   }
@@ -453,6 +455,57 @@ function updateSourceStatus() {
   if (footerStamp) {
     footerStamp.textContent = `기준 자료: ${stampText} · 갱신 ${formatMdHm(p.updatedAt)} · 5분마다 자동 갱신`;
   }
+}
+
+let flashClearTimer = null;
+function flashKpiCells(kind, cardEl) {
+  const sheet = $('sheet');
+  if (!sheet) return;
+  const flashClasses = ['flash-wet', 'flash-freezing', 'flash-overlap'];
+  sheet.querySelectorAll('.hr-cell').forEach(c => c.classList.remove(...flashClasses));
+  sheet.querySelectorAll('.hr-datarow').forEach(r => r.classList.remove('flash-row'));
+  document.querySelectorAll('[data-kpi-flash]').forEach(k => k.classList.remove('is-flashing', 'is-empty-pulse'));
+
+  const selector = kind === 'wet'
+    ? '.hr-cell.is-wet, .hr-cell.is-snow'
+    : kind === 'freezing'
+      ? '.hr-cell.is-subzero'
+      : '.hr-cell.is-overlap';
+  const targets = [...sheet.querySelectorAll(selector)];
+
+  // Reflow로 연속 클릭 시 애니메이션 즉시 재시작
+  void sheet.offsetWidth;
+
+  if (!targets.length) {
+    if (cardEl) cardEl.classList.add('is-empty-pulse');
+    clearTimeout(flashClearTimer);
+    flashClearTimer = setTimeout(() => {
+      if (cardEl) cardEl.classList.remove('is-empty-pulse');
+    }, 600);
+    return;
+  }
+
+  const cls = `flash-${kind}`;
+  if (cardEl) cardEl.classList.add('is-flashing');
+  for (const cell of targets) {
+    cell.classList.add(cls);
+    cell.closest('.hr-datarow')?.classList.add('flash-row');
+  }
+  const wrap = $('sheetWrap');
+  if (wrap && targets[0]) {
+    const cellRect = targets[0].getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    if (cellRect.left < wrapRect.left + 220 || cellRect.right > wrapRect.right) {
+      targets[0].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }
+
+  clearTimeout(flashClearTimer);
+  flashClearTimer = setTimeout(() => {
+    sheet.querySelectorAll('.hr-cell').forEach(c => c.classList.remove(...flashClasses));
+    sheet.querySelectorAll('.hr-datarow').forEach(r => r.classList.remove('flash-row'));
+    document.querySelectorAll('[data-kpi-flash]').forEach(k => k.classList.remove('is-flashing'));
+  }, 1550);
 }
 
 async function fetchShortTerm12Data(force = false) {
@@ -507,6 +560,17 @@ function bindEvents() {
   });
 
   $('reloadHourlyBtn').addEventListener('click', () => fetchShortTerm12Data(true));
+
+  document.querySelectorAll('[data-kpi-flash]').forEach(card => {
+    const trigger = () => flashKpiCells(card.dataset.kpiFlash, card);
+    card.addEventListener('click', trigger);
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        trigger();
+      }
+    });
+  });
 
   document.querySelectorAll('[data-range]').forEach(btn => {
     btn.addEventListener('click', () => {

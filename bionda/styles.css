@@ -14,7 +14,7 @@
   --watch-bg: #fef9c3;
   --teal: #185856;
   --map-split: 43%;
-  --split-radar-h: 325px;
+  --split-radar-h: 390px;
 }
 
 body.dark-mode {
@@ -1197,9 +1197,11 @@ body.dark-mode .road-stn-vals em { color: #8be0cb; }
   background: #0d2629;
 }
 .overview-container.layout-fhd-split .iframe-wrap {
-  height: var(--split-radar-h, 380px);
+  height: var(--split-radar-h, 390px);
 }
 .iframe-wrap iframe {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   border: 0;
@@ -1215,7 +1217,25 @@ body.dark-mode .road-stn-vals em { color: #8be0cb; }
   overflow: hidden;
 }
 .overview-container.layout-fhd-split .kma-radar-container {
-  height: var(--split-radar-h, 380px);
+  height: var(--split-radar-h, 390px);
+}
+@media (min-width: 1025px) {
+  /* 상하 기본 배치: 좌측 도로미니맵 카드 전체 높이에 맞춰 우측 Windy/레이더 영역을 100% 확장 */
+  .overview-container.layout-stacked .visual-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .overview-container.layout-stacked .visual-body[hidden] {
+    display: none;
+  }
+  .overview-container.layout-stacked .iframe-wrap,
+  .overview-container.layout-stacked .kma-radar-container {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 430px;
+  }
 }
 .windy-panel.focus-flash {
   box-shadow: 0 0 0 2.5px #0d9488, 0 8px 24px rgba(13, 148, 136, 0.22);
@@ -1985,20 +2005,22 @@ body.dark-mode .wrn-item-card strong { color: #ff8e7d; }
   white-space: nowrap;
 }
 
-/* In-App Alert Toast Banner (Compact Bottom-Right on PC so it doesn't block left road stations or tables!) */
+/* In-App Alert Toast Banner (Bottom-Right on PC, wide enough so full status text shows without clipping) */
 .alert-toast {
   position: fixed;
   right: 16px;
   bottom: 38px;
-  width: min(470px, calc(100vw - 24px));
+  width: fit-content;
+  min-width: min(560px, calc(100vw - 32px));
+  max-width: min(920px, calc(100vw - 32px));
   background: #c92a14;
   color: #fff;
   border-radius: 11px;
-  padding: 8px 12px;
+  padding: 9px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
   z-index: 80;
   box-shadow: 0 8px 24px rgba(180, 30, 10, 0.35);
 }
@@ -2006,24 +2028,28 @@ body.dark-mode .wrn-item-card strong { color: #ff8e7d; }
 .toast-body {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   min-width: 0;
-  font-size: 12.5px;
+  flex: 1 1 auto;
+  font-size: 12.8px;
   font-weight: 700;
 }
 .toast-badge {
   background: #fff;
   color: #b82310;
-  padding: 2.5px 7px;
+  padding: 2.5px 8px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .toast-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.38;
+  overflow-wrap: anywhere;
 }
 .toast-actions {
   display: flex;
@@ -2251,8 +2277,8 @@ input {
   .minimap-box svg { max-height: 215px; }
   .iframe-wrap, .kma-radar-container { height: 340px; }
 
-  .alert-toast { left: 10px; right: 10px; width: auto; bottom: 28px; padding: 7px 10px; }
-  .toast-body { font-size: 11.5px; }
+  .alert-toast { left: 10px; right: 10px; width: auto; min-width: 0; max-width: none; bottom: 28px; padding: 8px 10px; flex-wrap: wrap; }
+  .toast-body { font-size: 11.5px; flex: 1 1 240px; }
   .global-footer { padding: 4px 0; font-size: 10.5px; }
   .kma-timeline { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .metrics { grid-template-columns: repeat(2, 1fr); }
