@@ -5,9 +5,12 @@
  * - Cloudflare Pages(*.bionda.pages.dev / bionda.pages.dev) 및 로컬 Node에서는 동일 도메인 '/api/*'를 자동 사용합니다.
  * - GitHub Pages(*.github.io) / file:에서 접속 시 별도 입력 없이 자동으로 아래 백엔드(bionda.pages.dev)를 사용합니다.
  */
+import { readPageCache, writePageCache, clearPageCache } from './page-cache.js';
+
 export const DEFAULT_API_BASE = 'https://bionda.pages.dev';
 
 const API_BASE_STORAGE_KEY = 'weather-watch:api-base';
+const HEALTH_CACHE_KEY = 'weather-watch:cache:health:v1';
 
 export function sanitizeApiBase(raw) {
   const s = String(raw || '').trim().replace(/\/+$/, '');
@@ -70,6 +73,7 @@ export function setApiBase(raw) {
   } catch {}
   backendState = null;
   backendPromise = null;
+  clearPageCache(HEALTH_CACHE_KEY);
   return getApiBase();
 }
 
@@ -89,6 +93,17 @@ export async function probeBackend(force = false) {
   if (!force && backendState && backendState.base === base && now - backendState.checkedAt < ttl) {
     return backendState;
   }
+  if (!force && !backendState) {
+    const persisted = readPageCache(HEALTH_CACHE_KEY, { expectedScope: base, maxStaleMs: 180000, nowMs: now });
+    const d = persisted?.entry?.data;
+    if (d && d.base === base) {
+      const pTtl = d.available ? 180000 : 45000;
+      if (persisted.ageMs < pTtl) {
+        backendState = d;
+        return backendState;
+      }
+    }
+  }
   if (!force && backendPromise) return backendPromise;
 
   backendPromise = (async () => {
@@ -106,6 +121,7 @@ export async function probeBackend(force = false) {
             error: '',
             checkedAt: Date.now()
           };
+          writePageCache(HEALTH_CACHE_KEY, { scope: base, data: backendState });
           return backendState;
         }
         errorMsg = '응답 형식 오류';
@@ -122,6 +138,7 @@ export async function probeBackend(force = false) {
       error: errorMsg,
       checkedAt: Date.now()
     };
+    writePageCache(HEALTH_CACHE_KEY, { scope: base, data: backendState });
     return backendState;
   })();
 

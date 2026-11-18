@@ -1,7 +1,19 @@
 import { apiUrl, getApiBase, setApiBase, DEFAULT_API_BASE } from './config.js';
 import { getKmaIconInfo, renderKmaIconSvg, renderWindArrowSvg } from './kma-icons.js';
+import {
+  readPageCache,
+  writePageCache,
+  clearPageCache,
+  evaluateCachePolicy,
+  currentKstHourKey as cacheHourKey,
+  DEFAULT_FRESH_MS,
+  DEFAULT_DWELL_MS,
+  HOURLY_REFRESH_MS
+} from './page-cache.js';
 
 const SETTINGS_KEY = 'weather-watch:settings:v2';
+const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v1';
+const hourlyCacheScope = () => getApiBase() || '__same_origin__';
 const CORRIDOR_WATCH_POINTS = [
   { name: '대구 달성군남부', lat: 35.697, lon: 128.447 },
   { name: '함양중부', lat: 35.566, lon: 127.774 },
@@ -22,6 +34,9 @@ let state = {
   sort: 'group',   // 'group' (고령·합천·거창·함양·달성) | 'route' (서->동)
   payload: null,
   fromSnapshot: false,
+  fromCache: false,
+  isRevalidating: false,
+  cacheSavedAt: 0,
   lastLoadedAt: 0,
   selectedRegionId: null
 };
@@ -520,7 +535,12 @@ function updateSourceStatus() {
   const stampText = `단기예보 ${shortStr} 발표(3h주기) · 초단기 ${ultraStr}(매시35분+) · 1회 통합 호출(${uniqCount}격자)`;
   stamp.textContent = stampText;
   if (footerStamp) {
-    footerStamp.textContent = `기준 자료: ${stampText} · 갱신 ${formatMdHm(p.updatedAt)} · 매 정시·36분·5분마다 자동 갱신`;
+    const syncNote = state.isRevalidating
+      ? '캐시 즉시표출(백그라운드 최신화 중…) · 매 정시·36분·10분 자동 갱신'
+      : state.fromCache
+        ? '5분 내 캐시(3분 머무름 시 자동갱신) · 매 정시·36분·10분마다 자동 갱신'
+        : '매 정시·36분·10분마다 자동 갱신';
+    footerStamp.textContent = `기준 자료: ${stampText} · 갱신 ${formatMdHm(p.updatedAt)} · ${syncNote}`;
   }
 }
 
@@ -582,8 +602,25 @@ let hourlyFetchInFlight = null;
 let lastLoadedHourKst = null;
 let topOfHourTimer = null;
 let ultraPickupTimer = null;
+let dwellRefreshTimer = null;
 
-const currentKstHourKey = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 13);
+function buildBackgroundHourlyOpts(sources, nowMs = Date.now()) {
+  const due = sources ? isUltraUpdateDue(sources, nowMs) : false;
+  return due
+    ? { ...computeManualRefreshFlags(sources, nowMs), silent: !!state.payload }
+    : { force: false, silent: !!state.payload };
+}
+
+function scheduleHourlyDwellRefresh(delayMs) {
+  clearTimeout(dwellRefreshTimer);
+  dwellRefreshTimer = null;
+  if (!Number.isFinite(delayMs) || delayMs === null) return;
+  dwellRefreshTimer = setTimeout(() => {
+    dwellRefreshTimer = null;
+    if (typeof document !== 'undefined' && document.hidden) return;
+    fetchShortTerm12Data(buildBackgroundHourlyOpts(state.payload?.sources, Date.now()));
+  }, Math.max(5000, delayMs));
+}
 
 /**
  * 상단 [새로고침] 버튼 클릭 시 사용자 지정 강제 재조회 규칙:
@@ -613,8 +650,13 @@ async function fetchShortTerm12Data(optsOrForce = false) {
     ? optsOrForce
     : { force: Boolean(optsOrForce) };
   const force = Boolean(opts.force);
+  const silent = Boolean(opts.silent && state.payload);
   const btn = $('reloadHourlyBtn');
-  if (btn) btn.classList.add('is-busy');
+  if (btn && !silent) btn.classList.add('is-busy');
+  if (silent) {
+    state.isRevalidating = true;
+    updateSourceStatus();
+  }
 
   hourlyFetchInFlight = (async () => {
     try {
@@ -631,10 +673,17 @@ async function fetchShortTerm12Data(optsOrForce = false) {
       if (r.ok) {
         const data = await r.json();
         if (data?.ok && Array.isArray(data.regions)) {
+          clearTimeout(dwellRefreshTimer);
+          dwellRefreshTimer = null;
+          const nowMs = Date.now();
           state.payload = data;
           state.fromSnapshot = false;
-          state.lastLoadedAt = Date.now();
-          lastLoadedHourKst = currentKstHourKey();
+          state.fromCache = false;
+          state.isRevalidating = false;
+          state.cacheSavedAt = nowMs;
+          state.lastLoadedAt = nowMs;
+          lastLoadedHourKst = cacheHourKey(nowMs);
+          writePageCache(HOURLY_CACHE_KEY, { scope: hourlyCacheScope(), data, nowMs });
           updateSourceStatus();
           renderSheet();
           if ($('detailDialog')?.open && state.selectedRegionId) openRegionDetail(state.selectedRegionId);
@@ -642,6 +691,12 @@ async function fetchShortTerm12Data(optsOrForce = false) {
         }
       }
     } catch {}
+
+    if (silent && state.payload) {
+      state.isRevalidating = false;
+      updateSourceStatus();
+      return;
+    }
 
     // Fallback to static snapshot JSON generated at build time
     try {
@@ -651,8 +706,10 @@ async function fetchShortTerm12Data(optsOrForce = false) {
         if (snap?.ok && Array.isArray(snap.regions)) {
           state.payload = snap;
           state.fromSnapshot = true;
+          state.fromCache = false;
+          state.isRevalidating = false;
           state.lastLoadedAt = Date.now();
-          lastLoadedHourKst = currentKstHourKey();
+          lastLoadedHourKst = cacheHourKey();
           updateSourceStatus();
           renderSheet();
           if ($('detailDialog')?.open && state.selectedRegionId) openRegionDetail(state.selectedRegionId);
@@ -662,6 +719,8 @@ async function fetchShortTerm12Data(optsOrForce = false) {
     } catch {}
 
     state.payload = null;
+    state.fromCache = false;
+    state.isRevalidating = false;
     updateSourceStatus();
     $('sheet').innerHTML = '<div class="hr-loading">단기예보 API 서버에 연결하지 못했습니다. 상단 [API 연결]에서 Worker 주소를 확인한 뒤 다시 시도해 주세요.</div>';
   })().finally(() => {
@@ -701,6 +760,9 @@ function scheduleUltraPickupRefresh() {
 }
 
 function triggerSmartManualRefresh() {
+  clearTimeout(dwellRefreshTimer);
+  dwellRefreshTimer = null;
+  state.isRevalidating = false;
   const flags = computeManualRefreshFlags(state.payload?.sources, Date.now());
   return fetchShortTerm12Data(flags);
 }
@@ -769,11 +831,13 @@ function bindEvents() {
   });
   $('hourlyApiSaveBtn').addEventListener('click', () => {
     setApiBase($('hourlyApiInput').value.trim());
+    clearPageCache(HOURLY_CACHE_KEY);
     apiDlg.close();
     fetchShortTerm12Data(true);
   });
   $('hourlyApiResetBtn').addEventListener('click', () => {
     setApiBase('');
+    clearPageCache(HOURLY_CACHE_KEY);
     $('hourlyApiInput').value = getApiBase() || DEFAULT_API_BASE;
     apiDlg.close();
     fetchShortTerm12Data(true);
@@ -783,27 +847,70 @@ function bindEvents() {
   scheduleTopOfHourRefresh();
   scheduleUltraPickupRefresh();
 
-  // 2) 백그라운드 스로틀/절전 복귀로 정시가 지난 경우 즉시 보정 새로고침
-  const checkHourRollover = () => {
-    if (lastLoadedHourKst && currentKstHourKey() !== lastLoadedHourKst) {
-      scheduleTopOfHourRefresh();
-      scheduleUltraPickupRefresh();
-      fetchShortTerm12Data({ force: true, refreshShort: true, refreshUltra: true });
+  // 2) 백그라운드 스로틀/절전 복귀로 정시·초단기 또는 10분 주기가 지난 경우 즉시 보정 새로고침
+  const checkHourOrStale = () => {
+    const nowMs = Date.now();
+    const hourChanged = lastLoadedHourKst && cacheHourKey(nowMs) !== lastLoadedHourKst;
+    const ultraDue = state.payload?.sources ? isUltraUpdateDue(state.payload.sources, nowMs) : false;
+    const stale10m = state.lastLoadedAt > 0 && (nowMs - state.lastLoadedAt) >= HOURLY_REFRESH_MS;
+    if (hourChanged || ultraDue || stale10m) {
+      if (hourChanged) {
+        scheduleTopOfHourRefresh();
+        scheduleUltraPickupRefresh();
+        fetchShortTerm12Data({ ...computeManualRefreshFlags(state.payload?.sources, nowMs), force: true, silent: !!state.payload });
+        return;
+      }
+      fetchShortTerm12Data(buildBackgroundHourlyOpts(state.payload?.sources, nowMs));
     }
   };
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') checkHourRollover();
+    if (document.visibilityState === 'visible') checkHourOrStale();
   });
-  setInterval(checkHourRollover, 60000);
+  setInterval(checkHourOrStale, 60000);
 
-  // 3) 5분마다 주기적 자동 갱신 (초단기예보 새 발표 시점 도래 시 캐시 우회 재조회)
+  // 3) 10분마다 주기적 자동 갱신 (1시간 예보 특성을 고려한 호출량·신선도 균형)
   setInterval(() => {
-    const due = isUltraUpdateDue(state.payload?.sources, Date.now());
-    fetchShortTerm12Data(due ? computeManualRefreshFlags(state.payload?.sources, Date.now()) : false);
-  }, 5 * 60000);
+    fetchShortTerm12Data(buildBackgroundHourlyOpts(state.payload?.sources, Date.now()));
+  }, HOURLY_REFRESH_MS);
+}
+
+function restoreHourlyCacheAndBoot() {
+  const nowMs = Date.now();
+  const hit = readPageCache(HOURLY_CACHE_KEY, { expectedScope: hourlyCacheScope(), nowMs });
+  const cachedPayload = hit?.entry?.data;
+  const validPayload = Boolean(cachedPayload?.ok && !cachedPayload._fromSnapshot && Array.isArray(cachedPayload.regions));
+  const ultraDue = validPayload ? isUltraUpdateDue(cachedPayload.sources, nowMs) : false;
+  const policy = evaluateCachePolicy({
+    cacheHit: validPayload ? hit : null,
+    freshMs: DEFAULT_FRESH_MS,
+    dwellMs: DEFAULT_DWELL_MS,
+    forceImmediate: ultraDue
+  });
+
+  if (policy.hasUsableCache && validPayload) {
+    state.payload = cachedPayload;
+    state.fromSnapshot = false;
+    state.fromCache = true;
+    state.cacheSavedAt = hit.entry.savedAt;
+    state.lastLoadedAt = hit.entry.savedAt;
+    lastLoadedHourKst = hit.entry.hourKey || cacheHourKey(nowMs);
+    state.isRevalidating = policy.shouldFetchNow;
+
+    updateSourceStatus();
+    renderSheet();
+
+    if (policy.shouldFetchNow) {
+      fetchShortTerm12Data(buildBackgroundHourlyOpts(cachedPayload.sources, nowMs));
+    } else if (policy.backgroundDwellDelayMs != null) {
+      scheduleHourlyDwellRefresh(policy.backgroundDwellDelayMs);
+    }
+    return;
+  }
+
+  fetchShortTerm12Data(false);
 }
 
 if (typeof document !== 'undefined') {
   bindEvents();
-  fetchShortTerm12Data(false);
+  restoreHourlyCacheAndBoot();
 }

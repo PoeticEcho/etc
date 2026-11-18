@@ -1,10 +1,20 @@
 import { loadWeather, loadProbabilities, prefetchOpenMeteo, seedKmaForecast } from './weather.js';
-import { loadOverviewBundle, loadObservation, loadRoadStations, loadRoadRisk, getLastObsError } from './observations.js';
+import { loadOverviewBundle, loadObservation, loadRoadStations, loadRoadRisk, seedOverviewCache, getLastObsError } from './observations.js';
 import { fetchPlaceWarnings, buildWarningSummary, buildWarningsFromApi } from './warnings.js';
 import { classifySeverityTier, isRoadRiskEscalated, ROAD_RISK_LABELS, FOG_RISK_LABELS } from './ice.js';
 import { renderOverviewCanvas, renderDetailCanvas, canvasToJpgBlob } from './share.js';
 import { apiUrl, getApiBase, setApiBase, probeBackend, isBackendAvailable, getBackendStatusSnapshot } from './config.js';
 import { applyHeroScene, buildHeroSceneInputFromRecord, clearHeroScene } from './hero-scenes.js';
+import {
+  readPageCache,
+  writePageCache,
+  clearPageCache,
+  evaluateCachePolicy,
+  currentKstHourKey,
+  DEFAULT_FRESH_MS,
+  DEFAULT_DWELL_MS,
+  OVERVIEW_REFRESH_MS
+} from './page-cache.js';
 
 const $ = id => document.getElementById(id);
 const el = (tag, txt = '', cls = '') => {
@@ -195,6 +205,15 @@ let windyState = {
 };
 let initialSnapshotDone = false;
 const prevRiskSnapshot = new Map();
+
+const OVERVIEW_CACHE_KEY = 'weather-watch:cache:overview:v1';
+const overviewCacheScope = () => `${getApiBase() || '__same_origin__'}|${targets().map(coord).join(';')}`;
+let lastLiveOverviewSyncAt = 0;
+let lastSyncHourKey = null;
+let overviewFromCache = false;
+let overviewRevalidating = false;
+let overviewDwellTimer = null;
+let overviewRefreshPromise = null;
 
 export function record(p) {
   const id = coord(p);
@@ -727,7 +746,7 @@ function updateUnifiedGlobalStamp() {
   let footerLabel;
   if (latestObs && latestModel) {
     if (anyObsSnapshot) {
-      footerLabel = `기준 자료: 관측 ${fmt(latestObs)}(스냅샷) · 모델 ${fmt(latestModel)}(실시간) · Open-Meteo 5분마다 자동 갱신`;
+      footerLabel = `기준 자료: 관측 ${fmt(latestObs)}(스냅샷) · 모델 ${fmt(latestModel)}(실시간) · 5분마다 자동 갱신`;
     } else if (fmt(latestObs) === fmt(latestModel)) {
       footerLabel = `기준 자료: ${fmt(latestObs)} · 5분마다 실시간 자동 갱신 (모든 카드 통합 기준 시각)`;
     } else {
@@ -739,6 +758,12 @@ function updateUnifiedGlobalStamp() {
     footerLabel = `기준 자료: 모델 ${fmt(latestModel)} · 5분마다 자동 갱신`;
   } else {
     footerLabel = `기준 자료: ${stampFormatted} · 5분마다 자동 갱신 (모든 카드 통합 기준 시각)`;
+  }
+
+  if (overviewRevalidating) {
+    footerLabel += ' · 백그라운드 최신화 중…';
+  } else if (overviewFromCache) {
+    footerLabel += ' · 5분 내 캐시(3분 머무름 시 자동갱신)';
   }
 
   $('globalStamp').textContent = footerLabel;
@@ -1935,106 +1960,278 @@ async function pollWarnings() {
   render();
 }
 
-export async function refresh(force = false) {
-  render();
-  await probeBackend(force);
-  updateMonitorStatusBar();
+function scheduleOverviewDwellRefresh(delayMs) {
+  clearTimeout(overviewDwellTimer);
+  overviewDwellTimer = null;
+  if (!Number.isFinite(delayMs) || delayMs === null) return;
+  overviewDwellTimer = setTimeout(() => {
+    overviewDwellTimer = null;
+    if (typeof document !== 'undefined' && document.hidden) return;
+    refresh({ silent: true, fromDwell: true });
+  }, Math.max(5000, delayMs));
+}
 
-  const queue = [...targets()];
-  if (detailPlace) {
-    queue.sort((a, b) => Number(coord(b) === coord(detailPlace)) - Number(coord(a) === coord(detailPlace)));
+function persistOverviewCache() {
+  const items = {};
+  let hasLivePlace = false;
+  const obsByCoord = {};
+
+  for (const p of targets()) {
+    const key = coord(p);
+    const r = record(p);
+    const obsLive = r.o && !r.o._fromSnapshot;
+    const fcstLive = r.w && (!r.w.kma || !r.w.kma._fromSnapshot);
+    if (obsLive || fcstLive) hasLivePlace = true;
+    if (r.o || r.w || r.wrn?.count) {
+      items[key] = {
+        o: r.o || null,
+        w: r.w || null,
+        wrn: r.wrn || null,
+        last: r.last || 0,
+        checked: r.checked || 0
+      };
+      if (obsLive) obsByCoord[key] = r.o;
+    }
+  }
+  if (!hasLivePlace && !(roadRiskData?.ok && !roadRiskData._fromSnapshot)) return;
+
+  seedOverviewCache({ line: 14, roadNum: '012', roadStations, roadRisk: roadRiskData, obsByCoord });
+  writePageCache(OVERVIEW_CACHE_KEY, {
+    scope: overviewCacheScope(),
+    data: {
+      roadStations: Array.isArray(roadStations) ? roadStations : [],
+      roadRiskData: roadRiskData || null,
+      items
+    }
+  });
+}
+
+function hydrateOverviewFromCache() {
+  const nowMs = Date.now();
+  const hit = readPageCache(OVERVIEW_CACHE_KEY, { expectedScope: overviewCacheScope(), nowMs });
+  const cached = hit?.entry?.data;
+  if (!cached || !cached.items) return null;
+
+  if (Array.isArray(cached.roadStations) && cached.roadStations.length) {
+    roadStations = cached.roadStations;
+  }
+  if (cached.roadRiskData?.ok) {
+    roadRiskData = cached.roadRiskData;
   }
 
-  // Open-Meteo 8개 지역 다중 좌표 일괄 선행 조회 + 백엔드 KMA 통합 번들(관측·단기·특보·도로·012위험) 1회 동시 호출
-  const omBatchTask = prefetchOpenMeteo(queue, { force });
-  const bundleTask = loadOverviewBundle(queue, { line: 14, roadNum: '012', force });
-
-  const bundle = await bundleTask;
-  const bundledKeys = new Set();
-
-  if (bundle?.ok) {
-    if (bundle.roadStations?.length) {
-      roadStations = bundle.roadStations;
-      if (!detailPlace) renderMiniMap();
+  const obsByCoord = {};
+  for (const p of targets()) {
+    const key = coord(p);
+    const entry = cached.items[key];
+    if (!entry) continue;
+    const r = record(p);
+    if (entry.o) {
+      r.o = entry.o;
+      if (!entry.o._fromSnapshot) obsByCoord[key] = entry.o;
     }
-    if (bundle.roadRisk?.ok) {
-      roadRiskData = { ...bundle.roadRisk, _fromSnapshot: false };
-      checkRoadRiskEscalations(roadRiskData);
-      for (const p of targets()) {
-        record(p).roadRisk = findPlaceRoadRisk(p);
+    if (entry.w) {
+      r.w = entry.w;
+      if (entry.w?.kma?.ok && !entry.w.kma._fromSnapshot) {
+        seedKmaForecast(p, entry.w.kma);
       }
-      render();
     }
-    if (bundle.items) {
-      for (const p of queue) {
-        const entry = bundle.items[coord(p)];
-        if (!entry) continue;
-        const r = record(p);
-        if (entry.observation) r.o = { ...entry.observation, _fromSnapshot: false };
-        if (entry.forecast?.ok) seedKmaForecast(p, entry.forecast);
-        if (Array.isArray(entry.warnings)) {
-          r.wrn = buildWarningsFromApi(entry.warnings);
-          r.checked = Date.now();
-        }
-        bundledKeys.add(coord(p));
-      }
-      render();
-    }
+    if (entry.wrn) r.wrn = entry.wrn;
+    if (Number.isFinite(entry.last)) r.last = entry.last;
+    if (Number.isFinite(entry.checked)) r.checked = entry.checked;
+    r.roadRisk = findPlaceRoadRisk(p);
+  }
+
+  seedOverviewCache({ line: 14, roadNum: '012', roadStations, roadRisk: roadRiskData, obsByCoord });
+
+  // 캐시 복원 상태는 경보 비교 기준선으로만 조용히 초기화(복원 직후 중복 토스트/알림 방지)
+  if (roadRiskData?.ok) checkRoadRiskEscalations(roadRiskData);
+  checkRiskDiffs();
+
+  lastLiveOverviewSyncAt = hit.entry.savedAt;
+  lastSyncHourKey = hit.entry.hourKey || currentKstHourKey(nowMs);
+  overviewFromCache = true;
+
+  const policy = evaluateCachePolicy({
+    cacheHit: hit,
+    freshMs: DEFAULT_FRESH_MS,
+    dwellMs: DEFAULT_DWELL_MS
+  });
+  if (policy.shouldFetchNow) {
+    overviewRevalidating = true;
+  } else if (policy.backgroundDwellDelayMs != null) {
+    scheduleOverviewDwellRefresh(policy.backgroundDwellDelayMs);
+  }
+  return policy;
+}
+
+function isOverviewFreshForRoute(targetDetailPlace = null) {
+  const nowMs = Date.now();
+  if (!lastLiveOverviewSyncAt) return false;
+  if (lastSyncHourKey !== currentKstHourKey(nowMs)) return false;
+  if (nowMs - lastLiveOverviewSyncAt >= DEFAULT_FRESH_MS) return false;
+  if (targetDetailPlace) {
+    const r = record(targetDetailPlace);
+    if (!r.w || !r.o) return false;
+  }
+  return true;
+}
+
+export async function refresh(forceOrOpts = false) {
+  const opts = typeof forceOrOpts === 'object' && forceOrOpts !== null
+    ? forceOrOpts
+    : { force: Boolean(forceOrOpts) };
+  const force = Boolean(opts.force);
+  const silent = Boolean(opts.silent && lastLiveOverviewSyncAt > 0);
+  const fromDwell = Boolean(opts.fromDwell);
+
+  if (force) {
+    clearTimeout(overviewDwellTimer);
+    overviewDwellTimer = null;
+  } else if (overviewRefreshPromise) {
+    return overviewRefreshPromise;
+  }
+
+  if (silent) {
+    overviewRevalidating = true;
   } else {
-    loadRoadStations(14).then(stns => {
-      if (stns?.length) {
-        roadStations = stns;
+    overviewRevalidating = false;
+  }
+  render();
+
+  const run = (async () => {
+    await probeBackend(force);
+    updateMonitorStatusBar();
+
+    const queue = [...targets()];
+    if (detailPlace) {
+      queue.sort((a, b) => Number(coord(b) === coord(detailPlace)) - Number(coord(a) === coord(detailPlace)));
+    }
+
+    // Open-Meteo 8개 지역 다중 좌표 일괄 선행 조회 + 백엔드 KMA 통합 번들(관측·단기·특보·도로·012위험) 1회 동시 호출
+    const omBatchTask = prefetchOpenMeteo(queue, { force });
+    const bundleTask = loadOverviewBundle(queue, { line: 14, roadNum: '012', force });
+
+    const bundle = await bundleTask;
+    const bundledKeys = new Set();
+    let anyLiveFetched = false;
+
+    if (bundle?.ok) {
+      anyLiveFetched = true;
+      if (bundle.roadStations?.length) {
+        roadStations = bundle.roadStations;
         if (!detailPlace) renderMiniMap();
       }
-    }).catch(() => {});
-    loadRoadRisk('012', force).then(riskPayload => {
-      if (riskPayload?.ok) {
-        roadRiskData = riskPayload;
-        checkRoadRiskEscalations(riskPayload);
+      if (bundle.roadRisk?.ok) {
+        roadRiskData = { ...bundle.roadRisk, _fromSnapshot: false };
+        checkRoadRiskEscalations(roadRiskData);
         for (const p of targets()) {
           record(p).roadRisk = findPlaceRoadRisk(p);
         }
         render();
       }
-    }).catch(() => {});
-  }
-
-  // 번들에 포함되지 않은 지점(또는 번들 실패 시)만 보조 특보 조회 수행
-  const missingWarnings = queue.filter(p => !bundledKeys.has(coord(p)));
-  if (missingWarnings.length) {
-    pollWarnings();
-  }
-
-  async function worker() {
-    while (queue.length) {
-      const p = queue.shift();
-      const r = record(p);
-      const isFreshObs = !force && !r.o?._fromSnapshot && r.last && Date.now() - r.last < 240000;
-      if (!bundledKeys.has(coord(p)) && isFreshObs) continue;
-      r.busy = true;
-      try {
-        if (!r.o || r.o._fromSnapshot || force || !bundledKeys.has(coord(p))) {
-          try {
-            r.o = await loadObservation(p);
-          } catch {}
-        }
-        try {
-          await omBatchTask;
-          r.w = await loadWeather(p, r.o);
-          if (r.w?.rows) {
-            loadProbabilities(p, r.w.rows).then(render).catch(() => {});
+      if (bundle.items) {
+        for (const p of queue) {
+          const entry = bundle.items[coord(p)];
+          if (!entry) continue;
+          const r = record(p);
+          if (entry.observation) r.o = { ...entry.observation, _fromSnapshot: false };
+          if (entry.forecast?.ok) seedKmaForecast(p, entry.forecast);
+          if (Array.isArray(entry.warnings)) {
+            r.wrn = buildWarningsFromApi(entry.warnings);
+            r.checked = Date.now();
           }
-        } catch {}
-      } finally {
-        r.last = Date.now();
-        r.busy = false;
+          bundledKeys.add(coord(p));
+        }
         render();
       }
+    } else {
+      loadRoadStations(14).then(stns => {
+        if (stns?.length) {
+          roadStations = stns;
+          if (!detailPlace) renderMiniMap();
+        }
+      }).catch(() => {});
+      loadRoadRisk('012', force).then(riskPayload => {
+        if (riskPayload?.ok) {
+          roadRiskData = riskPayload;
+          checkRoadRiskEscalations(riskPayload);
+          for (const p of targets()) {
+            record(p).roadRisk = findPlaceRoadRisk(p);
+          }
+          render();
+        }
+      }).catch(() => {});
     }
-  }
 
-  await Promise.all([worker(), worker(), worker()]);
-  checkRiskDiffs();
+    // 번들에 포함되지 않은 지점(또는 번들 실패 시)만 보조 특보 조회 수행
+    const missingWarnings = queue.filter(p => !bundledKeys.has(coord(p)));
+    if (missingWarnings.length) {
+      pollWarnings();
+    }
+
+    const probPromises = [];
+    async function worker() {
+      while (queue.length) {
+        const p = queue.shift();
+        const r = record(p);
+        const isFreshObs = !force && !fromDwell && !r.o?._fromSnapshot && r.last && Date.now() - r.last < 240000;
+        if (!bundledKeys.has(coord(p)) && isFreshObs) continue;
+        if (!silent) r.busy = true;
+        try {
+          if (!r.o || r.o._fromSnapshot || force || !bundledKeys.has(coord(p))) {
+            try {
+              const nextObs = await loadObservation(p);
+              if (nextObs && (!nextObs._fromSnapshot || !r.o)) {
+                r.o = nextObs;
+                if (!nextObs._fromSnapshot) anyLiveFetched = true;
+              }
+            } catch {}
+          }
+          try {
+            await omBatchTask;
+            const nextW = await loadWeather(p, r.o);
+            if (nextW && (!nextW.kma?._fromSnapshot || !r.w)) {
+              r.w = nextW;
+              if (!nextW.kma?._fromSnapshot) anyLiveFetched = true;
+              if (r.w?.rows) {
+                probPromises.push(loadProbabilities(p, r.w.rows).then(render).catch(() => {}));
+              }
+            }
+          } catch {}
+        } finally {
+          r.last = Date.now();
+          r.busy = false;
+          render();
+        }
+      }
+    }
+
+    await Promise.all([worker(), worker(), worker()]);
+    checkRiskDiffs();
+
+    clearTimeout(overviewDwellTimer);
+    overviewDwellTimer = null;
+    overviewRevalidating = false;
+    if (anyLiveFetched) {
+      overviewFromCache = false;
+      lastLiveOverviewSyncAt = Date.now();
+      lastSyncHourKey = currentKstHourKey();
+      persistOverviewCache();
+      if (probPromises.length) {
+        Promise.allSettled(probPromises).then(() => {
+          if (!overviewRevalidating) persistOverviewCache();
+        });
+      }
+    }
+    render();
+  })();
+
+  overviewRefreshPromise = run;
+  try {
+    return await run;
+  } finally {
+    if (overviewRefreshPromise === run) overviewRefreshPromise = null;
+  }
 }
 
 function route() {
@@ -2071,7 +2268,21 @@ function route() {
   } else {
     clearHeroScene(document.querySelector('#detail .hero'));
   }
-  refresh();
+
+  render();
+  if (!isOverviewFreshForRoute(detailPlace)) {
+    refresh({ silent: lastLiveOverviewSyncAt > 0 });
+  } else if (overviewFromCache && !overviewDwellTimer) {
+    const ageMs = Math.max(0, Date.now() - lastLiveOverviewSyncAt);
+    const policy = evaluateCachePolicy({
+      cacheHit: { entry: { savedAt: lastLiveOverviewSyncAt }, ageMs, sameHour: true },
+      freshMs: DEFAULT_FRESH_MS,
+      dwellMs: DEFAULT_DWELL_MS
+    });
+    if (policy.backgroundDwellDelayMs != null) {
+      scheduleOverviewDwellRefresh(policy.backgroundDwellDelayMs);
+    }
+  }
 }
 
 // 1:1 정방형(1080x1080) JPG 공유 모달
@@ -2362,6 +2573,8 @@ $('saveApiBaseBtn').onclick = async () => {
   }
   const clean = setApiBase(raw);
   if ($('apiBaseInput')) $('apiBaseInput').value = clean;
+  clearPageCache(OVERVIEW_CACHE_KEY);
+  lastLiveOverviewSyncAt = 0;
   await probeBackend(true);
   updateMonitorStatusBar();
   refresh(true);
@@ -2369,6 +2582,8 @@ $('saveApiBaseBtn').onclick = async () => {
 
 $('resetApiBaseBtn').onclick = async () => {
   setApiBase('');
+  clearPageCache(OVERVIEW_CACHE_KEY);
+  lastLiveOverviewSyncAt = 0;
   if ($('apiBaseInput')) $('apiBaseInput').value = getApiBase();
   await probeBackend(true);
   updateMonitorStatusBar();
@@ -2446,6 +2661,7 @@ function manage() {
       b.onclick = () => {
         places = places.filter(q => coord(q) !== coord(p));
         persist();
+        clearPageCache(OVERVIEW_CACHE_KEY);
         manage();
         if (detailPlace && coord(p) === coord(detailPlace)) location.hash = 'overview';
         route();
@@ -2465,16 +2681,18 @@ function choose(p) {
   }
   if (!existing) places.push(p);
   persist();
+  clearPageCache(OVERVIEW_CACHE_KEY);
   if ($('dialog').open) $('dialog').close();
   filter = 'all';
   if (detailPlace && !existing) location.hash = 'overview';
   else if (existing) location.hash = detailURL(p);
-  refresh();
+  refresh(true);
 }
 
 $('restorePresetsBtn').onclick = () => {
   places = presets.slice(0, 8);
   persist();
+  clearPageCache(OVERVIEW_CACHE_KEY);
   manage();
   $('formstatus').textContent = '✅ 광주대구선 8개 기본 관심지역(달성군남부·함양중부·거창군남부·합천군서북부·고령군·남원·함양·거창)으로 복원되었습니다.';
   refresh(true);
@@ -2639,22 +2857,30 @@ $('locate').onclick = () => {
   );
 };
 
-// 초기화
+// 초기화 (캐시 선복원 0ms 표출 → 필요 시 백그라운드 SWR · 5분 자동갱신)
 bindSplitterDrag();
 syncSettingsUI();
 syncWakeLock();
 notificationState();
+hydrateOverviewFromCache();
 route();
 
 setInterval(() => {
-  if (!document.hidden) refresh();
-}, 300000);
+  if (!document.hidden) refresh({ silent: true });
+}, OVERVIEW_REFRESH_MS);
 setInterval(() => {
   if (!document.hidden) pollWarnings();
 }, 60000);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     syncWakeLock();
-    refresh();
+    const nowMs = Date.now();
+    const staleOrRollover =
+      !lastLiveOverviewSyncAt ||
+      (nowMs - lastLiveOverviewSyncAt >= OVERVIEW_REFRESH_MS) ||
+      (lastSyncHourKey !== currentKstHourKey(nowMs));
+    if (staleOrRollover) {
+      refresh({ silent: lastLiveOverviewSyncAt > 0 });
+    }
   }
 });

@@ -33,6 +33,23 @@ const obsMemCache = new Map();
 const roadStationsMemCache = new Map();
 const roadRiskMemCache = new Map();
 
+export function seedOverviewCache({ line = 14, roadNum = '012', roadStations = null, roadRisk = null, obsByCoord = null } = {}) {
+  const now = Date.now();
+  if (Array.isArray(roadStations) && roadStations.length) {
+    roadStationsMemCache.set(String(line), { expires: now + 90000, data: roadStations });
+  }
+  if (roadRisk?.ok) {
+    roadRiskMemCache.set(String(roadNum), { expires: now + 5 * 60000, data: roadRisk });
+  }
+  if (obsByCoord && typeof obsByCoord === 'object') {
+    for (const [k, obs] of Object.entries(obsByCoord)) {
+      if (obs && !obs._fromSnapshot) {
+        obsMemCache.set(k, { expires: now + 90000, data: obs });
+      }
+    }
+  }
+}
+
 export async function loadOverviewBundle(placesList = [], { line = 14, roadNum = '012', force = false } = {}) {
   if (!(await isBackendAvailable())) return null;
   const serialized = (placesList || [])
