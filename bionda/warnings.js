@@ -1,7 +1,7 @@
 // 기상청 CAP 특보 전종 파싱 · 도로관리 위험도 우선순위 정렬 · 발효/해제예정 시각 추출 (요구사항 3)
 const origin = 'https://www.weather.go.kr';
 const feed = origin + '/w/rss/cap/warning.do';
-const official = origin + '/w/weather/warning/status.do';
+const official = origin + '/w/wnuri-fct2021/weather/warning.do';
 const bulletinPath = /^\/w\/repositary\/xml\/wrn\/xml\/(KR\.W\d+_\d{12}_[A-Z]{2,6}_\d+_(?:EN|KR)\.xml)$/;
 
 const xmlCache = new Map();
@@ -135,27 +135,33 @@ function parseCapBulletin(doc, place, file) {
     const isCancel = msgType === 'Cancel' || eventCancel;
 
     const areas = [...info.querySelectorAll('area')];
-    const polyMatch = areas.some(a =>
-      [...a.querySelectorAll('polygon')].some(p => inPolygon(place.lat, place.lon, p.textContent))
-    );
-    const nameMatch = areas.some(a => {
+    const matchedAreas = areas.filter(a => {
+      const polys = [...a.querySelectorAll('polygon')];
+      if (polys.length) {
+        return polys.some(p => inPolygon(place.lat, place.lon, p.textContent));
+      }
       const desc = text(a, 'areaDesc').replace(/\s+/g, '');
       const pName = String(place.name || '').replace(/\s+/g, '');
-      return desc && pName && (desc.includes(pName) || pName.includes(desc));
+      if (!desc || !pName) return false;
+      const isSubZone = /(서북|서남|동북|동남|중북|중남|동부|서부|남부|북부|중부|산지|평지)$/.test(desc);
+      return desc === pName || pName.includes(desc) || (!isSubZone && desc.includes(pName));
     });
 
-    if (!polyMatch && !nameMatch) continue;
+    if (!matchedAreas.length) continue;
 
     const onsetIso = text(info, 'onset') || text(info, 'effective') || sentIso;
     const expiresIso = text(info, 'expires');
     const onsetMs = Date.parse(onsetIso);
     const isFuture = Number.isFinite(onsetMs) && onsetMs > Date.now();
 
+    const areaNames = matchedAreas.map(a => text(a, 'areaDesc')).filter(Boolean);
+
     results.push({
       id: text(doc, 'identifier') + ':' + kind,
       kind,
       level,
       title,
+      areaName: areaNames[0] || '',
       cancel: isCancel,
       action: isCancel ? '해제' : msgType === 'Update' ? '변경' : '발표',
       sent: sentMs,
@@ -186,9 +192,10 @@ function parseT6Summary(doc, place) {
       if (!m) continue;
       const [, wrnTitle, regionsText] = m;
       const cleanRegions = regionsText.replace(/\s+/g, '');
+      const hasToken = token => new RegExp(`(?:^|[(,])${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:시|군|구)?(?=[,)]|$)`).test(cleanRegions);
       if (
-        (pName && cleanRegions.includes(pName)) ||
-        (shortPrefix.length === 2 && ['함양', '거창', '합천', '고령', '남원', '달성'].includes(shortPrefix) && cleanRegions.includes(shortPrefix))
+        (pName && hasToken(pName)) ||
+        (shortPrefix.length === 2 && ['함양', '거창', '합천', '고령', '남원', '달성'].includes(shortPrefix) && hasToken(shortPrefix))
       ) {
         const { kind, level, title } = mapEventToKorean(wrnTitle);
         results.push({
@@ -236,11 +243,12 @@ export function buildWarningSummary(activeWarnings = []) {
     return {
       rank: idx + 1,
       title: w.title,
+      areaName: w.areaName || '',
       level: w.level,
       kind: w.kind,
       effectiveLabel: effLabel,
       expiresLabel: expLabel,
-      line: `• ${w.title} (${effLabel} · ${expLabel})`
+      line: `• ${w.title}${w.areaName ? ` (${w.areaName})` : ''} (${effLabel} · ${expLabel})`
     };
   });
   return {
@@ -271,6 +279,7 @@ export async function fetchPlaceWarnings(place) {
           kind: w.kind,
           level: w.level,
           title: w.title,
+          areaName: w.regKo || '',
           cancel: false,
           action: w.cmd || '발효',
           sent: Date.now(),
@@ -295,6 +304,7 @@ export async function fetchPlaceWarnings(place) {
             kind: w.kind,
             level: w.level,
             title: w.title,
+            areaName: w.regKo || '',
             cancel: false,
             action: w.cmd || '발효',
             sent: Date.now(),

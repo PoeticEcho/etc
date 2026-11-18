@@ -4,16 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#103c3e">
-  <meta name="description" content="광주대구선(14번) 8개 관심지역의 비·눈 시작~종료 시각, 도로 살얼음, 제설·수방 의사결정 및 기상특보를 한눈에 감시하는 고밀도 기상 모니터">
+  <meta name="description" content="광주대구선(고속국도 12호선) 8개 관심지역의 비·눈 시작~종료 시각, 도로 살얼음, 제설·수방 의사결정 및 기상특보를 한눈에 감시하는 고밀도 기상 모니터">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="날씨봇 × 비온다? | 관심지역 기상·도로관리 모니터">
+  <meta property="og:description" content="비·눈 시작~종료 예측, 특보, 살얼음, 도로기상 실황을 한눈에 확인하는 광주대구선 도로관리 기상 모니터">
+  <meta property="og:image" content="https://poeticecho.github.io/etc/bionda/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="날씨봇 × 비온다? | 관심지역 기상·도로관리 모니터">
+  <meta name="twitter:description" content="비·눈 예측, 특보, 살얼음, 도로위험 한눈에 확인">
+  <meta name="twitter:image" content="https://poeticecho.github.io/etc/bionda/og-image.jpg">
   <title>날씨봇 × 비온다? | 관심지역 상시 기상·도로살얼음 모니터</title>
   <link rel="stylesheet" href="./styles.css">
+  <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
 </head>
 <body>
   <header class="top-header">
     <div class="wrap bar">
       <a class="brandhome" href="#overview" aria-label="날씨봇 관심지역 기상 모니터 홈">
-        <b class="brand"><i>≋</i> 날씨봇</b>
+        <b class="brand"><img src="./favicon.png" alt="날씨봇" class="brand-favicon"> 날씨봇</b>
         <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 광주대구선(고속국도 12호선) 상시 기상·도로살얼음 모니터</span>
       </a>
       <div class="header-actions">
@@ -386,6 +398,9 @@
       </div>
     </div>
   </aside>
+
+  <!-- Action Directive Confirmation Popover -->
+  <div id="actionConfirmPopover" class="action-popover" role="dialog" aria-label="제설·수방 지시 확인" hidden></div>
 
   <!-- In-App Alert Toast Banner (Requirement 5) -->
   <div id="alertToast" class="alert-toast" role="alert" aria-live="assertive" hidden>

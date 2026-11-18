@@ -87,7 +87,7 @@ const settings = {
   desktopNotify: true,
   pcLayout: 'stacked', // 'stacked' (상하 기본 4x2 + 하단 분할) | 'split' (좌우 FHD 분할: 좌 2x4 + 우 상하 레이더/미니맵)
   mapSplitPct: 43, // 미니맵 영역 폭 비율 (30 ~ 68%)
-  splitRadarPx: 380 // 좌우 분할 시 우측 상단 영상 높이 (220 ~ 640px)
+  splitRadarPx: 325 // 좌우 분할 시 우측 상단 영상 높이 (220 ~ 640px)
 };
 try {
   const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
@@ -443,8 +443,9 @@ function updateMonitorStatusBar() {
   txt.textContent = parts.join(' · ');
 }
 
-// 인앱 특보/위험 변동 토스트 배너 (요구사항 5)
+// 인앱 특보/위험 변동 토스트 배너 (요구사항 5 — 12초 후 자동 닫힘으로 하단 화면 가림 방지)
 let toastTargetPlace = null;
+let toastAutoTimer = null;
 export function showAlertToast(place, badgeLabel, message, isClear = false) {
   const toast = $('alertToast');
   if (!toast) return;
@@ -453,6 +454,10 @@ export function showAlertToast(place, badgeLabel, message, isClear = false) {
   $('toastBadge').textContent = badgeLabel;
   $('toastText').textContent = message;
   toast.hidden = false;
+  clearTimeout(toastAutoTimer);
+  toastAutoTimer = setTimeout(() => {
+    if (toast) toast.hidden = true;
+  }, 12000);
 }
 
 function checkRiskDiffs() {
@@ -569,6 +574,9 @@ function hideWarningTooltip() {
 document.addEventListener('click', e => {
   if ($('wrnTooltip') && !$('wrnTooltip').hidden && !e.target.closest('.badge-wrn') && !e.target.closest('#wrnTooltip')) {
     hideWarningTooltip();
+  }
+  if ($('actionConfirmPopover') && !$('actionConfirmPopover').hidden && !e.target.closest('.card-action-chips') && !e.target.closest('#actionConfirmPopover')) {
+    $('actionConfirmPopover').hidden = true;
   }
   if ($('settingsPanel') && !$('settingsPanel').hidden && !e.target.closest('#settingsPanel') && !e.target.closest('#settingsBtn')) {
     $('settingsPanel').hidden = true;
@@ -1046,10 +1054,27 @@ const ACTION_STAGE_META = [
 ];
 const ACTION_STAGE_ORDER = { preheat: 0, presalt: 1, mainplow: 2, floodwind: 3 };
 
+const ACK_KEY = 'weather-watch:ack:v1';
+let acknowledgedActions = {};
+try {
+  acknowledgedActions = JSON.parse(localStorage.getItem(ACK_KEY) || '{}') || {};
+} catch {
+  acknowledgedActions = {};
+}
+function persistAck() {
+  try {
+    localStorage.setItem(ACK_KEY, JSON.stringify(acknowledgedActions));
+  } catch {}
+}
+
+function getActionSignature(cards) {
+  return cards.map(c => `${c.stageId}:${c.state}:${c.pcChip}`).join('|');
+}
+
 function getActiveActionCards(rec) {
   const cards = rec?.w?.ice?.decisionCards || [];
   return cards
-    .filter(c => c && (c.state === 'urgent' || c.state === 'watch'))
+    .filter(c => c && c.pcChip && (c.state === 'urgent' || c.state === 'watch'))
     .sort((a, b) => {
       if (a.state !== b.state) return a.state === 'urgent' ? -1 : 1;
       const ha = Number.isFinite(a.hoursLeft) ? a.hoursLeft : 9;
@@ -1059,16 +1084,83 @@ function getActiveActionCards(rec) {
     });
 }
 
-function buildCardActionChips(activeCards) {
-  if (!activeCards.length) return null;
+function getUnackedActionCards(place, rec) {
+  const active = getActiveActionCards(rec);
+  if (!active.length) return [];
+  const sig = getActionSignature(active);
+  const id = coord(place);
+  // Safety guardrail: if state escalated or time/directives changed, signature no longer matches -> re-surfaces automatically!
+  return acknowledgedActions[id] === sig ? [] : active;
+}
+
+function showActionConfirmPopover(anchorEl, place, activeCards) {
+  const pop = $('actionConfirmPopover');
+  if (!pop || !activeCards.length) return;
+  pop.replaceChildren();
+
+  const head = el('div', '', 'action-popover-head');
+  head.append(el('span', `🚜 ${place.name} 제설·수방 지시 (${activeCards.length}건)`));
+  const closeBtn = el('button', '✕', 'settings-close');
+  closeBtn.type = 'button';
+  closeBtn.onclick = () => { pop.hidden = true; };
+  head.append(closeBtn);
+
+  const list = el('div', '', 'action-popover-list');
+  for (const c of activeCards) {
+    const row = el('div', '', `action-pop-row${c.state === 'urgent' ? ' urgent' : ''}`);
+    const meta = el('div', '', 'action-pop-meta');
+    meta.append(el('b', c.pcChip || c.title), el('small', `${c.title} · ${c.detail || c.status}`));
+    row.append(meta);
+    list.append(row);
+  }
+
+  const ackBtn = el('button', '✓ 확인했습니다 (이 카드 지시 숨김)', 'action-ack-btn');
+  ackBtn.type = 'button';
+  ackBtn.onclick = () => {
+    acknowledgedActions[coord(place)] = getActionSignature(activeCards);
+    persistAck();
+    pop.hidden = true;
+    board();
+  };
+
+  pop.append(head, list, ackBtn);
+  pop.hidden = false;
+
+  const rect = anchorEl.getBoundingClientRect();
+  const top = Math.min(window.innerHeight - pop.offsetHeight - 12, rect.bottom + 6);
+  const left = Math.max(10, Math.min(window.innerWidth - pop.offsetWidth - 10, rect.right - pop.offsetWidth));
+  pop.style.top = `${Math.max(58, top)}px`;
+  pop.style.left = `${left}px`;
+}
+
+function buildCardActionChips(place, unackedCards) {
+  if (!unackedCards.length) return null;
   const wrap = el('div', '', 'card-action-chips');
-  for (const c of activeCards.slice(0, 2)) {
-    const pcTxt = c.pcChip || `${c.title} · ${c.status}`;
-    const mobTxt = c.mobChip || c.status;
-    const chip = el('span', '', `card-act-chip state-${c.state}`);
-    chip.title = `${c.title}: ${c.status}${c.detail ? ' — ' + c.detail : ''}`;
-    chip.append(el('span', pcTxt, 'act-full'), el('span', mobTxt, 'act-short'));
-    wrap.append(chip);
+  const topCard = unackedCards[0];
+  const chip = el('button', '', `card-act-chip state-${topCard.state}`);
+  chip.type = 'button';
+  chip.title = `${topCard.title}: ${topCard.status} — 클릭 시 [확인했습니다] 처리`;
+  chip.append(
+    el('span', topCard.pcChip, 'act-full'),
+    el('span', topCard.mobChip || topCard.status, 'act-short')
+  );
+  chip.onclick = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    showActionConfirmPopover(wrap, place, unackedCards);
+  };
+  wrap.append(chip);
+
+  if (unackedCards.length > 1) {
+    const more = el('button', `+${unackedCards.length - 1}`, 'card-act-more');
+    more.type = 'button';
+    more.title = unackedCards.slice(1).map(c => c.pcChip).join(', ');
+    more.onclick = e => {
+      e.preventDefault();
+      e.stopPropagation();
+      showActionConfirmPopover(wrap, place, unackedCards);
+    };
+    wrap.append(more);
   }
   return wrap;
 }
@@ -1080,7 +1172,11 @@ export function board() {
   updateUnifiedGlobalStamp();
 
   const riskPlaces = places.filter(isRiskPlace);
-  const actionPlaces = places.filter(p => getActiveActionCards(getEffectiveRecord(p)).length > 0);
+  const actionPlaces = places.filter(p => getUnackedActionCards(p, getEffectiveRecord(p)).length > 0);
+  const ackedCount = places.filter(p => {
+    const allAct = getActiveActionCards(getEffectiveRecord(p));
+    return allAct.length > 0 && getUnackedActionCards(p, getEffectiveRecord(p)).length === 0;
+  }).length;
   const extras = places.filter(isExtra);
 
   if (filter === 'action' && !actionPlaces.length) {
@@ -1140,7 +1236,7 @@ export function board() {
       let count = 0;
       let hasUrgent = false;
       for (const p of places) {
-        const match = getActiveActionCards(getEffectiveRecord(p)).find(c => c.stageId === meta.id);
+        const match = getUnackedActionCards(p, getEffectiveRecord(p)).find(c => c.stageId === meta.id);
         if (match) {
           count++;
           if (match.state === 'urgent') hasUrgent = true;
@@ -1163,6 +1259,16 @@ export function board() {
         stagePills.push(pill);
       }
     }
+    if (ackedCount > 0) {
+      const restoreBtn = el('button', `✓ 확인됨 ${ackedCount} · 다시보기`, 'act-ack-restore');
+      restoreBtn.type = 'button';
+      restoreBtn.onclick = () => {
+        acknowledgedActions = {};
+        persistAck();
+        board();
+      };
+      stagePills.push(restoreBtn);
+    }
     summaryBar.replaceChildren(...stagePills);
     summaryBar.hidden = stagePills.length === 0;
   }
@@ -1170,7 +1276,7 @@ export function board() {
   let visible =
     filter === 'action'
       ? actionStageFilter
-        ? places.filter(p => getActiveActionCards(getEffectiveRecord(p)).some(c => c.stageId === actionStageFilter))
+        ? places.filter(p => getUnackedActionCards(p, getEffectiveRecord(p)).some(c => c.stageId === actionStageFilter))
         : actionPlaces
       : filter === 'risk'
       ? riskPlaces
@@ -1194,10 +1300,10 @@ export function board() {
       const a = el('a', '', cardCls);
       a.href = detailURL(p);
 
-      // 1. 카드 상단 지역명 + 제설·수방 지시 칩 + 지연 배지 + 화살표
+      // 1. 카드 상단 지역명 + 제설·수방 지시 칩(1칩+N) + 지연 배지 + 화살표
       const top = el('div', '', 'cardline');
       const topRight = el('span', '', 'cardline-right');
-      const actionChips = buildCardActionChips(getActiveActionCards(r));
+      const actionChips = buildCardActionChips(p, getUnackedActionCards(p, r));
       if (actionChips) topRight.append(actionChips);
       if (w?.stale) topRight.append(el('span', '지연', 'stale-badge'));
       topRight.append(el('span', '↗'));
@@ -1579,16 +1685,29 @@ function renderDetail() {
     guideContainer.append(el('div', w.ice.windAlert.guide, 'guide-banner rank-1'));
   }
 
-  // 기상특보 발효 및 해제 예정 현황
+  // 기상특보 발효 및 해제 예정 현황 (기상청 특보 원문 링크 연결)
   $('detailWrnCount').textContent = wrn?.count ? `${wrn.count}건 발효중` : '특보 없음';
   const wrnBox = $('warnings');
   wrnBox.replaceChildren();
   if (wrn?.count) {
     const listWrap = el('div', '', 'wrn-list-box');
+    const kmaWrnUrl = wrn.officialUrl || 'https://www.weather.go.kr/w/wnuri-fct2021/weather/warning.do';
     for (const item of wrn.tooltipLines) {
-      const card = el('div', '', 'wrn-item-card');
+      const card = document.createElement('a');
+      card.className = 'wrn-item-card';
+      card.href = kmaWrnUrl;
+      card.target = '_blank';
+      card.rel = 'noopener noreferrer';
+      card.title = '기상청 공식 기상특보 현황 페이지 새 창으로 열기';
+
+      const topRow = el('div', '', 'wrn-item-top');
+      const areaSuffix = item.areaName ? ` (${item.areaName})` : '';
+      topRow.append(
+        el('strong', `[${item.rank}순위] ${item.title}${areaSuffix}`),
+        el('span', '기상청 특보 원문 ↗', 'wrn-ext-link')
+      );
       card.append(
-        el('strong', `[${item.rank}순위] ${item.title}`),
+        topRow,
         el('small', `• 발효시각: ${item.effectiveLabel} · 해제예정: ${item.expiresLabel}`)
       );
       listWrap.append(card);
@@ -1718,6 +1837,7 @@ function route() {
 
 // 1:1 정방형(1080x1080) JPG 공유 모달
 let currentShareBlob = null;
+let currentShareObjectUrl = null;
 let currentShareFilename = 'weather-briefing-1080x1080.jpg';
 
 async function openShareModal() {
@@ -1734,15 +1854,18 @@ async function openShareModal() {
 
   const blob = await canvasToJpgBlob(canvas, 0.92);
   currentShareBlob = blob;
+  if (currentShareObjectUrl) {
+    try { URL.revokeObjectURL(currentShareObjectUrl); } catch {}
+  }
   const tag = isDetail ? detailPlace.name.replace(/\s+/g, '_') : '종합상황판_8개소';
   currentShareFilename = `기상브리핑_${tag}_1080x1080.jpg`;
 
-  const url = URL.createObjectURL(blob);
-  $('sharePreviewImg').src = url;
+  currentShareObjectUrl = URL.createObjectURL(blob);
+  $('sharePreviewImg').src = currentShareObjectUrl;
   $('shareDialogTitle').textContent = isDetail
     ? `📤 ${detailPlace.name} 상세 브리핑 (1080×1080 JPG)`
     : `📤 관심지역 8개소 종합 브리핑 (1080×1080 JPG)`;
-  $('shareStatus').textContent = '';
+  $('shareStatus').textContent = '※ 이 이미지는 서버 부하 없이 브라우저에서 즉시 생성됩니다.';
   $('shareDialog').showModal();
 }
 
@@ -1822,10 +1945,10 @@ function applyLayoutAndSplit() {
     const val = Number(btn.dataset.split);
     const active = isSplit
       ? val === 35
-        ? settings.splitRadarPx >= 440
+        ? settings.splitRadarPx >= 410
         : val === 55
-        ? settings.splitRadarPx <= 320
-        : settings.splitRadarPx > 320 && settings.splitRadarPx < 440
+        ? settings.splitRadarPx <= 280
+        : settings.splitRadarPx > 280 && settings.splitRadarPx < 410
       : Math.abs(val - settings.mapSplitPct) <= 3;
     btn.classList.toggle('active', active);
   });
@@ -1894,7 +2017,7 @@ function bindSplitterDrag() {
     btn.addEventListener('click', () => {
       const val = Number(btn.dataset.split);
       if (settings.pcLayout === 'split') {
-        settings.splitRadarPx = val === 35 ? 500 : val === 55 ? 260 : 380;
+        settings.splitRadarPx = val === 35 ? 460 : val === 55 ? 250 : 325;
       } else {
         settings.mapSplitPct = val;
       }
