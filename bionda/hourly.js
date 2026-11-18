@@ -517,10 +517,10 @@ function updateSourceStatus() {
   }
 
   const uniqCount = p.uniqueGridCount || 11;
-  const stampText = `단기예보 ${shortStr} 발표 · 초단기 ${ultraStr} · 1회 통합 호출(${uniqCount}격자)`;
+  const stampText = `단기예보 ${shortStr} 발표(3h주기) · 초단기 ${ultraStr}(매시35분+) · 1회 통합 호출(${uniqCount}격자)`;
   stamp.textContent = stampText;
   if (footerStamp) {
-    footerStamp.textContent = `기준 자료: ${stampText} · 갱신 ${formatMdHm(p.updatedAt)} · 매 정시(00분)·5분마다 자동 갱신`;
+    footerStamp.textContent = `기준 자료: ${stampText} · 갱신 ${formatMdHm(p.updatedAt)} · 매 정시·36분·5분마다 자동 갱신`;
   }
 }
 
@@ -581,17 +581,49 @@ function flashKpiCells(kind, cardEl) {
 let hourlyFetchInFlight = null;
 let lastLoadedHourKst = null;
 let topOfHourTimer = null;
+let ultraPickupTimer = null;
 
 const currentKstHourKey = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 13);
 
-async function fetchShortTerm12Data(force = false) {
+/**
+ * 상단 [새로고침] 버튼 클릭 시 사용자 지정 강제 재조회 규칙:
+ * - 단기예보: 기존 기준시각(shortBase)으로부터 3시간(180분) 이상 경과 시 강제 갱신
+ * - 초단기예보: 기존 기준시각(ultraBase)으로부터 10분 초과 경과 시 강제 갱신
+ */
+export function computeManualRefreshFlags(sources = {}, nowMs = Date.now()) {
+  const shortMs = Date.parse(sources?.shortBase || '');
+  const ultraMs = Date.parse(sources?.ultraBase || '');
+  return {
+    force: true,
+    refreshShort: !Number.isFinite(shortMs) || (nowMs - shortMs) >= 3 * 3600000,
+    refreshUltra: !Number.isFinite(ultraMs) || (nowMs - ultraMs) > 10 * 60000
+  };
+}
+
+export function isUltraUpdateDue(sources = {}, nowMs = Date.now()) {
+  const ultraMs = Date.parse(sources?.ultraBase || '');
+  if (!Number.isFinite(ultraMs)) return true;
+  // KMA 초단기는 매시 :30 발표분이 :35 무렵 생성되므로 직전 HH:30 대비 66분 경과(예: 05:30 -> 06:36) 시 신규 갱신 대상
+  return (nowMs - ultraMs) >= 66 * 60000;
+}
+
+async function fetchShortTerm12Data(optsOrForce = false) {
   if (hourlyFetchInFlight) return hourlyFetchInFlight;
+  const opts = typeof optsOrForce === 'object' && optsOrForce !== null
+    ? optsOrForce
+    : { force: Boolean(optsOrForce) };
+  const force = Boolean(opts.force);
   const btn = $('reloadHourlyBtn');
   if (btn) btn.classList.add('is-busy');
 
   hourlyFetchInFlight = (async () => {
     try {
-      const endpoint = apiUrl('/api/short-term-12' + (force ? '?force=1' : ''));
+      const params = new URLSearchParams();
+      if (force) params.set('force', '1');
+      if (opts.refreshShort !== undefined) params.set('refreshShort', opts.refreshShort ? '1' : '0');
+      if (opts.refreshUltra !== undefined) params.set('refreshUltra', opts.refreshUltra ? '1' : '0');
+      const qs = params.toString();
+      const endpoint = apiUrl('/api/short-term-12' + (qs ? `?${qs}` : ''));
       const r = await fetch(endpoint, {
         signal: AbortSignal.timeout(15000),
         ...(force ? { cache: 'no-store' } : {})
@@ -643,12 +675,34 @@ export function msUntilNextTopOfHour(nowMs = Date.now(), marginMs = 1500) {
   return (3600000 - (nowMs % 3600000)) + marginMs;
 }
 
+export function msUntilNextUltraRelease(nowMs = Date.now(), minute = 36, second = 15) {
+  const hourMs = 3600000;
+  const hourStart = nowMs - (nowMs % hourMs);
+  let target = hourStart + minute * 60000 + second * 1000;
+  if (target <= nowMs) target += hourMs;
+  return target - nowMs;
+}
+
 function scheduleTopOfHourRefresh() {
   clearTimeout(topOfHourTimer);
   const waitMs = msUntilNextTopOfHour(Date.now(), 1500);
   topOfHourTimer = setTimeout(() => {
-    fetchShortTerm12Data(true).finally(scheduleTopOfHourRefresh);
+    fetchShortTerm12Data({ force: true, refreshShort: true, refreshUltra: true }).finally(scheduleTopOfHourRefresh);
   }, waitMs);
+}
+
+function scheduleUltraPickupRefresh() {
+  clearTimeout(ultraPickupTimer);
+  const waitMs = msUntilNextUltraRelease(Date.now(), 36, 15);
+  ultraPickupTimer = setTimeout(() => {
+    const flags = computeManualRefreshFlags(state.payload?.sources, Date.now());
+    fetchShortTerm12Data({ ...flags, refreshUltra: true }).finally(scheduleUltraPickupRefresh);
+  }, waitMs);
+}
+
+function triggerSmartManualRefresh() {
+  const flags = computeManualRefreshFlags(state.payload?.sources, Date.now());
+  return fetchShortTerm12Data(flags);
 }
 
 function bindEvents() {
@@ -658,7 +712,7 @@ function bindEvents() {
     applyDarkMode(!document.body.classList.contains('dark-mode'), true);
   });
 
-  $('reloadHourlyBtn').addEventListener('click', () => fetchShortTerm12Data(true));
+  $('reloadHourlyBtn').addEventListener('click', triggerSmartManualRefresh);
 
   document.querySelectorAll('[data-kpi-flash]').forEach(card => {
     const trigger = () => flashKpiCells(card.dataset.kpiFlash, card);
@@ -725,14 +779,16 @@ function bindEvents() {
     fetchShortTerm12Data(true);
   });
 
-  // 1) 매 정시(HH:00:01.5 KST) 정확한 자동 새로고침 스케줄링
+  // 1) 매 정시(HH:00:01.5 KST) 및 매시 36분(KMA 초단기 발표 직후) 자동 새로고침 스케줄링
   scheduleTopOfHourRefresh();
+  scheduleUltraPickupRefresh();
 
   // 2) 백그라운드 스로틀/절전 복귀로 정시가 지난 경우 즉시 보정 새로고침
   const checkHourRollover = () => {
     if (lastLoadedHourKst && currentKstHourKey() !== lastLoadedHourKst) {
       scheduleTopOfHourRefresh();
-      fetchShortTerm12Data(true);
+      scheduleUltraPickupRefresh();
+      fetchShortTerm12Data({ force: true, refreshShort: true, refreshUltra: true });
     }
   };
   document.addEventListener('visibilitychange', () => {
@@ -740,8 +796,11 @@ function bindEvents() {
   });
   setInterval(checkHourRollover, 60000);
 
-  // 3) 5분마다 주기적 자동 갱신 (초단기예보 최신 반영)
-  setInterval(() => fetchShortTerm12Data(false), 5 * 60000);
+  // 3) 5분마다 주기적 자동 갱신 (초단기예보 새 발표 시점 도래 시 캐시 우회 재조회)
+  setInterval(() => {
+    const due = isUltraUpdateDue(state.payload?.sources, Date.now());
+    fetchShortTerm12Data(due ? computeManualRefreshFlags(state.payload?.sources, Date.now()) : false);
+  }, 5 * 60000);
 }
 
 if (typeof document !== 'undefined') {
