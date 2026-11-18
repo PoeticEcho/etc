@@ -1551,10 +1551,11 @@ function renderDetail() {
 
   const roadParts = [];
   if (o?.roadStationName && Number.isFinite(o.roadTemp)) {
-    roadParts.push(`🛣️ ${o.roadStationName} 광학 노면온도 ${o.roadTemp.toFixed(1)}°C (${o.surfaceState || '건조'})`);
+    const typeNote = o.roadStationType?.includes('결빙') ? '(결빙취약교량)' : '';
+    roadParts.push(`🛣️ ${o.roadStationName}${typeNote} 광학 노면온도 ${o.roadTemp.toFixed(1)}°C (${o.surfaceState || '건조'})`);
   }
-  if (o?.bridgeStationName && Number.isFinite(o.bridgeRoadTemp)) {
-    roadParts.push(`🌉 결빙목표 ${o.bridgeStationName} 노면 ${o.bridgeRoadTemp.toFixed(1)}°C`);
+  if (o?.bridgeStationName && o.bridgeStationName !== o.roadStationName && Number.isFinite(o.bridgeRoadTemp)) {
+    roadParts.push(`🌉 결빙취약교량 ${o.bridgeStationName} 노면 ${o.bridgeRoadTemp.toFixed(1)}°C`);
   }
   $('roadSurfaceInfo').textContent = roadParts.join(' · ') || '기상청 도로기상관측망 연동 중';
 
@@ -1679,8 +1680,8 @@ function renderDetail() {
     const stnKm = o?.roadMilepostKm ?? rr?.stationKm;
     const stnDist = o?.roadDistanceKm ?? rr?.stationDistanceKm;
     const trTxt = Number.isFinite(o?.roadTemp) ? `실측 노면 ${o.roadTemp.toFixed(1)}°C (${o.surfaceState || '건조'})` : '도로기상 연계 중';
-    const bridgeTxt = o?.bridgeStationName && Number.isFinite(o.bridgeRoadTemp)
-      ? ` · 결빙목표 ${o.bridgeStationName} ${o.bridgeRoadTemp.toFixed(1)}°C`
+    const bridgeTxt = o?.bridgeStationName && o.bridgeStationName !== o.roadStationName && Number.isFinite(o.bridgeRoadTemp)
+      ? ` · 결빙취약교량 ${o.bridgeStationName} ${o.bridgeRoadTemp.toFixed(1)}°C`
       : '';
     if (stnName || rr) {
       const leftDiv = el('div', '', 'detail-road-station');

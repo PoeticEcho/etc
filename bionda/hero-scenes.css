@@ -1,4 +1,4 @@
-/* 상세 페이지 상단 히어로(.hero) 기상·주야간·달령·노면위험 동적 연출 스타일 */
+/* 상세 페이지 상단 히어로(.hero) 기상·주야간·달령·태풍·도로살얼음(0~3단계) 동적 연출 스타일 */
 
 .hero.has-dynamic-scene {
   position: relative;
@@ -6,7 +6,6 @@
   overflow: hidden;
   color: #ffffff;
   transition: background 0.55s ease, box-shadow 0.45s ease;
-  /* 기본 주간 맑음(12호선 청록 시그니처) */
   background: linear-gradient(108deg, #0d3a40 6%, #175255 58%, #367b6d 100%);
 }
 
@@ -19,7 +18,7 @@
   pointer-events: none;
   background: linear-gradient(
     94deg,
-    rgba(6, 20, 26, 0.54) 0%,
+    rgba(6, 20, 26, 0.56) 0%,
     rgba(6, 20, 26, 0.34) 40%,
     rgba(6, 20, 26, 0.08) 68%,
     rgba(6, 20, 26, 0) 100%
@@ -33,7 +32,7 @@
 }
 
 .hero.has-dynamic-scene #refresh {
-  z-index: 3;
+  z-index: 4;
 }
 
 .hero.has-dynamic-scene .horizon {
@@ -80,10 +79,122 @@
   bottom: 0;
   left: 16%;
   width: 84%;
-  height: 76%;
+  height: 82%;
   z-index: 4;
 }
 .hs-fx { z-index: 5; }
+.hs-particle-canvas { z-index: 6; }
+
+/* --- 태풍 심볼 + 정보 배지 (우측 하늘 영역, #refresh 하단/좌측 안전 배치) --- */
+.hs-typhoon-cluster {
+  position: absolute;
+  right: 11.5%;
+  top: 8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.hs-typhoon-svg {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 10px rgba(14, 165, 233, 0.36));
+}
+@keyframes hsTyphoonSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+.hs-typhoon-arms {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hsTyphoonSpin 11s linear infinite;
+}
+@keyframes hsTyWavePulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.96); }
+  50% { opacity: 0.65; transform: scale(1.04); }
+}
+.hs-ty-wave {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hsTyWavePulse 3.6s ease-in-out infinite;
+}
+.hs-typhoon-tag {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 11px;
+  border-radius: 10px;
+  background: rgba(8, 28, 46, 0.72);
+  border: 1px solid rgba(125, 211, 252, 0.48);
+  backdrop-filter: blur(4px);
+  color: #f0f9ff;
+  box-shadow: 0 4px 14px rgba(2, 12, 24, 0.35);
+}
+.hs-typhoon-tag strong {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: #ffffff;
+  white-space: nowrap;
+}
+.hs-typhoon-tag span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #bae6fd;
+  white-space: nowrap;
+}
+
+/* --- 도로 살얼음 1·2·3단계 우측 하단 갓길 배지 --- */
+.hs-road-stage-pill {
+  position: absolute;
+  right: 16px;
+  bottom: 10px;
+  z-index: 7;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.1px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
+}
+.hs-stage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.hs-road-stage-pill.rank-1 {
+  color: #fef08a;
+  border-color: #eab308;
+}
+.hs-road-stage-pill.rank-1 .hs-stage-dot {
+  background: #eab308;
+  box-shadow: 0 0 6px #facc15;
+}
+.hs-road-stage-pill.rank-2 {
+  color: #fed7aa;
+  border-color: #f97316;
+}
+.hs-road-stage-pill.rank-2 .hs-stage-dot {
+  background: #f97316;
+  box-shadow: 0 0 7px #fb923c;
+}
+.hs-road-stage-pill.rank-3 {
+  color: #fecaca;
+  border-color: #ef4444;
+  background: rgba(69, 10, 10, 0.86);
+}
+.hs-road-stage-pill.rank-3 .hs-stage-dot {
+  background: #ef4444;
+  box-shadow: 0 0 8px #f87171;
+}
 
 /* ================================
    주야간 × 날씨별 하늘 배경 팔레트
@@ -109,7 +220,7 @@
   background: linear-gradient(108deg, #15172b 6%, #242746 58%, #3c3a5e 100%);
 }
 .hero.has-dynamic-scene[data-dayphase="day"][data-weather="typhoon"] {
-  background: linear-gradient(108deg, #112233 6%, #1c364d 58%, #2e5369 100%);
+  background: linear-gradient(108deg, #102033 6%, #1a354d 58%, #2a526b 100%);
 }
 .hero.has-dynamic-scene[data-dayphase="day"][data-weather="snow"] {
   background: linear-gradient(108deg, #1e3547 6%, #31536b 58%, #577b91 100%);
@@ -197,7 +308,7 @@
   background: linear-gradient(110deg, #111d29 5%, #213445 58%, #374f63 100%);
 }
 
-/* [한파 / 살얼음 빙점 톤 보강] */
+/* [한파 / 살얼음 0~3단계 하단·상단 테두리 신호] */
 .hero.has-dynamic-scene[data-cold-wave="true"][data-dayphase="day"][data-weather="clear"],
 .hero.has-dynamic-scene[data-cold-wave="true"][data-dayphase="day"][data-weather="partly_cloudy"] {
   background: linear-gradient(108deg, #0c2942 6%, #17496b 58%, #357594 100%);
@@ -206,11 +317,17 @@
 .hero.has-dynamic-scene[data-cold-wave="true"][data-dayphase="night"][data-weather="partly_cloudy"] {
   background: linear-gradient(110deg, #051024 5%, #0a1f40 56%, #173c68 100%);
 }
-.hero.has-dynamic-scene[data-black-ice="true"] {
-  box-shadow: inset 0 -2px 0 rgba(125, 211, 252, 0.55), 0 8px 22px rgba(14, 116, 144, 0.16);
+.hero.has-dynamic-scene[data-ice-rank="1"] {
+  box-shadow: inset 0 -2px 0 rgba(234, 179, 8, 0.7);
+}
+.hero.has-dynamic-scene[data-ice-rank="2"] {
+  box-shadow: inset 0 -3px 0 rgba(249, 115, 22, 0.85), 0 6px 18px rgba(249, 115, 22, 0.14);
+}
+.hero.has-dynamic-scene[data-ice-rank="3"] {
+  box-shadow: inset 0 -3px 0 rgba(239, 68, 68, 0.92), 0 8px 22px rgba(239, 68, 68, 0.22);
 }
 .hero.has-dynamic-scene[data-cold-wave="true"] {
-  box-shadow: inset 0 1px 0 rgba(224, 242, 254, 0.42), inset 0 -1px 0 rgba(186, 230, 253, 0.35);
+  box-shadow: inset 0 1.5px 0 rgba(224, 242, 254, 0.48), inset 0 -2px 0 rgba(125, 211, 252, 0.4);
 }
 
 /* ================================
@@ -231,44 +348,6 @@
 .hs-cloud-drift-a { animation: hsCloudDrift 26s ease-in-out infinite; }
 .hs-cloud-drift-b { animation: hsCloudDrift 20s ease-in-out -7s infinite; }
 .hs-cloud-drift-slow { animation: hsCloudDrift 34s ease-in-out -12s infinite; }
-
-@keyframes hsRainFall {
-  0% { transform: translate(6px, -22px); opacity: 0; }
-  15% { opacity: 0.65; }
-  85% { opacity: 0.55; }
-  100% { transform: translate(-12px, 28px); opacity: 0; }
-}
-.hs-rain-a { animation: hsRainFall 1.15s linear infinite; }
-.hs-rain-b { animation: hsRainFall 1.45s linear -0.6s infinite; }
-
-@keyframes hsGaleFall {
-  0% { transform: translate(18px, -20px); opacity: 0; }
-  20% { opacity: 0.72; }
-  100% { transform: translate(-34px, 32px); opacity: 0; }
-}
-.hs-gale-streak { animation: hsGaleFall 0.75s linear infinite; }
-
-@keyframes hsVortexSpin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.hs-vortex {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: hsVortexSpin 9s linear infinite;
-}
-
-@keyframes hsWindSlide {
-  0% { stroke-dashoffset: 180; opacity: 0.25; }
-  50% { opacity: 0.75; }
-  100% { stroke-dashoffset: 0; opacity: 0.25; }
-}
-.hs-wind-line {
-  stroke-dasharray: 120 70;
-  animation: hsWindSlide 2.2s linear infinite;
-}
-.hs-wind-2 { animation-delay: -0.7s; }
-.hs-wind-3 { animation-delay: -1.4s; }
 
 @keyframes hsThunderPulse {
   0%, 72%, 100% { opacity: 0.72; }
@@ -294,25 +373,11 @@
 .hs-fog-2 { animation: hsFogDrift 24s ease-in-out -6s infinite; }
 .hs-fog-3 { animation: hsFogDrift 29s ease-in-out -14s infinite; }
 
-@keyframes hsSnowDriftA {
-  0% { transform: translate(0, -14px); }
-  50% { transform: translate(-8px, 8px); }
-  100% { transform: translate(4px, 28px); }
-}
-@keyframes hsSnowDriftB {
-  0% { transform: translate(0, -16px); }
-  50% { transform: translate(9px, 6px); }
-  100% { transform: translate(-6px, 28px); }
-}
-.hs-snow-a { animation: hsSnowDriftA 4.8s ease-in-out infinite; }
-.hs-snow-b { animation: hsSnowDriftB 5.6s ease-in-out -1.8s infinite; }
-.hs-snow-c { animation: hsSnowDriftA 6.4s ease-in-out -3.2s infinite; }
-
 @keyframes hsIceGlint {
   0%, 100% { opacity: 0.55; }
-  50% { opacity: 0.95; }
+  50% { opacity: 0.96; }
 }
-.hs-ice-sheen { animation: hsIceGlint 3.4s ease-in-out infinite; }
+.hs-ice-sheen { animation: hsIceGlint 2.8s ease-in-out infinite; }
 
 @media (max-width: 720px) {
   .hero.has-dynamic-scene .eyebrow {
@@ -328,6 +393,26 @@
   .hs-celestial.is-low {
     top: 14px;
     right: 6%;
+  }
+  .hs-typhoon-cluster {
+    right: 12px;
+    top: 56px;
+    gap: 6px;
+  }
+  .hs-typhoon-svg {
+    width: 64px;
+    height: 64px;
+  }
+  .hs-typhoon-tag {
+    padding: 4px 8px;
+  }
+  .hs-typhoon-tag strong { font-size: 11px; }
+  .hs-typhoon-tag span { font-size: 9.5px; }
+  .hs-road-stage-pill {
+    right: 10px;
+    bottom: 8px;
+    font-size: 10px;
+    padding: 2px 8px;
   }
 }
 

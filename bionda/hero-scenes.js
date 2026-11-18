@@ -1,10 +1,10 @@
 /**
- * 상세 페이지 상단 히어로(.hero) 기상·주야간·달령 연동 동적 연출 엔진
+ * 상세 페이지 상단 히어로(.hero) 기상·주야간·달령·태풍·도로살얼음(0~3단계) 연동 동적 연출 엔진
  * - 기상 상태(맑음/구름/흐림/안개/비/뇌우/태풍/눈/폭설) × 주야간(새벽/주간/황혼/야간)
- *   × 실제 달령(삭·초승·상현·보름·하현·그믐) × 노면위험(도로 살얼음·한파) 조합 지원
- * - 구름·강수·안개에 따른 천체(달·별) 투과/가림 물리 규칙 반영
- * - 순수 내장 SVG/CSS 기반(외부 이미지 의존 0) + 인스턴스별 고유 SVG ID 부여
+ *   × 실제 음력 달령(삭·초승·상현·보름·하현·그믐) × 노면위험(0 평온 / 1 관심 / 2 주의 / 3 위험) × 한파
+ * - Canvas 2D 입자 엔진(weather-particles.js: 비·물보라·눈·폭설·태풍 바람 유선·빙정)과 SVG 천체/구름/벡터도로 레이어 통합
  */
+import { attachWeatherParticles, detachWeatherParticles } from './weather-particles.js';
 
 const RAD = Math.PI / 180;
 export const SYNODIC_MONTH_DAYS = 29.530588853;
@@ -29,6 +29,65 @@ function esc(s) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+export const ICE_RANK_META = {
+  0: {
+    rank: 0,
+    key: 'calm',
+    label: '0단계 평온·건조',
+    shortLabel: '0단계 평온',
+    accent: '#10b981',
+    railColor: '#34d399',
+    edgeLine: '#e2e8f0',
+    centerLine: '#f59e0b',
+    beaconGlow: 'rgba(16, 185, 129, 0.35)',
+    iceAlpha: 0
+  },
+  1: {
+    rank: 1,
+    key: 'watch',
+    label: '1단계 살얼음 관심',
+    shortLabel: '1단계 관심',
+    accent: '#eab308',
+    railColor: '#facc15',
+    edgeLine: '#fde047',
+    centerLine: '#f59e0b',
+    beaconGlow: 'rgba(234, 179, 8, 0.55)',
+    iceAlpha: 0.16
+  },
+  2: {
+    rank: 2,
+    key: 'caution',
+    label: '2단계 살얼음 주의',
+    shortLabel: '2단계 주의',
+    accent: '#f97316',
+    railColor: '#fb923c',
+    edgeLine: '#fdba74',
+    centerLine: '#fb923c',
+    beaconGlow: 'rgba(249, 115, 22, 0.68)',
+    iceAlpha: 0.34
+  },
+  3: {
+    rank: 3,
+    key: 'danger',
+    label: '3단계 살얼음 위험',
+    shortLabel: '3단계 위험',
+    accent: '#ef4444',
+    railColor: '#f87171',
+    edgeLine: '#fca5a5',
+    centerLine: '#f87171',
+    beaconGlow: 'rgba(239, 68, 68, 0.85)',
+    iceAlpha: 0.56
+  }
+};
+
+export const DEFAULT_TYPHOON_INFO = {
+  no: '제11호',
+  name: '힌남노',
+  pressureHpa: 945,
+  maxWindMs: 45,
+  note: '영남 내륙 강풍·호우 영향'
+};
 
 /**
  * Date 또는 명시적 달령(0~29.53일)으로부터 천문학적 달 위상 정보 계산
@@ -109,7 +168,6 @@ export function getSolarScheduleKst(dateInput = new Date()) {
   const yearStart = Date.UTC(kstDate.getUTCFullYear(), 0, 1);
   const dayOfYear = Math.floor((kstMs - yearStart) / 86400000) + 1;
 
-  // 태양 적위 근사
   const decl = -23.44 * Math.cos(((360 / 365) * (dayOfYear + 10)) * RAD) * RAD;
   const latRad = HERO_LAT * RAD;
   const cosH = clamp(
@@ -118,7 +176,7 @@ export function getSolarScheduleKst(dateInput = new Date()) {
     0.99
   );
   const halfDayHours = (Math.acos(cosH) / RAD) / 15;
-  const solarNoonKst = 12 + (135 - HERO_LON) / 15; // 한국 표준시(135E) 경도차 +0.47h
+  const solarNoonKst = 12 + (135 - HERO_LON) / 15;
   const sunriseHour = Number((solarNoonKst - halfDayHours).toFixed(2));
   const sunsetHour = Number((solarNoonKst + halfDayHours).toFixed(2));
   const hourKst = kstDate.getUTCHours() + kstDate.getUTCMinutes() / 60;
@@ -162,10 +220,6 @@ export const DAY_PHASE_LABELS = {
 
 /**
  * 구름·강수·안개 상태와 주야간·달령 조합으로부터 달/별/태양 가시성 물리 계수 도출
- * - 맑은 밤: 달 100%, 별 100%
- * - 구름많음 밤: 반투명 구름 너머로 달빛 확산 투과(moonThroughCloud: true), 별 성글게
- * - 흐림 밤: 보름달급만 희미한 확산 달무리 힌트, 별 0
- * - 비/눈/폭설/뇌우/태풍: 두꺼운 비구름에 달·별 완전 비노출
  */
 export function computeCelestialVisibility(weather, dayPhase, lunarInfo) {
   const isNight = dayPhase === 'night';
@@ -251,7 +305,6 @@ export function computeCelestialVisibility(weather, dayPhase, lunarInfo) {
     };
   }
 
-  // 비, 천둥·번개, 태풍, 눈, 폭설 시 달·별 보이지 않음
   return {
     sunVisible: false,
     sunOpacity: 0,
@@ -264,6 +317,22 @@ export function computeCelestialVisibility(weather, dayPhase, lunarInfo) {
   };
 }
 
+export function normalizeIceRank(input = {}) {
+  if (input.iceRank !== undefined && input.iceRank !== null && Number.isFinite(Number(input.iceRank))) {
+    return clamp(Math.round(Number(input.iceRank)), 0, 3);
+  }
+  if (input.blackIce) return 2;
+  return 0;
+}
+
+export function formatTyphoonHeadline(typhoonInfo) {
+  if (!typhoonInfo) return `${DEFAULT_TYPHOON_INFO.no} 태풍 ${DEFAULT_TYPHOON_INFO.name}`;
+  if (typeof typhoonInfo === 'string') return typhoonInfo;
+  const no = typhoonInfo.no || DEFAULT_TYPHOON_INFO.no;
+  const name = typhoonInfo.name || DEFAULT_TYPHOON_INFO.name;
+  return `${no} 태풍 ${name}`.trim();
+}
+
 /**
  * 입력 옵션을 정규화해 완전한 장면 명세 객체 생성
  */
@@ -271,18 +340,29 @@ export function resolveHeroScene(input = {}) {
   const date = input.date instanceof Date ? input.date : input.date ? new Date(input.date) : new Date();
   const dayPhase = resolveDayPhase({ dayPhase: input.dayPhase, date, hourKst: input.hourKst });
   const weather = WEATHER_LABELS[input.weather] ? input.weather : inferWeatherFromKma(input);
-  const blackIce = Boolean(input.blackIce);
+  const iceRank = normalizeIceRank(input);
+  const blackIce = iceRank >= 1;
   const coldWave = Boolean(input.coldWave);
   const lunar = getLunarInfo(date, input.moonAgeDays);
   const celestial = computeCelestialVisibility(weather, dayPhase, lunar);
+  const iceMeta = ICE_RANK_META[iceRank] || ICE_RANK_META[0];
+  const typhoon = weather === 'typhoon'
+    ? (input.typhoonInfo && typeof input.typhoonInfo === 'object'
+      ? { ...DEFAULT_TYPHOON_INFO, ...input.typhoonInfo }
+      : { ...DEFAULT_TYPHOON_INFO })
+    : null;
 
   return {
     weather,
     weatherLabel: WEATHER_LABELS[weather],
     dayPhase,
     dayPhaseLabel: DAY_PHASE_LABELS[dayPhase],
+    iceRank,
+    iceMeta,
     blackIce,
     coldWave,
+    typhoon,
+    typhoonTitle: weather === 'typhoon' ? formatTyphoonHeadline(input.typhoonInfo || typhoon) : '',
     lunar,
     celestial,
     isSnowTerrain: weather === 'snow' || weather === 'heavy_snow'
@@ -303,12 +383,9 @@ export function inferWeatherFromKma(input = {}) {
   return 'clear';
 }
 
-/**
- * 정확한 위상(phaseRatio 0~1)의 SVG 달 경로 생성
- */
 function buildMoonLitPath(r, phaseRatio) {
   const cosA = Math.cos(phaseRatio * 2 * Math.PI);
-  if (phaseRatio < 0.02 || phaseRatio > 0.98) return ''; // 삭(신월)
+  if (phaseRatio < 0.02 || phaseRatio > 0.98) return '';
   if (Math.abs(phaseRatio - 0.5) < 0.02) {
     return `M 0 ${-r} A ${r} ${r} 0 1 1 0 ${r} A ${r} ${r} 0 1 1 0 ${-r} Z`;
   }
@@ -318,7 +395,6 @@ function buildMoonLitPath(r, phaseRatio) {
   const outerSweep = waxing ? 1 : 0;
 
   if (rx < 0.25) {
-    // 상현 / 하현 반달 직선 터미네이터
     return `M 0 ${-r} A ${r} ${r} 0 0 ${outerSweep} 0 ${r} Z`;
   }
 
@@ -329,9 +405,8 @@ function buildMoonLitPath(r, phaseRatio) {
   return `M 0 ${-r} A ${r} ${r} 0 0 ${outerSweep} 0 ${r} A ${rx.toFixed(2)} ${r} 0 0 ${termSweep} 0 ${-r} Z`;
 }
 
-function renderStarsLayer(starOpacity, uid) {
+function renderStarsLayer(starOpacity) {
   if (starOpacity <= 0) return '';
-  // 균형 잡힌 별자리 배치(왼쪽 텍스트 영역 피하고 중앙-우측 상공 중심)
   const stars = [
     [280, 26, 1.3, 't1', true], [340, 52, 0.9, 't2', false], [405, 22, 1.1, 't3', false],
     [458, 64, 1.4, 't1', false], [512, 34, 0.85, 't2', false], [568, 19, 1.5, 't3', true],
@@ -342,7 +417,6 @@ function renderStarsLayer(starOpacity, uid) {
     [884, 86, 0.95, 't2', false], [928, 104, 1.1, 't1', false], [372, 94, 0.85, 't2', false],
     [795, 114, 0.9, 't1', false], [540, 125, 0.85, 't3', false], [428, 128, 1.0, 't2', false]
   ];
-  // partly_cloudy 등 낮은 starOpacity일 때는 밝은 12개만 틈새 별빛으로 유지
   const filtered = starOpacity < 0.6 ? stars.filter((_, i) => i % 2 === 0) : stars;
 
   const nodes = filtered.map(([x, y, r, anim, sparkle]) => {
@@ -412,7 +486,6 @@ function renderMoonLayer(scene, uid) {
   const haloAlpha = (0.14 + lunar.illumination * 0.28) * (celestial.moonThroughCloud ? 1.15 : 1);
   const extraBlur = weather === 'fog' ? 'filter:blur(5px);' : weather === 'overcast' ? 'filter:blur(7px);' : celestial.moonThroughCloud ? 'filter:blur(0.7px);' : '';
 
-  // 초승·삭 등 어두운 면에도 지구조(Earthshine) 느낌의 옅은 윤곽 표현
   const moonShape = weather === 'overcast'
     ? `<circle cx="0" cy="0" r="${r * 1.15}" fill="rgba(214,228,245,0.45)"/>`
     : `<circle cx="0" cy="0" r="${r}" fill="rgba(165,186,214,0.13)" stroke="rgba(220,235,255,0.22)" stroke-width="0.9"/>
@@ -447,6 +520,51 @@ function renderMoonLayer(scene, uid) {
   </div>`;
 }
 
+/**
+ * 고해상도 기상청 태풍 심볼 SVG (고정밀 캘리그라피 나선 구름 + 눈 + 기압파동) + 태풍 정보 배지
+ */
+function renderTyphoonEmblemLayer(scene, uid) {
+  if (scene.weather !== 'typhoon') return '';
+  const info = scene.typhoon || DEFAULT_TYPHOON_INFO;
+  const subParts = [];
+  if (info.pressureHpa) subParts.push(`${info.pressureHpa} hPa`);
+  if (info.maxWindMs) subParts.push(`최대풍속 ${info.maxWindMs} m/s`);
+  const headline = formatTyphoonHeadline(info);
+  const subLine = subParts.join(' · ') || info.note || '강풍·호우 주의';
+
+  // 정사각형 SVG로 진원 비율 완벽 유지
+  return `<div class="hs-typhoon-cluster" aria-hidden="true">
+    <svg class="hs-typhoon-svg" viewBox="-72 -72 144 144">
+      <defs>
+        <radialGradient id="${uid}tyGlow">
+          <stop offset="0%" stop-color="rgba(56, 189, 248, 0.48)"/>
+          <stop offset="55%" stop-color="rgba(14, 165, 233, 0.16)"/>
+          <stop offset="100%" stop-color="rgba(14, 165, 233, 0)"/>
+        </radialGradient>
+        <linearGradient id="${uid}tyArm" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#f0f9ff"/>
+          <stop offset="55%" stop-color="#7dd3fc"/>
+          <stop offset="100%" stop-color="#0284c7" stop-opacity="0.82"/>
+        </linearGradient>
+      </defs>
+      <circle cx="0" cy="0" r="64" fill="url(#${uid}tyGlow)"/>
+      <circle class="hs-ty-wave" cx="0" cy="0" r="46" fill="none" stroke="rgba(125,211,252,0.34)" stroke-width="1.2" stroke-dasharray="10 7"/>
+      <g class="hs-typhoon-arms">
+        <path d="M0,-13 C18,-13 33,-2 38,16 C40,26 36,36 28,44 C31,26 23,12 10,7 C10,2 6,-3 0,-5 Z" fill="url(#${uid}tyArm)"/>
+        <path d="M0,13 C-18,13 -33,2 -38,-16 C-40,-26 -36,-36 -28,-44 C-31,-26 -23,-12 -10,-7 C-10,-2 -6,3 0,5 Z" fill="url(#${uid}tyArm)"/>
+        <path d="M-44,6 C-46,24 -32,42 -12,48 C-26,38 -32,24 -28,10 Z" fill="rgba(186,230,253,0.45)"/>
+        <path d="M44,-6 C46,-24 32,-42 12,-48 C26,-38 32,-24 28,-10 Z" fill="rgba(186,230,253,0.45)"/>
+      </g>
+      <circle cx="0" cy="0" r="13.5" fill="rgba(15, 23, 42, 0.72)" stroke="#e0f2fe" stroke-width="2.2"/>
+      <circle cx="0" cy="0" r="6.2" fill="#38bdf8" opacity="0.85"/>
+    </svg>
+    <div class="hs-typhoon-tag">
+      <strong>🌀 ${esc(headline)}</strong>
+      <span>${esc(subLine)}</span>
+    </div>
+  </div>`;
+}
+
 function renderCloudsLayer(scene, uid) {
   const { weather, dayPhase, celestial, lunar } = scene;
   const isNight = dayPhase === 'night';
@@ -454,7 +572,6 @@ function renderCloudsLayer(scene, uid) {
 
   if (weather === 'clear') return '';
 
-  // 구름 색상/투명도 결정
   const stormWeather = ['rain', 'thunder', 'typhoon', 'snow', 'heavy_snow'].includes(weather);
   const topColor = stormWeather
     ? (isNight ? '#213142' : '#4a5f70')
@@ -476,14 +593,13 @@ function renderCloudsLayer(scene, uid) {
           : '#aac5cf';
 
   const primaryOpacity = weather === 'partly_cloudy'
-    ? (isNight ? 0.44 : 0.48) // 밤 구름많음: 보름달이 반투명 구름에 비치도록 투명도 최적화!
+    ? (isNight ? 0.44 : 0.48)
     : weather === 'fog'
       ? 0.28
       : weather === 'overcast'
         ? (isNight ? 0.78 : 0.74)
         : 0.84;
 
-  // 달이 구름 뒤에 있을 때 구름 아래쪽 가장자리/중앙에 달빛 투과 글로우(silver bloom)를 겹침
   const moonCloudBloom = isNight && weather === 'partly_cloudy' && celestial.moonVisible && lunar.illumination > 0.15
     ? `<radialGradient id="${uid}mbloom" cx="84%" cy="40%" r="22%">
          <stop offset="0%" stop-color="#f5f9ff" stop-opacity="${(0.22 + lunar.illumination * 0.3).toFixed(2)}"/>
@@ -493,9 +609,7 @@ function renderCloudsLayer(scene, uid) {
     : '';
 
   const cloudPathBack = 'M250,74 C272,56 306,56 326,72 C342,60 368,62 380,76 C398,74 418,86 414,100 L236,100 C226,88 234,76 250,74 Z';
-  // 구름 1 (달 왼쪽-중앙을 부드럽게 스치며 달빛이 투과하는 반투명 구름 띠)
   const cloudPathAcrossMoon = 'M588,58 C614,34 662,32 692,52 C714,34 756,34 786,52 C814,40 848,46 864,66 C884,68 896,82 888,96 L572,96 C558,82 568,62 588,58 Z';
-  // 흐림/폭풍 시 조각 구름·상층 층운
   const overcastMidCloud = weather === 'overcast'
     ? `<path class="hs-cloud-drift-slow" d="M310,82 C345,54 404,52 440,74 C478,48 548,46 588,72 C628,50 694,52 732,76 C776,56 842,58 886,84 L886,106 L296,106 Z" fill="url(#${uid}cg)" opacity="0.58"/>`
     : '';
@@ -524,150 +638,45 @@ function renderCloudsLayer(scene, uid) {
   </svg>`;
 }
 
+/**
+ * 번개 볼트, 안개 띠, 성애 프레임 등 SVG 고정밀 기상 오버레이 (입자는 Canvas 엔진이 담당)
+ */
 function renderWeatherFxLayer(scene, uid) {
-  const { weather, dayPhase, blackIce, coldWave } = scene;
+  const { weather, dayPhase, coldWave } = scene;
   const isNight = dayPhase === 'night';
   const parts = [];
 
-  // 1. 비 (rain)
-  if (weather === 'rain') {
-    const drops = [];
-    for (let i = 0; i < 36; i++) {
-      const x = 230 + ((i * 37) % 720);
-      const y = -10 + ((i * 53) % 190);
-      const len = 14 + (i % 3) * 5;
-      const dx = -len * 0.24;
-      const cls = i % 2 === 0 ? 'hs-rain-a' : 'hs-rain-b';
-      const alpha = i % 2 === 0 ? 0.56 : 0.34;
-      drops.push(`<line class="${cls}" x1="${x}" y1="${y}" x2="${(x + dx).toFixed(1)}" y2="${y + len}" stroke="#a8dcff" stroke-width="${i % 2 === 0 ? 1.6 : 1.1}" stroke-linecap="round" opacity="${alpha}"/>`);
-    }
-    parts.push(`<g class="hs-fx-rain">${drops.join('')}</g>`);
-  }
-
-  // 2. 천둥·번개 (thunder)
   if (weather === 'thunder') {
-    const stormRain = [];
-    for (let i = 0; i < 42; i++) {
-      const x = 220 + ((i * 31) % 740);
-      const y = -15 + ((i * 47) % 190);
-      const len = 16 + (i % 4) * 5;
-      const dx = -len * 0.32;
-      stormRain.push(`<line class="${i % 2 === 0 ? 'hs-rain-a' : 'hs-rain-b'}" x1="${x}" y1="${y}" x2="${(x + dx).toFixed(1)}" y2="${y + len}" stroke="#93c5fd" stroke-width="1.4" stroke-linecap="round" opacity="${i % 2 === 0 ? 0.54 : 0.3}"/>`);
-    }
-    parts.push(`<g class="hs-fx-rain">${stormRain.join('')}</g>`);
-    // 번개 섬광 + 2개의 번개 볼트
     parts.push(`
       <g class="hs-lightning-group">
-        <ellipse class="hs-thunder-glow" cx="765" cy="75" rx="180" ry="70" fill="url(#${uid}tflash)"/>
-        <path class="hs-bolt hs-bolt-1" d="M778,34 L750,86 L773,86 L748,144 L796,74 L770,74 Z" fill="#fde047" stroke="#fef9c3" stroke-width="1.2" stroke-linejoin="round"/>
-        <path class="hs-bolt hs-bolt-2" d="M618,42 L598,82 L614,82 L594,126 L632,74 L613,74 Z" fill="#fef08a" opacity="0.82"/>
+        <ellipse class="hs-thunder-glow" cx="765" cy="75" rx="185" ry="74" fill="url(#${uid}tflash)"/>
+        <path class="hs-bolt hs-bolt-1" d="M782,30 L752,84 L775,84 L748,144 L798,70 L772,70 Z" fill="#fde047" stroke="#fef9c3" stroke-width="1.3" stroke-linejoin="round"/>
+        <path class="hs-bolt hs-bolt-2" d="M624,42 L603,82 L619,82 L599,126 L637,74 L618,74 Z" fill="#fef08a" opacity="0.86"/>
       </g>
     `);
   }
 
-  // 3. 태풍·강풍 (typhoon)
-  if (weather === 'typhoon') {
-    const galeRain = [];
-    for (let i = 0; i < 44; i++) {
-      const x = 210 + ((i * 29) % 750);
-      const y = -10 + ((i * 43) % 190);
-      const len = 20 + (i % 3) * 6;
-      const dx = -len * 0.72; // 36도 급경사 돌풍 빗줄기
-      galeRain.push(`<line class="hs-gale-streak" x1="${x}" y1="${y}" x2="${(x + dx).toFixed(1)}" y2="${y + len}" stroke="#7dd3fc" stroke-width="1.5" stroke-linecap="round" opacity="${0.34 + (i % 3) * 0.14}"/>`);
-    }
-    // 횡풍 유선(wind streamlines) + 우측 소용돌이 태풍 아이
-    parts.push(`
-      <g class="hs-fx-typhoon">
-        ${galeRain.join('')}
-        <path class="hs-wind-line hs-wind-1" d="M290,54 Q460,40 620,62 T890,46" fill="none" stroke="rgba(186,230,253,0.48)" stroke-width="2" stroke-linecap="round"/>
-        <path class="hs-wind-line hs-wind-2" d="M350,96 Q530,82 690,104 T940,88" fill="none" stroke="rgba(224,242,254,0.42)" stroke-width="1.7" stroke-linecap="round"/>
-        <path class="hs-wind-line hs-wind-3" d="M240,136 Q420,122 610,142 T910,126" fill="none" stroke="rgba(125,211,252,0.36)" stroke-width="1.5" stroke-linecap="round"/>
-        <g transform="translate(792, 82)">
-          <g class="hs-vortex">
-            <circle cx="0" cy="0" r="8.5" fill="none" stroke="rgba(224,242,254,0.82)" stroke-width="2.2"/>
-            <path d="M-28,-8 C-14,-34 26,-32 34,-6 C38,10 24,26 4,28 C-18,30 -32,14 -28,-8" fill="none" stroke="rgba(186,230,253,0.72)" stroke-width="2.4" stroke-dasharray="28 10" stroke-linecap="round"/>
-            <path d="M-44,-14 C-22,-50 38,-48 50,-10 C56,16 34,42 2,44 C-28,46 -50,24 -44,-14" fill="none" stroke="rgba(125,211,252,0.52)" stroke-width="2" stroke-dasharray="38 14" stroke-linecap="round"/>
-          </g>
-        </g>
-      </g>
-    `);
-  }
-
-  // 4. 안개·박무 (fog)
   if (weather === 'fog') {
     const fogTint = isNight ? '#b9cedb' : '#e6f1f2';
     parts.push(`
       <g class="hs-fx-fog">
-        <rect x="200" y="92" width="780" height="28" rx="14" fill="url(#${uid}fogGrad)" class="hs-fog-band hs-fog-1"/>
-        <rect x="250" y="122" width="740" height="32" rx="16" fill="url(#${uid}fogGrad)" class="hs-fog-band hs-fog-2"/>
+        <rect x="200" y="90" width="780" height="30" rx="15" fill="url(#${uid}fogGrad)" class="hs-fog-band hs-fog-1"/>
+        <rect x="250" y="122" width="740" height="34" rx="17" fill="url(#${uid}fogGrad)" class="hs-fog-band hs-fog-2"/>
         <rect x="190" y="152" width="800" height="44" rx="22" fill="url(#${uid}fogGrad)" class="hs-fog-band hs-fog-3"/>
-        <ellipse cx="670" cy="148" rx="290" ry="38" fill="${fogTint}" opacity="0.16" filter="url(#${uid}blurSoft)"/>
+        <ellipse cx="670" cy="146" rx="290" ry="38" fill="${fogTint}" opacity="0.18" filter="url(#${uid}blurSoft)"/>
       </g>
     `);
   }
 
-  // 5. 눈 (snow) & 폭설 (heavy_snow)
-  if (weather === 'snow' || weather === 'heavy_snow') {
-    const isHeavy = weather === 'heavy_snow';
-    const flakeCount = isHeavy ? 54 : 30;
-    const flakes = [];
-    for (let i = 0; i < flakeCount; i++) {
-      const x = 230 + ((i * 41) % 720);
-      const y = 8 + ((i * 59) % 175);
-      const r = isHeavy ? (1.8 + (i % 4) * 1.1) : (1.5 + (i % 3) * 0.9);
-      const cls = i % 3 === 0 ? 'hs-snow-a' : i % 3 === 1 ? 'hs-snow-b' : 'hs-snow-c';
-      if (i % 5 === 0) {
-        // 정교한 6각 눈결정
-        const s = r * 2.1;
-        flakes.push(`
-          <g class="${cls}" stroke="#f0f9ff" stroke-width="1.1" stroke-linecap="round" opacity="${isHeavy ? 0.88 : 0.8}">
-            <line x1="${x}" y1="${y - s}" x2="${x}" y2="${y + s}"/>
-            <line x1="${(x - s * 0.86).toFixed(1)}" y1="${(y - s * 0.5).toFixed(1)}" x2="${(x + s * 0.86).toFixed(1)}" y2="${(y + s * 0.5).toFixed(1)}"/>
-            <line x1="${(x - s * 0.86).toFixed(1)}" y1="${(y + s * 0.5).toFixed(1)}" x2="${(x + s * 0.86).toFixed(1)}" y2="${(y - s * 0.5).toFixed(1)}"/>
-          </g>
-        `);
-      } else {
-        flakes.push(`<circle class="${cls}" cx="${x}" cy="${y}" r="${r}" fill="#f8fafc" opacity="${isHeavy ? (0.45 + (i % 3) * 0.2) : (0.42 + (i % 3) * 0.16)}"/>`);
-      }
-    }
-    const blizzardMist = isHeavy
-      ? `<path class="hs-fog-band hs-fog-2" d="M220,164 Q440,142 640,162 T960,152 L960,200 L220,200 Z" fill="rgba(241,245,249,0.22)"/>
-         <path d="M280,72 Q490,56 710,74 T950,62" fill="none" stroke="rgba(241,245,249,0.24)" stroke-width="1.8" stroke-dasharray="14 24" stroke-linecap="round"/>`
-      : '';
-    parts.push(`<g class="${isHeavy ? 'hs-fx-blizzard' : 'hs-fx-snow'}">${flakes.join('')}${blizzardMist}</g>`);
-  }
-
-  // 6. 한파 (coldWave) — 우측 성애 결정 프레임 + 빙정(다이아몬드 더스트) 반짝임
   if (coldWave) {
     parts.push(`
       <g class="hs-fx-cold" aria-hidden="true">
-        <path d="M956,0 C936,24 912,32 886,36 M956,0 C928,8 906,24 892,50 M938,16 L916,12 M922,28 L926,48 M904,34 L888,22 M956,42 C944,58 934,74 934,94" fill="none" stroke="rgba(224,242,254,0.48)" stroke-width="1.3" stroke-linecap="round"/>
-        <path d="M956,196 C930,174 904,166 876,166 M956,196 C936,168 920,152 908,130 M936,180 L912,184" fill="none" stroke="rgba(186,230,253,0.42)" stroke-width="1.3" stroke-linecap="round"/>
-        <g stroke="#e0f2fe" stroke-width="1.15" stroke-linecap="round">
-          <g transform="translate(874, 24)" opacity="0.72"><path d="M0,-8 V8 M-7,-4 L7,4 M-7,4 L7,-4"/></g>
-          <g transform="translate(918, 68)" opacity="0.6"><path d="M0,-6 V6 M-5.2,-3 L5.2,3 M-5.2,3 L5.2,-3"/></g>
-          <g transform="translate(540, 44)" opacity="0.45"><path d="M0,-4.5 V4.5 M-4,-2.2 L4,2.2 M-4,2.2 L4,-2.2"/></g>
-          <g transform="translate(692, 134)" opacity="0.5"><path d="M0,-5 V5 M-4.3,-2.5 L4.3,2.5 M-4.3,2.5 L4.3,-2.5"/></g>
-        </g>
-        <circle class="hs-star hs-star-t1" cx="628" cy="40" r="1.4" fill="#bae6fd"/>
-        <circle class="hs-star hs-star-t2" cx="812" cy="96" r="1.3" fill="#e0f2fe"/>
-        <circle class="hs-star hs-star-t3" cx="468" cy="112" r="1.2" fill="#bae6fd"/>
-      </g>
-    `);
-  }
-
-  // 7. 도로 살얼음 (blackIce) — 노면 위 차가운 얼음 결정·서리 광택
-  if (blackIce) {
-    parts.push(`
-      <g class="hs-fx-blackice" aria-hidden="true">
-        <rect x="330" y="168" width="630" height="28" fill="url(#${uid}iceFloor)"/>
-        <path class="hs-ice-sheen" d="M360,186 Q560,174 740,184 T956,178" fill="none" stroke="rgba(125,211,252,0.72)" stroke-width="1.6" stroke-linecap="round"/>
-        <path d="M410,192 Q610,183 840,190" fill="none" stroke="rgba(224,242,254,0.46)" stroke-width="1.1" stroke-dasharray="18 12" stroke-linecap="round"/>
-        <g stroke="#bae6fd" stroke-width="1.2" stroke-linecap="round" opacity="0.82">
-          <g transform="translate(650, 178)"><path d="M0,-6 V6 M-5.2,-3 L5.2,3 M-5.2,3 L5.2,-3"/></g>
-          <g transform="translate(792, 182)"><path d="M0,-7.5 V7.5 M-6.5,-3.7 L6.5,3.7 M-6.5,3.7 L6.5,-3.7"/></g>
-          <g transform="translate(894, 174)"><path d="M0,-5.5 V5.5 M-4.8,-2.7 L4.8,2.7 M-4.8,2.7 L4.8,-2.7"/></g>
-          <g transform="translate(510, 185)"><path d="M0,-4.5 V4.5 M-3.9,-2.2 L3.9,2.2 M-3.9,2.2 L3.9,-2.2"/></g>
+        <path d="M956,0 C936,24 912,32 886,36 M956,0 C928,8 906,24 892,50 M938,16 L916,12 M922,28 L926,48 M904,34 L888,22 M956,42 C944,58 934,74 934,94" fill="none" stroke="rgba(224,242,254,0.52)" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M956,196 C930,174 904,166 876,166 M956,196 C936,168 920,152 908,130 M936,180 L912,184" fill="none" stroke="rgba(186,230,253,0.44)" stroke-width="1.4" stroke-linecap="round"/>
+        <g stroke="#e0f2fe" stroke-width="1.2" stroke-linecap="round">
+          <g transform="translate(874, 24)" opacity="0.78"><path d="M0,-8 V8 M-7,-4 L7,4 M-7,4 L7,-4"/></g>
+          <g transform="translate(918, 68)" opacity="0.65"><path d="M0,-6 V6 M-5.2,-3 L5.2,3 M-5.2,3 L5.2,-3"/></g>
+          <g transform="translate(540, 44)" opacity="0.48"><path d="M0,-4.5 V4.5 M-4,-2.2 L4,2.2 M-4,2.2 L4,-2.2"/></g>
         </g>
       </g>
     `);
@@ -678,21 +687,16 @@ function renderWeatherFxLayer(scene, uid) {
   return `<svg class="hs-layer hs-fx" viewBox="0 0 960 200" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
     <defs>
       <radialGradient id="${uid}tflash">
-        <stop offset="0%" stop-color="#fef08a" stop-opacity="0.45"/>
-        <stop offset="55%" stop-color="#a78bfa" stop-opacity="0.18"/>
+        <stop offset="0%" stop-color="#fef08a" stop-opacity="0.48"/>
+        <stop offset="55%" stop-color="#a78bfa" stop-opacity="0.20"/>
         <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
       </radialGradient>
       <linearGradient id="${uid}fogGrad" x1="0" y1="0" x2="1" y2="0">
         <stop offset="0%" stop-color="#dceaf0" stop-opacity="0"/>
         <stop offset="25%" stop-color="#dceaf0" stop-opacity="0.22"/>
-        <stop offset="55%" stop-color="#e9f3f7" stop-opacity="0.28"/>
+        <stop offset="55%" stop-color="#e9f3f7" stop-opacity="0.30"/>
         <stop offset="85%" stop-color="#dceaf0" stop-opacity="0.18"/>
         <stop offset="100%" stop-color="#dceaf0" stop-opacity="0"/>
-      </linearGradient>
-      <linearGradient id="${uid}iceFloor" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0"/>
-        <stop offset="60%" stop-color="#7dd3fc" stop-opacity="0.22"/>
-        <stop offset="100%" stop-color="#bae6fd" stop-opacity="0.34"/>
       </linearGradient>
       <filter id="${uid}blurSoft"><feGaussianBlur stdDeviation="8"/></filter>
     </defs>
@@ -701,85 +705,160 @@ function renderWeatherFxLayer(scene, uid) {
 }
 
 function getTerrainColors(scene) {
-  const { weather, dayPhase, coldWave, blackIce, isSnowTerrain } = scene;
+  const { weather, dayPhase, coldWave, iceRank, isSnowTerrain } = scene;
   if (isSnowTerrain) {
     return dayPhase === 'night'
-      ? { back: '#243c50', front: '#182b3b', cap: '#d9ecfb', capAlpha: 0.72, roadGlow: '#93c5fd' }
-      : { back: '#4d6f85', front: '#355368', cap: '#f1f7fc', capAlpha: 0.85, roadGlow: '#bae6fd' };
+      ? { back: '#243c50', front: '#182b3b', cap: '#d9ecfb', capAlpha: 0.72 }
+      : { back: '#4d6f85', front: '#355368', cap: '#f1f7fc', capAlpha: 0.85 };
   }
-  if (blackIce || coldWave) {
+  if (iceRank >= 2 || coldWave) {
     return dayPhase === 'night'
-      ? { back: '#152e46', front: '#0e2135', cap: '#bae6fd', capAlpha: 0.42, roadGlow: '#38bdf8' }
-      : { back: '#2d5c78', front: '#1f445c', cap: '#dff4ff', capAlpha: 0.36, roadGlow: '#7dd3fc' };
+      ? { back: '#152e46', front: '#0e2135', cap: '#bae6fd', capAlpha: 0.42 }
+      : { back: '#2d5c78', front: '#1f445c', cap: '#dff4ff', capAlpha: 0.36 };
   }
   if (dayPhase === 'night') {
     return weather === 'thunder'
-      ? { back: '#1c1f36', front: '#121526', cap: '#818cf8', capAlpha: 0.14, roadGlow: '' }
-      : { back: '#183344', front: '#0f2331', cap: '#93c5fd', capAlpha: 0.15, roadGlow: '' };
+      ? { back: '#1c1f36', front: '#121526', cap: '#818cf8', capAlpha: 0.14 }
+      : { back: '#183344', front: '#0f2331', cap: '#93c5fd', capAlpha: 0.15 };
   }
   if (dayPhase === 'dawn' || dayPhase === 'dusk') {
-    return { back: '#4d4c63', front: '#2f3447', cap: '#fed7aa', capAlpha: 0.24, roadGlow: '' };
+    return { back: '#4d4c63', front: '#2f3447', cap: '#fed7aa', capAlpha: 0.24 };
   }
   if (weather === 'overcast' || weather === 'fog' || weather === 'rain') {
-    return { back: '#3d5860', front: '#294047', cap: '#cbd5e1', capAlpha: 0.12, roadGlow: '' };
+    return { back: '#3d5860', front: '#294047', cap: '#cbd5e1', capAlpha: 0.12 };
   }
-  // 기본 12호선 주간 맑음 청록 능선(기존 .hero 브랜드 컬러 계승)
-  return { back: '#4e8679', front: '#2f655f', cap: '#d9f2cc', capAlpha: 0.16, roadGlow: '' };
+  return { back: '#4e8679', front: '#2f655f', cap: '#d9f2cc', capAlpha: 0.16 };
 }
 
+/**
+ * 산악 능선 + 실제 고속도로 아스팔트 벡터(원근 노면 · 황색 중앙선 · 차선 점선 · 양쪽 갓길 실선 · 교각 · 0~3단계 살얼음 색상 연동)
+ */
 function renderTerrainLayer(scene, uid) {
   const t = getTerrainColors(scene);
+  const ice = scene.iceMeta || ICE_RANK_META[0];
+  const isWet = ['rain', 'thunder', 'typhoon'].includes(scene.weather);
   const backPts = '0,162 110,136 190,140 310,94 375,112 490,62 542,84 628,48 696,76 804,34 960,72 960,180 0,180';
   const frontPts = '0,174 140,152 245,156 355,114 435,130 565,84 652,108 755,66 862,88 960,64 960,180 0,180';
-  // 눈/서리 능선 highlight polyline
   const ridgeCap = 'M310,94 L375,112 L490,62 L542,84 L628,48 L696,76 L804,34 L960,72';
-  // 우측 하단 12호선 교량·노면 실루엣 (살얼음일 때 파란 결빙 반사광 강조)
-  const bridgeSilhouette = scene.blackIce
-    ? `<g opacity="0.9">
-         <path d="M520,166 Q730,150 960,156" fill="none" stroke="${t.roadGlow}" stroke-width="3.2" stroke-linecap="round"/>
-         <path d="M535,171 Q735,156 960,161" fill="none" stroke="rgba(224,242,254,0.65)" stroke-width="1.2" stroke-dasharray="10 8"/>
-         <path d="M620,161 V180 M710,156 V180 M800,154 V180 M890,155 V180" stroke="rgba(125,211,252,0.36)" stroke-width="3"/>
-       </g>`
-    : `<path d="M560,168 Q750,154 960,159" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-dasharray="10 10"/>`;
 
-  return `<svg class="hs-layer hs-terrain" viewBox="0 0 960 180" preserveAspectRatio="none" aria-hidden="true">
+  // 원근 곡선 고속도로 (산 능선 앞 우측 하단 490..960을 가로질러 전경 하단으로 확장)
+  // 상단 갓길: M495,155 Q720,124 960,121
+  // 하단 갓길: M585,180 Q765,157 960,156
+  // 중심 황색선: M532,170 Q742,140 960,138.5
+  const asphaltTop = scene.iceRank >= 3 ? '#1a2736' : scene.iceRank === 2 ? '#1f2833' : '#222933';
+  const asphaltBot = scene.iceRank >= 3 ? '#101d2b' : '#171c23';
+
+  // 아스팔트 위 물기/얼음/적설 질감 오버레이
+  const roadIcePatch = ice.iceAlpha > 0
+    ? `<path d="M510,166 Q735,134 960,130 L960,148 Q750,151 560,180 Z" fill="url(#${uid}roadIceGrad)" opacity="${ice.iceAlpha.toFixed(2)}"/>
+       <g class="hs-ice-sheen" stroke="#e0f2fe" stroke-width="1.2" stroke-linecap="round" opacity="${Math.min(0.92, ice.iceAlpha + 0.3).toFixed(2)}">
+         <g transform="translate(705,153)"><path d="M0,-4.5 V4.5 M-3.9,-2.2 L3.9,2.2 M-3.9,2.2 L3.9,-2.2"/></g>
+         <g transform="translate(815,141)"><path d="M0,-5.5 V5.5 M-4.8,-2.7 L4.8,2.7 M-4.8,2.7 L4.8,-2.7"/></g>
+         <g transform="translate(902,138)"><path d="M0,-5 V5 M-4.3,-2.5 L4.3,2.5 M-4.3,2.5 L4.3,-2.5"/></g>
+       </g>`
+    : isWet
+      ? `<path d="M510,166 Q735,134 960,130 L960,148 Q750,151 560,180 Z" fill="rgba(147,197,253,0.12)"/>`
+      : '';
+
+  const roadSnowBank = scene.isSnowTerrain
+    ? `<path d="M492,155 Q718,123 960,120 L960,125 Q720,128 498,158 Z" fill="rgba(241,245,249,0.75)"/>
+       <path d="M578,180 Q762,156 960,155 L960,161 Q765,161 595,180 Z" fill="rgba(241,245,249,0.68)"/>`
+    : '';
+
+  // 갓길/난간 델리네이터 비콘(0:초록, 1:노랑, 2:주황, 3:빨강)
+  const beacons = [
+    [605, 141], [678, 132], [752, 126], [832, 122], [912, 120]
+  ].map(([bx, by]) => `
+    <circle cx="${bx}" cy="${by}" r="${scene.iceRank >= 2 ? 4.8 : 3.4}" fill="${ice.beaconGlow}"/>
+    <circle cx="${bx}" cy="${by}" r="${scene.iceRank >= 2 ? 2.1 : 1.5}" fill="${ice.railColor}"/>
+  `).join('');
+
+  return `<svg class="hs-layer hs-terrain" viewBox="0 0 960 180" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
     <defs>
       <linearGradient id="${uid}tb" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${t.back}"/>
         <stop offset="100%" stop-color="${t.front}"/>
       </linearGradient>
+      <linearGradient id="${uid}roadAsph" x1="0" y1="0" x2="1" y2="0.4">
+        <stop offset="0%" stop-color="${asphaltTop}"/>
+        <stop offset="100%" stop-color="${asphaltBot}"/>
+      </linearGradient>
+      <linearGradient id="${uid}roadIceGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.15"/>
+        <stop offset="45%" stop-color="#bae6fd" stop-opacity="0.72"/>
+        <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0.48"/>
+      </linearGradient>
     </defs>
+
+    <!-- 2중 산악 능선 -->
     <polygon points="${backPts}" fill="url(#${uid}tb)" opacity="0.88"/>
     <path d="${ridgeCap}" fill="none" stroke="${t.cap}" stroke-width="${scene.isSnowTerrain ? 4.2 : 1.6}" stroke-linejoin="round" opacity="${t.capAlpha}"/>
-    <polygon points="${frontPts}" fill="${t.front}" opacity="0.94"/>
-    ${bridgeSilhouette}
+    <polygon points="${frontPts}" fill="${t.front}" opacity="0.95"/>
+
+    <!-- 12호선 고가교각 · 사면 성토 -->
+    <g stroke="rgba(15, 23, 42, 0.55)" stroke-width="4">
+      <line x1="658" y1="168" x2="658" y2="180"/>
+      <line x1="742" y1="161" x2="742" y2="180"/>
+      <line x1="830" y1="158" x2="830" y2="180"/>
+      <line x1="916" y1="156" x2="916" y2="180"/>
+    </g>
+
+    <!-- 콘크리트 갓길 외곽 방호벽 -->
+    <path d="M490,157 Q720,122 960,118 L960,162 Q768,162 595,180 L488,180 Z" fill="#334155" opacity="0.92"/>
+
+    <!-- 실제 아스팔트 노면 -->
+    <path d="M496,158 Q722,125 960,121 L960,156 Q766,157 586,180 L496,180 Z" fill="url(#${uid}roadAsph)"/>
+
+    ${roadIcePatch}
+    ${roadSnowBank}
+
+    <!-- 양쪽 갓길 실선 (노면 경계선) -->
+    <path d="M502,160 Q724,128 960,124" fill="none" stroke="${ice.edgeLine}" stroke-width="1.35" opacity="0.88"/>
+    <path d="M582,179 Q766,155 960,154" fill="none" stroke="${ice.edgeLine}" stroke-width="1.6" opacity="0.92"/>
+
+    <!-- 상·하행 차선 점선 -->
+    <path d="M518,165 Q732,134 960,130.5" fill="none" stroke="rgba(248,250,252,0.52)" stroke-width="1.15" stroke-dasharray="11 10"/>
+    <path d="M558,174 Q752,147 960,145.5" fill="none" stroke="rgba(248,250,252,0.58)" stroke-width="1.25" stroke-dasharray="14 11"/>
+
+    <!-- 도로 황색 중심선 -->
+    <path d="M538,169.5 Q742,140.5 960,138" fill="none" stroke="${ice.centerLine}" stroke-width="1.75" opacity="0.9"/>
+
+    <!-- 0·1·2·3단계 살얼음 직관 방호벽 컬러 라인 + 교량 경고 비콘 -->
+    <path class="${scene.iceRank >= 3 ? 'hs-ice-sheen' : ''}" d="M494,157 Q720,123 960,119" fill="none" stroke="${ice.accent}" stroke-width="${scene.iceRank >= 2 ? 2.6 : 1.8}" opacity="0.95"/>
+    <path d="M594,180 Q768,159 960,158" fill="none" stroke="${ice.accent}" stroke-width="${scene.iceRank >= 2 ? 2.8 : 2.0}" opacity="0.95"/>
+    ${beacons}
   </svg>`;
 }
 
 /**
- * .horizon 내부에 삽입할 전체 동적 기상·천체 SVG 마크업 생성
+ * .horizon 내부에 삽입할 전체 동적 기상·천체·벡터도로 SVG + UI 태그 마크업 생성
  */
 export function renderHeroSceneMarkup(input = {}) {
-  const scene = input.celestial && input.lunar ? input : resolveHeroScene(input);
+  const scene = input.celestial && input.lunar && input.iceMeta ? input : resolveHeroScene(input);
   const uid = nextUid();
   const isNight = scene.dayPhase === 'night';
   const showMoonFirst = isNight && scene.celestial.moonVisible;
+  const roadStageBadge = scene.iceRank >= 1
+    ? `<div class="hs-road-stage-pill rank-${scene.iceRank}" aria-hidden="true"><span class="hs-stage-dot"></span><span>${esc(scene.iceMeta.shortLabel)}</span></div>`
+    : '';
 
   return {
     scene,
     html: [
-      renderStarsLayer(scene.celestial.starOpacity, uid),
+      renderStarsLayer(scene.celestial.starOpacity),
       renderSunLayer(scene, uid),
       showMoonFirst ? renderMoonLayer(scene, uid) : '',
+      renderTyphoonEmblemLayer(scene, uid),
       renderCloudsLayer(scene, uid),
       renderWeatherFxLayer(scene, uid),
-      renderTerrainLayer(scene, uid)
+      renderTerrainLayer(scene, uid),
+      roadStageBadge
     ].join('')
   };
 }
 
 /**
- * 실제 DOM `.hero` 요소에 장면 클래스/속성 및 SVG 레이어 적용
+ * 실제 DOM `.hero` 요소에 장면 클래스/속성, SVG 레이어 및 Canvas 입자 엔진 적용
  */
 export function applyHeroScene(heroEl, input = {}) {
   if (!heroEl) return null;
@@ -788,6 +867,7 @@ export function applyHeroScene(heroEl, input = {}) {
   heroEl.dataset.weather = scene.weather;
   heroEl.dataset.dayphase = scene.dayPhase;
   heroEl.dataset.blackIce = scene.blackIce ? 'true' : 'false';
+  heroEl.dataset.iceRank = String(scene.iceRank);
   heroEl.dataset.coldWave = scene.coldWave ? 'true' : 'false';
   heroEl.classList.add('has-dynamic-scene');
 
@@ -799,6 +879,19 @@ export function applyHeroScene(heroEl, input = {}) {
     heroEl.prepend(horizonEl);
   }
   horizonEl.innerHTML = html;
+
+  // 비·눈·폭설·태풍바람·한파빙정은 Canvas 2D 입자 엔진으로 입체 렌더링
+  const needCanvas = ['rain', 'thunder', 'typhoon', 'snow', 'heavy_snow'].includes(scene.weather) || scene.coldWave;
+  if (needCanvas) {
+    attachWeatherParticles(horizonEl, {
+      weather: scene.weather,
+      coldWave: scene.coldWave,
+      dayPhase: scene.dayPhase,
+      densityScale: heroEl.closest('.hp-item') ? 0.72 : 1.0
+    });
+  } else {
+    detachWeatherParticles(horizonEl);
+  }
 
   return scene;
 }
