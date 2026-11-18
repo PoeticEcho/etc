@@ -64,7 +64,7 @@ export async function loadOverviewBundle(placesList = [], { line = 14, roadNum =
       (serialized ? '&places=' + encodeURIComponent(serialized) : '') +
       (force ? '&force=1' : '')
     );
-    const r = await fetch(u, { signal: AbortSignal.timeout(15000), ...(force ? { cache: 'no-store' } : {}) });
+    const r = await fetch(u, { signal: AbortSignal.timeout(22000), ...(force ? { cache: 'no-store' } : {}) });
     if (!r.ok) return null;
     const bundle = await r.json();
     if (!bundle?.ok) return null;

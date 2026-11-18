@@ -2099,23 +2099,22 @@ export async function refresh(forceOrOpts = false) {
   render();
 
   const run = (async () => {
-    await probeBackend(force);
-    updateMonitorStatusBar();
-
     const queue = [...targets()];
     if (detailPlace) {
       queue.sort((a, b) => Number(coord(b) === coord(detailPlace)) - Number(coord(a) === coord(detailPlace)));
     }
 
-    // Open-Meteo 8개 지역 다중 좌표 일괄 선행 조회 + 백엔드 KMA 통합 번들(관측·단기·특보·도로·012위험) 1회 동시 호출
+    const probeTask = probeBackend(force).then(updateMonitorStatusBar).catch(() => {});
+    // Open-Meteo 8개 지역 다중 좌표 일괄 선행 조회 + 백엔드 KMA 통합 번들(관측·단기·특보·도로·012위험) 동시 출발
     const omBatchTask = prefetchOpenMeteo(queue, { force });
     const bundleTask = loadOverviewBundle(queue, { line: 14, roadNum: '012', force });
 
-    const bundle = await bundleTask;
     const bundledKeys = new Set();
     let anyLiveFetched = false;
+    const probPromises = [];
 
-    if (bundle?.ok) {
+    const applyBundlePayload = bundle => {
+      if (!bundle?.ok) return false;
       anyLiveFetched = true;
       if (bundle.roadStations?.length) {
         roadStations = bundle.roadStations;
@@ -2127,7 +2126,6 @@ export async function refresh(forceOrOpts = false) {
         for (const p of targets()) {
           record(p).roadRisk = findPlaceRoadRisk(p);
         }
-        render();
       }
       if (bundle.items) {
         for (const p of queue) {
@@ -2142,9 +2140,47 @@ export async function refresh(forceOrOpts = false) {
           }
           bundledKeys.add(coord(p));
         }
-        render();
       }
-    } else {
+      render();
+      return true;
+    };
+
+    // 콜드 워커 구간(첫 방문)에서는 Open-Meteo 기온이 먼저(~1초) 도착하면 최대 2초만 기다렸다가 즉시 1차 기온 표출
+    let bundle = silent
+      ? await bundleTask
+      : await Promise.race([
+          bundleTask,
+          omBatchTask.then(() => new Promise(r => setTimeout(() => r('__PENDING__'), 800))),
+          new Promise(r => setTimeout(() => r('__PENDING__'), 2000))
+        ]);
+
+    if (bundle === '__PENDING__') {
+      try {
+        await omBatchTask;
+        await Promise.all(
+          queue.map(async p => {
+            const r = record(p);
+            if (r.w) return;
+            try {
+              const interimW = await loadWeather(p, r.o, { skipKmaNetwork: true });
+              if (interimW) {
+                r.w = interimW;
+                if (interimW.rows) {
+                  probPromises.push(loadProbabilities(p, interimW.rows).then(render).catch(() => {}));
+                }
+              }
+            } catch {}
+          })
+        );
+        render();
+      } catch {}
+      bundle = await bundleTask;
+    }
+
+    await probeTask;
+    const bundleOk = applyBundlePayload(bundle);
+
+    if (!bundleOk) {
       loadRoadStations(14).then(stns => {
         if (stns?.length) {
           roadStations = stns;
@@ -2169,10 +2205,10 @@ export async function refresh(forceOrOpts = false) {
       pollWarnings();
     }
 
-    const probPromises = [];
+    const workList = [...queue];
     async function worker() {
-      while (queue.length) {
-        const p = queue.shift();
+      while (workList.length) {
+        const p = workList.shift();
         const r = record(p);
         const isFreshObs = !force && !fromDwell && !r.o?._fromSnapshot && r.last && Date.now() - r.last < 240000;
         if (!bundledKeys.has(coord(p)) && isFreshObs) continue;

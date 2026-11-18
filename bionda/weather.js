@@ -144,12 +144,13 @@ export async function prefetchOpenMeteo(placesList, { force = false } = {}) {
   await forecastPrefetchPromise;
 }
 
-export async function loadKmaForecast(place) {
+export async function loadKmaForecast(place, { cacheOnly = false } = {}) {
   const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
   const cached = kmaForecastCache.get(key);
   if (cached && cached.expires > Date.now()) {
     return cached.data;
   }
+  if (cacheOnly) return null;
   const params = new URLSearchParams({ lat: place.lat, lon: place.lon });
   if (await isBackendAvailable()) {
     try {
@@ -232,10 +233,10 @@ async function getSingleOpenMeteoForecast(place) {
   throw Error('격자 날씨 자료 조회 지연');
 }
 
-export async function loadWeather(place, obs = null) {
+export async function loadWeather(place, obs = null, { skipKmaNetwork = false } = {}) {
   const [omSettled, kmaSettled] = await Promise.allSettled([
     getSingleOpenMeteoForecast(place),
-    loadKmaForecast(place)
+    loadKmaForecast(place, { cacheOnly: skipKmaNetwork })
   ]);
 
   const omData = omSettled.status === 'fulfilled' ? omSettled.value : null;
