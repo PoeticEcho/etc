@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#103c3e">
+  <meta name="description" content="고령·합천·거창·함양·달성 12개 읍면동 기상청 1시간 단기예보를 한눈에 비교하고 강수 시작·영하 진입·동시 겹침 시각을 자동 요약하는 상황실 통합 모니터">
+  <title>1시간 단기예보 (12개 지역) | 날씨봇 × 비온다?</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./hourly.css">
+  <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+  <link rel="help" type="text/plain" title="AI Agent Guide (llms.txt)" href="./llms.txt">
+</head>
+<body class="hourly-page">
+  <header class="top-header">
+    <div class="wrap bar">
+      <a class="brandhome" href="./index.html" aria-label="날씨봇 도로기상 상황판 홈">
+        <b class="brand"><img src="./favicon.png" alt="날씨봇" class="brand-favicon"> 날씨봇</b>
+        <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 고령지사 관내 · 연계 12개 읍면동 1시간 단기예보</span>
+      </a>
+      <nav class="page-tabs" aria-label="대시보드 메뉴 전환">
+        <a class="page-tab" href="./index.html">
+          <span class="pt-ico">🛣️</span><span class="pt-txt">도로기상 상황판</span>
+        </a>
+        <a class="page-tab is-active" href="./hourly.html" aria-current="page">
+          <span class="pt-ico">🕒</span><span class="pt-txt">1시간 단기예보</span><span class="pt-badge">12개소</span>
+        </a>
+      </nav>
+      <div class="header-actions">
+        <button id="reloadHourlyBtn" type="button" class="hdr-btn" title="12개 지역 단기예보 새로고침">
+          <span class="icon-spin">↻</span> <span class="hdr-lbl-pc">새로고침</span>
+        </button>
+        <button id="themeToggleBtn" type="button" class="hdr-btn" title="다크/라이트 화면 전환 (상황판과 연동)">
+          🌓 <span id="themeToggleLabel" class="hdr-lbl-pc">다크모드</span>
+        </button>
+        <button id="hourlyApiBtn" type="button" class="hdr-btn hdr-btn-accent" title="백엔드 API 서버 연결 확인 및 변경">
+          🔌 <span class="hdr-lbl-pc" id="hourlyApiBtnLabel">API 연결</span><span class="hdr-lbl-mob">API</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="hourly-wrap">
+    <div class="hr-subhead">
+      <div class="hr-subhead-left">
+        <span class="hr-eyebrow">KMA SHORT-TERM FORECAST MATRIX · 1회 API 통합 호출</span>
+        <h1 class="hr-title">12개 지역 1시간 기상예보 비교 상황판</h1>
+      </div>
+      <div class="hr-subhead-right">
+        <span id="hourlySourcePill" class="hr-status-pill">자료 불러오는 중…</span>
+        <span id="hourlyStamp" class="hr-stamp">기상청 단기·초단기예보 연동 대기</span>
+      </div>
+    </div>
+
+    <!-- 4 KPI Cards: Auto-summarizing onset & overlap strictly from forecast values -->
+    <section class="hr-metrics" aria-label="예보 조건 자동 요약 지표">
+      <article class="hr-metric">
+        <div class="hr-metric-copy">
+          <div class="hr-mk">모니터링 대상</div>
+          <div class="hr-mn">12 <small>/ 12곳</small></div>
+        </div>
+        <span class="hr-mpill">5개 시·군 12격자</span>
+      </article>
+      <article class="hr-metric">
+        <div class="hr-metric-copy">
+          <div class="hr-mk" id="kpiWetLabel">향후 12시간 강수 예상</div>
+          <div class="hr-mn" id="kpiWetCount">—</div>
+        </div>
+        <span class="hr-mpill is-rain" id="kpiWetPill">분석 중</span>
+      </article>
+      <article class="hr-metric">
+        <div class="hr-metric-copy">
+          <div class="hr-mk" id="kpiFreezingLabel">향후 12시간 영하 예상</div>
+          <div class="hr-mn" id="kpiFreezingCount">—</div>
+        </div>
+        <span class="hr-mpill is-cold" id="kpiFreezingPill">분석 중</span>
+      </article>
+      <article class="hr-metric">
+        <div class="hr-metric-copy">
+          <div class="hr-mk" id="kpiOverlapLabel">강수·영하 동시 겹침</div>
+          <div class="hr-mn" id="kpiOverlapCount">—</div>
+        </div>
+        <div class="hr-mpill-stack">
+          <span class="hr-mpill is-warn" id="kpiOverlapPill">예보 집계</span>
+          <small class="hr-msep">도로 결빙확률 별도</small>
+        </div>
+      </article>
+    </section>
+
+    <!-- Toolbar -->
+    <div class="hr-toolbar" role="region" aria-label="표시 기간 및 강조 항목 선택">
+      <div class="hr-toolgroup" role="group" aria-label="표시 기간">
+        <span class="hr-toolname">표시 기간</span>
+        <button type="button" class="hr-tbtn" data-range="6">6시간</button>
+        <button type="button" class="hr-tbtn active" data-range="12">12시간 <small>(한화면)</small></button>
+        <button type="button" class="hr-tbtn" data-range="24">24시간</button>
+        <button type="button" class="hr-tbtn" data-range="tomorrow">내일까지</button>
+      </div>
+      <div class="hr-toolgroup" role="group" aria-label="강조 항목">
+        <span class="hr-toolname">강조 항목</span>
+        <button type="button" class="hr-tbtn active" data-mode="all">종합</button>
+        <button type="button" class="hr-tbtn" data-mode="pop">강수확률</button>
+        <button type="button" class="hr-tbtn" data-mode="temp">기온</button>
+        <button type="button" class="hr-tbtn" data-mode="pcp">강수량</button>
+        <button type="button" class="hr-tbtn" data-mode="wind">바람</button>
+      </div>
+      <div class="hr-toolgroup" role="group" aria-label="지역 정렬">
+        <span class="hr-toolname">정렬</span>
+        <button type="button" class="hr-tbtn active" data-sort="group">권역별</button>
+        <button type="button" class="hr-tbtn" data-sort="route">노선 서→동</button>
+      </div>
+      <div class="hr-hint">행 클릭 시 기상청 원본형 1시간 상세표 열기</div>
+    </div>
+
+    <!-- Main Matrix Table -->
+    <section class="hr-sheet" aria-label="12개 지역 1시간 단기예보 매트릭스">
+      <div class="hr-scroll">
+        <div class="hr-scroller" id="sheet">
+          <div class="hr-loading">기상청 단기예보 12개 격자 데이터를 불러오는 중입니다…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Legend & Separation Disclaimer -->
+    <div class="hr-bottom">
+      <div class="hr-legends">
+        <span class="hr-legend"><i class="hr-sw sw-wet"></i>비 예보</span>
+        <span class="hr-legend"><i class="hr-sw sw-snow"></i>눈·비눈 예보</span>
+        <span class="hr-legend"><i class="hr-sw sw-cold"></i>영하(&lt;0℃)</span>
+        <span class="hr-legend"><i class="hr-sw sw-overlap"></i>강수×영하 동시 겹침</span>
+        <span class="hr-legend"><i class="hr-sw sw-popbar"></i>강수확률 막대</span>
+      </div>
+      <div class="hr-disclaimer">
+        ※ 상단 수치는 기상청 단기·초단기예보 격자 수치 집계이며, 실제 도로 노면 결빙(살얼음) 확률·단계 판정은 <a href="./index.html">도로기상 상황판</a> 실측 노면온도 및 012선 위험기상 기준을 따릅니다.
+      </div>
+    </div>
+  </main>
+
+  <footer class="global-footer">
+    <div class="wrap footer-inner">
+      <span id="hourlyFooterStamp">기준 자료: 로딩 중… · 1회 통합 호출 · 15분마다 자동 갱신</span>
+      <span class="footer-sources">출처: <a href="https://www.weather.go.kr/w/forecast/overall/short-term.do" target="_blank" rel="noopener">기상청 날씨누리 단기예보</a> · OpenAPI (getVilageFcst · getUltraSrtFcst)</span>
+    </div>
+  </footer>
+
+  <!-- Region KMA Style Hourly Detail Modal -->
+  <dialog id="detailDialog" class="hr-detail-dialog" aria-labelledby="dTitle">
+    <div class="hr-modal-head">
+      <div>
+        <div class="hr-eyebrow" id="dSubTag">KMA SHORT-TERM DETAIL</div>
+        <h2 id="dTitle">지역 상세 예보</h2>
+        <p id="dMeta" class="hr-modal-meta"></p>
+      </div>
+      <button type="button" id="closeDetailBtn" class="hr-close-btn">닫기 ✕</button>
+    </div>
+    <div id="dSummaryBoxes" class="hr-modal-boxes"></div>
+    <div class="hr-kma-table-wrap">
+      <div class="hr-kma-table-title">기상청 단기예보(short-term.do) 형식 1시간별 상세표</div>
+      <div class="hr-kma-scroll" id="dKmaTable"></div>
+    </div>
+    <div class="hr-modal-foot">
+      <div class="hr-modal-links">
+        <a id="dKmaOriginLink" href="https://www.weather.go.kr/w/forecast/overall/short-term.do" target="_blank" rel="noopener" class="hr-link-btn">기상청 날씨누리 단기예보 ↗</a>
+        <a id="dCorridorLink" href="./index.html" class="hr-link-btn is-primary">도로기상 상황판 인근 관측 보기 →</a>
+      </div>
+      <p class="hr-modal-note">※ 본 표의 '영하 기온'과 '강수·영하 동시 겹침'은 기상청 예보값 집계이며, 실제 도로 결빙 확률·단계는 도로기상관측망 노면온도와 012선 위험기상을 확인하세요.</p>
+    </div>
+  </dialog>
+
+  <!-- API Server Settings Dialog -->
+  <dialog id="apiDialog" class="hr-api-dialog" aria-labelledby="apiDialogTitle">
+    <div class="hr-modal-head">
+      <div>
+        <div class="hr-eyebrow">BACKEND CONNECTION</div>
+        <h2 id="apiDialogTitle">실시간 API 서버 설정</h2>
+        <p class="hr-modal-meta">상황판과 동일한 백엔드 주소 설정(`weather-watch:api-base`)을 공유합니다.</p>
+      </div>
+      <button type="button" id="closeApiDialogBtn" class="hr-close-btn">닫기 ✕</button>
+    </div>
+    <div class="hr-api-status" id="apiStatusDesc">연결 상태 확인 중…</div>
+    <label for="hourlyApiInput">Worker / 서버 HTTPS 주소
+      <input id="hourlyApiInput" type="url" placeholder="https://bionda.herego.workers.dev" autocomplete="off">
+    </label>
+    <div class="hr-api-actions">
+      <button type="button" id="hourlyApiSaveBtn" class="save">저장 및 다시 불러오기</button>
+      <button type="button" id="hourlyApiResetBtn">기본값 복원</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="./hourly.js"></script>
+</body>
+</html>
