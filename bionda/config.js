@@ -1,11 +1,11 @@
 // 공개 백엔드 API 서버 설정 및 실시간/정적 모드 판별 (API 키 등 비밀정보는 절대 여기에 저장하지 않음)
 
 /**
- * GitHub Pages 등 정적 호스팅에서 기본으로 자동 연결할 Cloudflare Workers 백엔드 HTTPS 주소
- * - GitHub Pages(*.github.io) / Cloudflare Pages(*.pages.dev)에서 접속 시 별도 입력 없이 자동으로 아래 Worker를 사용합니다.
- * - 로컬(localhost/127.0.0.1) 및 Render/Railway 자체 Node 호스팅에서는 동일 도메인 '/api/*'를 자동 사용합니다.
+ * GitHub Pages 등 정적 호스팅에서 기본으로 자동 연결할 Cloudflare Pages Functions 백엔드 HTTPS 주소
+ * - Cloudflare Pages(*.bionda.pages.dev / bionda.pages.dev) 및 로컬 Node에서는 동일 도메인 '/api/*'를 자동 사용합니다.
+ * - GitHub Pages(*.github.io) / file:에서 접속 시 별도 입력 없이 자동으로 아래 백엔드(bionda.pages.dev)를 사용합니다.
  */
-export const DEFAULT_API_BASE = 'https://bionda.herego.workers.dev';
+export const DEFAULT_API_BASE = 'https://bionda.pages.dev';
 
 const API_BASE_STORAGE_KEY = 'weather-watch:api-base';
 
@@ -22,9 +22,20 @@ export function sanitizeApiBase(raw) {
   return '';
 }
 
+function isSelfPagesHost() {
+  try {
+    if (typeof window === 'undefined' || !window.location) return false;
+    const h = String(window.location.hostname || '').toLowerCase();
+    return h === 'bionda.pages.dev' || h.endsWith('.bionda.pages.dev');
+  } catch {
+    return false;
+  }
+}
+
 function shouldUseDefaultExternalBase() {
   try {
     if (typeof window === 'undefined' || !window.location) return false;
+    if (isSelfPagesHost()) return false;
     const h = String(window.location.hostname || '').toLowerCase();
     return h.endsWith('.github.io') || h.endsWith('.pages.dev') || window.location.protocol === 'file:';
   } catch {
@@ -38,7 +49,9 @@ export function getApiBase() {
       const saved = localStorage.getItem(API_BASE_STORAGE_KEY);
       if (saved !== null) {
         const clean = sanitizeApiBase(saved);
-        if (clean === 'https://bionda-api.herego.workers.dev') return sanitizeApiBase(DEFAULT_API_BASE);
+        if (clean === 'https://bionda-api.herego.workers.dev' || clean === 'https://bionda.herego.workers.dev') {
+          return isSelfPagesHost() ? '' : sanitizeApiBase(DEFAULT_API_BASE);
+        }
         return clean;
       }
     }
