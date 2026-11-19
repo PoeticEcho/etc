@@ -448,6 +448,14 @@ function hideOverlay() {
   el.suggestions.innerHTML = '';
 }
 
+function normalizePlaybackUrl(url) {
+  const raw = String(url || '').trim();
+  if (window.location.protocol === 'https:') {
+    return raw.replace(/^http:\/\/(cctvsec\.ktict\.co\.kr\/)/i, 'https://$1');
+  }
+  return raw;
+}
+
 function renderStage() {
   const v = state.viewer;
   if (!v) return;
@@ -459,14 +467,16 @@ function renderStage() {
     return;
   }
 
+  const playUrl = normalizePlaybackUrl(item.url);
+  const effectiveItem = { ...item, url: playUrl };
   hideOverlay();
-  playStream(item);
-  const insecure = window.location.protocol === 'https:' && /^http:\/\//i.test(item.url);
+  playStream(effectiveItem);
+  const insecure = window.location.protocol === 'https:' && /^http:\/\//i.test(playUrl);
   el.metaLine.innerHTML =
     (insecure ? '<span class="warn-inline">⚠ HTTP 스트림</span>' : '') +
     `<b>${esc(item.format || 'HLS')}</b>` +
     (item.x != null && item.y != null ? ` · ${esc(item.y)}, ${esc(item.x)}` : '') +
-    ` · <span class="mono">${esc(item.url)}</span>`;
+    ` · <span class="mono">${esc(playUrl)}</span>`;
   el.openTabBtn.disabled = false;
 }
 
@@ -524,15 +534,17 @@ function suggestCandidates(label) {
     .map((row) => row.item);
 }
 
-function isHlsUrl(url) {
-  return /\.m3u8(\?|$)/i.test(url) || /playlist/i.test(url);
+function isHlsStream(item) {
+  const url = String(item?.url || '');
+  const fmt = String(item?.format || '').toUpperCase();
+  return fmt === 'HLS' || /\.m3u8(\?|$)/i.test(url) || /playlist/i.test(url);
 }
 
 function playStream(item) {
   const url = item.url;
   const nativeHls = el.video.canPlayType('application/vnd.apple.mpegurl');
 
-  if (isHlsUrl(url)) {
+  if (isHlsStream(item)) {
     if (window.Hls && window.Hls.isSupported()) {
       const hls = new window.Hls({
         lowLatencyMode: true,
@@ -655,7 +667,7 @@ el.openTabBtn.addEventListener('click', () => {
   const v = state.viewer;
   const item = v && (v.items || [])[v.index];
   if (!item) return;
-  window.open(item.url, '_blank', 'noopener,noreferrer');
+  window.open(normalizePlaybackUrl(item.url), '_blank', 'noopener,noreferrer');
 });
 
 el.retryBtn.addEventListener('click', () => {
