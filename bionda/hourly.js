@@ -667,7 +667,7 @@ async function fetchShortTerm12Data(optsOrForce = false) {
       const qs = params.toString();
       const endpoint = apiUrl('/api/short-term-12' + (qs ? `?${qs}` : ''));
       const r = await fetch(endpoint, {
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(26000),
         ...(force ? { cache: 'no-store' } : {})
       });
       if (r.ok) {
@@ -868,8 +868,9 @@ function bindEvents() {
   });
   setInterval(checkHourOrStale, 60000);
 
-  // 3) 10분마다 주기적 자동 갱신 (1시간 예보 특성을 고려한 호출량·신선도 균형)
+  // 3) 10분마다 주기적 자동 갱신 (1시간 예보 특성을 고려한 호출량·신선도 균형, 백그라운드 숨김 탭 제외)
   setInterval(() => {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     fetchShortTerm12Data(buildBackgroundHourlyOpts(state.payload?.sources, Date.now()));
   }, HOURLY_REFRESH_MS);
 }

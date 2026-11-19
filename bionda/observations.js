@@ -52,10 +52,19 @@ export function seedOverviewCache({ line = 14, roadNum = '012', roadStations = n
 
 export async function loadOverviewBundle(placesList = [], { line = 14, roadNum = '012', force = false } = {}) {
   if (!(await isBackendAvailable())) return null;
-  const serialized = (placesList || [])
-    .filter(p => p && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon)))
-    .slice(0, 10)
-    .map(p => `${String(p.name || '').replace(/[;|]/g, ' ').trim()}|${Number(p.lat).toFixed(4)},${Number(p.lon).toFixed(4)}`)
+  const deduped = new Map();
+  for (const p of (placesList || [])) {
+    const lat = Number(p?.lat), lon = Number(p?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    const key = `${lat.toFixed(3)},${lon.toFixed(3)}`;
+    if (!deduped.has(key)) {
+      deduped.set(key, { key, lat, lon, name: String(p?.name || '').replace(/[;|]/g, ' ').trim() });
+    }
+    if (deduped.size >= 10) break;
+  }
+  const serialized = [...deduped.values()]
+    .sort((a, b) => a.key.localeCompare(b.key))
+    .map(p => `${p.name}|${p.key}`)
     .join(';');
   try {
     const u = apiUrl(
@@ -64,7 +73,7 @@ export async function loadOverviewBundle(placesList = [], { line = 14, roadNum =
       (serialized ? '&places=' + encodeURIComponent(serialized) : '') +
       (force ? '&force=1' : '')
     );
-    const r = await fetch(u, { signal: AbortSignal.timeout(22000), ...(force ? { cache: 'no-store' } : {}) });
+    const r = await fetch(u, { signal: AbortSignal.timeout(26000), ...(force ? { cache: 'no-store' } : {}) });
     if (!r.ok) return null;
     const bundle = await r.json();
     if (!bundle?.ok) return null;

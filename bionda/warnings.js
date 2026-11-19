@@ -297,44 +297,13 @@ export function buildWarningsFromApi(rawWarnings = []) {
   };
 }
 
-export async function fetchPlaceWarnings(place) {
-  const activeByKind = new Map();
-  const recentEvents = [];
+let lastCapFallbackAt = 0;
+let capDocsInFlight = null;
 
-  // 1. Server-side KMA wrn_now_data.php + CAP polygon endpoint (/api/warnings)
-  let loadedPrimary = false;
-  if (await isBackendAvailable()) {
-    try {
-      const res = await fetch(
-        apiUrl('/api/warnings?name=' + encodeURIComponent(place.name) + '&lat=' + place.lat + '&lon=' + place.lon),
-        { signal: AbortSignal.timeout(6000) }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        for (const w of data.warnings || []) {
-          activeByKind.set(w.kind, toActiveWarningItem(w));
-        }
-        loadedPrimary = true;
-      }
-    } catch {}
-  }
-  if (!loadedPrimary) {
-    try {
-      const snap = await getSnapshotFallback();
-      if (snap) {
-        const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
-        for (const w of snap?.warnings?.[key]?.warnings || []) {
-          activeByKind.set(w.kind, toActiveWarningItem(w));
-        }
-      }
-    } catch {}
-  }
-
-  // 2. CAP RSS & XML 보조 조회는 백엔드(/api/warnings)가 이미 성공한 경우 중복 호출하지 않고,
-  // 오프라인/백엔드 실패 시에만 fallback으로 동작한다.
-  if (!loadedPrimary) {
-    try {
-      const rssDoc = await loadXml('');
+async function loadCapBulletinDocs() {
+  if (capDocsInFlight) return capDocsInFlight;
+  capDocsInFlight = (async () => {
+    const rssDoc = await loadXml('');
     const files = [];
     for (const item of rssDoc.querySelectorAll('item')) {
       const linkText = text(item, 'link');
@@ -346,30 +315,159 @@ export async function fetchPlaceWarnings(place) {
     }
     const settled = await Promise.allSettled(files.map(async f => {
       const doc = await loadXml(f);
-      return { doc, f, items: parseCapBulletin(doc, place, f) };
+      return { f, doc };
     }));
-    const chronological = settled
-      .filter(x => x.status === 'fulfilled')
-      .flatMap(x => x.value.items)
-      .sort((a, b) => a.sent - b.sent);
+    return settled.filter(x => x.status === 'fulfilled').map(x => x.value);
+  })().finally(() => {
+    capDocsInFlight = null;
+  });
+  return capDocsInFlight;
+}
 
-    for (const ev of chronological) {
-      recentEvents.push(ev);
-      if (ev.cancel) {
-        activeByKind.delete(ev.kind);
-      } else {
-        activeByKind.set(ev.kind, ev);
+function summarizeFromCapDocs(docs, place) {
+  const activeByKind = new Map();
+  const recentEvents = [];
+  const chronological = docs
+    .flatMap(({ doc, f }) => parseCapBulletin(doc, place, f))
+    .sort((a, b) => a.sent - b.sent);
+
+  for (const ev of chronological) {
+    recentEvents.push(ev);
+    if (ev.cancel) {
+      activeByKind.delete(ev.kind);
+    } else {
+      activeByKind.set(ev.kind, ev);
+    }
+  }
+  const firstDoc = docs[0]?.doc;
+  if (firstDoc) {
+    for (const t6Item of parseT6Summary(firstDoc, place)) {
+      if (!activeByKind.has(t6Item.kind)) {
+        activeByKind.set(t6Item.kind, t6Item);
       }
     }
+  }
+  const summary = buildWarningSummary([...activeByKind.values()]);
+  return {
+    ...summary,
+    recentEvents: recentEvents.sort((a, b) => b.sent - a.sent).slice(0, 6),
+    officialUrl: official
+  };
+}
 
-    // Check latest CAP XML <parameter> t6 summary for long-running warnings
-    const firstFulfilled = settled.find(x => x.status === 'fulfilled');
-      if (firstFulfilled?.value?.doc) {
-        for (const t6Item of parseT6Summary(firstFulfilled.value.doc, place)) {
-          if (!activeByKind.has(t6Item.kind)) {
-            activeByKind.set(t6Item.kind, t6Item);
+export async function fetchBatchWarnings(placesList = []) {
+  const deduped = new Map();
+  for (const p of (placesList || [])) {
+    const lat = Number(p?.lat), lon = Number(p?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    const key = `${lat.toFixed(3)},${lon.toFixed(3)}`;
+    if (!deduped.has(key)) {
+      deduped.set(key, { key, lat, lon, name: String(p?.name || '').replace(/[;|]/g, ' ').trim() });
+    }
+    if (deduped.size >= 10) break;
+  }
+  const targetPlaces = [...deduped.values()].sort((a, b) => a.key.localeCompare(b.key));
+  const resultsByKey = new Map();
+  if (!targetPlaces.length) return { ok: true, resultsByKey };
+
+  let loadedPrimary = false;
+  if (await isBackendAvailable()) {
+    try {
+      const serialized = targetPlaces.map(p => `${p.name}|${p.key}`).join(';');
+      const res = await fetch(
+        apiUrl('/api/warnings?places=' + encodeURIComponent(serialized)),
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.items) {
+          for (const p of targetPlaces) {
+            const entry = data.items[p.key];
+            resultsByKey.set(p.key, buildWarningsFromApi(entry?.warnings || []));
           }
+          loadedPrimary = true;
+          return { ok: true, stale: Boolean(data.stale), resultsByKey };
         }
+      }
+    } catch {}
+  }
+
+  let hasSnapshot = false;
+  if (!loadedPrimary) {
+    try {
+      const snap = await getSnapshotFallback();
+      if (snap?.warnings) {
+        hasSnapshot = true;
+        for (const p of targetPlaces) {
+          resultsByKey.set(p.key, buildWarningsFromApi(snap.warnings[p.key]?.warnings || []));
+        }
+      }
+    } catch {}
+  }
+
+  const now = Date.now();
+  if (!loadedPrimary && (now - lastCapFallbackAt >= 180000 || !hasSnapshot)) {
+    lastCapFallbackAt = now;
+    try {
+      const docs = await loadCapBulletinDocs();
+      if (docs.length) {
+        for (const p of targetPlaces) {
+          resultsByKey.set(p.key, summarizeFromCapDocs(docs, p));
+        }
+      }
+    } catch {}
+  }
+
+  for (const p of targetPlaces) {
+    if (!resultsByKey.has(p.key)) {
+      resultsByKey.set(p.key, buildWarningsFromApi([]));
+    }
+  }
+  return { ok: false, resultsByKey };
+}
+
+export async function fetchPlaceWarnings(place) {
+  const activeByKind = new Map();
+
+  // 1. Server-side KMA wrn_now_data.php + CAP polygon endpoint (/api/warnings)
+  let loadedPrimary = false;
+  if (await isBackendAvailable()) {
+    try {
+      const res = await fetch(
+        apiUrl('/api/warnings?name=' + encodeURIComponent(place.name) + '&lat=' + place.lat + '&lon=' + place.lon),
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        for (const w of data.warnings || []) {
+          activeByKind.set(w.kind, toActiveWarningItem(w));
+        }
+        loadedPrimary = true;
+      }
+    } catch {}
+  }
+  let hasSnapshot = false;
+  if (!loadedPrimary) {
+    try {
+      const snap = await getSnapshotFallback();
+      if (snap) {
+        hasSnapshot = true;
+        const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
+        for (const w of snap?.warnings?.[key]?.warnings || []) {
+          activeByKind.set(w.kind, toActiveWarningItem(w));
+        }
+      }
+    } catch {}
+  }
+
+  // 2. CAP RSS & XML 보조 조회는 백엔드(/api/warnings) 실패 + 3분 쿨다운 조건에서만 공유 실행
+  const now = Date.now();
+  if (!loadedPrimary && (now - lastCapFallbackAt >= 180000 || !hasSnapshot)) {
+    lastCapFallbackAt = now;
+    try {
+      const docs = await loadCapBulletinDocs();
+      if (docs.length) {
+        return summarizeFromCapDocs(docs, place);
       }
     } catch {}
   }
@@ -377,7 +475,7 @@ export async function fetchPlaceWarnings(place) {
   const summary = buildWarningSummary([...activeByKind.values()]);
   return {
     ...summary,
-    recentEvents: recentEvents.sort((a, b) => b.sent - a.sent).slice(0, 6),
+    recentEvents: [],
     officialUrl: official
   };
 }

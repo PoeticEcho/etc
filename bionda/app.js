@@ -1,6 +1,6 @@
 import { loadWeather, loadProbabilities, prefetchOpenMeteo, seedKmaForecast } from './weather.js';
 import { loadOverviewBundle, loadObservation, loadRoadStations, loadRoadRisk, seedOverviewCache, getLastObsError } from './observations.js';
-import { fetchPlaceWarnings, buildWarningSummary, buildWarningsFromApi } from './warnings.js';
+import { fetchBatchWarnings, buildWarningSummary, buildWarningsFromApi } from './warnings.js';
 import { classifySeverityTier, isRoadRiskEscalated, ROAD_RISK_LABELS, FOG_RISK_LABELS } from './ice.js';
 import { renderOverviewCanvas, renderDetailCanvas, canvasToJpgBlob } from './share.js';
 import { apiUrl, getApiBase, setApiBase, probeBackend, isBackendAvailable, getBackendStatusSnapshot } from './config.js';
@@ -1943,21 +1943,40 @@ function targets() {
   return detailPlace && !places.some(p => coord(p) === coord(detailPlace)) ? [detailPlace, ...places] : places;
 }
 
-async function pollWarnings() {
-  await Promise.allSettled(
-    targets().map(async p => {
+let warningsPollInFlight = null;
+
+async function pollWarnings(force = false) {
+  if (warningsPollInFlight) return warningsPollInFlight;
+  const now = Date.now();
+  const list = targets().filter(p => {
+    const r = record(p);
+    return !r.checking && (force || now - r.checked >= 105000);
+  });
+  if (!list.length) return;
+
+  for (const p of list) record(p).checking = true;
+  warningsPollInFlight = (async () => {
+    try {
+      const batch = await fetchBatchWarnings(list);
+      if (batch?.resultsByKey) {
+        for (const p of list) {
+          const wrn = batch.resultsByKey.get(coord(p));
+          if (wrn) record(p).wrn = wrn;
+        }
+      }
+    } catch {}
+    const doneAt = Date.now();
+    for (const p of list) {
       const r = record(p);
-      if (r.checking || Date.now() - r.checked < 50000) return;
-      r.checking = true;
-      try {
-        r.wrn = await fetchPlaceWarnings(p);
-      } catch {}
       r.checking = false;
-      r.checked = Date.now();
-    })
-  );
-  checkRiskDiffs();
-  render();
+      r.checked = doneAt;
+    }
+    checkRiskDiffs();
+    render();
+  })().finally(() => {
+    warningsPollInFlight = null;
+  });
+  return warningsPollInFlight;
 }
 
 function scheduleOverviewDwellRefresh(delayMs) {
@@ -2202,7 +2221,7 @@ export async function refresh(forceOrOpts = false) {
     // 번들에 포함되지 않은 지점(또는 번들 실패 시)만 보조 특보 조회 수행
     const missingWarnings = queue.filter(p => !bundledKeys.has(coord(p)));
     if (missingWarnings.length) {
-      pollWarnings();
+      pollWarnings(force);
     }
 
     const workList = [...queue];
@@ -2906,7 +2925,7 @@ setInterval(() => {
 }, OVERVIEW_REFRESH_MS);
 setInterval(() => {
   if (!document.hidden) pollWarnings();
-}, 60000);
+}, 120000);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     syncWakeLock();
