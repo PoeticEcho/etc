@@ -881,7 +881,7 @@ function renderTerrainLayer(scene, uid) {
     </g>
 
     <!-- 눕힌 원근 풀블리드 고속도로(-20..1220) + 방호벽 경계 정확 비콘 -->
-    <g mask="url(#${uid}roadMask)">
+    <g class="hs-road-group" mask="url(#${uid}roadMask)">
       <g stroke="rgba(12, 18, 28, 0.60)" stroke-width="4.5">${piers}</g>
 
       <!-- 노반·방호벽 외곽 -->

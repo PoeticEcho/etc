@@ -82,6 +82,10 @@
   height: 84%;
   z-index: 4;
 }
+.hs-road-group {
+  opacity: 0.84;
+  transition: opacity 0.3s ease;
+}
 .hs-fx { z-index: 5; }
 .hs-particle-canvas { z-index: 6; }
 
@@ -383,6 +387,24 @@
 @media (max-width: 720px) {
   .hero.has-dynamic-scene {
     padding: 15px 14px 36px;
+  }
+  /* 모바일 좁은 폭에서는 텍스트 가독성이 최우선이므로 배경 스크림을 부드럽게 보강하고 도로·지형 에셋 투명도를 차분하게 낮춤 */
+  .hero.has-dynamic-scene::before {
+    background: linear-gradient(
+      180deg,
+      rgba(6, 20, 26, 0.28) 0%,
+      rgba(6, 20, 26, 0.38) 62%,
+      rgba(6, 20, 26, 0.46) 100%
+    );
+  }
+  .hero.has-dynamic-scene .hs-terrain {
+    opacity: 0.72;
+  }
+  .hero.has-dynamic-scene .hs-road-group {
+    opacity: 0.32;
+  }
+  .hero.has-dynamic-scene .hs-particle-canvas {
+    opacity: 0.68;
   }
   .hero.has-dynamic-scene .eyebrow {
     display: block;

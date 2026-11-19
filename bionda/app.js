@@ -1824,24 +1824,26 @@ function renderDetail() {
   const officialIceLv = r.roadRisk?.iceLevel || 0;
   const iceRank = w?.ice?.rank || 0;
   const effectiveIceRank = Math.max(officialIceLv, iceRank);
-  const iceLevel = officialIceLv === 3
-    ? '위험 (012선 3단계)'
+  const iceLevel = effectiveIceRank >= 3
+    ? '살얼음 위험(3단계)'
+    : effectiveIceRank === 2
+    ? '살얼음 주의(2단계)'
+    : effectiveIceRank === 1
+    ? '살얼음 관심(1단계)'
     : w && !w.stale
-    ? (officialIceLv === 2 && iceRank < 2 ? '주의 (012선 2단계)' : w.ice.level)
-    : officialIceLv >= 1
-    ? `${ROAD_RISK_LABELS[officialIceLv]} (012선 ${officialIceLv}단계)`
+    ? (w.ice.level || '살얼음 정상(0단계)')
     : '판단 보류';
   $('ice').textContent = iceLevel;
   $('ice').className = `rank-${Math.min(3, effectiveIceRank)}`;
   $('iceBadgePill').textContent = effectiveIceRank >= 3
-    ? '🚨 위험 (3단계 · 즉시 순찰)'
+    ? '🚨 살얼음 위험(3단계 · 즉시 순찰)'
     : effectiveIceRank === 2
-    ? '❄ 주의 (2단계)'
+    ? '❄ 살얼음 주의(2단계)'
     : effectiveIceRank === 1
-    ? '❄ 관심 (1단계)'
+    ? '❄ 살얼음 관심(1단계)'
     : '❄ 정상 (위험없음)';
   $('reason').textContent = w && !w.stale
-    ? (officialIceLv >= 2 && iceRank < officialIceLv
+    ? (officialIceLv >= 1 && iceRank < officialIceLv
         ? `012선(${r.roadRisk?.stationName || '인접구간'}) 도로살얼음 ${ROAD_RISK_LABELS[officialIceLv]}(${officialIceLv}단계) 감지 · ${w.ice.shortReason || w.ice.reason}`
         : (w.ice.shortReason || w.ice.reason))
     : '최신 예보 확인 중';
