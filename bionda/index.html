@@ -29,7 +29,7 @@
     <div class="wrap bar">
       <a class="brandhome" href="#overview" aria-label="날씨봇 관심지역 기상 모니터 홈">
         <b class="brand"><img src="./favicon.png" alt="날씨봇" class="brand-favicon"> 날씨봇</b>
-        <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 광주대구선(고속국도 12호선) 상시 기상·도로살얼음 모니터</span>
+        <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 광주대구선 기상·도로살얼음 모니터</span>
       </a>
       <nav class="page-tabs" aria-label="대시보드 메뉴 전환">
         <a class="page-tab is-active" href="./index.html" aria-current="page">
@@ -76,7 +76,7 @@
         <!-- 8-Region Cards Pane -->
         <div id="cardsPane" class="overview-cards-pane">
           <div id="grid" class="region-grid" aria-live="polite"></div>
-          <div id="quick" class="quick-bar"></div>
+          <div id="quick" class="quick-bar" hidden></div>
         </div>
 
         <!-- Mini-Map + Road Sensors & Windy/Radar Split Section (Mobile: Dedicated Separate Page #map) -->
@@ -406,7 +406,7 @@
           <b>🚜 제설·수방 지시 카드 표시</b>
           <small>해제 시 기온·강수·살얼음 중심의 간결한 화면으로 표시</small>
         </div>
-        <button type="button" id="toggleActionCards" class="toggle-pill on" aria-pressed="true">켜짐 ON</button>
+        <button type="button" id="toggleActionCards" class="toggle-pill" aria-pressed="false">꺼짐 OFF</button>
       </div>
       <div class="setting-row setting-row-col">
         <div class="setting-row-head">

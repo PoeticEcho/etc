@@ -922,15 +922,98 @@ body.dark-mode .rain-timing-chip.active-rain {
   border-color: #a9b7b2;
 }
 
-/* Quick Add Bar */
+/* Quick Add Bar (Unified Card & Chip Style) */
 .quick-bar {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 13px;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 4px rgba(16, 60, 62, 0.04);
+}
+.quick-bar[hidden] { display: none; }
+.quick-bar-head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin: 8px 0;
+  justify-content: space-between;
+  gap: 8px;
 }
-.quick-bar b { font-size: 12.5px; }
+.quick-bar-head b {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+}
+.quick-bar-cap {
+  font-size: 10.5px;
+  font-weight: 750;
+  color: #1c5f56;
+  background: rgba(28, 95, 86, 0.09);
+  border: 1px solid rgba(28, 95, 86, 0.18);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.quick-bar-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(28, 95, 86, 0.24);
+  background: rgba(20, 70, 68, 0.05);
+  color: #164e47;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+.quick-chip .qb-plus {
+  color: #0d9488;
+  font-weight: 900;
+  font-size: 12.5px;
+  line-height: 1;
+}
+.quick-chip small {
+  font-size: 10.8px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 1px;
+}
+.quick-chip:hover {
+  background: #165950;
+  border-color: #165950;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+.quick-chip:hover .qb-plus,
+.quick-chip:hover small {
+  color: #d1fae5;
+}
+body.dark-mode .quick-bar-cap {
+  color: #8be0cb;
+  background: rgba(139, 224, 203, 0.12);
+  border-color: rgba(139, 224, 203, 0.24);
+}
+body.dark-mode .quick-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(139, 224, 203, 0.25);
+  color: #d7ece8;
+}
+body.dark-mode .quick-chip .qb-plus { color: #5eead4; }
+body.dark-mode .quick-chip:hover {
+  background: #1d6b61;
+  border-color: #2dd4bf;
+  color: #ffffff;
+}
 
 /* Cards & Mini-Map + Road Grid + Windy/KMA Radar */
 .card {

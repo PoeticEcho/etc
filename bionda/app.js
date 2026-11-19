@@ -95,7 +95,7 @@ const settings = {
   wakeLock: true,
   sortRisk: true,
   darkMode: false,
-  showActionCards: true,
+  showActionCards: false,
   desktopNotify: true,
   pcLayout: 'stacked', // 'stacked' (상하 기본 4x2 + 하단 분할) | 'split' (좌우 FHD 분할: 좌 2x4 + 우 상하 레이더/미니맵)
   mapSplitPct: 43, // 미니맵 영역 폭 비율 (30 ~ 68%)
@@ -108,7 +108,7 @@ try {
     settings.wakeLock = savedSettings.wakeLock ?? true;
     settings.sortRisk = savedSettings.sortRisk ?? true;
     settings.darkMode = savedSettings.darkMode ?? false;
-    settings.showActionCards = savedSettings.showActionCards ?? true;
+    settings.showActionCards = savedSettings.showActionCards ?? false;
     settings.desktopNotify = savedSettings.desktopNotify ?? true;
     settings.pcLayout = savedSettings.pcLayout === 'split' ? 'split' : 'stacked';
     if (Number.isFinite(savedSettings.mapSplitPct)) {
@@ -907,9 +907,12 @@ function renderMiniMap() {
     '대구 달성군남부': { cx: 471, cy: 210, anchorY: 191 }
   };
 
-  let customTopIdx = 0, customBotIdx = 0;
+  // 기본 8개(광주대구선 권역) 관심지역만 노선 미니맵에 매칭·표시 (사용자 추가 타지역은 미니맵 제외)
+  places.forEach((p) => {
+    const isCorridorPreset = presets.some(q => coord(q) === coord(p));
+    const slot = isCorridorPreset ? slotMap[p.name] : null;
+    if (!slot) return;
 
-  places.forEach((p, idx) => {
     const [px, py] = project(Math.max(minLat, Math.min(maxLat, p.lat)), Math.max(minLon, Math.min(maxLon, p.lon)));
     const rec = getEffectiveRecord(p);
     const sev = classifySeverityTier(rec);
@@ -920,17 +923,6 @@ function renderMiniMap() {
     const timing = rainTimingSummary(rec.w, rec.o);
     const hasWrn = (rec.wrn?.count || 0) > 0;
     const isPlaceSelected = selectedWindyKey === `place:${coord(p)}`;
-
-    let slot = slotMap[p.name];
-    if (!slot) {
-      const isTop = idx % 2 === 0;
-      const col = isTop ? (customTopIdx++ % 4) : (customBotIdx++ % 4);
-      slot = {
-        cx: 69 + col * 134,
-        cy: isTop ? 53 : 210,
-        anchorY: isTop ? 72 : 191
-      };
-    }
 
     const shortName = p.name.replace('대구 ', '');
     const kmVal = ROUTE12_PLACE_KM[p.name];
@@ -1577,15 +1569,29 @@ export function board() {
   );
 
   const missing = presets.filter(p => !places.some(q => coord(q) === coord(p)));
-  $('quick').replaceChildren();
+  const quickEl = $('quick');
+  quickEl.replaceChildren();
   if (missing.length && places.length < 8) {
-    $('quick').append(el('b', '광주대구선 관심지역 빠른 추가:'));
+    quickEl.hidden = false;
+    const headRow = el('div', '', 'quick-bar-head');
+    headRow.append(
+      el('b', '🛣️ 광주대구선 관심지역 빠른 추가'),
+      el('span', `추가 가능 ${8 - places.length}곳`, 'quick-bar-cap')
+    );
+    const chipsRow = el('div', '', 'quick-bar-chips');
     for (const p of missing) {
-      const b = el('button', `＋ ${p.name}(${p.site})`);
+      const b = el('button', '', 'quick-chip');
       b.type = 'button';
+      const plus = el('span', '＋', 'qb-plus');
+      const nameTxt = document.createTextNode(`${p.name}`);
+      const siteEl = el('small', `(${p.site})`);
+      b.append(plus, nameTxt, siteEl);
       b.onclick = () => choose(p);
-      $('quick').append(b);
+      chipsRow.append(b);
     }
+    quickEl.append(headRow, chipsRow);
+  } else {
+    quickEl.hidden = true;
   }
   if (!visible.length) {
     $('grid').append(el('p', '선택한 필터 조건에 해당하는 지역이 없습니다. [전체] 탭을 눌러 확인하세요.'));
