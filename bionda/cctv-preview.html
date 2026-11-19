@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#103c3e">
+  <title>광주대구선 CCTV · 로드플러스 웹뷰어 연동 시안 | 날씨봇 × 비온다?</title>
+  <meta name="description" content="광주대구선 8개 관심지역 및 11개 도로기상관측소와 한국도로공사 로드플러스(ROADPLUS) CCTV 웹뷰어를 API·서버 자원 소모 없이 바로 연결하는 검수용 예시 페이지입니다.">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <style>
+    .cctv-page {
+      padding-top: 14px;
+      padding-bottom: 40px;
+    }
+
+    .cctv-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+    }
+    .cctv-nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #fff;
+      text-decoration: none;
+      font-size: 12.5px;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: background 0.15s ease;
+    }
+    .cctv-nav-link:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+    .cctv-nav-btn {
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .cctv-nav-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+      filter: none;
+    }
+
+    /* Intro strip */
+    .cctv-hero {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px 16px;
+      padding: 13px 16px;
+      border-radius: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(16, 60, 62, 0.05);
+    }
+    .cctv-hero-main h1 {
+      margin: 0 0 3px;
+      font-size: 17.5px;
+      letter-spacing: -0.4px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .cctv-hero-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      background: #e6f4f1;
+      color: #0f524c;
+      border: 1px solid #b8ded6;
+    }
+    body.dark-mode .cctv-hero-badge {
+      background: #143638;
+      color: #a9e6da;
+      border-color: #275e61;
+    }
+    .cctv-hero-main p {
+      margin: 0;
+      font-size: 12.8px;
+      color: var(--muted);
+    }
+    .cctv-hero-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .cctv-stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .cctv-stat-pill.live {
+      background: #ecfdf5;
+      border-color: #86efac;
+      color: #065f46;
+    }
+    body.dark-mode .cctv-stat-pill.live {
+      background: #0d3528;
+      border-color: #1f6f54;
+      color: #86efac;
+    }
+
+    /* Main 2-column workspace */
+    .cctv-layout {
+      display: grid;
+      grid-template-columns: 385px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+    .cctv-layout.is-wide {
+      grid-template-columns: 320px minmax(0, 1fr);
+    }
+
+    /* Left list panel */
+    .cctv-sidebar {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 2px 8px rgba(16, 60, 62, 0.05);
+    }
+    .cctv-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      background: var(--bg);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .cctv-tab {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 7px 6px;
+      border-radius: 7px;
+      font-size: 12.5px;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .cctv-tab[aria-selected="true"] {
+      background: var(--header-bg);
+      color: #fff;
+      box-shadow: 0 1px 4px rgba(16, 60, 62, 0.25);
+    }
+    body.dark-mode .cctv-tab[aria-selected="true"] {
+      background: #1d5d5b;
+      color: #fff;
+    }
+
+    .cctv-search-wrap {
+      position: relative;
+    }
+    .cctv-search-input {
+      width: 100%;
+      padding: 8px 34px 8px 11px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 13px;
+    }
+    .cctv-search-input:focus {
+      outline: 2px solid #185856;
+      outline-offset: 1px;
+    }
+    .cctv-search-clear {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 3px 6px;
+      font-size: 13px;
+      border-radius: 6px;
+    }
+
+    .cctv-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      max-height: 760px;
+      overflow-y: auto;
+      padding-right: 3px;
+    }
+    .cctv-group-heading {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--muted);
+      padding: 4px 4px 2px;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .cctv-item {
+      width: 100%;
+      text-align: left;
+      padding: 10px 11px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    }
+    .cctv-item:hover {
+      border-color: #185856;
+      background: #f5faf8;
+      filter: none;
+    }
+    body.dark-mode .cctv-item:hover {
+      background: #1a3337;
+      border-color: #469692;
+    }
+    .cctv-item.is-active {
+      border-color: #103c3e;
+      border-width: 2px;
+      padding: 9px 10px;
+      background: #edf7f4;
+      box-shadow: 0 2px 8px rgba(16, 60, 62, 0.12);
+    }
+    body.dark-mode .cctv-item.is-active {
+      border-color: #7ee0c6;
+      background: #153437;
+    }
+
+    .cctv-item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .cctv-item-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .cctv-item-sub {
+      font-size: 11.8px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .cctv-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 10.8px;
+      font-weight: 800;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .cctv-tag.place {
+      background: #e6f2ff;
+      color: #1558a0;
+      border: 1px solid #bfdbfe;
+    }
+    .cctv-tag.ice {
+      background: #fff1e6;
+      color: #b43e06;
+      border: 1px solid #fdba74;
+    }
+    .cctv-tag.hub {
+      background: #e6f4f1;
+      color: #0f524c;
+      border: 1px solid #99d6cb;
+    }
+    .cctv-tag.base {
+      background: var(--bg);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    body.dark-mode .cctv-tag.place {
+      background: #132d4a;
+      color: #93c5fd;
+      border-color: #254f7a;
+    }
+    body.dark-mode .cctv-tag.ice {
+      background: #3d2111;
+      color: #fdba74;
+      border-color: #7c3b15;
+    }
+    body.dark-mode .cctv-tag.hub {
+      background: #113532;
+      color: #86e6d4;
+      border-color: #226661;
+    }
+
+    .cctv-item-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+      font-size: 12px;
+    }
+    .cctv-match-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 7px;
+      background: #103c3e;
+      color: #c7ed94;
+      font-size: 11.8px;
+      font-weight: 700;
+    }
+    body.dark-mode .cctv-match-pill {
+      background: #1d5758;
+      color: #d6f5ab;
+    }
+    .cctv-dist {
+      font-size: 11px;
+      opacity: 0.85;
+      font-weight: 600;
+    }
+    .cctv-live-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11.3px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .cctv-live-chip.cold {
+      color: #c2410c;
+    }
+    body.dark-mode .cctv-live-chip.cold {
+      color: #fb923c;
+    }
+
+    /* Right viewer area */
+    .cctv-viewer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .cctv-target-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 13px 15px;
+      box-shadow: 0 2px 8px rgba(16, 60, 62, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cctv-target-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .cctv-target-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+    .cctv-target-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 850;
+      letter-spacing: -0.4px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .cctv-target-meta {
+      font-size: 12.5px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .cctv-target-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .cctv-btn-primary {
+      background: #103c3e;
+      border-color: #103c3e;
+      color: #fff;
+      font-size: 12.8px;
+      padding: 7px 12px;
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .cctv-btn-primary:hover {
+      background: #185856;
+      border-color: #185856;
+      filter: none;
+    }
+    .cctv-btn-accent {
+      background: #e6f4f1;
+      border: 1px solid #99d6cb;
+      color: #0e4a45;
+      font-size: 12.8px;
+      padding: 7px 12px;
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+    .cctv-btn-accent:hover {
+      background: #d5ede7;
+      filter: none;
+    }
+    body.dark-mode .cctv-btn-accent {
+      background: #163b3d;
+      border-color: #2b6e70;
+      color: #a7f3d0;
+    }
+    .cctv-btn-ghost {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--ink);
+      font-size: 12.5px;
+      padding: 7px 10px;
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-decoration: none;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .cctv-chips-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+    }
+    .cctv-chips-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+      margin-right: 2px;
+    }
+    .cctv-copy-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--ink);
+      font-size: 12.3px;
+      font-weight: 700;
+    }
+    .cctv-copy-chip.primary {
+      background: #fef9c3;
+      border-color: #eab308;
+      color: #713f12;
+    }
+    body.dark-mode .cctv-copy-chip.primary {
+      background: #3d3210;
+      border-color: #a16207;
+      color: #fde047;
+    }
+    .cctv-copy-feedback {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 750;
+      color: #0f766e;
+      min-height: 18px;
+    }
+    body.dark-mode .cctv-copy-feedback {
+      color: #5eead4;
+    }
+
+    .cctv-steps {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 12px;
+      padding: 9px 13px;
+      border-radius: 10px;
+      background: #e9f3f0;
+      border: 1px solid #c3ddd6;
+      font-size: 12.3px;
+      color: #12403f;
+      font-weight: 650;
+    }
+    body.dark-mode .cctv-steps {
+      background: #122d30;
+      border-color: #244f53;
+      color: #bde7e1;
+    }
+    .cctv-steps b {
+      color: #0b2f30;
+      font-weight: 850;
+    }
+    body.dark-mode .cctv-steps b {
+      color: #c7ed94;
+    }
+
+    /* Embedded viewer shell */
+    .cctv-frame-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 3px 12px rgba(16, 60, 62, 0.08);
+    }
+    .cctv-frame-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 9px 13px;
+      background: #103c3e;
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 700;
+      flex-wrap: wrap;
+    }
+    .cctv-frame-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .cctv-dot-live {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #86efac;
+      box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.25);
+      flex-shrink: 0;
+    }
+    .cctv-frame-url {
+      font-size: 11.5px;
+      opacity: 0.78;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cctv-frame-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cctv-frame-btn {
+      padding: 4px 9px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      font-size: 11.8px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .cctv-frame-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      filter: none;
+    }
+    .cctv-iframe-wrap {
+      position: relative;
+      width: 100%;
+      height: 700px;
+      background: #f4f7f6;
+      transition: height 0.2s ease;
+    }
+    .cctv-layout.is-wide .cctv-iframe-wrap {
+      height: 860px;
+    }
+    .cctv-iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #fff;
+    }
+    .cctv-mobile-notice {
+      display: none;
+      padding: 10px 12px;
+      background: #fff7ed;
+      border-bottom: 1px solid #fed7aa;
+      color: #9a3412;
+      font-size: 12.2px;
+      font-weight: 650;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    body.dark-mode .cctv-mobile-notice {
+      background: #2f1b0d;
+      border-color: #7c3b15;
+      color: #fed7aa;
+    }
+
+    .cctv-empty {
+      padding: 24px 12px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Toast */
+    .cctv-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%) translateY(16px);
+      background: #103c3e;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 90;
+      max-width: calc(100vw - 24px);
+      text-align: center;
+    }
+    .cctv-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 1060px) {
+      .cctv-layout,
+      .cctv-layout.is-wide {
+        grid-template-columns: 1fr;
+      }
+      .cctv-list {
+        max-height: 360px;
+      }
+      .cctv-iframe-wrap,
+      .cctv-layout.is-wide .cctv-iframe-wrap {
+        height: 580px;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .wrap { padding: 0 12px; }
+      .bar { height: 50px; }
+      .brand { font-size: 16.5px; }
+      .brand-subtitle-hide { display: none; }
+      .cctv-nav-link, .cctv-nav-btn { padding: 5px 8px; font-size: 11.5px; }
+      .cctv-hero { padding: 11px 12px; }
+      .cctv-hero-main h1 { font-size: 15.5px; }
+      .cctv-hero-main p { font-size: 12px; }
+      .cctv-list { max-height: 310px; }
+      .cctv-target-card { padding: 11px 12px; }
+      .cctv-target-title { font-size: 15.5px; }
+      .cctv-mobile-notice { display: flex; }
+      .cctv-iframe-wrap { height: 520px; }
+      #btnExpandViewer { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top-header">
+    <div class="wrap bar">
+      <a class="brandhome" href="./index.html" aria-label="도로기상 상황판으로 돌아가기">
+        <span class="brand">
+          <img class="brand-favicon" src="./favicon.png" alt="" width="30" height="30">
+          <b>날씨봇 × 비온다?</b>
+        </span>
+        <span class="brand-subtitle-hide" style="font-size:13px;opacity:.86;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">광주대구선 CCTV · 로드플러스 연동 시안</span>
+      </a>
+      <nav class="cctv-nav-actions" aria-label="페이지 이동">
+        <a class="cctv-nav-link" href="./index.html">← 상황판</a>
+        <a class="cctv-nav-link" href="./hourly.html">1시간 예보</a>
+        <button type="button" id="btnDarkToggle" class="cctv-nav-btn" aria-pressed="false">🌙 야간</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap cctv-page">
+    <section class="cctv-hero" aria-label="로드플러스 CCTV 연동 개요">
+      <div class="cctv-hero-main">
+        <h1>
+          📹 광주대구선(12호선) 로드플러스 CCTV 웹뷰어 연동 예시
+          <span class="cctv-hero-badge">API 키·서버 자원 소모 0</span>
+        </h1>
+        <p>8개 관심지역과 11개 도로기상관측소를 한국도로공사 공식 <strong>ROADPLUS(roadplus.co.kr)</strong> 최인접 CCTV 명칭과 1:1 매칭했습니다.</p>
+      </div>
+      <div class="cctv-hero-pills">
+        <span class="cctv-stat-pill">📍 관심지역 8개소</span>
+        <span class="cctv-stat-pill">🛣️ 도로관측소 11개소</span>
+        <span class="cctv-stat-pill" id="liveRoadStatus">📡 도로관측 확인 중…</span>
+      </div>
+    </section>
+
+    <div class="cctv-layout" id="cctvLayout">
+      <!-- Left: 8 watched places + 11 road weather stations -->
+      <aside class="cctv-sidebar" aria-label="지점 및 도로기상관측소 목록">
+        <div class="cctv-tabs" role="tablist" aria-label="목록 분류">
+          <button type="button" class="cctv-tab" role="tab" data-tab="places" aria-selected="true">관심지역 (8)</button>
+          <button type="button" class="cctv-tab" role="tab" data-tab="stations" aria-selected="false">도로관측소 (11)</button>
+          <button type="button" class="cctv-tab" role="tab" data-tab="all" aria-selected="false">전체 (19)</button>
+        </div>
+
+        <div class="cctv-search-wrap">
+          <input type="search" id="pointSearch" class="cctv-search-input" placeholder="지점명, 관측소, CCTV명, 이정(km) 검색…" autocomplete="off">
+          <button type="button" id="btnClearSearch" class="cctv-search-clear" title="검색어 지우기" hidden>✕</button>
+        </div>
+
+        <div id="pointList" class="cctv-list" role="listbox" aria-label="선택 가능한 지점 목록"></div>
+      </aside>
+
+      <!-- Right: Selected target command bar + Embedded ROADPLUS web viewer -->
+      <section class="cctv-viewer-col" aria-label="로드플러스 CCTV 웹뷰어">
+        <div class="cctv-target-card" id="targetCard">
+          <div class="cctv-target-head">
+            <div class="cctv-target-title-wrap">
+              <h2 class="cctv-target-title" id="targetTitle">지점을 선택하세요</h2>
+              <div class="cctv-target-meta" id="targetMeta">좌측에서 8개 관심지역 또는 11개 도로기상관측소를 클릭하면 공식 CCTV 검색명이 자동 복사됩니다.</div>
+            </div>
+            <div class="cctv-target-actions">
+              <button type="button" id="btnCopyPrimary" class="cctv-btn-primary">📋 CCTV명 복사</button>
+              <a id="btnOpenRoadplus" class="cctv-btn-accent" href="https://www.roadplus.co.kr/main" target="_blank" rel="noopener noreferrer">📹 로드플러스 새 창 ↗</a>
+              <a id="btnOpenKakao" class="cctv-btn-ghost" href="https://map.kakao.com/" target="_blank" rel="noopener noreferrer">🗺️ 카카오맵 ↗</a>
+            </div>
+          </div>
+
+          <div class="cctv-chips-row">
+            <span class="cctv-chips-label">매칭 CCTV:</span>
+            <div id="targetCctvChips" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"></div>
+            <span id="copyFeedback" class="cctv-copy-feedback" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <div class="cctv-steps" aria-label="CCTV 확인 방법">
+          <span><b>① 지점 선택</b> (공식 CCTV명 자동 복사)</span>
+          <span>→</span>
+          <span><b>② 아래 로드플러스 상단 [CCTV검색]</b> 클릭</span>
+          <span>→</span>
+          <span><b>③ 붙여넣기(Ctrl+V)</b> 후 실시간 영상 시청 · 우측 <b>[결빙취약]</b> 레이어 연동 가능</span>
+        </div>
+
+        <div class="cctv-frame-card">
+          <div class="cctv-frame-bar">
+            <div class="cctv-frame-bar-left">
+              <span class="cctv-dot-live" aria-hidden="true"></span>
+              <span>한국도로공사 ROADPLUS 웹뷰어</span>
+              <span class="cctv-frame-url">https://www.roadplus.co.kr/main</span>
+            </div>
+            <div class="cctv-frame-controls">
+              <button type="button" id="btnReloadViewer" class="cctv-frame-btn">↻ 새로고침</button>
+              <button type="button" id="btnExpandViewer" class="cctv-frame-btn">⤢ 크게 보기</button>
+              <a class="cctv-frame-btn" href="https://www.roadplus.co.kr/main" target="_blank" rel="noopener noreferrer">새 창 ↗</a>
+            </div>
+          </div>
+
+          <div class="cctv-mobile-notice">
+            <span>📱 모바일에서는 <b>[로드플러스 새 창 ↗]</b>으로 여시면 CCTV 검색·전체화면이 더 편리합니다.</span>
+            <a class="cctv-btn-primary" style="padding:5px 10px;font-size:12px;" href="https://www.roadplus.co.kr/main" target="_blank" rel="noopener noreferrer">새 창 열기 ↗</a>
+          </div>
+
+          <div class="cctv-iframe-wrap">
+            <iframe
+              id="roadplusFrame"
+              class="cctv-iframe"
+              src="https://www.roadplus.co.kr/main"
+              title="한국도로공사 로드플러스(ROADPLUS) 고속도로 CCTV 웹뷰어"
+              loading="eager"
+              referrerpolicy="no-referrer-when-downgrade"
+              allowfullscreen
+            ></iframe>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="cctvToast" class="cctv-toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="./cctv-preview.js"></script>
+</body>
+</html>
