@@ -381,12 +381,38 @@
 .hs-ice-sheen { animation: hsIceGlint 2.8s ease-in-out infinite; }
 
 @media (max-width: 720px) {
+  .hero.has-dynamic-scene {
+    padding: 15px 14px 36px;
+  }
   .hero.has-dynamic-scene .eyebrow {
     display: block;
-    padding-right: 96px;
+    padding-right: 88px;
+    font-size: 10px;
+    letter-spacing: 1.4px;
+  }
+  .hero.has-dynamic-scene .heroNums {
+    gap: 12px;
+  }
+  .hero.has-dynamic-scene .heroNums strong {
+    font-size: 42px;
+    letter-spacing: -2px;
+  }
+  .hero.has-dynamic-scene .heroNums b {
+    font-size: 15px;
+  }
+  .hero.has-dynamic-scene #stamp {
+    margin-top: 6px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .hero.has-dynamic-scene #refresh {
+    right: 12px;
+    top: 12px;
+    padding: 5px 9px;
+    font-size: 11px;
   }
   .hero.has-dynamic-scene[data-weather="typhoon"] {
-    padding-bottom: 56px;
+    padding-bottom: 58px;
   }
   .hs-celestial {
     right: 6%;

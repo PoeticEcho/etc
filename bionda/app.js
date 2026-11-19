@@ -826,10 +826,10 @@ function renderMiniMap() {
 
   const minLon = 127.30, maxLon = 128.49;
   const minLat = 35.38, maxLat = 35.80;
-  const W = 540, H = 236;
+  const W = 540, H = 242;
   const project = (lat, lon) => {
     const x = 34 + ((lon - minLon) / (maxLon - minLon)) * (W - 68);
-    const y = 158 - ((lat - minLat) / (maxLat - minLat)) * 78;
+    const y = 162 - ((lat - minLat) / (maxLat - minLat)) * 78;
     return [Number(x.toFixed(1)), Number(y.toFixed(1))];
   };
 
@@ -838,49 +838,73 @@ function renderMiniMap() {
 
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="고속국도 제12호선 광주대구선 실시간 노면·기상 미니맵">
     <defs>
+      <radialGradient id="mmBgGlow" cx="54%" cy="54%" r="62%">
+        <stop offset="0%" stop-color="#175159" stop-opacity="0.72"/>
+        <stop offset="60%" stop-color="#0b282f" stop-opacity="0.92"/>
+        <stop offset="100%" stop-color="#06181d" stop-opacity="1"/>
+      </radialGradient>
       <linearGradient id="hwyGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#38b2ac" stop-opacity="0.88"/>
-        <stop offset="45%" stop-color="#7fe3b3" stop-opacity="0.96"/>
-        <stop offset="100%" stop-color="#63b3ed" stop-opacity="0.90"/>
+        <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.94"/>
+        <stop offset="48%" stop-color="#6ee7b7" stop-opacity="0.98"/>
+        <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.95"/>
       </linearGradient>
+      <linearGradient id="mmCardBg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#0e3037" stop-opacity="0.94"/>
+        <stop offset="100%" stop-color="#071d22" stop-opacity="0.96"/>
+      </linearGradient>
+      <linearGradient id="mmRidge" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#5eead4" stop-opacity="0.16"/>
+        <stop offset="100%" stop-color="#06181d" stop-opacity="0"/>
+      </linearGradient>
+      <pattern id="mmDots" width="22" height="22" patternUnits="userSpaceOnUse">
+        <circle cx="11" cy="11" r="0.75" fill="#99f6e4" opacity="0.14"/>
+      </pattern>
     </defs>
+
+    <!-- Layered Telemetry Backdrop & Subtle Jirisan-Gaya Ridge Silhouette -->
+    <rect x="0" y="0" width="${W}" height="${H}" fill="url(#mmBgGlow)"/>
+    <rect x="0" y="27" width="${W}" height="${H - 27}" fill="url(#mmDots)"/>
+    <path d="M0 176 L48 152 L98 164 L152 132 L212 146 L278 118 L342 136 L412 108 L474 126 L540 104 L540 194 L0 194 Z" fill="url(#mmRidge)"/>
+
     <!-- Top Header Band with Route 12 Shield -->
-    <rect x="0" y="0" width="${W}" height="25" fill="rgba(7, 24, 27, 0.62)"/>
-    <image href="./route12.svg" x="8" y="3.5" width="18" height="18"/>
-    <text x="31" y="16" fill="#e6fffa" font-size="10" font-weight="800">고속국도 12 광주대구선 (기상청 14번)</text>
-    <text x="${W - 10}" y="15.5" text-anchor="end" fill="#9fd6cf" font-size="9.2" font-weight="650">남원 50k ──▶ 고령 80k+ ──▶ 옥포 176k</text>
+    <rect x="0" y="0" width="${W}" height="27" fill="rgba(4, 17, 21, 0.78)"/>
+    <line x1="0" y1="27" x2="${W}" y2="27" stroke="rgba(127, 227, 179, 0.18)" stroke-width="1"/>
+    <image href="./route12.svg" x="9" y="4.5" width="18" height="18"/>
+    <text x="32" y="17.2" fill="#ecfdf5" font-size="10.2" font-weight="800" letter-spacing="-0.2">고속국도 12 광주대구선</text>
+    <text x="148" y="17" fill="#7ec9bf" font-size="9" font-weight="650">기상청 14번 노선</text>
+    <rect x="${W - 188}" y="5.5" width="179" height="16" rx="8" fill="rgba(45, 212, 191, 0.12)" stroke="rgba(94, 234, 212, 0.25)" stroke-width="0.8"/>
+    <text x="${W - 98.5}" y="16.2" text-anchor="middle" fill="#a7f3d0" font-size="8.8" font-weight="700">남원 50k → 고령 80k+ → 옥포 176k</text>
 
-    <!-- Middle Corridor Guide Lines -->
-    <line x1="20" y1="84" x2="${W - 20}" y2="84" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
-    <line x1="20" y1="122" x2="${W - 20}" y2="122" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
-    <line x1="20" y1="160" x2="${W - 20}" y2="160" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
+    <!-- Subtle Corridor Horizon Guide -->
+    <line x1="18" y1="128" x2="${W - 18}" y2="128" stroke="rgba(153, 246, 228, 0.07)" stroke-dasharray="2,4"/>
 
-    <!-- Full Route 12 Corridor (48.8k ~ 176.0k) -->
-    <polyline points="${fullPoly}" fill="none" stroke="rgba(127,227,179,0.18)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Full Route 12 Corridor (48.8k ~ 176.0k) 3-Layer Highway Ribbon -->
+    <polyline points="${fullPoly}" fill="none" stroke="rgba(56, 217, 169, 0.16)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${goryeongPoly}" fill="none" stroke="rgba(251, 191, 36, 0.26)" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${fullPoly}" fill="none" stroke="#041418" stroke-width="6.8" stroke-linecap="round" stroke-linejoin="round"/>
     <polyline points="${fullPoly}" fill="none" stroke="url(#hwyGrad)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- Goryeong Branch Section (94.4k ~ 176.0k) accent -->
-    <polyline points="${goryeongPoly}" fill="none" stroke="rgba(251, 191, 36, 0.35)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${fullPoly}" fill="none" stroke="rgba(255, 255, 255, 0.42)" stroke-width="0.9" stroke-dasharray="4,4" stroke-linecap="round" stroke-linejoin="round"/>
   `;
 
   // Key IC/JC Milepost Markers along the highway
   for (const [label, ila, ilo, dy] of ROUTE12_ICS) {
     const [ix, iy] = project(ila, ilo);
     svg += `<g class="ic-tick">
-      <circle cx="${ix}" cy="${iy}" r="2.2" fill="#e6fffa" opacity="0.75"/>
-      <text x="${ix}" y="${(iy + dy).toFixed(1)}" text-anchor="middle" fill="#89c4bc" font-size="8" font-weight="700" opacity="0.88">${label}</text>
+      <circle cx="${ix}" cy="${iy}" r="2.1" fill="#ecfdf5" opacity="0.82"/>
+      <text x="${ix}" y="${(iy + dy).toFixed(1)}" text-anchor="middle" fill="#9dd5cd" font-size="7.8" font-weight="700" opacity="0.9">${label}</text>
     </g>`;
   }
 
   // 8 Watched Regions Callouts + GPS Pins (4-Tier Severity Colors: Green -> Yellow -> Orange -> Red)
   const slotMap = {
-    '함양중부': { cx: 68, cy: 50, anchorY: 68 },
-    '거창': { cx: 201, cy: 50, anchorY: 68 },
-    '합천군서북부': { cx: 334, cy: 50, anchorY: 68 },
-    '고령군': { cx: 467, cy: 50, anchorY: 68 },
-    '남원': { cx: 68, cy: 204, anchorY: 186 },
-    '함양': { cx: 201, cy: 204, anchorY: 186 },
-    '거창군남부': { cx: 334, cy: 204, anchorY: 186 },
-    '대구 달성군남부': { cx: 467, cy: 204, anchorY: 186 }
+    '함양중부': { cx: 69, cy: 53, anchorY: 72 },
+    '거창': { cx: 203, cy: 53, anchorY: 72 },
+    '합천군서북부': { cx: 337, cy: 53, anchorY: 72 },
+    '고령군': { cx: 471, cy: 53, anchorY: 72 },
+    '남원': { cx: 69, cy: 210, anchorY: 191 },
+    '함양': { cx: 203, cy: 210, anchorY: 191 },
+    '거창군남부': { cx: 337, cy: 210, anchorY: 191 },
+    '대구 달성군남부': { cx: 471, cy: 210, anchorY: 191 }
   };
 
   let customTopIdx = 0, customBotIdx = 0;
@@ -902,26 +926,36 @@ function renderMiniMap() {
       const isTop = idx % 2 === 0;
       const col = isTop ? (customTopIdx++ % 4) : (customBotIdx++ % 4);
       slot = {
-        cx: 68 + col * 133,
-        cy: isTop ? 50 : 204,
-        anchorY: isTop ? 68 : 186
+        cx: 69 + col * 134,
+        cy: isTop ? 53 : 210,
+        anchorY: isTop ? 72 : 191
       };
     }
 
     const shortName = p.name.replace('대구 ', '');
     const kmVal = ROUTE12_PLACE_KM[p.name];
-    const titleLabel = kmVal ? `${shortName}(${Math.round(kmVal)}k) ${n(tempVal, 1)}°` : `${shortName} ${n(tempVal, 1)}°`;
+    const nameLabel = kmVal ? `${shortName}(${Math.round(kmVal)}k)` : shortName;
+    const tempLabel = `${n(tempVal, 1)}°`;
     const roadPart = roadVal != null ? `노면 ${roadVal.toFixed(1)}°` : (p.site || '');
     const statusPart = hasWrn ? rec.wrn.top.title : timing.shortMapText;
+    const cardStroke = isPlaceSelected
+      ? '#38bdf8'
+      : sev.rank >= 2
+        ? fillCol
+        : 'rgba(148, 226, 213, 0.28)';
+    const subCol = sev.rank >= 3 ? '#fecaca' : sev.rank === 2 ? '#fed7aa' : '#9edbd0';
 
     svg += `<g class="map-node" data-coord="${escHtml(coord(p))}" style="cursor:pointer">
-      <line x1="${px}" y1="${py}" x2="${slot.cx}" y2="${slot.anchorY}" stroke="${fillCol}" stroke-width="1.3" stroke-dasharray="2.5,2.5" opacity="0.85"/>
-      <circle cx="${px}" cy="${py}" r="${isPlaceSelected ? 13 : 10.5}" fill="${ringCol}"/>
-      <circle cx="${px}" cy="${py}" r="5.5" fill="${fillCol}" stroke="${isPlaceSelected ? '#38bdf8' : '#ffffff'}" stroke-width="${isPlaceSelected ? 2.4 : 1.7}"/>
+      <line x1="${px}" y1="${py}" x2="${slot.cx}" y2="${slot.anchorY}" stroke="${fillCol}" stroke-width="1.1" opacity="0.7"/>
+      <circle cx="${slot.cx}" cy="${slot.anchorY}" r="2.1" fill="${fillCol}" opacity="0.9"/>
+      <circle class="${sev.rank >= 2 || isPlaceSelected ? 'mm-pin-pulse' : ''}" cx="${px}" cy="${py}" r="${isPlaceSelected ? 12.5 : 10}" fill="${ringCol}"/>
+      <circle cx="${px}" cy="${py}" r="5.2" fill="${fillCol}" stroke="${isPlaceSelected ? '#38bdf8' : '#f8fafc'}" stroke-width="${isPlaceSelected ? 2.2 : 1.6}"/>
       <g transform="translate(${slot.cx},${slot.cy})">
-        <rect x="-62" y="-18" width="124" height="36" rx="7" fill="rgba(8, 25, 28, 0.94)" stroke="${isPlaceSelected ? '#38bdf8' : fillCol}" stroke-width="${isPlaceSelected ? 2 : 1.4}"/>
-        <text x="0" y="-3" text-anchor="middle" fill="#ffffff" font-size="10.4" font-weight="800">${escHtml(titleLabel)}</text>
-        <text x="0" y="11" text-anchor="middle" fill="#b5e8de" font-size="9" font-weight="650">${escHtml(roadPart)} · ${escHtml(statusPart)}</text>
+        <rect class="mm-card-bg" x="-62" y="-19" width="124" height="38" rx="8" fill="url(#mmCardBg)" stroke="${cardStroke}" stroke-width="${isPlaceSelected ? 1.8 : 1.1}"/>
+        <rect x="-59.5" y="-14.5" width="3.4" height="29" rx="1.7" fill="${fillCol}"/>
+        <text x="-53" y="-3.2" text-anchor="start" fill="#e2f7f3" font-size="${nameLabel.length >= 10 ? '8.8' : '9.6'}" font-weight="750" letter-spacing="-0.25">${escHtml(nameLabel)}</text>
+        <text x="57" y="-2.5" text-anchor="end" fill="#ffffff" font-size="11" font-weight="850">${escHtml(tempLabel)}</text>
+        <text x="-53" y="11" text-anchor="start" fill="${subCol}" font-size="8.6" font-weight="650" letter-spacing="-0.15">${escHtml(roadPart)} · ${escHtml(statusPart)}</text>
       </g>
     </g>`;
   });
@@ -954,7 +988,7 @@ function renderMiniMap() {
       <title>[도로기상 ${escHtml(kmTxt)}] ${escHtml(stn.name)} (${escHtml(stn.stationType)}, 고도 ${escHtml(stn.elevation ?? '—')}m) ${escHtml(trTxt)}${escHtml(riskTxt)} · 클릭 시 위성·레이더 이동</title>
       <circle cx="0" cy="0" r="10.5" fill="transparent"/>
       ${isSel ? '<circle cx="0" cy="0" r="9.5" fill="rgba(56,189,248,0.28)" stroke="#38bdf8" stroke-width="1.3"/>' : ''}
-      <circle class="stn-marker-core" cx="0" cy="0" r="4.6" fill="${dotCol}" stroke="#082427" stroke-width="1.3"/>
+      <circle class="stn-marker-core" cx="0" cy="0" r="4.3" fill="${dotCol}" stroke="#041418" stroke-width="1.4"/>
     </g>`;
   }
 

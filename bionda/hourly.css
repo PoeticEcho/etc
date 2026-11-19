@@ -933,7 +933,10 @@ body.dark-mode .hr-link-btn.is-primary {
     --hr-min-col: 58px;
   }
   .hourly-wrap { padding: 6px 8px 34px; }
+  .hr-subhead { gap: 4px; margin-bottom: 8px; }
   .hr-title { font-size: 15.5px; }
+  .hr-title-en { display: none; }
+  .hr-toolbar { padding: 7px 9px; gap: 6px; }
   .hr-metrics { gap: 6px; }
   .hr-metric {
     padding: 7px 9px;

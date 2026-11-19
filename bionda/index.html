@@ -43,8 +43,8 @@
         <button id="reloadAll" type="button" class="hdr-btn" title="전체 기상자료 새로고침">
           <span class="icon-spin">↻</span> <span class="hdr-lbl-pc">새로고침</span>
         </button>
-        <button id="shareBtn" type="button" class="hdr-btn hdr-btn-share" title="1:1 정방형(1080×1080) 브리핑 JPG 생성 및 공유">
-          📤 <span class="hdr-lbl-pc">정방형 JPG 공유</span><span class="hdr-lbl-mob">공유</span>
+        <button id="shareBtn" type="button" class="hdr-btn hdr-btn-share" title="1:1 정방형(1080×1080) 현황 브리핑 JPG 생성 및 공유">
+          📤 <span class="hdr-lbl-pc">현황공유</span><span class="hdr-lbl-mob">공유</span>
         </button>
         <button id="add" type="button" class="hdr-btn" title="관심지역 추가·삭제 관리">
           <span class="hdr-pin">📍</span> <span id="addBtnText" class="hdr-lbl-pc">지역 관리 (8/8)</span><span class="hdr-lbl-mob">지역관리</span>
@@ -82,7 +82,7 @@
         <!-- Mini-Map + Road Sensors & Windy/Radar Split Section (Mobile: Dedicated Separate Page #map) -->
         <div id="mapSection" class="map-radar-workspace" aria-label="광주대구선 노선 미니맵 및 실시간 위성·레이더">
           <div class="mobile-map-nav">
-            <a href="#overview" class="back-to-cards-btn">← 8개 관심지역 상황판으로 돌아가기</a>
+            <a href="#overview" class="back-to-cards-btn"><span class="back-lbl-pc">← 8개 관심지역 상황판으로 돌아가기</span><span class="back-lbl-mob">← 상황판</span></a>
             <span class="mobile-map-badge">광주대구선(14번) 노선·영상</span>
           </div>
 
@@ -183,10 +183,10 @@
     <!-- DETAIL SECTION -->
     <div id="detail" hidden>
       <nav class="detailnav">
-        <a href="#overview" class="back-link">← 전체 관심지역 모니터</a>
+        <a href="#overview" class="back-link"><span class="back-lbl-pc">← 전체 관심지역 모니터</span><span class="back-lbl-mob">← 상황판</span></a>
         <div class="detailnav-right">
           <select id="jump" aria-label="다른 관심지역 바로가기"></select>
-          <button type="button" id="detailShareBtn" class="hdr-btn hdr-btn-share">📤 상세 브리핑 JPG 공유</button>
+          <button type="button" id="detailShareBtn" class="hdr-btn hdr-btn-share" title="선택 지역 상세 현황 브리핑 JPG 생성 및 공유">📤 현황공유</button>
         </div>
       </nav>
 
