@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0a101c" />
+<title>광주대구선 CCTV 관제 · 남원~대구 | 날씨봇 × 비온다?</title>
+<meta name="description" content="광주대구선 8개 관심지역 및 11개 도로기상관측소 최인접·보조 고속도로 CCTV 실시간 HLS 팝업 관제 대시보드" />
+<link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
+<link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+<style>
+  :root {
+    --bg: #0a101c;
+    --bg-soft: #0f172a;
+    --panel: #111c2e;
+    --panel-2: #16233a;
+    --line: #22314a;
+    --line-soft: #1a2639;
+    --text: #e8eef8;
+    --muted: #8ea3c2;
+    --muted-2: #62799a;
+    --accent: #38bdf8;
+    --accent-2: #22d3ee;
+    --nearest: #34d399;
+    --warn: #fbbf24;
+    --danger: #f87171;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(56, 189, 248, 0.10), transparent 60%),
+      radial-gradient(900px 500px at 95% 0%, rgba(52, 211, 153, 0.08), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body.modal-open { overflow: hidden; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  /* ── 상단바 ───────────────────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: rgba(10, 16, 28, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 20px 12px;
+  }
+  .topbar-inner { max-width: 1180px; margin: 0 auto; }
+  .brand-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .brand h1 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+  .brand .sub { color: var(--muted); font-size: 12.5px; }
+  .nav-links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .nav-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--line);
+    padding: 5px 10px; border-radius: 999px;
+    text-decoration: none; white-space: nowrap;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .nav-link:hover { color: var(--text); border-color: #355078; background: rgba(56, 189, 248, 0.08); }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-weight: 600; color: var(--accent);
+    background: rgba(56, 189, 248, 0.10);
+    border: 1px solid rgba(56, 189, 248, 0.30);
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .controls { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .controls .url-field { flex: 1 1 340px; display: flex; gap: 8px; min-width: 260px; }
+  input[type="text"], input[type="search"] {
+    width: 100%; color: var(--text); background: #0b1424;
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; font-size: 13px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type="text"]:focus, input[type="search"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  }
+  input::placeholder { color: var(--muted-2); }
+  button { font-family: inherit; font-size: 13px; cursor: pointer; }
+  .btn {
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 14px; font-weight: 600; white-space: nowrap;
+    transition: background .15s, border-color .15s, transform .05s;
+  }
+  .btn:hover { background: #1c2c47; border-color: #2c3f5e; }
+  .btn:active { transform: translateY(1px); }
+  .btn--primary {
+    background: linear-gradient(180deg, #38bdf8, #0ea5e9);
+    border-color: #0ea5e9; color: #04121f;
+  }
+  .btn--primary:hover { background: linear-gradient(180deg, #5ccafb, #22aef0); }
+  .btn:disabled { opacity: .55; cursor: progress; }
+  .status {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-top: 10px; font-size: 12.5px; color: var(--muted);
+    min-height: 20px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted-2); flex: none; }
+  .status[data-state="ok"] .dot { background: var(--nearest); box-shadow: 0 0 0 3px rgba(52,211,153,.15); }
+  .status[data-state="loading"] .dot { background: var(--accent); animation: blink 1s infinite; }
+  .status[data-state="error"] { color: #fda4a4; }
+  .status[data-state="error"] .dot { background: var(--danger); box-shadow: 0 0 0 3px rgba(248,113,113,.15); }
+  .status .sep { color: var(--line); }
+  .status .detail { color: var(--muted-2); }
+  @keyframes blink { 50% { opacity: .25; } }
+
+  /* ── 본문 ─────────────────────────────── */
+  main { max-width: 1180px; margin: 0 auto; padding: 22px 20px 60px; }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+  .toolbar .search { flex: 1 1 260px; max-width: 380px; }
+  .toolbar .legend { display: flex; gap: 14px; color: var(--muted-2); font-size: 11.5px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .legend .l1 { background: var(--nearest); }
+  .legend .l2 { background: #64748b; }
+
+  section.group { margin-bottom: 30px; }
+  .group-head {
+    display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px;
+    padding-left: 2px; flex-wrap: wrap;
+  }
+  .group-head h2 { margin: 0; font-size: 15px; letter-spacing: 0.01em; }
+  .group-head .count {
+    font-size: 11.5px; font-weight: 700; color: var(--accent);
+    background: rgba(56,189,248,.10); border: 1px solid rgba(56,189,248,.25);
+    padding: 1px 8px; border-radius: 999px;
+  }
+  .group-head .hint {
+    color: var(--muted-2); font-size: 12px; margin-left: auto;
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .table-wrap {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  table.sites { width: 100%; border-collapse: collapse; }
+  table.sites thead th {
+    text-align: left; font-size: 11.5px; font-weight: 700; letter-spacing: .04em;
+    color: var(--muted-2); text-transform: uppercase;
+    padding: 11px 16px; background: #0d1728; border-bottom: 1px solid var(--line);
+  }
+  table.sites tbody tr { border-bottom: 1px solid var(--line-soft); transition: background .12s; }
+  table.sites tbody tr:last-child { border-bottom: none; }
+  table.sites tbody tr:hover { background: rgba(56,189,248,.035); }
+  table.sites td { padding: 12px 16px; vertical-align: middle; }
+  td.col-site { width: 30%; min-width: 190px; }
+  td.col-nearest { width: 24%; }
+  td.col-aux { width: 46%; }
+  .site-name { font-weight: 650; font-size: 14px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .site-name .code {
+    font-family: ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 600;
+    color: var(--accent-2); background: rgba(34,211,238,.10);
+    border: 1px solid rgba(34,211,238,.22); border-radius: 6px; padding: 1px 6px;
+  }
+  .site-sub { margin-top: 3px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .tag {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+    color: var(--warn); background: rgba(251,191,36,.10);
+    border: 1px solid rgba(251,191,36,.28); border-radius: 999px; padding: 1px 7px;
+  }
+
+  /* ── CCTV 칩 ──────────────────────────── */
+  .chips { display: flex; gap: 7px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #0d1728; color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 7px 11px; font-size: 13px; font-weight: 600;
+    transition: border-color .15s, background .15s, transform .05s, opacity .15s;
+    text-align: left;
+  }
+  .chip:hover { background: #14223a; border-color: #33507a; }
+  .chip:active { transform: translateY(1px); }
+  .chip .chip-name { white-space: nowrap; }
+  .chip .chip-meta { font-size: 11px; font-weight: 500; color: var(--muted-2); white-space: nowrap; }
+  .chip .chip-count {
+    font-size: 10.5px; font-weight: 800; color: #04121f; background: var(--accent-2);
+    border-radius: 999px; padding: 0 6px; line-height: 16px;
+  }
+  .chip .chip-count[hidden] { display: none; }
+  .chip--nearest { border-color: rgba(52,211,153,.40); background: rgba(52,211,153,.09); }
+  .chip--nearest:hover { background: rgba(52,211,153,.16); border-color: rgba(52,211,153,.65); }
+  .chip--nearest .chip-name { color: #d1fae5; }
+  .chip.is-pending { opacity: .5; }
+  .chip.is-missing { border-style: dashed; border-color: rgba(248,113,113,.45); background: rgba(248,113,113,.06); }
+  .chip.is-missing .chip-name { color: #fecaca; }
+  .chip.is-missing .chip-meta::after { content: " · 목록에 없음"; color: var(--danger); }
+
+  .empty-row { padding: 22px 16px; text-align: center; color: var(--muted-2); font-size: 12.5px; }
+  .hidden { display: none !important; }
+
+  /* ── 모달 ─────────────────────────────── */
+  .backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(3, 7, 16, 0.80);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .backdrop[hidden] { display: none; }
+  .modal {
+    width: 100%; max-width: 880px; max-height: 92vh;
+    background: var(--panel); border: 1px solid #2a3b57;
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 30px 70px rgba(0,0,0,.6);
+    display: flex; flex-direction: column;
+    animation: pop .14s ease-out;
+  }
+  @keyframes pop { from { transform: translateY(6px) scale(.995); opacity: .6; } }
+  .modal-head { padding: 13px 16px 0; border-bottom: 1px solid var(--line); background: #0d1728; }
+  .modal-head-row { display: flex; align-items: flex-start; gap: 12px; }
+  .modal-title-block { min-width: 0; flex: 1; }
+  .modal-eyebrow { font-size: 11.5px; color: var(--muted-2); margin-bottom: 2px; }
+  .modal-title { font-size: 17px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .modal-title .badge {
+    font-size: 10.5px; font-weight: 700; color: var(--nearest);
+    background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.30);
+    border-radius: 999px; padding: 1px 7px;
+  }
+  .icon-btn {
+    background: #16233a; border: 1px solid var(--line); color: var(--text);
+    width: 34px; height: 34px; border-radius: 9px; font-size: 16px; line-height: 1;
+    display: grid; place-items: center; flex: none;
+  }
+  .icon-btn:hover { background: #1e2f4b; }
+  .tabs { display: flex; gap: 6px; margin-top: 11px; overflow-x: auto; padding-bottom: 0; }
+  .tabs[hidden] { display: none; }
+  .tab {
+    background: transparent; color: var(--muted); border: 1px solid transparent;
+    border-bottom: 2px solid transparent; border-radius: 9px 9px 0 0;
+    padding: 7px 12px; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); background: rgba(255,255,255,.03); }
+  .tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); background: rgba(56,189,248,.07); }
+  .tab .tab-idx { color: var(--muted-2); font-weight: 500; margin-left: 5px; font-size: 11px; }
+
+  .stage { position: relative; background: #000; aspect-ratio: 16 / 9; width: 100%; }
+  .stage video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+  .stage video.is-hidden { visibility: hidden; }
+  .stage-overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column; gap: 12px;
+    align-items: center; justify-content: center; text-align: center; padding: 24px;
+    background: radial-gradient(600px 300px at 50% 40%, rgba(56,189,248,.07), rgba(3,7,16,.985) 75%);
+  }
+  .stage-overlay[hidden] { display: none; }
+  .stage-overlay .icon { font-size: 26px; }
+  .stage-overlay h3 { margin: 0; font-size: 15px; }
+  .stage-overlay p { margin: 0; color: var(--muted); font-size: 12.5px; max-width: 520px; line-height: 1.6; }
+  .stage-overlay .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .spinner {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.25); border-top-color: var(--accent);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .suggestions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; max-width: 620px; }
+  .suggestions .chip { font-size: 12px; padding: 6px 10px; }
+
+  .modal-foot {
+    padding: 11px 16px; border-top: 1px solid var(--line); background: #0d1728;
+    display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  }
+  .meta-line { font-size: 11.5px; color: var(--muted-2); min-width: 0; overflow-wrap: anywhere; }
+  .meta-line b { color: var(--muted); font-weight: 600; }
+  .meta-line .warn-inline { color: var(--warn); font-weight: 700; margin-right: 7px; }
+  .foot-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn--sm { padding: 7px 11px; font-size: 12px; border-radius: 9px; }
+  .btn--ghost { background: transparent; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(10px);
+    background: #16233a; color: var(--text); border: 1px solid var(--line);
+    padding: 10px 16px; border-radius: 999px; font-size: 12.5px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.5); opacity: 0; pointer-events: none;
+    transition: opacity .18s, transform .18s; z-index: 200;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  footer.page-foot { max-width: 1180px; margin: 0 auto; padding: 0 20px 40px; color: var(--muted-2); font-size: 11.5px; line-height: 1.7; }
+  footer.page-foot code { color: var(--muted); background: #0d1728; border: 1px solid var(--line-soft); border-radius: 5px; padding: 1px 5px; }
+
+  /* ── 모바일: 표 → 카드 ────────────────── */
+  @media (max-width: 780px) {
+    .topbar { padding: 12px 14px 10px; }
+    .brand h1 { font-size: 16px; }
+    main { padding: 16px 14px 50px; }
+    .table-wrap { background: transparent; border: none; border-radius: 0; overflow: visible; }
+    table.sites, table.sites tbody, table.sites tr, table.sites td { display: block; width: 100%; }
+    table.sites thead { display: none; }
+    table.sites tbody tr {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+      margin-bottom: 10px; padding: 4px 0;
+    }
+    table.sites td { padding: 8px 14px; border: none; }
+    table.sites td[data-label]::before {
+      content: attr(data-label);
+      display: block; font-size: 10.5px; letter-spacing: .05em;
+      color: var(--muted-2); margin-bottom: 5px;
+    }
+    td.col-site { min-width: 0; }
+    td.col-site[data-label]::before { display: none; }
+    .modal { max-height: 94vh; }
+    .stage { aspect-ratio: 4 / 3; }
+    .group-head .hint { display: none; }
+    .stage-overlay { padding: 18px; gap: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand-row">
+      <div class="brand">
+        <h1>🛣️ 광주대구선 CCTV 관제</h1>
+        <span class="pill">남원 ~ 대구 논공</span>
+        <span class="sub">관심지역 8곳 · 도로관측소 11곳</span>
+      </div>
+      <nav class="nav-links" aria-label="페이지 이동">
+        <a class="nav-link" href="./index.html">← 도로기상 상황판</a>
+        <a class="nav-link" href="./hourly.html">1시간 예보</a>
+      </nav>
+    </div>
+
+    <div class="controls">
+      <div class="url-field">
+        <input id="workerUrl" type="text" spellcheck="false" autocomplete="off"
+               placeholder="Worker 주소 예: /api/cctv 또는 https://bionda.pages.dev/api/cctv" />
+        <button id="saveUrl" class="btn" type="button" title="이 주소를 브라우저에 저장">저장</button>
+      </div>
+      <button id="loadData" class="btn btn--primary" type="button">목록 불러오기</button>
+      <button id="refreshData" class="btn" type="button" title="Worker 캐시를 무시하고 ITS에서 새로 받습니다 (?refresh=1)">캐시 새로고침</button>
+    </div>
+
+    <div id="status" class="status" data-state="idle">
+      <span class="dot"></span>
+      <span id="statusText">Worker 주소를 확인하고 <b>목록 불러오기</b>를 눌러 주세요.</span>
+      <span id="statusMeta" class="detail"></span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <input id="filter" class="search" type="search" placeholder="지점·CCTV 이름으로 찾기 (예: 논공, 14407, 휴게소)" />
+    <div class="legend">
+      <span><i class="l1"></i>최인접 CCTV</span>
+      <span><i class="l2"></i>보조 CCTV</span>
+      <span>칩의 숫자는 방향·후보 개수</span>
+    </div>
+  </div>
+
+  <section class="group" data-group="interest">
+    <div class="group-head">
+      <h2>관심지역</h2>
+      <span class="count" id="countInterest">8</span>
+      <span class="hint">현풍 · 지곡 · 남상 · 야로 · 대가야 · 남원 · 함양 · 거창</span>
+    </div>
+    <div class="table-wrap">
+      <table class="sites">
+        <thead>
+          <tr>
+            <th>지점</th>
+            <th>최인접 공식 CCTV</th>
+            <th>보조 CCTV</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyInterest"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="group" data-group="observatory">
+    <div class="group-head">
+      <h2>도로관측소</h2>
+      <span class="count" id="countObservatory">11</span>
+      <span class="hint">광주대구선 50.8k ~ 171.3k</span>
+    </div>
+    <div class="table-wrap">
+      <table class="sites">
+        <thead>
+          <tr>
+            <th>관측소</th>
+            <th>최인접 공식 CCTV</th>
+            <th>보조 CCTV</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyObservatory"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="page-foot">
+  영상은 각 스트리밍 서버(<code>*.hscdn.com</code> 등)에서 브라우저가 직접 받아 재생하고,
+  Worker는 CCTV 목록(JSON)만 15분 캐시로 중계합니다. 목록이 비었거나 이름이 안 맞으면
+  <code>캐시 새로고침</code>으로 다시 받아 보세요.
+</footer>
+
+<!-- ── 팝업 ───────────────────────────── -->
+<div id="backdrop" class="backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <div class="modal-head-row">
+        <div class="modal-title-block">
+          <div class="modal-eyebrow" id="modalEyebrow">CCTV</div>
+          <div class="modal-title" id="modalTitle">CCTV</div>
+        </div>
+        <button id="closeModal" class="icon-btn" type="button" aria-label="닫기">✕</button>
+      </div>
+      <div class="tabs" id="tabs" role="tablist" hidden></div>
+    </div>
+
+    <div class="stage">
+      <video id="video" controls muted playsinline preload="none"></video>
+      <div id="overlay" class="stage-overlay" hidden>
+        <div class="icon" id="overlayIcon">📡</div>
+        <h3 id="overlayTitle">영상을 불러오는 중…</h3>
+        <p id="overlayText">잠시만 기다려 주세요.</p>
+        <div class="row" id="overlayActions"></div>
+        <div class="suggestions" id="suggestions"></div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <div class="meta-line" id="metaLine">-</div>
+      <div class="foot-actions">
+        <button id="retryBtn" class="btn btn--sm" type="button">캐시 새로고침 후 다시 시도</button>
+        <a id="cameraPageLink" class="btn btn--sm" target="_blank" rel="noopener" hidden>CCTV 페이지 열기 ↗</a>
+        <button id="openTabBtn" class="btn btn--sm btn--ghost" type="button">영상 주소 새 탭에서 열기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="./vendor/hls.min.js"></script>
+<script type="module" src="./cctv-preview.js"></script>
+</body>
+</html>

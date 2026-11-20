@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#103c3e">
+  <title>날씨봇 · 상세 배너 기상·주야간·달령·살얼음(0~3단계) 검수 페이지</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./hero-scenes.css">
+  <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <style>
+    .hp-wrap {
+      padding-top: 14px;
+      padding-bottom: 42px;
+    }
+    .hp-intro {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+    }
+    .hp-intro h1 {
+      margin: 0 0 3px;
+      font-size: 18px;
+      letter-spacing: -0.4px;
+    }
+    .hp-intro p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .hp-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #e6f4f1;
+      color: #0f524c;
+      border: 1px solid #b5dcd3;
+    }
+    body.dark-mode .hp-status-pill {
+      background: #143638;
+      color: #a9e6da;
+      border-color: #275e61;
+    }
+
+    .hp-sim-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+    .hp-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .hp-ctrl-group {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .hp-ctrl-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 750;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .hp-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .hp-chip {
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 650;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--ink);
+      transition: all 0.15s ease;
+    }
+    .hp-chip:hover {
+      border-color: #1c6b66;
+    }
+    .hp-chip.is-active {
+      background: #145352;
+      color: #ffffff;
+      border-color: #145352;
+    }
+    .hp-chip.rank-0.is-active { background: #0f766e; border-color: #10b981; }
+    .hp-chip.rank-1.is-active { background: #a16207; border-color: #eab308; }
+    .hp-chip.rank-2.is-active { background: #c2410c; border-color: #f97316; }
+    .hp-chip.rank-3.is-active { background: #b91c1c; border-color: #ef4444; }
+
+    .hp-moon-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .hp-moon-row input[type="range"] {
+      flex: 1;
+      accent-color: #185856;
+    }
+    .hp-moon-readout {
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 112px;
+      text-align: right;
+      color: var(--ink);
+    }
+    .hp-date-row,
+    .hp-typhoon-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .hp-date-row input[type="date"],
+    .hp-typhoon-row input {
+      padding: 3px 8px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--ink);
+      font-size: 12px;
+    }
+    .hp-typhoon-row input {
+      width: 82px;
+    }
+    .hp-typhoon-row input#tyNameInput {
+      width: 90px;
+    }
+    .hp-hero-meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 9px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .hp-hero-meta-bar strong {
+      color: var(--ink);
+    }
+
+    /* 갤러리 카탈로그 */
+    .hp-sec-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 22px 2px 10px;
+    }
+    .hp-sec-head h2 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: -0.4px;
+    }
+    .hp-sec-head span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .hp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 1200px) {
+      .hp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .hp-grid { grid-template-columns: 1fr; }
+    }
+
+    .hp-item {
+      display: flex;
+      flex-direction: column;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px;
+      cursor: pointer;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+      text-align: left;
+    }
+    .hp-item:hover {
+      transform: translateY(-2px);
+      border-color: #1c6b66;
+      box-shadow: 0 8px 20px rgba(16, 60, 62, 0.12);
+    }
+    .hp-item .hero {
+      margin-bottom: 8px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      min-height: 156px;
+    }
+    .hp-item .hero .eyebrow {
+      font-size: 9.5px;
+      letter-spacing: 1.4px;
+    }
+    .hp-item .hero h1 {
+      font-size: 18.5px;
+      margin: 2px 0 4px;
+    }
+    .hp-item .hero .heroNums {
+      gap: 11px;
+    }
+    .hp-item .hero .heroNums strong {
+      font-size: 35px;
+      letter-spacing: -2px;
+    }
+    .hp-item .hero .heroNums b {
+      font-size: 13.5px;
+    }
+    .hp-item .hero small {
+      font-size: 11px;
+    }
+    .hp-item .hero .hs-celestial {
+      width: 92px;
+      height: 92px;
+      right: 7%;
+      top: 4px;
+    }
+    .hp-item .hero .hs-celestial.is-low {
+      top: 14px;
+      right: 7%;
+    }
+    .hp-item .hero .hs-typhoon-cluster {
+      right: 12px;
+      top: 8px;
+      gap: 7px;
+    }
+    .hp-item .hero .hs-typhoon-svg {
+      width: 68px;
+      height: 68px;
+    }
+    .hp-item .hero .hs-typhoon-tag {
+      padding: 4px 8px;
+    }
+    .hp-item .hero .hs-typhoon-tag strong { font-size: 11.5px; }
+    .hp-item .hero .hs-typhoon-tag span { font-size: 10px; }
+    .hp-item .hero .hs-road-stage-pill {
+      right: 10px;
+      bottom: 8px;
+      font-size: 10px;
+      padding: 2px 8px;
+    }
+    .hp-item-cap {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 2px 4px;
+    }
+    .hp-item-title {
+      font-size: 13px;
+      font-weight: 750;
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+    .hp-item-desc {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.38;
+    }
+    .hp-item-badge {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--bg);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <header class="top-header">
+    <div class="wrap bar">
+      <a class="brandhome" href="./index.html" aria-label="도로기상 상황판 홈">
+        <b class="brand"><img src="./favicon.png" alt="날씨봇" class="brand-favicon"> 날씨봇</b>
+        <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 상세 상단 배너 · 기상·입자·도로살얼음·풍속 연동 최종 검수</span>
+      </a>
+      <nav class="page-tabs" aria-label="대시보드 메뉴 전환">
+        <a class="page-tab" href="./index.html">
+          <span class="pt-ico">🛣️</span><span class="pt-txt">도로기상 상황판</span>
+        </a>
+        <a class="page-tab" href="./hourly.html">
+          <span class="pt-ico">🕒</span><span class="pt-txt">1시간 단기예보</span><span class="pt-badge">12개소</span>
+        </a>
+        <a class="page-tab is-active" href="./hero-preview.html" aria-current="page">
+          <span class="pt-ico">🌗</span><span class="pt-txt">배너 시안 검수</span>
+        </a>
+      </nav>
+      <div class="header-actions">
+        <button id="darkToggle" type="button" class="hdr-btn">🌙 다크모드</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap hp-wrap">
+    <section class="hp-intro">
+      <div>
+        <h1>상세 페이지 상단 히어로(.hero) 최종 시안 검수</h1>
+        <p>눕힌 원근 풀블리드 도로 · 경계 정합 비콘(초록·노랑·주황·빨강) · <b>살얼음 관심/주의/위험</b> 배지 · 풍속 연동 둥실 구름 유영 · 태풍 특보 배지가 반영되었습니다.</p>
+      </div>
+      <span class="hp-status-pill">상세 페이지(index.html) 실시간 연동 완료</span>
+    </section>
+
+    <!-- 1. 1:1 실寸 인터랙티브 시뮬레이터 -->
+    <section class="hp-sim-card" aria-label="1:1 실시간 배너 시뮬레이터">
+      <div class="hp-controls">
+        <div class="hp-ctrl-group">
+          <div class="hp-ctrl-label">
+            <span>① 주야간 시간대</span>
+            <span id="lblDayPhase">야간(밤)</span>
+          </div>
+          <div class="hp-chips" id="dayPhaseChips">
+            <button type="button" class="hp-chip" data-dayphase="dawn">🌅 새벽(여명)</button>
+            <button type="button" class="hp-chip" data-dayphase="day">☀️ 주간(낮)</button>
+            <button type="button" class="hp-chip" data-dayphase="dusk">🌇 황혼(일몰)</button>
+            <button type="button" class="hp-chip is-active" data-dayphase="night">🌙 야간(밤)</button>
+          </div>
+        </div>
+
+        <div class="hp-ctrl-group">
+          <div class="hp-ctrl-label">
+            <span>② 하늘 · 강수 · Canvas 입자 상태 (9종)</span>
+            <span id="lblWeather">구름많음</span>
+          </div>
+          <div class="hp-chips" id="weatherChips">
+            <button type="button" class="hp-chip" data-weather="clear">맑음</button>
+            <button type="button" class="hp-chip is-active" data-weather="partly_cloudy">구름많음</button>
+            <button type="button" class="hp-chip" data-weather="overcast">흐림</button>
+            <button type="button" class="hp-chip" data-weather="fog">안개</button>
+            <button type="button" class="hp-chip" data-weather="rain">🌧 비(Canvas)</button>
+            <button type="button" class="hp-chip" data-weather="thunder">⛈ 번개·뇌우</button>
+            <button type="button" class="hp-chip" data-weather="typhoon">🌀 태풍·바람</button>
+            <button type="button" class="hp-chip" data-weather="snow">❄ 눈(Canvas)</button>
+            <button type="button" class="hp-chip" data-weather="heavy_snow">🌨 폭설</button>
+          </div>
+        </div>
+
+        <div class="hp-ctrl-group">
+          <div class="hp-ctrl-label">
+            <span>③ 달령(음력) · 태풍 정보 연동</span>
+            <span id="lblLunar">보름달</span>
+          </div>
+          <div class="hp-date-row">
+            <input type="date" id="lunarDateInput" aria-label="달령 계산 기준 날짜">
+            <button type="button" class="hp-chip" id="btnTodayLunar">오늘 날짜 반영</button>
+          </div>
+          <div class="hp-moon-row">
+            <input type="range" id="moonAgeSlider" min="0" max="29.5" step="0.2" value="14.8">
+            <span class="hp-moon-readout" id="moonReadout">14.8일 · 100%</span>
+          </div>
+          <div class="hp-chips" id="moonPresetChips">
+            <button type="button" class="hp-chip" data-age="0">🌑 삭</button>
+            <button type="button" class="hp-chip" data-age="3.2">🌒 초승</button>
+            <button type="button" class="hp-chip" data-age="7.4">🌓 상현</button>
+            <button type="button" class="hp-chip is-active" data-age="14.8">🌕 보름</button>
+            <button type="button" class="hp-chip" data-age="22.1">🌗 하현</button>
+            <button type="button" class="hp-chip" data-age="26.5">🌘 그믐</button>
+          </div>
+        </div>
+
+        <div class="hp-ctrl-group">
+          <div class="hp-ctrl-label">
+            <span>④ 벡터 도로 살얼음 &amp; 한파/풍속/태풍</span>
+            <span id="lblHazard">평온</span>
+          </div>
+          <div class="hp-chips" id="iceRankChips" style="margin-bottom:8px;">
+            <button type="button" class="hp-chip rank-0 is-active" data-icerank="0">평온(초록)</button>
+            <button type="button" class="hp-chip rank-1" data-icerank="1">살얼음 관심(노랑)</button>
+            <button type="button" class="hp-chip rank-2" data-icerank="2">살얼음 주의(주황)</button>
+            <button type="button" class="hp-chip rank-3" data-icerank="3">살얼음 위험(빨강)</button>
+          </div>
+          <div class="hp-typhoon-row">
+            <button type="button" class="hp-chip" id="coldToggleBtn">❄️ 한파(성애·빙정)</button>
+            <input type="text" id="tyNoInput" value="제11호" aria-label="태풍 호수" placeholder="제11호">
+            <input type="text" id="tyNameInput" value="힌남노" aria-label="태풍 이름" placeholder="힌남노">
+          </div>
+          <div class="hp-moon-row" style="margin-bottom:0;">
+            <span style="font-size:11.5px;font-weight:700;color:var(--muted);min-width:28px;">풍속</span>
+            <input type="range" id="windSlider" min="0.4" max="25" step="0.2" value="2.0" aria-label="풍속 조절 m/s">
+            <span class="hp-moon-readout" id="windReadout" style="min-width:118px;">2.0 m/s · 33.7s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 실제 1:1 크기 Hero 미리보기 -->
+      <section class="hero" id="simHero">
+        <div class="horizon" aria-hidden="true"></div>
+        <div class="herodata">
+          <span class="eyebrow">LOCAL WEATHER &amp; ROAD MANAGEMENT BRIEFING</span>
+          <h1 id="simPlace">함양중부 (지곡면)</h1>
+          <div class="heroNums">
+            <strong id="simTemp">1.4°</strong>
+            <div>
+              <b id="simCond">구름많음</b>
+              <small id="simHum">상대습도 78% · 풍속 2.1 m/s</small>
+              <small id="simRoad" class="hero-road-info">🛣️ 함양(도) 광학 노면온도 3.7°C (건조) · 🌉 결빙취약교량 죽산천교(도) 노면 3.9°C</small>
+            </div>
+          </div>
+          <small id="simStamp">함양(도) 관측 · 4.3 km · 실시간 · 실제 운영페이지 1:1 비율 미리보기</small>
+        </div>
+        <button id="refresh" type="button">↻ 새로고침</button>
+      </section>
+
+      <div class="hp-hero-meta-bar">
+        <span>현재 연출: <strong id="metaSceneSummary">—</strong></span>
+        <span>천체·도로 규칙: <strong id="metaCelestialRule">—</strong></span>
+      </div>
+    </section>
+
+    <!-- 2. 전체 시안 카탈로그 -->
+    <section aria-label="주간 및 여명 황혼 날씨 입자 태풍 카탈로그">
+      <div class="hp-sec-head">
+        <h2>A. 주간 · 여명 · 황혼 날씨 + Canvas 입자 + 태풍 특보 연출 (9종)</h2>
+        <span>카드를 클릭하면 상단 1:1 시뮬레이터에 즉시 로드됩니다.</span>
+      </div>
+      <div class="hp-grid" id="gridDay"></div>
+    </section>
+
+    <section aria-label="야간 달령 및 구름 투과 물리 시안 카탈로그">
+      <div class="hp-sec-head">
+        <h2>B. 야간 달령(음력 위상) × 구름·강수 가시성 연출 (8종)</h2>
+        <span>맑은 밤 별·달 ↔ 구름많음 밤 달빛 투과 ↔ 흐림 달무리 ↔ 비·눈 밤 달/별 비노출</span>
+      </div>
+      <div class="hp-grid" id="gridNightMoon"></div>
+    </section>
+
+    <section aria-label="동절기 도로 살얼음 색상 및 폭설 한파 카탈로그">
+      <div class="hp-sec-head">
+        <h2>C. 벡터 도로 살얼음(평온 · 관심 · 주의 · 위험) · 눈/폭설(Canvas) · 한파 (7종)</h2>
+        <span>아스팔트 도로 · 황색 중앙선 · 차선 점선 · 양쪽 갓길 실선 · 0(초록)/1(노랑)/2(주황)/3(빨강) 단계 비교</span>
+      </div>
+      <div class="hp-grid" id="gridWinterIce"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { applyHeroScene, getLunarInfo } from './hero-scenes.js';
+
+    const state = {
+      dayPhase: 'night',
+      weather: 'partly_cloudy',
+      moonAgeDays: 14.8,
+      iceRank: 0,
+      coldWave: false,
+      windMs: 2.0,
+      tyNo: '제11호',
+      tyName: '힌남노'
+    };
+
+    const WEATHER_SAMPLE = {
+      clear: { windMs: 1.4, tempDay: '12.4°', tempNight: '2.6°', cond: '맑음', hum: '상대습도 54%', road: '🛣️ 거창휴(도) 광학 노면온도 11.2°C (건조)' },
+      partly_cloudy: { windMs: 2.0, tempDay: '10.8°', tempNight: '3.1°', cond: '구름많음', hum: '상대습도 68%', road: '🛣️ 함양(도) 광학 노면온도 3.7°C (건조) · 🌉 결빙취약교량 죽산천교(도) 3.9°C' },
+      overcast: { windMs: 2.4, tempDay: '8.2°', tempNight: '4.0°', cond: '흐림', hum: '상대습도 79%', road: '🛣️ 함양(도) 광학 노면온도 3.8°C (건조)' },
+      fog: { windMs: 0.6, tempDay: '4.5°', tempNight: '1.2°', cond: '안개 · 시정 저하', hum: '상대습도 97%', road: '🛣️ 지리산휴(도) 광학 노면온도 1.5°C (박무 습윤)' },
+      rain: { windMs: 4.2, tempDay: '7.4°', tempNight: '5.1°', cond: '비 (시간당 4.5mm)', hum: '상대습도 94%', road: '🛣️ 양전교(도) 광학 노면온도 4.9°C (습윤 · 수막 감시)' },
+      thunder: { windMs: 12.5, tempDay: '14.2°', tempNight: '11.8°', cond: '뇌우 · 강한 소나기', hum: '상대습도 96%', road: '⚠️ 12호선 호우·낙뢰 감시 구간' },
+      typhoon: { windMs: 24.4, tempDay: '18.6°', tempNight: '16.9°', cond: '태풍 경보 · 강풍 폭우', hum: '강수 28mm/h', road: '🚨 교량 강풍·배수 불량 집중 통제' },
+      snow: { windMs: 3.1, tempDay: '-0.8°', tempNight: '-3.4°', cond: '눈 (적설 1.8 cm)', hum: '상대습도 89%', road: '❄️ 번암교(도)(결빙취약교량) 광학 노면 -1.6°C (적설 · 제설 출동)' },
+      heavy_snow: { windMs: 9.6, tempDay: '-2.6°', tempNight: '-5.8°', cond: '대설경보 · 폭설 눈보라', hum: '시간당 4.5 cm', road: '🚨 12호선 전구간 제설 3단계 가동' }
+    };
+
+    const ROAD_BY_RANK = {
+      0: '🛣️ 함양(도) 광학 노면온도 3.7°C (건조) · 012선 평온',
+      1: '🟡 옥계1교(도)(결빙취약교량) 노면 1.8°C · 012선 살얼음 관심',
+      2: '🟠 죽산천교(도)(결빙취약교량) 노면 0.3°C (습윤) · 012선 살얼음 주의',
+      3: '🚨 번암교(도)(결빙취약교량) 노면 -1.9°C (결빙) · 012선 살얼음 위험'
+    };
+
+    const CATALOG = {
+      gridDay: [
+        {
+          title: '주간 · 맑음 (기본 12호선 + 아스팔트 도로)',
+          desc: '우측 하단에 아스팔트 도로(황색 중앙선·차선·양쪽 갓길 실선)와 0단계 안전 녹색 비콘을 더했습니다.',
+          badge: 'DAY · CLEAR',
+          place: '합천군서북부 (야로면)', temp: '12.4°', cond: '맑음', hum: '상대습도 52% · 풍속 1.3 m/s',
+          road: '🛣️ 거창휴(도) 광학 노면온도 14.1°C (건조)',
+          opts: { dayPhase: 'day', weather: 'clear', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '새벽·여명 · 맑음',
+          desc: '일출 전후 청록에서 따뜻한 로즈앰버로 이어지는 산능선 여명과 저고도 태양.',
+          badge: 'DAWN · CLEAR',
+          place: '함양중부 (지곡면)', temp: '2.1°', cond: '새벽 맑음', hum: '상대습도 74% · 풍속 1.0 m/s',
+          road: '🛣️ 함양(도) 3.7°C · 🌉 결빙취약교량 죽산천교(도) 3.9°C',
+          opts: { dayPhase: 'dawn', weather: 'clear', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '황혼·일몰 · 구름많음',
+          desc: '해질녘 노을 톤과 구름 틈새로 번지는 저녁 태양빛을 표현했습니다.',
+          badge: 'DUSK · CLOUDY',
+          place: '고령군 (성산면)', temp: '7.6°', cond: '구름많음 (해질녘)', hum: '상대습도 66% · 풍속 2.2 m/s',
+          road: '🛣️ 양전교(도) 광학 노면온도 6.8°C (건조)',
+          opts: { dayPhase: 'dusk', weather: 'partly_cloudy', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '주간 · 구름많음',
+          desc: '온화하게 흐르는 다층 구름 너머로 부드럽게 퍼지는 주간 햇살입니다.',
+          badge: 'DAY · PARTLY',
+          place: '거창군 (가조면)', temp: '9.8°', cond: '구름많음', hum: '상대습도 64% · 풍속 2.4 m/s',
+          road: '🛣️ 거창휴(도) 광학 노면온도 9.2°C (건조)',
+          opts: { dayPhase: 'day', weather: 'partly_cloudy', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '주간 · 흐림',
+          desc: '상층을 덮은 짙은 회청록 층운으로 햇살이 가려진 흐린 하늘입니다.',
+          badge: 'DAY · OVERCAST',
+          place: '함양군 (함양읍)', temp: '8.2°', cond: '흐림', hum: '상대습도 79% · 풍속 2.0 m/s',
+          road: '🛣️ 함양(도) 노면 7.5°C · 🌉 결빙취약교량 옥계1교(도) 7.1°C',
+          opts: { dayPhase: 'day', weather: 'overcast', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '주간 · 안개 (시정 저하)',
+          desc: '계곡 능선과 도로 주변을 따라 부드럽게 깔리는 다층 안개 띠와 번지는 햇살입니다.',
+          badge: 'DAY · FOG',
+          place: '남원~장수 (번암교 423m)', temp: '3.4°', cond: '짙은 안개 · 가시거리 200m', hum: '상대습도 98% · 풍속 0.5 m/s',
+          road: '⚠️ 번암교(도)(결빙취약교량) 노면 2.9°C (안개 · 시정주의)',
+          opts: { dayPhase: 'day', weather: 'fog', moonAgeDays: 14.8, iceRank: 1, coldWave: false }
+        },
+        {
+          title: '주간 · 비 (Canvas 입자 + 물보라)',
+          desc: '다중 깊이감 빗줄기와 아스팔트 노면 물보라·젖은 반사광까지 동적으로 연출됩니다.',
+          badge: 'CANVAS RAIN',
+          place: '달성군 (옥포읍)', temp: '7.4°', cond: '비 (시간당 5.0mm)', hum: '상대습도 94% · 풍속 3.8 m/s',
+          road: '🛣️ 논공교(도)(결빙취약교량) 광학 노면온도 6.9°C (습윤)',
+          opts: { dayPhase: 'day', weather: 'rain', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '천둥·번개 (뇌우 + Canvas 폭우)',
+          desc: '적란운·번개 섬광과 Canvas 폭우 빗줄기·물보라가 함께 동작합니다.',
+          badge: 'THUNDER + CANVAS',
+          place: '합천군 (야로면)', temp: '14.2°', cond: '뇌우 · 번개 동반 강수', hum: '상대습도 96% · 돌풍 13 m/s',
+          road: '⚠️ 노선 낙뢰·집중호우 경계 감시',
+          opts: { dayPhase: 'day', weather: 'thunder', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '태풍 · 특보 정보 배지 + Canvas 강풍·빗줄기',
+          desc: '회전 팬 아이콘을 제거하고 [제11호 태풍 힌남노] 특보 정보 배지와 Windy형 회전 유체 바람 궤적에 집중했습니다.',
+          badge: 'TYPHOON + INFO',
+          place: '고령군 (쌍림면)', temp: '18.6°', cond: '태풍 경보 · 풍속 24.4 m/s', hum: '강수 28mm/h · 해발 고지 강풍',
+          road: '🚨 교량 강풍 통제 기준 도달 주의',
+          opts: { dayPhase: 'day', weather: 'typhoon', moonAgeDays: 14.8, iceRank: 0, coldWave: false, tyNo: '제11호', tyName: '힌남노' }
+        }
+      ],
+      gridNightMoon: [
+        {
+          title: '야간 맑음 · 보름달 (달령 15일 · 100%)',
+          desc: '구름 없는 밤하늘에 밝은 보름달(월면 음영 포함)과 별빛, 밤 고속도로 전경이 펼쳐집니다.',
+          badge: 'NIGHT · FULL MOON',
+          place: '함양중부 (지곡면)', temp: '2.4°', cond: '맑음 (보름달)', hum: '상대습도 62% · 풍속 0.8 m/s',
+          road: '🛣️ 함양(도) 3.7°C · 🌉 결빙취약교량 죽산천교(도) 3.9°C',
+          opts: { dayPhase: 'night', weather: 'clear', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '야간 맑음 · 초승달 (달령 3일 · 11%)',
+          desc: '음력 초순 오른쪽만 날카롭게 빛나는 초승달과 어두운 지구조 윤곽, 총총한 별빛입니다.',
+          badge: 'NIGHT · WAXING 3D',
+          place: '거창군남부 (남상면)', temp: '1.9°', cond: '맑음 (초승달)', hum: '상대습도 65% · 풍속 1.1 m/s',
+          road: '🛣️ 남상졸음(도) 노면 2.5°C · 🌉 결빙취약교량 죽산천교(도) 2.2°C',
+          opts: { dayPhase: 'night', weather: 'clear', moonAgeDays: 3.2, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '야간 맑음 · 상현달 (달령 7.4일 · 50%)',
+          desc: '오른쪽 반달(상현달) 정확한 수직 음영선(terminator)이 구현됩니다.',
+          badge: 'NIGHT · 1ST QUARTER',
+          place: '거창군 (남하면)', temp: '2.1°', cond: '맑음 (상현달)', hum: '상대습도 63% · 풍속 1.0 m/s',
+          road: '🛣️ 거창휴(도) 광학 노면온도 2.7°C (건조)',
+          opts: { dayPhase: 'night', weather: 'clear', moonAgeDays: 7.4, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '야간 맑음 · 하현달 (달령 22.1일 · 50%)',
+          desc: '음력 하순 왼쪽 반쪽이 밝은 하현달 위상입니다.',
+          badge: 'NIGHT · 3RD QUARTER',
+          place: '고령군 (대가야읍)', temp: '3.2°', cond: '맑음 (하현달)', hum: '상대습도 60% · 풍속 1.2 m/s',
+          road: '🛣️ 양전교(도) 광학 노면온도 4.1°C (건조)',
+          opts: { dayPhase: 'night', weather: 'clear', moonAgeDays: 22.1, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '야간 맑음 · 그믐달 (달령 26.5일 · 10%)',
+          desc: '새벽 무렵 왼쪽 가장자리가 가느다랗게 빛나는 그믐달입니다.',
+          badge: 'NIGHT · WANING 27D',
+          place: '함양군 (수동면)', temp: '1.5°', cond: '맑음 (그믐달)', hum: '상대습도 68% · 풍속 0.7 m/s',
+          road: '🛣️ 함양(도) 광학 노면온도 2.0°C (건조)',
+          opts: { dayPhase: 'night', weather: 'clear', moonAgeDays: 26.5, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '야간 구름많음 · 보름달 구름 투과 ★',
+          desc: '반투명 구름층 뒤편에 보름달이 자리하고 구름 가장자리로 달빛이 은은하게 스며 나옵니다.',
+          badge: 'MOON IN CLOUDS',
+          place: '함양중부 (지곡면)', temp: '3.1°', cond: '구름많음 (구름 속 보름달)', hum: '상대습도 76% · 풍속 1.8 m/s',
+          road: '🛣️ 함양(도) 3.7°C · 🌉 결빙취약교량 죽산천교(도) 3.9°C',
+          opts: { dayPhase: 'night', weather: 'partly_cloudy', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '야간 흐림 · 짙은 구름 뒤 달무리만 힌트',
+          desc: '두꺼운 구름이 별을 완전히 가리고, 보름달급만 흐릿한 확산 광환을 남깁니다.',
+          badge: 'NIGHT · OVERCAST',
+          place: '합천군 (야로면)', temp: '3.8°', cond: '흐림 (달빛 거의 가려짐)', hum: '상대습도 82% · 풍속 2.2 m/s',
+          road: '🛣️ 거창휴(도) 광학 노면온도 3.2°C (건조)',
+          opts: { dayPhase: 'night', weather: 'overcast', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '야간 비 · 보름달이어도 달·별 완전 비노출 ★',
+          desc: '비가 내리는 밤에는 두꺼운 강수 구름 때문에 보름달이라도 달·별을 렌더링하지 않고 Canvas 빗줄기만 흐릅니다.',
+          badge: 'NIGHT RAIN · NO MOON',
+          place: '고령군 (성산면)', temp: '5.1°', cond: '야간 비 (달·별 가려짐)', hum: '상대습도 95% · 풍속 4.0 m/s',
+          road: '🛣️ 양전교(도) 광학 노면온도 5.3°C (습윤 · 빗길 주의)',
+          opts: { dayPhase: 'night', weather: 'rain', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        }
+      ],
+      gridWinterIce: [
+        {
+          title: '평온 · 건조 노면 (초록 비콘 + 건조 아스팔트)',
+          desc: '실제 아스팔트 색감과 황색 중앙선·차선 점선·양쪽 갓길 실선, 평온 녹색 가드레일 경계 비콘이 적용됩니다.',
+          badge: '평온(초록)',
+          place: '고령군 (대가야읍)', temp: '5.8°', cond: '야간 맑음 · 노면 건조', hum: '상대습도 58% · 풍속 1.0 m/s',
+          road: '🟢 양전교(도) 노면 5.9°C · 012선 평온',
+          opts: { dayPhase: 'night', weather: 'clear', moonAgeDays: 14.8, iceRank: 0, coldWave: false }
+        },
+        {
+          title: '살얼음 관심 (노랑 갓길·경고등 ★)',
+          desc: '도로 아스팔트 갓길과 방호벽 라인이 노란색(#eab308)으로 바뀌며 노면 위 옅은 서리 끼임을 알립니다.',
+          badge: '살얼음 관심(노랑)',
+          place: '함양 (함양읍)', temp: '1.2°', cond: '야간 맑음 · 살얼음 관심', hum: '상대습도 81% · 노면 1.6°C',
+          road: '🟡 옥계1교(도)(결빙취약교량) 1.6°C · 012선 살얼음 관심',
+          opts: { dayPhase: 'night', weather: 'clear', moonAgeDays: 7.4, iceRank: 1, coldWave: false }
+        },
+        {
+          title: '살얼음 주의 (주황 갓길·빙결 광택 ★)',
+          desc: '방호벽·갓길 실선이 주황색(#f97316)으로 전환되고 아스팔트 차선 위로 서리 결정·빙판 광택이 강조됩니다.',
+          badge: '살얼음 주의(주황)',
+          place: '함양중부 (지곡면)', temp: '-0.8°', cond: '새벽 맑음 · 살얼음 주의', hum: '상대습도 88% · 노면 -0.4°C',
+          road: '🟠 죽산천교(도)(결빙취약교량) -0.4°C · 012선 살얼음 주의',
+          opts: { dayPhase: 'dawn', weather: 'clear', moonAgeDays: 14.8, iceRank: 2, coldWave: false }
+        },
+        {
+          title: '살얼음 위험 (적색 경보라인·블랙아이스 ★)',
+          desc: '아스팔트 위 시퍼런 블랙아이스 빙판층과 강렬한 적색(#ef4444) 갓길·경계 비콘·살얼음 위험 배지가 점등됩니다.',
+          badge: '살얼음 위험(빨강)',
+          place: '남원~장수 (번암교 423m)', temp: '-3.1°', cond: '야간 맑음 · 살얼음 위험 경보', hum: '노면 -2.8°C · 결빙 감지',
+          road: '🚨 번암교(도)(결빙취약교량) -2.8°C · 012선 살얼음 위험',
+          opts: { dayPhase: 'night', weather: 'clear', moonAgeDays: 14.8, iceRank: 3, coldWave: false }
+        },
+        {
+          title: '주·야간 · 눈 (Canvas 부드러운 눈송이 + 6각 결정 + 설선)',
+          desc: '다중 크기 보케 눈송이와 회전 6각 눈결정이 흔들리며 떨어지고, 갓길 눈더미와 살얼음 주의 주황 라인이 조화를 이룹니다.',
+          badge: 'CANVAS SNOW',
+          place: '거창군 (가조면)', temp: '-1.8°', cond: '눈 (적설 1.8cm)', hum: '상대습도 89% · 풍속 3.1 m/s',
+          road: '🟠 거창휴(도) 노면 -1.2°C (적설 · 살얼음 주의)',
+          opts: { dayPhase: 'day', weather: 'snow', moonAgeDays: 14.8, iceRank: 2, coldWave: false }
+        },
+        {
+          title: '폭설 · 대설 눈보라 (Canvas 블리자드 + 살얼음 위험)',
+          desc: '강한 횡풍 바람 궤적과 고밀도 눈보라, 눈 덮인 산능선·갓길 및 살얼음 위험 적색 도로가 비상 상황을 전달합니다.',
+          badge: 'BLIZZARD · 위험',
+          place: '고령지사 (해발 고지대)', temp: '-4.2°', cond: '대설경보 · 폭설 눈보라', hum: '시간당 4.5 cm · 풍속 9.2 m/s',
+          road: '🚨 제설 3단계 · 살얼음 위험 구간',
+          opts: { dayPhase: 'day', weather: 'heavy_snow', moonAgeDays: 14.8, iceRank: 3, coldWave: true }
+        },
+        {
+          title: '야간 · 한파경보 + 보름달 (성애·다이아몬드 더스트)',
+          desc: '맑은 한파 밤하늘과 보름달 아래 Canvas 빙정 다이아몬드 더스트, 모서리 성애 결정이 함께 반짝입니다.',
+          badge: 'NIGHT COLD · MOON',
+          place: '함양군 (지곡면)', temp: '-11.2°', cond: '맑음 · 한파경보 (야간)', hum: '상대습도 48% · 풍속 2.8 m/s',
+          road: '🟠 죽산천교(도)(결빙취약교량) -9.8°C · 살얼음 주의',
+          opts: { dayPhase: 'night', weather: 'clear', moonAgeDays: 14.8, iceRank: 2, coldWave: true }
+        }
+      ]
+    };
+
+    function todayKstIso() {
+      const kst = new Date(Date.now() + 9 * 3600000);
+      return kst.toISOString().slice(0, 10);
+    }
+
+    function parseWindFromHum(humStr, fallback) {
+      const m = String(humStr || '').match(/(\d+(?:\.\d+)?)\s*m\/s/i);
+      return m ? Number(m[1]) : fallback;
+    }
+
+    function syncSimulator() {
+      const hero = document.getElementById('simHero');
+      const scene = applyHeroScene(hero, {
+        dayPhase: state.dayPhase,
+        weather: state.weather,
+        moonAgeDays: state.moonAgeDays,
+        iceRank: state.iceRank,
+        coldWave: state.coldWave,
+        windSpeed: state.windMs,
+        typhoonInfo: {
+          no: state.tyNo || '제11호',
+          name: state.tyName || '힌남노',
+          pressureHpa: 945,
+          maxWindMs: 45
+        }
+      });
+
+      const sample = WEATHER_SAMPLE[state.weather];
+      document.getElementById('simTemp').textContent = state.coldWave
+        ? '-9.8°'
+        : state.iceRank >= 2 && (state.dayPhase === 'night' || state.dayPhase === 'dawn')
+          ? '-1.8°'
+          : (state.dayPhase === 'night' || state.dayPhase === 'dawn')
+            ? sample.tempNight
+            : sample.tempDay;
+
+      const extras = [];
+      if (state.weather === 'typhoon') extras.push(`${state.tyNo || '제11호'} ${state.tyName || '힌남노'}`);
+      if (state.coldWave) extras.push('한파');
+      if (state.iceRank >= 1) extras.push(scene.iceMeta.shortLabel);
+      document.getElementById('simCond').textContent = extras.length
+        ? `${sample.cond} (${extras.join(' · ')})`
+        : sample.cond;
+      document.getElementById('simHum').textContent = `${sample.hum} · 풍속 ${scene.windMs.toFixed(1)} m/s`;
+      document.getElementById('simRoad').textContent = state.iceRank >= 1 ? ROAD_BY_RANK[state.iceRank] : sample.road;
+
+      document.getElementById('lblDayPhase').textContent = scene.dayPhaseLabel;
+      document.getElementById('lblWeather').textContent = scene.weatherLabel;
+      document.getElementById('lblLunar').textContent = `${scene.lunar.phaseNameKo} (${scene.lunar.illuminationPct}%)`;
+      document.getElementById('moonReadout').textContent = `${scene.lunar.ageDays.toFixed(1)}일 · ${scene.lunar.illuminationPct}%`;
+      document.getElementById('lblHazard').textContent = `${scene.iceMeta.shortLabel}${state.coldWave ? ' + 한파' : ''}`;
+      document.getElementById('windSlider').value = String(Math.min(25, scene.windMs));
+      document.getElementById('windReadout').textContent = `${scene.windMs.toFixed(1)} m/s · ${scene.cloudDrift.durSec}s`;
+
+      document.getElementById('metaSceneSummary').textContent =
+        `${scene.dayPhaseLabel} · ${scene.weatherLabel} · ${scene.iceMeta.shortLabel}${state.coldWave ? ' · 한파' : ''}`;
+      document.getElementById('metaCelestialRule').textContent =
+        state.weather === 'typhoon'
+          ? `태풍 특보 배지(${scene.typhoonTitle}) · 구름 유영 ${scene.cloudDrift.durSec}s`
+          : `${scene.celestial.visibilityLabel} · 구름 유영 ${scene.cloudDrift.durSec}s`;
+
+      document.querySelectorAll('#dayPhaseChips .hp-chip').forEach(b => b.classList.toggle('is-active', b.dataset.dayphase === state.dayPhase));
+      document.querySelectorAll('#weatherChips .hp-chip').forEach(b => b.classList.toggle('is-active', b.dataset.weather === state.weather));
+      document.querySelectorAll('#iceRankChips .hp-chip').forEach(b => b.classList.toggle('is-active', Number(b.dataset.icerank) === state.iceRank));
+      document.getElementById('coldToggleBtn').classList.toggle('is-active', state.coldWave);
+      document.querySelectorAll('#moonPresetChips .hp-chip').forEach(b => {
+        b.classList.toggle('is-active', Math.abs(Number(b.dataset.age) - state.moonAgeDays) < 0.7);
+      });
+      document.getElementById('moonAgeSlider').value = String(state.moonAgeDays);
+      document.getElementById('tyNoInput').value = state.tyNo;
+      document.getElementById('tyNameInput').value = state.tyName;
+    }
+
+    function renderCatalog() {
+      for (const [containerId, items] of Object.entries(CATALOG)) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        for (const item of items) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'hp-item';
+          btn.innerHTML = `
+            <div class="hero">
+              <div class="horizon" aria-hidden="true"></div>
+              <div class="herodata">
+                <span class="eyebrow">LOCAL WEATHER &amp; ROAD BRIEFING</span>
+                <h1>${item.place}</h1>
+                <div class="heroNums">
+                  <strong>${item.temp}</strong>
+                  <div>
+                    <b>${item.cond}</b>
+                    <small>${item.hum}</small>
+                    <small class="hero-road-info">${item.road}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="hp-item-cap">
+              <div>
+                <div class="hp-item-title">${item.title}</div>
+                <div class="hp-item-desc">${item.desc}</div>
+              </div>
+              <span class="hp-item-badge">${item.badge}</span>
+            </div>
+          `;
+          const cardWind = parseWindFromHum(item.hum, WEATHER_SAMPLE[item.opts.weather]?.windMs ?? 2.0);
+          applyHeroScene(btn.querySelector('.hero'), {
+            ...item.opts,
+            windSpeed: cardWind,
+            typhoonInfo: item.opts.weather === 'typhoon'
+              ? { no: item.opts.tyNo || '제11호', name: item.opts.tyName || '힌남노', pressureHpa: 945, maxWindMs: 45 }
+              : null
+          });
+          btn.addEventListener('click', () => {
+            Object.assign(state, {
+              dayPhase: item.opts.dayPhase,
+              weather: item.opts.weather,
+              moonAgeDays: item.opts.moonAgeDays ?? state.moonAgeDays,
+              iceRank: item.opts.iceRank ?? 0,
+              coldWave: !!item.opts.coldWave,
+              windMs: cardWind,
+              tyNo: item.opts.tyNo || state.tyNo,
+              tyName: item.opts.tyName || state.tyName
+            });
+            syncSimulator();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+          container.appendChild(btn);
+        }
+      }
+    }
+
+    document.getElementById('dayPhaseChips').addEventListener('click', e => {
+      const btn = e.target.closest('[data-dayphase]');
+      if (!btn) return;
+      state.dayPhase = btn.dataset.dayphase;
+      syncSimulator();
+    });
+
+    document.getElementById('weatherChips').addEventListener('click', e => {
+      const btn = e.target.closest('[data-weather]');
+      if (!btn) return;
+      state.weather = btn.dataset.weather;
+      state.windMs = WEATHER_SAMPLE[state.weather]?.windMs ?? 2.0;
+      syncSimulator();
+    });
+
+    document.getElementById('windSlider').addEventListener('input', e => {
+      state.windMs = Number(e.target.value);
+      syncSimulator();
+    });
+
+    document.getElementById('iceRankChips').addEventListener('click', e => {
+      const btn = e.target.closest('[data-icerank]');
+      if (!btn) return;
+      state.iceRank = Number(btn.dataset.icerank);
+      syncSimulator();
+    });
+
+    document.getElementById('coldToggleBtn').addEventListener('click', () => {
+      state.coldWave = !state.coldWave;
+      syncSimulator();
+    });
+
+    document.getElementById('tyNoInput').addEventListener('input', e => {
+      state.tyNo = e.target.value.trim();
+      if (state.weather === 'typhoon') syncSimulator();
+    });
+    document.getElementById('tyNameInput').addEventListener('input', e => {
+      state.tyName = e.target.value.trim();
+      if (state.weather === 'typhoon') syncSimulator();
+    });
+
+    document.getElementById('moonPresetChips').addEventListener('click', e => {
+      const btn = e.target.closest('[data-age]');
+      if (!btn) return;
+      state.moonAgeDays = Number(btn.dataset.age);
+      syncSimulator();
+    });
+
+    document.getElementById('moonAgeSlider').addEventListener('input', e => {
+      state.moonAgeDays = Number(e.target.value);
+      syncSimulator();
+    });
+
+    const dateInput = document.getElementById('lunarDateInput');
+    dateInput.value = todayKstIso();
+    dateInput.addEventListener('change', () => {
+      if (!dateInput.value) return;
+      const lunar = getLunarInfo(new Date(`${dateInput.value}T22:00:00+09:00`));
+      state.moonAgeDays = lunar.ageDays;
+      syncSimulator();
+    });
+
+    document.getElementById('btnTodayLunar').addEventListener('click', () => {
+      dateInput.value = todayKstIso();
+      const lunar = getLunarInfo(new Date());
+      state.moonAgeDays = lunar.ageDays;
+      syncSimulator();
+    });
+
+    const darkBtn = document.getElementById('darkToggle');
+    darkBtn.addEventListener('click', () => {
+      const on = document.body.classList.toggle('dark-mode');
+      darkBtn.textContent = on ? '☀️ 라이트' : '🌙 다크모드';
+    });
+
+    renderCatalog();
+    syncSimulator();
+  </script>
+</body>
+</html>
