@@ -5,6 +5,13 @@ function cameraId(camera) {
   return String(camera.id || [camera.name, camera.y, camera.x].join('|'));
 }
 
+function cameraTitle(camera) {
+  // The 광주대구선 야로대교1 video overlay identifies the camera at 144.4 km.
+  const label = camera.name.trim();
+  if (/^(?:\[광주대구선\]\s*)?야로대교1$/.test(label)) return label + ' · 144.4k';
+  return label;
+}
+
 export function mountCctv(root, query) {
   const request = new AbortController();
   const title = document.createElement('h2');
@@ -17,7 +24,7 @@ export function mountCctv(root, query) {
   const link = document.createElement('a');
   link.target = '_blank';
   link.rel = 'noopener';
-  link.textContent = '선택한 CCTV 새 창에서 열기 ↗';
+  link.textContent = '새 창에서 보기 ↗';
   const retry = document.createElement('button');
   retry.textContent = '다시 불러오기';
   title.textContent = '노면 살얼음 CCTV';
@@ -44,7 +51,8 @@ export function mountCctv(root, query) {
     const url = new URL('cctv.html', location.href);
     url.searchParams.set('id', cameraId(camera));
     link.href = url.href;
-    status.textContent = camera.name;
+    status.textContent = '';
+    video.setAttribute('aria-label', cameraTitle(camera) + ' 영상');
     if (!/^https?:\/\//i.test(camera.url)) {
       status.textContent = '재생 가능한 영상 주소가 없습니다.';
       return;
@@ -90,7 +98,7 @@ export function mountCctv(root, query) {
       if (!cameras.length) throw new Error('이 위치에 연결된 CCTV가 없습니다.');
       if (!video.canPlayType('application/vnd.apple.mpegurl')) await import('./vendor/hls.min.js');
       if (request.signal.aborted) return;
-      select.replaceChildren(...cameras.map(c => new Option(c.name, cameraId(c))));
+      select.replaceChildren(...cameras.map(c => new Option(cameraTitle(c), cameraId(c))));
       select.selectedIndex = Math.max(0, cameras.findIndex(camera => cameraId(camera) === previousId));
       play();
     } catch (err) {

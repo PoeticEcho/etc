@@ -2647,17 +2647,46 @@ body.dark-mode .backend-pill.is-snapshot { background: #3b2a10; color: #fcd34d; 
 .map-choice-card a { display: inline-block; padding: 4px 0; text-underline-offset: 3px; }
 .minimap-box .map-node:focus-visible .mm-card-bg,
 .minimap-box .stn-dot:focus-visible .stn-marker-core { stroke: var(--accent); stroke-width: 3; }
-.cctv-player:not([hidden]) { display: flex; gap: 8px; padding: 12px; }
-.cctv-player h2 { font-size: 18px; }
-.cctv-player p { font-size: 13px; color: var(--muted); }
-.cctv-tools { flex-wrap: wrap; }
-.cctv-tools a { color: var(--ink); font-size: 13px; text-underline-offset: 3px; }
-.cctv-tools button { font-size: 13px; }
-.cctv-player { flex-direction: column; min-width: 0; }
+.cctv-player:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+#mapCctv { padding-top: 10px; }
 .cctv-player h2, .cctv-player p { margin: 0; }
-.cctv-player video { width: 100%; aspect-ratio: 16/9; border-radius: 10px; background: #071416; }
-.cctv-player select { width: 100%; }
-#standaloneCctv { max-width: 880px; margin: 16px auto; }
+.cctv-player h2 { font-size: 16px; }
+.cctv-player p { font-size: 13px; color: var(--muted); }
+.cctv-player p:empty { display: none; }
+.cctv-player select { width: 100%; min-height: 40px; }
+.cctv-player video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: auto 4 / 3;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #071416;
+}
+.cctv-tools { flex-wrap: wrap; }
+.cctv-tools :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+#standaloneCctv { max-width: 1100px; margin: 16px auto; }
+@media (max-width: 650px) {
+  #standaloneCctv { margin: 8px; padding: 12px; }
+}
 @media (max-width: 650px) { .detail-tools { position: static; margin-top: 10px; } }
 
 .overview-container.layout-fhd-split #mapCctv video { height: var(--split-radar-h, 390px); }
