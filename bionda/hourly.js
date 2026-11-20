@@ -12,7 +12,7 @@ import {
 } from './page-cache.js';
 
 const SETTINGS_KEY = 'weather-watch:settings:v2';
-const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v1';
+const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v2';
 const hourlyCacheScope = () => getApiBase() || '__same_origin__';
 const CORRIDOR_WATCH_POINTS = [
   { name: '대구 달성군남부', lat: 35.697, lon: 128.447 },
@@ -277,15 +277,15 @@ function renderKPIs(regionsWithSlices) {
     }
   }
 
-  $('kpiWetCount').innerHTML = `${wetRegions}<small> / 12곳</small>`;
+  $('kpiWetCount').innerHTML = `${wetRegions}<small> / ${regionsWithSlices.length}곳</small>`;
   $('kpiWetPill').textContent = wetRegions > 0 ? `최초 ${formatHm(earliestWet)}~` : '강수 없음';
 
-  $('kpiFreezingCount').innerHTML = `${freezingRegions}<small> / 12곳</small>`;
+  $('kpiFreezingCount').innerHTML = `${freezingRegions}<small> / ${regionsWithSlices.length}곳</small>`;
   $('kpiFreezingPill').textContent = freezingRegions > 0
     ? `최초 ${formatHm(earliestFreezing)}↓ · 최저 ${lowestTemp}°`
     : lowestTemp !== null ? `전 지역 영상 (최저 ${lowestTemp}°)` : '기온 확인';
 
-  $('kpiOverlapCount').innerHTML = `${overlapRegions}<small> / 12곳</small>`;
+  $('kpiOverlapCount').innerHTML = `${overlapRegions}<small> / ${regionsWithSlices.length}곳</small>`;
   const ovPill = $('kpiOverlapPill');
   ovPill.textContent = overlapRegions > 0 ? `최초 ${formatHm(earliestOverlap)} 겹침` : '동시 겹침 없음';
   ovPill.classList.toggle('has-hits', overlapRegions > 0);
@@ -303,13 +303,14 @@ function renderSheet() {
   renderKPIs(regionsWithSlices);
 
   if (!headerHours.length) {
-    sheet.innerHTML = '<div class="hr-loading">12개 지역 모두 예보 시간 데이터를 불러오지 못했습니다. 잠시 후 [새로고침]을 눌러 주세요.</div>';
+    sheet.innerHTML = '<div class="hr-loading">모든 지역에서 예보 시간 데이터를 불러오지 못했습니다. 잠시 후 [새로고침]을 눌러 주세요.</div>';
     return;
   }
 
   const colCount = headerHours.length;
   const minColPx = state.range === '6' ? 88 : state.range === '12' ? 66 : 56;
   sheet.style.setProperty('--hr-cols', String(colCount));
+  sheet.style.setProperty('--hr-rows', String(regions.length));
   sheet.style.setProperty('--hr-min-col', `${minColPx}px`);
 
   // Header Row
@@ -337,7 +338,7 @@ function renderSheet() {
   }
   html += '</div>';
 
-  // 12 Region Rows (모든 행이 headerHours와 동일한 colCount 열을 시간 키 매칭으로 유지 → 1곳 누락 시에도 격자 깨짐 없음)
+  // Region Rows (모든 행이 headerHours와 동일한 colCount 열을 시간 키 매칭으로 유지 → 1곳 누락 시에도 격자 깨짐 없음)
   for (let idx = 0; idx < regionsWithSlices.length; idx++) {
     const { region: r, cells, validCount, missingCount, sum } = regionsWithSlices[idx];
     const prevRegion = idx > 0 ? regionsWithSlices[idx - 1].region : null;
@@ -363,7 +364,7 @@ function renderSheet() {
     }
 
     html += `<div class="hr-datarow ${isGroupStart ? 'groupstart' : ''} ${allMissing ? 'is-missing-row' : ''}" tabindex="0" role="button" data-region-id="${esc(r.id)}" aria-label="${esc(r.county)} ${esc(r.name)} 1시간 상세예보 보기">`;
-    html += `<div class="hr-namecol"><span class="hr-groupbar" style="background:${esc(r.color)}"></span><div class="hr-geo"><div class="hr-geo-main">${esc(r.county)} ${esc(r.name)}</div><div class="hr-geo-sub">${esc(r.admin)} · ${state.sort === 'route' ? `노선 ${r.routeOrder}/12` : `${esc(r.group)}권역`}</div></div></div>`;
+    html += `<div class="hr-namecol"><span class="hr-groupbar" style="background:${esc(r.color)}"></span><div class="hr-geo"><div class="hr-geo-main">${esc(r.county)} ${esc(r.name)}</div><div class="hr-geo-sub">${esc(r.admin)} · ${state.sort === 'route' ? `노선 ${r.routeOrder}/${regions.length}` : `${esc(r.group)}권역`}</div></div></div>`;
     html += `<div class="hr-sumcol"><div class="hr-sum-top">${sumTopHtml}</div><div class="hr-sum-bot">${sumBotHtml}</div></div>`;
 
     for (let j = 0; j < headerHours.length; j++) {
@@ -425,7 +426,7 @@ function openRegionDetail(regionId) {
     ? `공유 지역: ${region.sharedGridRegions.join(', ')}`
     : '동일 격자 공유 없음 (독립 격자)';
 
-  $('dSubTag').textContent = `${region.admin} · ${region.group}권역 · 노선순 ${region.routeOrder}/12`;
+  $('dSubTag').textContent = `${region.admin} · ${region.group}권역 · 노선순 ${region.routeOrder}/${state.payload.regions.length}`;
   $('dTitle').textContent = `${region.county} ${region.name}`;
   $('dMeta').textContent = `기상청 DFS 격자 (${region.grid.nx}, ${region.grid.ny}) · ${sharedText} · 단기발표 ${formatMdHm(region.sources?.short) || '-'}`;
 
@@ -531,7 +532,9 @@ function updateSourceStatus() {
     if (apiBtnLabel) apiBtnLabel.textContent = 'API 연결됨';
   }
 
-  const uniqCount = p.uniqueGridCount || 11;
+  const uniqCount = p.uniqueGridCount ?? new Set(p.regions.filter(r => r.grid).map(r => r.grid.nx + ',' + r.grid.ny)).size;
+  $('regionCount').textContent = p.regions.length;
+  $('regionCoverage').textContent = `${new Set(p.regions.map(r => r.county)).size}개 시·군 · ${uniqCount}격자`;
   const stampText = `단기예보 ${shortStr} 발표(3h주기) · 초단기 ${ultraStr}(매시35분+) · 1회 통합 호출(${uniqCount}격자)`;
   stamp.textContent = stampText;
   if (footerStamp) {

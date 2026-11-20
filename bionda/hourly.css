@@ -1,4 +1,4 @@
-/* 12개 읍면동 1시간 단기예보 상황판 전용 스타일 (styles.css 라이트/다크 토큰과 완전 통합) */
+/* 관심 읍면동 1시간 단기예보 상황판 전용 스타일 (styles.css 라이트/다크 토큰과 완전 통합) */
 :root {
   --hr-label: 158px;
   --hr-sum: 146px;
@@ -873,7 +873,7 @@ body.dark-mode .hr-link-btn.is-primary {
 }
 .hr-api-actions button { flex: 1; padding: 8px 10px; }
 
-/* Desktop / FHD viewport fill optimization: adapt 12 rows to fill 100% height cleanly without empty bottom margin */
+/* Desktop / FHD viewport fill optimization: adapt forecast rows to fill 100% height cleanly without empty bottom margin */
 @media (min-width: 1100px) {
   .hourly-wrap { padding-top: 7px; padding-bottom: 34px; }
   .hr-subhead { margin-bottom: 6px; }
@@ -882,7 +882,7 @@ body.dark-mode .hr-link-btn.is-primary {
   .hr-toolbar { margin-bottom: 7px; padding: 5px 11px; }
   .hr-headrow { min-height: 38px; }
   .hr-datarow {
-    height: clamp(41px, calc((100dvh - 344px) / 12), 62px);
+    height: clamp(41px, calc((100dvh - 344px) / var(--hr-rows, 13)), 62px);
     min-height: 41px;
   }
   .hr-c1 {

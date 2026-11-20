@@ -4,18 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#103c3e">
-  <meta name="description" content="고령·합천·거창·함양·달성 12개 읍면동 기상청 1시간 단기예보를 한눈에 비교하고 강수 시작·영하 진입·동시 겹침 시각을 자동 요약하는 상황실 통합 모니터">
+  <meta name="description" content="고령·합천·거창·함양·달성 13개 읍면동 기상청 1시간 단기예보를 한눈에 비교하고 강수 시작·영하 진입·동시 겹침 시각을 자동 요약하는 상황실 통합 모니터">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="1시간 단기예보 (12개 지역) | 날씨봇 × 비온다?">
-  <meta property="og:description" content="고령·합천·거창·함양·달성 12개 읍면동 기상청 단기·초단기예보 비교 및 강수·영하·동시겹침 통합 상황판">
+  <meta property="og:title" content="1시간 단기예보 (13개 지역) | 날씨봇 × 비온다?">
+  <meta property="og:description" content="고령·합천·거창·함양·달성 13개 읍면동 기상청 단기·초단기예보 비교 및 강수·영하·동시겹침 통합 상황판">
   <meta property="og:image" content="https://bionda.pages.dev/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="1시간 단기예보 (12개 지역) | 날씨봇 × 비온다?">
-  <meta name="twitter:description" content="고령지사 관내·연계 12개 읍면동 기상청 1시간 단기예보 비교 상황판">
+  <meta name="twitter:title" content="1시간 단기예보 (13개 지역) | 날씨봇 × 비온다?">
+  <meta name="twitter:description" content="고령지사 관내·연계 13개 읍면동 기상청 1시간 단기예보 비교 상황판">
   <meta name="twitter:image" content="https://bionda.pages.dev/og-image.jpg">
-  <title>1시간 단기예보 (12개 지역) | 날씨봇 × 비온다?</title>
+  <title>1시간 단기예보 (13개 지역) | 날씨봇 × 비온다?</title>
   <link rel="stylesheet" href="./styles.css">
   <link rel="stylesheet" href="./hourly.css">
   <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png">
@@ -28,18 +28,18 @@
     <div class="wrap bar">
       <a class="brandhome" href="./index.html" aria-label="날씨봇 도로기상 상황판 홈">
         <b class="brand"><img src="./favicon.png" alt="날씨봇" class="brand-favicon"> 날씨봇</b>
-        <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 고령지사 관내 · 연계 12개 읍면동 1시간 단기예보</span>
+        <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 고령지사 관내 · 연계 13개 읍면동 1시간 단기예보</span>
       </a>
       <nav class="page-tabs" aria-label="대시보드 메뉴 전환">
         <a class="page-tab" href="./index.html">
           <span class="pt-ico">🛣️</span><span class="pt-txt">도로기상 상황판</span>
         </a>
         <a class="page-tab is-active" href="./hourly.html" aria-current="page">
-          <span class="pt-ico">🕒</span><span class="pt-txt">1시간 단기예보</span><span class="pt-badge">12개소</span>
+          <span class="pt-ico">🕒</span><span class="pt-txt">1시간 단기예보</span><span class="pt-badge">13개소</span>
         </a>
       </nav>
       <div class="header-actions">
-        <button id="reloadHourlyBtn" type="button" class="hdr-btn" title="12개 지역 단기예보 새로고침">
+        <button id="reloadHourlyBtn" type="button" class="hdr-btn" title="13개 지역 단기예보 새로고침">
           <span class="icon-spin">↻</span> <span class="hdr-lbl-pc">새로고침</span>
         </button>
         <button id="themeToggleBtn" type="button" class="hdr-btn" title="다크/라이트 화면 전환 (상황판과 연동)">
@@ -68,9 +68,9 @@
       <article class="hr-metric">
         <div class="hr-metric-copy">
           <div class="hr-mk">모니터링 대상</div>
-          <div class="hr-mn">12 <small>/ 12곳</small></div>
+          <div class="hr-mn"><span id="regionCount">—</span> <small>/ 13곳</small></div>
         </div>
-        <span class="hr-mpill">5개 시·군 12개소(11격자)</span>
+        <span class="hr-mpill" id="regionCoverage">5개 시·군</span>
       </article>
       <article id="kpiWetCard" class="hr-metric hr-metric-btn" data-kpi-flash="wet" role="button" tabindex="0" title="클릭하면 강수 예상 시간 셀을 강조해 반짝입니다">
         <div class="hr-metric-copy">
@@ -130,7 +130,7 @@
     </div>
 
     <!-- Main Matrix Table -->
-    <section class="hr-sheet" aria-label="12개 지역 1시간 단기예보 매트릭스">
+    <section class="hr-sheet" aria-label="13개 지역 1시간 단기예보 매트릭스">
       <div class="hr-scroll">
         <div class="hr-scroller" id="sheet">
           <div class="hr-loading">기상청 단기예보 12개 격자 데이터를 불러오는 중입니다…</div>
