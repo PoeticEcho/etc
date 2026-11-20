@@ -1,3 +1,5 @@
+import { fetchCctvDirectory } from './cctv-request.js';
+
 /* ═══════════════════════════════════════════════════════════
    19개 지점 정의 (lib/cctv-its.js 의 CCTV_SITES와 동일)
    ═══════════════════════════════════════════════════════════ */
@@ -262,7 +264,10 @@ async function loadData(options) {
 
   try {
     const url = apiUrl(!!opts.refresh);
-    const res = await fetch(url, { cache: 'no-store', headers: { Accept: 'application/json' } });
+    const res = await fetchCctvDirectory(url, {
+      cache: 'no-store',
+      onRetry: state.cctvs.length ? undefined : () => setStatus('loading', 'CCTV 목록 응답이 늦어 다시 연결하고 있습니다…')
+    });
     const payload = await res.json().catch(() => null);
 
     if (!res.ok || !payload || payload.ok === false) {
@@ -284,7 +289,7 @@ async function loadData(options) {
     setStatus(
       'ok',
       `CCTV <b>${list.length}</b>개 불러옴 · 19개 지점 매핑 완료` + (unmatched ? ` · 이름 미확인 ${unmatched}개` : ''),
-      `${fmtTime(state.fetchedAt)} · ${state.cache}`
+      `${fmtTime(state.fetchedAt)} · ${state.cache === 'STALE' ? '갱신 지연 · 최근 수신 목록' : state.cache}`
     );
     if (!opts.silent) toast(opts.refresh ? '캐시를 새로고침했어요.' : 'CCTV 목록을 불러왔어요.');
     return list;

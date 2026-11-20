@@ -1,3 +1,4 @@
+import { fetchCctvDirectory } from './cctv-request.js';
 import { apiUrl } from './config.js';
 import { ROUTE12_PLACE_KM } from './route12.js';
 import { cameraDirectory, cameraId } from './cctv-order.js';
@@ -31,6 +32,7 @@ export function mountCctv(root, query) {
   let hls;
   let entries = [];
   let selected = -1;
+  let listNotice = '';
 
   function stop() {
     hls?.destroy();
@@ -54,7 +56,7 @@ export function mountCctv(root, query) {
     const url = new URL('cctv.html', location.href);
     url.searchParams.set('id', cameraId(camera));
     link.href = url.href;
-    status.textContent = '';
+    status.textContent = listNotice;
     video.setAttribute('aria-label', summary.textContent + ' 영상');
     if (/hls|m3u8/i.test(camera.format + ' ' + camera.url) && !video.canPlayType('application/vnd.apple.mpegurl') && window.Hls?.isSupported()) {
       hls = new window.Hls();
@@ -71,32 +73,40 @@ export function mountCctv(root, query) {
   async function load(refresh) {
     const previous = entries[selected]?.camera;
     picker.open = false;
-    stop();
     retry.disabled = true;
-    picker.hidden = video.hidden = link.hidden = true;
+    if (!previous) picker.hidden = video.hidden = link.hidden = true;
     status.textContent = 'CCTV 목록을 불러오는 중…';
     try {
       const endpoint = apiUrl('/api/cctv');
-      const response = await fetch(endpoint + (refresh ? '?refresh=1' : ''), { signal: request.signal });
-      if (!response.ok) throw new Error('CCTV 목록 조회 실패 (HTTP ' + response.status + ')');
+      const response = await fetchCctvDirectory(endpoint + (refresh ? '?refresh=1' : ''), {
+        signal: request.signal,
+        cache: refresh ? 'no-store' : 'default',
+        onRetry: previous ? undefined : () => { status.textContent = 'CCTV 목록 응답이 늦어 다시 연결하고 있습니다…'; },
+      });
+      if (!response.ok) {
+        throw new Error(response.status >= 500
+          ? 'CCTV 목록 제공처에 연결할 수 없습니다. 잠시 후 새로고침해 주세요.'
+          : 'CCTV 목록 조회 실패 (HTTP ' + response.status + ')');
+      }
       const payload = await response.json();
-      entries = cameraDirectory(payload);
+      if (request.signal.aborted) return;
+      const nextEntries = cameraDirectory(payload);
       let initial;
       if (query.has('id')) {
-        const match = entries.find(e => cameraId(e.camera) === query.get('id')) || entries.find(e => e.record?.id === query.get('id'));
+        const match = nextEntries.find(e => cameraId(e.camera) === query.get('id')) || nextEntries.find(e => e.record?.id === query.get('id'));
         if (!match) throw new Error('요청한 CCTV를 찾을 수 없습니다.');
         initial = match.camera;
       } else if (query.has('site')) {
         const site = payload.sites?.find(s => s.id === query.get('site'));
         if (!site) throw new Error('요청한 지점을 찾을 수 없습니다.');
-        const available = new Set(entries.map(e => cameraId(e.camera)));
+        const available = new Set(nextEntries.map(e => cameraId(e.camera)));
         initial = [site.nearest, ...(site.aux || [])].flatMap(e => e?.items || []).find(c => available.has(cameraId(c)));
-        if (!initial) initial = entries.find(e => e.record?.name === site.nearest?.label)?.camera;
+        if (!initial) initial = nextEntries.find(e => e.record?.name === site.nearest?.label)?.camera;
         title.textContent = site.name + ' · 노면 살얼음 CCTV';
-        if (!initial && entries.length) {
+        if (!initial && nextEntries.length) {
           const siteKm = site.group === 'observatory' ? parseFloat(site.sub) : ROUTE12_PLACE_KM[site.name];
           if (Number.isFinite(siteKm)) {
-            const nearest = entries.reduce((best, e) => Math.abs(e.km - siteKm) < Math.abs(best.km - siteKm) ? e : best);
+            const nearest = nextEntries.reduce((best, e) => Math.abs(e.km - siteKm) < Math.abs(best.km - siteKm) ? e : best);
             initial = nearest.camera;
           }
           title.textContent = '노선 CCTV';
@@ -104,13 +114,17 @@ export function mountCctv(root, query) {
       } else if (query.has('lat') && query.has('lon')) {
         const lat = Number(query.get('lat')), lon = Number(query.get('lon'));
         const distance = c => (c.y - lat) ** 2 + ((c.x - lon) * Math.cos(lat * Math.PI / 180)) ** 2;
-        initial = entries.map(e => e.camera).filter(c => Number.isFinite(c.y) && Number.isFinite(c.x))
+        initial = nextEntries.map(e => e.camera).filter(c => Number.isFinite(c.y) && Number.isFinite(c.x))
           .sort((a, b) => distance(a) - distance(b))[0];
         title.textContent = '가까운 CCTV';
       }
-      if (!entries.length) throw new Error('연결된 CCTV가 없습니다.');
+      if (!nextEntries.length) throw new Error('연결된 CCTV가 없습니다.');
       if (!video.canPlayType('application/vnd.apple.mpegurl')) await import('./vendor/hls.min.js');
       if (request.signal.aborted) return;
+      entries = nextEntries;
+      listNotice = payload.cache === 'STALE'
+        ? '목록 갱신이 지연되어 ' + new Date(payload.fetchedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' }) + '에 받은 목록을 표시합니다.'
+        : '';
       const indexOf = c => c ? entries.findIndex(e => cameraId(e.camera) === cameraId(c)) : -1;
       selected = indexOf(previous);
       if (selected < 0) selected = indexOf(initial);
@@ -130,7 +144,10 @@ export function mountCctv(root, query) {
       }));
       play();
     } catch (err) {
-      if (!request.signal.aborted) status.textContent = err.message;
+      if (!request.signal.aborted) {
+        listNotice = previous ? '목록을 갱신하지 못해 현재 선택과 영상을 유지합니다.' : '';
+        status.textContent = listNotice || err.message;
+      }
     } finally {
       retry.disabled = false;
     }

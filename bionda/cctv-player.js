@@ -1,3 +1,4 @@
+import { fetchCctvDirectory } from './cctv-request.js';
 import { apiUrl } from './config.js';
 import { ROUTE12_PLACE_KM } from './route12.js';
 import { cameraDirectory, cameraId } from './cctv-order.js';
@@ -83,7 +84,11 @@ export function mountCctv(root, query, title) {
     status.textContent = 'CCTV 목록을 불러오는 중…';
     try {
       const endpoint = apiUrl('/api/cctv');
-      const response = await fetch(endpoint + (refresh ? '?refresh=1' : ''), { signal: request.signal });
+      const response = await fetchCctvDirectory(endpoint + (refresh ? '?refresh=1' : ''), {
+        signal: request.signal,
+        cache: refresh ? 'no-store' : 'default',
+        onRetry: previous ? undefined : () => { status.textContent = 'CCTV 목록 응답이 늦어 다시 연결하고 있습니다…'; },
+      });
       if (!response.ok) {
         throw new Error(response.status >= 500
           ? 'CCTV 목록 제공처에 연결할 수 없습니다. 잠시 후 새로고침해 주세요.'
