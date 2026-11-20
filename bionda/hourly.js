@@ -1,3 +1,5 @@
+import { renderForecastBriefing } from './share.js';
+import { openPngShare } from './share-dialog.js';
 import { apiUrl, getApiBase, setApiBase, DEFAULT_API_BASE } from './config.js';
 import { loadPointForecast, insertGayaRow } from './hourly-point.js';
 import { getKmaIconInfo, renderKmaIconSvg, renderWindArrowSvg } from './kma-icons.js';
@@ -804,6 +806,8 @@ function bindEvents() {
     applyDarkMode(!document.body.classList.contains('dark-mode'), true);
   });
 
+  $('shareHourly').onclick = () => openPngShare('13지역 시간별예보', () =>
+    renderForecastBriefing(state.payload, { edition: state.fromSnapshot ? '저장 자료 · 향후 12시간' : '향후 12시간 · 노선 서→동' }));
   $('reloadHourlyBtn').addEventListener('click', triggerSmartManualRefresh);
 
   document.querySelectorAll('[data-kpi-flash]').forEach(card => {

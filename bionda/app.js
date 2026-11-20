@@ -12,7 +12,8 @@ import {
   isSnowRelatedWarning,
   evaluateStandbyReturnDirective
 } from './ice.js';
-import { renderOverviewCanvas, renderDetailCanvas, canvasToJpgBlob } from './share.js';
+import { openPngShare } from './share-dialog.js';
+import { renderOverviewCanvas, renderDetailCanvas } from './share.js';
 import { apiUrl, getApiBase, setApiBase, probeBackend, isBackendAvailable, getBackendStatusSnapshot } from './config.js';
 import { applyHeroScene, buildHeroSceneInputFromRecord, clearHeroScene } from './hero-scenes.js';
 import {
@@ -2710,87 +2711,18 @@ function route() {
   }
 }
 
-// 1:1 정방형(1080x1080) JPG 공유 모달
-let currentShareBlob = null;
-let currentShareObjectUrl = null;
-let currentShareFilename = 'weather-briefing-1080x1080.jpg';
-
-async function openShareModal() {
-  const stampStr = updateUnifiedGlobalStamp();
-  const isDetail = !!detailPlace;
-  const canvas = isDetail
-    ? renderDetailCanvas(detailPlace, getEffectiveRecord(detailPlace), stampStr, summary)
-    : renderOverviewCanvas(
-        settings.sortRisk ? [...places].sort((a, b) => placeDangerScore(b) - placeDangerScore(a)) : places,
-        getEffectiveRecord,
-        stampStr,
-        summary
-      );
-
-  const blob = await canvasToJpgBlob(canvas, 0.92);
-  currentShareBlob = blob;
-  if (currentShareObjectUrl) {
-    try { URL.revokeObjectURL(currentShareObjectUrl); } catch {}
+function shareBriefing() {
+  const place = detailPlace;
+  const stamp = updateUnifiedGlobalStamp();
+  if (place) {
+    return openPngShare(place.name + ' 상세 브리핑', () =>
+      renderDetailCanvas(place, getEffectiveRecord(place), stamp, summary));
   }
-  const tag = isDetail ? detailPlace.name.replace(/\s+/g, '_') : '종합상황판_8개소';
-  currentShareFilename = `기상브리핑_${tag}_1080x1080.jpg`;
-
-  currentShareObjectUrl = URL.createObjectURL(blob);
-  $('sharePreviewImg').src = currentShareObjectUrl;
-  $('shareDialogTitle').textContent = isDetail
-    ? `📤 ${detailPlace.name} 상세 브리핑 (1080×1080 JPG)`
-    : `📤 관심지역 8개소 종합 브리핑 (1080×1080 JPG)`;
-  $('shareStatus').textContent = '※ 이 이미지는 서버 부하 없이 브라우저에서 즉시 생성됩니다.';
-  $('shareDialog').showModal();
+  const sorted = settings.sortRisk ? [...places].sort((a, b) => placeDangerScore(b) - placeDangerScore(a)) : places;
+  return openPngShare('관심지역 종합 브리핑', () => renderOverviewCanvas(sorted, getEffectiveRecord, stamp, summary));
 }
-
-$('shareBtn').onclick = openShareModal;
-$('detailShareBtn').onclick = openShareModal;
-$('closeShareDialog').onclick = () => $('shareDialog').close();
-
-$('downloadJpgBtn').onclick = () => {
-  if (!currentShareBlob) return;
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(currentShareBlob);
-  a.download = currentShareFilename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  $('shareStatus').textContent = `✅ ${currentShareFilename} 저장 완료 (1080×1080 정방형 JPG)`;
-};
-
-$('copyImageBtn').onclick = async () => {
-  if (!currentShareBlob) return;
-  try {
-    const imgBitmap = await createImageBitmap(currentShareBlob);
-    const c = document.createElement('canvas');
-    c.width = imgBitmap.width;
-    c.height = imgBitmap.height;
-    c.getContext('2d').drawImage(imgBitmap, 0, 0);
-    const pngBlob = await new Promise(r => c.toBlob(r, 'image/png'));
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
-    $('shareStatus').textContent = '✅ 클립보드에 1080×1080 브리핑 이미지가 복사되었습니다. 메신저에 붙여넣기(Ctrl+V) 하세요.';
-  } catch {
-    $('shareStatus').textContent = '이 브라우저에서는 클립보드 직접 복사가 제한됩니다. [JPG 파일 저장]을 이용해 주세요.';
-  }
-};
-
-$('nativeShareBtn').onclick = async () => {
-  if (!currentShareBlob) return;
-  const file = new File([currentShareBlob], currentShareFilename, { type: 'image/jpeg' });
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        title: '관심지역 기상·도로살얼음 브리핑',
-        text: '관심지역 실시간 기상·도로살얼음 정방형 브리핑 리포트입니다.',
-        files: [file]
-      });
-      $('shareStatus').textContent = '✅ 공유 완료';
-      return;
-    } catch {}
-  }
-  $('downloadJpgBtn').click();
-};
+$('shareBtn').onclick = shareBriefing;
+$('detailShareBtn').onclick = shareBriefing;
 
 // PC 레이아웃 모드 및 미니맵:Windy 분할 비율 적용 (상하=좌우폭% | 좌우FHD=상하영상높이px)
 function applyLayoutAndSplit() {

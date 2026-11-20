@@ -43,7 +43,7 @@
         <button id="reloadAll" type="button" class="hdr-btn" title="전체 기상자료 새로고침">
           <span class="icon-spin">↻</span> <span class="hdr-lbl-pc">새로고침</span>
         </button>
-        <button id="shareBtn" type="button" class="hdr-btn hdr-btn-share" title="1:1 정방형(1080×1080) 현황 브리핑 JPG 생성 및 공유">
+        <button id="shareBtn" type="button" class="hdr-btn hdr-btn-share" title="1:1 정방형(1080×1080) 현황 브리핑 PNG 생성 및 공유">
           📤 <span class="hdr-lbl-pc">현황공유</span><span class="hdr-lbl-mob">공유</span>
         </button>
         <button id="add" type="button" class="hdr-btn" title="관심지역 추가·삭제 관리">
@@ -202,7 +202,7 @@
         <a href="#overview" class="back-link"><span class="back-lbl-pc">← 전체 관심지역 모니터</span><span class="back-lbl-mob">← 상황판</span></a>
         <div class="detailnav-right">
           <select id="jump" aria-label="다른 관심지역 바로가기"></select>
-          <button type="button" id="detailShareBtn" class="hdr-btn hdr-btn-share" title="선택 지역 상세 현황 브리핑 JPG 생성 및 공유">📤 현황공유</button>
+          <button type="button" id="detailShareBtn" class="hdr-btn hdr-btn-share" title="선택 지역 상세 현황 브리핑 PNG 생성 및 공유">📤 현황공유</button>
         </div>
       </nav>
 
@@ -493,24 +493,6 @@
       <p id="formstatus" role="status"></p>
       <small>관심지역은 이 브라우저에 저장되며, API 인증키는 서버 환경변수에만 안전하게 보관됩니다.</small>
     </form>
-  </dialog>
-
-  <!-- 1:1 Square (1080x1080) JPG Share Preview Modal (Requirement 6) -->
-  <dialog id="shareDialog" class="share-dialog" aria-labelledby="shareDialogTitle">
-    <div class="head">
-      <h2 id="shareDialogTitle">📤 1:1 정방형(1080×1080) 브리핑 JPG 공유</h2>
-      <button type="button" id="closeShareDialog" aria-label="닫기">×</button>
-    </div>
-    <p id="shareSubtitle" class="share-sub">상황실 보고 및 메신저(카카오톡·문자·업무망) 공유용 고해상도 정방형 브리핑 이미지입니다.</p>
-    <div class="share-preview-box">
-      <img id="sharePreviewImg" alt="1080x1080 정방형 기상 브리핑 미리보기">
-    </div>
-    <div class="share-actions">
-      <button type="button" id="downloadJpgBtn" class="save">📥 JPG 파일 저장 (1080×1080)</button>
-      <button type="button" id="copyImageBtn" type="button">📋 클립보드 이미지 복사</button>
-      <button type="button" id="nativeShareBtn" type="button">📤 기기 공유 (메신저 전송)</button>
-    </div>
-    <p id="shareStatus" class="share-status" role="status"></p>
   </dialog>
 
   <script type="module" src="./app.js"></script>

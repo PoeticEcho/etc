@@ -2353,28 +2353,26 @@ dialog {
   color: var(--ink);
 }
 dialog::backdrop { background: rgba(10, 32, 34, 0.62); }
-.share-dialog { width: min(620px, 95vw); }
-.share-sub { font-size: 12px; color: var(--muted); margin: 6px 0 10px; }
-.share-preview-box {
-  background: #102a2c;
-  border-radius: 12px;
-  padding: 8px;
-  text-align: center;
+
+.png-share {
+  width: min(560px, calc(100vw - 20px));
+  max-height: calc(100dvh - 20px);
+  padding: 12px; margin: auto; color: var(--ink); background: var(--card-bg);
 }
-.share-preview-box img {
-  max-width: 100%;
-  max-height: 52dvh;
-  border-radius: 8px;
-  display: inline-block;
-}
-.share-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-.share-actions button { flex: 1; padding: 8px 12px; }
-.share-status { font-size: 12px; color: #1b6e53; font-weight: 700; min-height: 18px; margin-top: 6px; }
+.png-share[open] { display: grid; grid-template-rows: auto minmax(0,1fr) auto auto; gap: 7px; }
+.png-share header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.png-share h2 { font-size: 16px; margin: 0; }
+.png-share [data-close] { font-size: 20px; width: 36px; height: 36px; padding: 0; }
+.png-preview { min-height: 0; display: grid; place-items: center; overflow: hidden; background: var(--bg); border-radius: 8px; }
+.png-preview img { display: block; max-width: 100%; max-height: min(65dvh, 520px); object-fit: contain; min-height: 0; }
+.png-share p { font-size: 12px; margin: 0; color: var(--muted); }
+.png-actions { display: flex; gap: 6px; }
+.png-actions > * { flex: 1; text-align: center; min-height: 40px; font: inherit; font-size: 13px; font-weight: 700; }
+.png-actions a { display: grid; place-items: center; border-radius: var(--control-radius); background: var(--header-bg); color: #fff; text-decoration: none; }
+.png-actions a:not([href]) { opacity: .5; }
+.png-share [hidden] { display: none; }
+@media (max-height: 480px) { .png-preview img { max-height: calc(100dvh - 160px); } }
+
 
 .dialog-preset-bar {
   display: flex;

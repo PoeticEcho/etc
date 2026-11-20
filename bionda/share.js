@@ -596,3 +596,85 @@ export function renderDetailCanvas(place, rec, stampStr, summaryFn) {
 export async function canvasToJpgBlob(canvas, quality = 0.92) {
   return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
 }
+
+function kstStamp(value) {
+  const date = new Date(value);
+  if (!value || !Number.isFinite(date.getTime())) return '미수신';
+  return new Date(date.getTime() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
+}
+
+// A fixed 12-hour window keeps all thirteen places legible in a single messenger image.
+export function renderForecastBriefing(payload, { overview, title = '기상청 시간별예보', edition = '' } = {}) {
+  const rows = [...(payload?.regions || [])].sort((a, b) => a.routeOrder - b.routeOrder);
+  const times = [...new Set(rows.flatMap(r => r.hours.map(h => h.time)))].sort().slice(0, 12);
+  if (!times.length) throw new Error('공유할 시간별예보를 수신하지 못했습니다.');
+  const width = 1160, margin = 28, labelWidth = 184, rowHeight = 53;
+  const cellWidth = (width - 2 * margin - labelWidth) / 12;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = 148 + rows.length * rowHeight + (overview ? 266 : 0) + 52;
+  const ctx = canvas.getContext('2d');
+  const text = (value, x, y, size, color, weight = 550, align = 'left') => {
+    ctx.font = `${weight} ${size}px ${FONT}`;
+    ctx.fillStyle = color;
+    ctx.textAlign = align;
+    ctx.fillText(value, x, y);
+  };
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, canvas.height);
+  ctx.fillStyle = '#103c3e';
+  ctx.fillRect(0, 0, width, 92);
+  text(title, margin, 40, 31, '#ffffff', 800);
+  text(edition || '향후 12시간 · 노선 서→동', width - margin, 38, 18, '#c7ed94', 700, 'right');
+  text('단기 ' + kstStamp(payload.sources?.shortBase) + '   ·   초단기 ' + kstStamp(payload.sources?.ultraBase) + '   KST', margin, 72, 18, '#d6e8e3');
+  let y = 92;
+  if (overview) {
+    text('관심지역 도로 현황', margin, y + 30, 22, '#143e40', 800);
+    text('조회 ' + kstStamp(overview.updatedAt) + ' KST', width - margin, y + 29, 16, '#466664', 550, 'right');
+    const entries = Object.values(overview.items);
+    const boxWidth = (width - 2 * margin - 12) / 2;
+    entries.forEach((r, i) => {
+      const x = margin + (i % 2) * (boxWidth + 12), top = y + 40 + Math.floor(i / 2) * 54;
+      fillRoundRect(ctx, x, top, boxWidth, 49, 7, '#edf4f1');
+      const obs = r.observation;
+      text(r.name, x + 11, top + 23, 19, '#163e3f', 750);
+      text('기온 ' + fmtNum(obs?.temp) + '°   노면 ' + fmtNum(obs?.roadTemp) + '°   ' + (obs?.surfaceState || '노면 미수신'),
+        x + boxWidth - 10, top + 23, 17, '#264e4f', 650, 'right');
+      const warning = (r.warnings || []).map(w => w.title || w.kind).filter(Boolean).join(' · ');
+      ctx.font = `550 15px ${FONT}`;
+      text(fitEllipsis(ctx, (obs?.time ? kstStamp(obs.time).slice(5) : '관측 미수신') + '   ' +
+        (warning || (r.warningsConfirmed ? '발효 특보 없음' : '특보 확인 전')), boxWidth - 20),
+        x + 11, top + 42, 15, warning ? '#963a2c' : '#476866');
+    });
+    y += 266;
+  }
+  text('13지역 시간별예보', margin, y + 33, 21, '#143e40', 800);
+  times.forEach((time, i) => {
+    const stamp = kstStamp(time), x = margin + labelWidth + (i + 0.5) * cellWidth;
+    text(stamp.slice(5, 10), x, y + 22, 13, '#476866', 500, 'center');
+    text(stamp.slice(11, 13) + '시', x, y + 44, 19, '#193e3c', 750, 'center');
+  });
+  y += 56;
+  for (const [index, region] of rows.entries()) {
+    ctx.fillStyle = index % 2 ? '#f2f6f4' : '#ffffff';
+    ctx.fillRect(margin, y, width - margin * 2, rowHeight);
+    ctx.fillStyle = region.color || '#42736b';
+    ctx.fillRect(margin, y + 7, 4, rowHeight - 14);
+    text(region.county + ' ' + region.name, margin + 11, y + 33, 20, '#163e3f', 700);
+    const byTime = new Map(region.hours.map(h => [h.time, h]));
+    times.forEach((time, i) => {
+      const h = byTime.get(time), left = margin + labelWidth + i * cellWidth, x = left + cellWidth / 2;
+      if (h?.wet || h?.temp < 0) {
+        ctx.fillStyle = h.wet && h.temp < 0 ? '#fce0dc' : h.wet ? '#deeff8' : '#e9f2f9';
+        ctx.fillRect(left + 1, y + 1, cellWidth - 2, rowHeight - 2);
+      }
+      text(h?.temp != null ? h.temp + '°' : '—', x, y + 24, 20, '#173f42', 750, 'center');
+      text(h ? (h.wet ? (h.type || '강수') : (h.skyLabel || '')) + (h.pop == null ? '' : ' ' + h.pop + '%') : '미수신',
+        x, y + 44, 13, '#476462', 550, 'center');
+    });
+    y += rowHeight;
+  }
+  text('날씨봇  ·  기상청 도로기상관측·단기예보', margin, y + 34, 16, '#476462');
+  text('bionda.pages.dev', width - margin, y + 34, 16, '#476462', 650, 'right');
+  return canvas;
+}
