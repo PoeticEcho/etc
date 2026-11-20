@@ -2,7 +2,7 @@
   "ok": true,
   "mode": "short-term-12",
   "updatedAt": "2026-11-18T20:27:40.622Z",
-  "uniqueGridCount": 11,
+  "uniqueGridCount": 12,
   "sources": {
     "shortBase": "2026-11-19T05:00:00+09:00",
     "ultraBase": "2026-11-19T04:30:00+09:00"
@@ -53,7 +53,7 @@
       "name": "쌍림면",
       "group": "고령",
       "color": "#4c84e8",
-      "routeOrder": 9,
+      "routeOrder": 10,
       "lat": 35.6768,
       "lon": 128.2441,
       "grid": {
@@ -1255,7 +1255,7 @@
       "name": "성산면",
       "group": "고령",
       "color": "#4c84e8",
-      "routeOrder": 11,
+      "routeOrder": 12,
       "lat": 35.7469,
       "lon": 128.3621,
       "grid": {
@@ -2457,7 +2457,7 @@
       "name": "대가야읍",
       "group": "고령",
       "color": "#4c84e8",
-      "routeOrder": 10,
+      "routeOrder": 11,
       "lat": 35.7305,
       "lon": 128.2679,
       "grid": {
@@ -3653,13 +3653,96 @@
       "sharedGridRegions": []
     },
     {
+      "id": "gaya",
+      "admin": "경남",
+      "county": "합천군",
+      "name": "가야면",
+      "group": "합천",
+      "color": "#9c6ade",
+      "routeOrder": 8,
+      "lat": 35.762683,
+      "lon": 128.139463,
+      "grid": {
+        "nx": 81,
+        "ny": 88
+      },
+      "sources": {
+        "short": null,
+        "ultra": null
+      },
+      "hours": [],
+      "summaries": {
+        "h6": {
+          "hoursCount": 0,
+          "wetHours": 0,
+          "firstWetTime": null,
+          "freezingHours": 0,
+          "firstFreezingTime": null,
+          "overlapHours": 0,
+          "firstOverlapTime": null,
+          "minTemp": null,
+          "maxTemp": null,
+          "maxPop": 0,
+          "totalRainMm": 0,
+          "maxSnowCm": 0,
+          "maxWind": 0
+        },
+        "h12": {
+          "hoursCount": 0,
+          "wetHours": 0,
+          "firstWetTime": null,
+          "freezingHours": 0,
+          "firstFreezingTime": null,
+          "overlapHours": 0,
+          "firstOverlapTime": null,
+          "minTemp": null,
+          "maxTemp": null,
+          "maxPop": 0,
+          "totalRainMm": 0,
+          "maxSnowCm": 0,
+          "maxWind": 0
+        },
+        "h24": {
+          "hoursCount": 0,
+          "wetHours": 0,
+          "firstWetTime": null,
+          "freezingHours": 0,
+          "firstFreezingTime": null,
+          "overlapHours": 0,
+          "firstOverlapTime": null,
+          "minTemp": null,
+          "maxTemp": null,
+          "maxPop": 0,
+          "totalRainMm": 0,
+          "maxSnowCm": 0,
+          "maxWind": 0
+        },
+        "tomorrow": {
+          "hoursCount": 0,
+          "wetHours": 0,
+          "firstWetTime": null,
+          "freezingHours": 0,
+          "firstFreezingTime": null,
+          "overlapHours": 0,
+          "firstOverlapTime": null,
+          "minTemp": null,
+          "maxTemp": null,
+          "maxPop": 0,
+          "totalRainMm": 0,
+          "maxSnowCm": 0,
+          "maxWind": 0
+        }
+      },
+      "sharedGridRegions": []
+    },
+    {
       "id": "yaro",
       "admin": "경남",
       "county": "합천군",
       "name": "야로면",
       "group": "합천",
       "color": "#9c6ade",
-      "routeOrder": 8,
+      "routeOrder": 9,
       "lat": 35.7022,
       "lon": 128.1699,
       "grid": {
@@ -13279,7 +13362,7 @@
       "name": "옥포읍",
       "group": "달성",
       "color": "#c47b50",
-      "routeOrder": 12,
+      "routeOrder": 13,
       "lat": 35.7866,
       "lon": 128.466,
       "grid": {

@@ -1,4 +1,5 @@
 import { apiUrl, getApiBase, setApiBase, DEFAULT_API_BASE } from './config.js';
+import { loadPointForecast, insertGayaRow } from './hourly-point.js';
 import { getKmaIconInfo, renderKmaIconSvg, renderWindArrowSvg } from './kma-icons.js';
 import {
   readPageCache,
@@ -430,6 +431,7 @@ function openRegionDetail(regionId) {
   $('dTitle').textContent = `${region.county} ${region.name}`;
   $('dMeta').textContent = `기상청 DFS 격자 (${region.grid.nx}, ${region.grid.ny}) · ${sharedText} · 단기발표 ${formatMdHm(region.sources?.short) || '-'}`;
 
+  $('dSummaryBoxes').hidden = !hours.length;
   $('dSummaryBoxes').innerHTML = `
     <div class="hr-mbox"><span>최대 강수확률</span><strong>${sum.maxPop}%</strong></div>
     <div class="hr-mbox"><span>예상 기온 범위</span><strong>${sum.minTemp ?? '-'} ~ ${sum.maxTemp ?? '-'}°C</strong></div>
@@ -647,6 +649,23 @@ export function isUltraUpdateDue(sources = {}, nowMs = Date.now()) {
   return (nowMs - ultraMs) >= 66 * 60000;
 }
 
+async function loadHourlySnapshot() {
+  const response = await fetch('./api/short-term-12.json?roster=13', { signal: AbortSignal.timeout(8000) });
+  if (!response.ok) throw new Error('단기예보 스냅샷 조회 실패');
+  return response.json();
+}
+
+// A user-configured API can bypass the Pages gateway and still return the older roster.
+async function completeHourlyView(data, force) {
+  if (data.regions.some(r => r.id === 'gaya')) return data;
+  const roster = (await loadHourlySnapshot()).regions;
+  const point = await loadPointForecast(roster.find(r => r.id === 'gaya'),
+    new URL(apiUrl('/api/forecast'), location.href),
+    url => fetch(url, { signal: AbortSignal.timeout(10000) }), force);
+  const regions = insertGayaRow(data, roster, point, summarizeRegionSlice);
+  return { ok: true, updatedAt: data.updatedAt, sources: data.sources, regions };
+}
+
 async function fetchShortTerm12Data(optsOrForce = false) {
   if (hourlyFetchInFlight) return hourlyFetchInFlight;
   const opts = typeof optsOrForce === 'object' && optsOrForce !== null
@@ -663,19 +682,20 @@ async function fetchShortTerm12Data(optsOrForce = false) {
 
   hourlyFetchInFlight = (async () => {
     try {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ roster: '13' });
       if (force) params.set('force', '1');
       if (opts.refreshShort !== undefined) params.set('refreshShort', opts.refreshShort ? '1' : '0');
       if (opts.refreshUltra !== undefined) params.set('refreshUltra', opts.refreshUltra ? '1' : '0');
       const qs = params.toString();
-      const endpoint = apiUrl('/api/short-term-12' + (qs ? `?${qs}` : ''));
+      const endpoint = apiUrl('/api/short-term-12?' + qs);
       const r = await fetch(endpoint, {
         signal: AbortSignal.timeout(26000),
         ...(force ? { cache: 'no-store' } : {})
       });
       if (r.ok) {
-        const data = await r.json();
-        if (data?.ok && Array.isArray(data.regions)) {
+        const batch = await r.json();
+        if (batch?.ok && Array.isArray(batch.regions)) {
+          const data = await completeHourlyView(batch, force);
           clearTimeout(dwellRefreshTimer);
           dwellRefreshTimer = null;
           const nowMs = Date.now();
@@ -703,21 +723,18 @@ async function fetchShortTerm12Data(optsOrForce = false) {
 
     // Fallback to static snapshot JSON generated at build time
     try {
-      const r2 = await fetch('./api/short-term-12.json', { signal: AbortSignal.timeout(8000) });
-      if (r2.ok) {
-        const snap = await r2.json();
-        if (snap?.ok && Array.isArray(snap.regions)) {
-          state.payload = snap;
-          state.fromSnapshot = true;
-          state.fromCache = false;
-          state.isRevalidating = false;
-          state.lastLoadedAt = Date.now();
-          lastLoadedHourKst = cacheHourKey();
-          updateSourceStatus();
-          renderSheet();
-          if ($('detailDialog')?.open && state.selectedRegionId) openRegionDetail(state.selectedRegionId);
-          return;
-        }
+      const snap = await loadHourlySnapshot();
+      if (snap?.ok && Array.isArray(snap.regions)) {
+        state.payload = snap;
+        state.fromSnapshot = true;
+        state.fromCache = false;
+        state.isRevalidating = false;
+        state.lastLoadedAt = Date.now();
+        lastLoadedHourKst = cacheHourKey();
+        updateSourceStatus();
+        renderSheet();
+        if ($('detailDialog')?.open && state.selectedRegionId) openRegionDetail(state.selectedRegionId);
+        return;
       }
     } catch {}
 
@@ -882,7 +899,8 @@ function restoreHourlyCacheAndBoot() {
   const nowMs = Date.now();
   const hit = readPageCache(HOURLY_CACHE_KEY, { expectedScope: hourlyCacheScope(), nowMs });
   const cachedPayload = hit?.entry?.data;
-  const validPayload = Boolean(cachedPayload?.ok && !cachedPayload._fromSnapshot && Array.isArray(cachedPayload.regions));
+  const validPayload = Boolean(cachedPayload?.ok && !cachedPayload._fromSnapshot &&
+    cachedPayload.regions?.some(r => r.id === 'gaya' && r.hours?.length));
   const ultraDue = validPayload ? isUltraUpdateDue(cachedPayload.sources, nowMs) : false;
   const policy = evaluateCachePolicy({
     cacheHit: validPayload ? hit : null,
