@@ -21,7 +21,10 @@ export function mountCctv(root, query) {
   const retry = document.createElement('button');
   retry.textContent = '다시 불러오기';
   title.textContent = '노면 살얼음 CCTV';
-  root.replaceChildren(title, status, select, video, link, retry);
+  const actions = document.createElement('div');
+  actions.className = 'cctv-tools';
+  actions.append(link, retry);
+  root.replaceChildren(title, status, select, video, actions);
   let hls;
   let cameras = [];
 

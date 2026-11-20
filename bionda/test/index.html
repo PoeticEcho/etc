@@ -26,7 +26,7 @@
   <meta name="robots" content="noindex">
   <script src="./review-data.js"></script>
 </head>
-<body><aside style="padding:7px;text-align:center;background:#fff1bd;color:#3f3209;font:600 14px sans-serif">기능 시험용 · 대기 3°C / 노면 1°C / 습윤 · 기본 영상은 재생 시험용입니다. <label><input type="checkbox" id="liveCctvToggle"> 운영 CCTV 연결</label></aside>
+<body><aside class="review-notice"><strong>기능 시험용</strong><span>대기 3°C · 노면 1°C · 습윤</span><label><input type="checkbox" id="liveCctvToggle"> 운영 CCTV 연결</label></aside>
   <header class="top-header">
     <div class="wrap bar">
       <a class="brandhome" href="#overview" aria-label="날씨봇 관심지역 기상 모니터 홈">
@@ -105,16 +105,25 @@
                 <span><i class="dot-danger"></i>눈·호우·경고</span>
               </div>
             </div>
-            <div id="minimapContainer" class="minimap-box" role="region" aria-label="광주대구선 8개 관심지역 및 도로관측소 미니맵"></div>
-
-            <div id="mapChoices" class="map-choices" hidden>
-              <b id="mapChoicePlace"></b>
-              <button id="chooseWindy" type="button">윈디보기</button>
-              <button id="chooseCctv" type="button">📹 CCTV보기</button>
+            <div class="map-stage">
+              <div id="minimapContainer" class="minimap-box" role="region" aria-label="광주대구선 8개 관심지역 및 도로관측소 미니맵"></div>
+              <div id="mapChoices" class="map-choice-layer" hidden>
+                <section class="map-choice-card" role="dialog" aria-labelledby="mapChoicePlace">
+                  <header>
+                    <div><small id="mapChoiceType"></small><h3 id="mapChoicePlace"></h3></div>
+                    <button id="closeMapChoices" class="map-choice-close" type="button" aria-label="영상 선택 닫기">×</button>
+                  </header>
+                  <div class="map-choice-actions">
+                    <button id="chooseWindy" type="button"><span aria-hidden="true">🛰️</span> 윈디 보기</button>
+                    <button id="chooseCctv" type="button"><span aria-hidden="true">📹</span> CCTV 보기</button>
+                  </div>
+                  <a id="mapChoiceDetail">지역 상세 보기 →</a>
+                </section>
+              </div>
             </div>
             <div class="road-grid-header">
               <b>🛣️ 광주대구선(12호선) 도로기상관측소 노면온도(TR1) · 이정(km) · 012선 살얼음</b>
-              <small>남원(50k)~고령지사(80k~176k) 전 지점 · 클릭 시 영상 포커스</small>
+              <small>남원(50k)~고령지사(80k~176k) 전 지점 · 구간·관측소를 눌러 영상 선택</small>
             </div>
             <div id="corridorRiskSummary" class="corridor-risk-strip" aria-live="polite" hidden></div>
             <div id="roadStnStrip" class="road-stn-grid" aria-label="광주대구선 실시간 도로기상관측소 전체 목록"></div>
@@ -129,12 +138,12 @@
           <div id="visualPane" class="windy-panel card compact-card">
             <div class="head map-head">
               <div>
-                <span class="section-kicker">LIVE SATELLITE &amp; KMA RADAR</span>
-                <h2 id="visualPanelTitle">실시간 위성 · 강수 레이더 영상</h2>
+                <h2 id="visualPanelTitle">실시간 기상 · 도로 영상</h2>
               </div>
               <div class="visual-tabs" role="tablist">
-                <button type="button" id="tabWindy" class="vtab active" role="tab" aria-selected="true">🛰️ Windy 위성·레이더</button>
-                <button type="button" id="tabKmaRadar" class="vtab" role="tab" aria-selected="false">📡 기상청 HSR 레이더</button>
+                <button type="button" id="tabWindy" class="vtab active" role="tab" aria-selected="true">🛰️ 윈디</button>
+                <button type="button" id="tabKmaRadar" class="vtab" role="tab" aria-selected="false">📡 기상청 레이더</button>
+                <button type="button" id="tabCctv" class="vtab" role="tab" aria-selected="false" hidden>📹 CCTV</button>
               </div>
             </div>
 

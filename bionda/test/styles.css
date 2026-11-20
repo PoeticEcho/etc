@@ -1075,7 +1075,6 @@ body.dark-mode .quick-chip:hover {
   border: 1px solid rgba(94, 211, 193, 0.28);
   border-radius: 12px;
   padding: 0;
-  margin-top: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2583,13 +2582,98 @@ body.dark-mode .backend-pill { background: rgba(255, 255, 255, 0.08); color: #b9
 body.dark-mode .backend-pill.is-live { background: #164438; color: #86efac; }
 body.dark-mode .backend-pill.is-snapshot { background: #3b2a10; color: #fcd34d; }
 
-.map-choices:not([hidden]), .cctv-player:not([hidden]) { display: flex; gap: 8px; padding: 12px; }
-.map-choices { align-items: center; flex-wrap: wrap; }
+.map-stage {
+  position: relative;
+  margin-top: 8px;
+}
+.map-choice-layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(4, 22, 26, .62);
+  z-index: 3;
+}
+.map-choice-card {
+  width: min(294px, calc(100% - 16px));
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--card-bg);
+  box-shadow: 0 6px 24px rgba(4, 22, 26, .3);
+}
+.map-choice-card header, .cctv-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.map-choice-card small, .map-choice-card a {
+  color: var(--muted);
+  font-size: 12px;
+}
+.map-choice-card h3 { margin: 1px 0 0; font-size: 18px; }
+.map-choice-close {
+  align-self: flex-start;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  color: var(--muted);
+  background: var(--bg);
+  font-size: 21px;
+  line-height: 1;
+}
+.map-choice-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 9px 0 4px;
+}
+.map-choice-actions button {
+  min-height: 44px;
+  padding: 6px 4px;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--bg);
+  font-size: 14px;
+}
+.map-choice-actions button:is(:hover,:focus-visible) {
+  border-color: var(--teal);
+  background: var(--header-bg);
+  color: white;
+}
+.map-choice-card a { display: inline-block; padding: 4px 0; text-underline-offset: 3px; }
+.minimap-box .map-node:focus-visible .mm-card-bg,
+.minimap-box .stn-dot:focus-visible .stn-marker-core { stroke: var(--accent); stroke-width: 3; }
+.cctv-player:not([hidden]) { display: flex; gap: 8px; padding: 12px; }
+.cctv-player h2 { font-size: 18px; }
+.cctv-player p { font-size: 13px; color: var(--muted); }
+.cctv-tools { flex-wrap: wrap; }
+.cctv-tools a { color: var(--ink); font-size: 13px; text-underline-offset: 3px; }
+.cctv-tools button { font-size: 13px; }
 .cctv-player { flex-direction: column; min-width: 0; }
 .cctv-player h2, .cctv-player p { margin: 0; }
-.cctv-player video { width: 100%; aspect-ratio: 16/9; background: #071416; }
+.cctv-player video { width: 100%; aspect-ratio: 16/9; border-radius: 10px; background: #071416; }
 .cctv-player select { width: 100%; }
 #standaloneCctv { max-width: 880px; margin: 16px auto; }
 @media (max-width: 650px) { .detail-tools { position: static; margin-top: 10px; } }
 
 .overview-container.layout-fhd-split #mapCctv video { height: var(--split-radar-h, 390px); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .minimap-box svg .mm-pin-pulse { animation: none; }
+}
+
+.review-notice { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 12px; padding: 6px 10px; background: var(--card-bg); border-bottom: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+.review-notice strong { color: var(--ink); }
+.review-notice label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: var(--ink); }
+.review-notice input { display: inline-block; width: auto; margin: 0; accent-color: var(--teal); }
+
+@media (max-width: 480px) {
+  .minimap-box { min-height: 166px; }
+  .map-choice-card { padding: 9px 12px; }
+  .map-choice-actions { margin: 6px 0 2px; }
+}
