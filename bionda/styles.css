@@ -2759,3 +2759,6 @@ body.dark-mode .backend-pill.is-snapshot { background: #3b2a10; color: #fcd34d; 
   box-shadow: inset 3px 0 var(--action-text);
 }
 .camera-list button:focus-visible { outline-offset: -3px; }
+
+.bot-guide { margin: 8px 0; }
+.bot-guide a { color: var(--muted); text-underline-offset: 2px; }
