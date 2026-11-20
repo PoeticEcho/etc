@@ -16,6 +16,7 @@ function addHoursClock(clockStr, deltaHours) {
 }
 
 export function iceOutlook(current, history = [], forecast = [], obs = null, kmaHours = []) {
+  const rainCodes = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82];
   const previous = Array.isArray(history) ? history.slice() : [];
   const hadSnow24h = previous.some(x => Number.isFinite(x?.snow) && x.snow > 0) || (Number.isFinite(obs?.snowDepth) && obs.snowDepth > 0);
   const kmaByClock = new Map();
@@ -51,6 +52,7 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     const clock = (r.time || '').slice(11, 16);
     const night = clock >= '21:00' || clock <= '08:00';
     const deepNight = clock >= '23:00' || clock <= '07:00';
+    const isDawnWindow = clock >= '00:00' && clock <= '08:00';
     const validTemp = Number.isFinite(r.temp);
     const dewPoint = calcDewPoint(r.temp, r.humidity);
     const dewSpread = validTemp && Number.isFinite(dewPoint) ? Number((r.temp - dewPoint).toFixed(1)) : null;
@@ -58,12 +60,12 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     // 교량·응달 추정 노면온도 (실측 광학 노면온도가 있으면 현재 시각에 함께 반영)
     const estBridgeTemp = validTemp ? Number((r.temp - (night ? 3.0 : 1.5)).toFixed(1)) : null;
     const measuredRoadTemp = index === 0 ? (obs?.bridgeRoadTemp ?? obs?.roadTemp ?? null) : null;
-    const effectiveRoadTemp = Number.isFinite(measuredRoadTemp) && Number.isFinite(estBridgeTemp)
-      ? Math.min(measuredRoadTemp, estBridgeTemp)
-      : (measuredRoadTemp ?? estBridgeTemp);
+    const effectiveRoadTemp = measuredRoadTemp ?? estBridgeTemp;
 
     const recent = previous.filter(x => x && x.time < r.time).slice(-6);
+    const prevSampleTemp = recent.length ? recent[recent.length - 1]?.temp : null;
     const wet = (r.precip > 0) || (current?.precip > 0) || recent.some(x => x.precip > 0) || (index === 0 && (obs?.dayPrecip > 0 || (obs?.surfaceCode >= 2 && obs?.surfaceCode <= 6)));
+    const rainActive = (r.precip > 0) || Boolean(kmaMatch?.wet) || rainCodes.includes(r.code);
     const snowNow = (r.snow >= 0.1) || (r.snowPop >= 50) || (kmaMatch?.type?.includes('눈'));
     const fog = r.code === 45 || (index === 0 && Number.isFinite(obs?.visibility) && obs.visibility < 1000);
     const humid = Number.isFinite(r.humidity) && r.humidity >= 90;
@@ -74,23 +76,51 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     const dewFrostIce = validTemp && r.temp <= 0.0 && dewSpread !== null && dewSpread <= 1.5;
     const refreeze = hadSnow24h && validTemp && r.temp <= 0.5;
 
-    let level = '신호 없음', rank = 0, cause = '', shortCause = '';
+    // 예비살포 실무 기준:
+    // ① 대기온도 ≤ 4°C, 노면온도 ≤ 2°C, 비(강수)가 내리기 시작할 때
+    const last = recent.at(-1);
+    const rainStarting = rainActive && !snowNow && !(last?.precip > 0 || rainCodes.includes(last?.code));
+    const airForPresalt = index === 0 && Number.isFinite(obs?.temp) ? obs.temp : r.temp;
+    const presaltRainCold = Number.isFinite(airForPresalt) && airForPresalt <= 4 && Number.isFinite(effectiveRoadTemp) && effectiveRoadTemp <= 2.0 && rainStarting;
+    // ② 어는비: 새벽시간(00~08시) 영하에서 0°C 부근으로 온도 상승하며 강수/안개·결빙 예상
+    const dawnWarmingFromSubZero =
+      isDawnWindow &&
+      validTemp &&
+      r.temp <= 1.5 &&
+      r.temp >= -1.0 && Number.isFinite(prevSampleTemp) && prevSampleTemp < 0 && r.temp > prevSampleTemp;
+    const dawnFreezingRain = dawnWarmingFromSubZero && rainActive && !snowNow;
+
+    let level = '신호 없음', rank = 0, cause = '', shortCause = '', presaltReason = '';
     if (freezing) {
       rank = 2;
       cause = obs?.surfaceCode === 5 ? '도로기상관측 결빙 감지' : r.code === 48 ? '착빙성 안개 예보' : r.code >= 66 ? '어는 비 예보' : '어는 이슬비 예보';
       shortCause = '착빙·어는비';
+      presaltReason = '어는비·착빙 결빙 우려';
+    } else if (dawnFreezingRain) {
+      rank = 2;
+      cause = '새벽(00~08시) 영하→0°C 상승 어는비 결빙 예상';
+      shortCause = '새벽 어는비';
+      presaltReason = '어는비(00~08시 영하→0°C 상승) 결빙 예상';
+    } else if (presaltRainCold) {
+      rank = 2;
+      cause = `대기 ${airForPresalt.toFixed(1)}°C(≤4°C)·노면 ${effectiveRoadTemp.toFixed(1)}°C(≤2°C)·강우 시작 결빙 우려`;
+      shortCause = '저온·노면≤2°C·강우';
+      presaltReason = `대기 ≤4°C · 노면 ≤2°C · 강우 시작`;
     } else if (validTemp && r.temp <= cautionTempLimit && (wet || fog || snowNow)) {
       rank = 2;
       cause = snowNow ? '강설·영하권 교량 결빙 위험' : fog ? '야간·새벽 영하권 안개 결빙' : (night ? '강수 흔적 및 야간 교량 복사냉각 결빙' : '강수 흔적과 저온 결빙');
       shortCause = snowNow ? '강설·결빙' : night ? '야간 영하·강수' : `${r.temp.toFixed(1)}°C·강수`;
+      presaltReason = snowNow ? '강설 결빙 우려' : fog ? '안개 결빙 우려' : '저온·강수 결빙 우려';
     } else if (refreeze) {
       rank = 2;
       cause = '직전 강설·잔설 해빙 후 재결빙 주의';
       shortCause = '잔설 재결빙';
+      presaltReason = '잔설 재결빙 우려';
     } else if (dewFrostIce && Number.isFinite(r.humidity) && r.humidity >= 85) {
       rank = 2;
       cause = `영하권 이슬점 근접(T-Td ${dewSpread}°C) 노면 서리·블랙아이스 주의`;
       shortCause = '서리·블랙아이스';
+      presaltReason = '서리·블랙아이스 결빙 우려';
     } else if (cold && (wet || fog || humid || frostWatch || dewFrostIce || (Number.isFinite(effectiveRoadTemp) && effectiveRoadTemp <= 0.5 && r.humidity >= 75))) {
       rank = 1;
       cause = wet ? '최근 강수와 저온(교량 결빙 관심)' : fog ? '저온·안개' : dewFrostIce ? `이슬점 근접(T-Td ${dewSpread}°C) 서리 관심` : humid ? '저온·고습' : '야간 교량 복사냉각·고습';
@@ -102,8 +132,25 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     ));
     if (rank) level = rank === 2 ? '주의' : '관심';
     else if (missing) level = '자료 부족';
-    if (index > 0) previous.push(r);
-    return { ...r, level, rank, cause, shortCause, missing, dewPoint, dewSpread, estBridgeTemp, effectiveRoadTemp, snowNow };
+    previous.push(r);
+    return {
+      ...r,
+      level,
+      rank,
+      cause,
+      shortCause,
+      presaltReason,
+      presaltRainCold,
+      dawnFreezingRain,
+      rainActive,
+      wet,
+      missing,
+      dewPoint,
+      dewSpread,
+      estBridgeTemp,
+      effectiveRoadTemp,
+      snowNow
+    };
   });
 
   const peak = samples.reduce((a, b) => (b.rank > a.rank ? b : a), samples[0] || { rank: 0, level: '신호 없음' });
@@ -178,12 +225,13 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
         pcChip: '🚨 시동ON · 즉시',
         mobChip: '🚨 즉시'
       };
+      const urgentPresaltDetail = targetSample.presaltReason || '고속도로·교량 즉시 살포';
       presaltCard = {
         stageId: 'presalt',
         title: '예비살포',
         subtitle: '(습염 사전 살포)',
         status: presaltHrsLeft === 0 ? '즉시 출동' : `${presaltHrsLeft}h내(${presaltHr})`,
-        detail: '고속도로·교량 즉시 살포',
+        detail: urgentPresaltDetail,
         state: 'urgent',
         hoursLeft: presaltHrsLeft,
         pcChip: presaltHrsLeft === 0 ? '🚜 예비살포 · 즉시' : `🚜 예비살포 · ${presaltHrsLeft}h내(${presaltHr})`,
@@ -197,15 +245,16 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
       const presaltHrs = firstCriticalIdx - 2;
       const preheatHr = preheatClock.slice(0, 2) + '시';
       const presaltHr = presaltStart.slice(0, 2) + '시';
+      const critLabel = targetSample.presaltReason || '결빙·강설 예상';
       snowActions.push({
         stage: 'preheat',
         rank: 2,
-        text: `🔑 [제설차 시동·살포기 예열] ${preheatClock} 시동 권장 (살포기 유압 예열 → ${presaltStart} 예비살포 → ${targetClock} 결빙·강설 예상)`
+        text: `🔑 [제설차 시동·살포기 예열] ${preheatClock} 시동 권장 (살포기 유압 예열 → ${presaltStart} 예비살포 → ${targetClock} ${critLabel})`
       });
       snowActions.push({
         stage: 'presalt',
         rank: 2,
-        text: `🚜 [사전 제설(예비살포) 권장] ${presaltStart}~${presaltEnd} 이전 습염 사전 살포 출동 (${targetClock} 결빙·강설 예상)`
+        text: `🚜 [사전 제설(예비살포) 권장] ${presaltStart}~${presaltEnd} 이전 습염 사전 살포 출동 (${targetClock} ${critLabel})`
       });
       preheatCard = {
         stageId: 'preheat',
@@ -223,7 +272,7 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
         title: '예비살포',
         subtitle: '(습염 사전 살포)',
         status: `${presaltHrs}h내(${presaltStart}~${presaltEnd})`,
-        detail: '결빙 1~2시간 전 살포',
+        detail: targetSample.presaltReason ? `${targetSample.presaltReason} (1~2h 전)` : '결빙 1~2시간 전 살포',
         state: 'urgent',
         hoursLeft: presaltHrs,
         pcChip: `🚜 예비살포 · ${presaltHrs}h내(${presaltHr})`,
@@ -406,6 +455,13 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
         mobChip: null
       };
 
+  // 현재 노면 습윤 판정 (광학 노면센서 1=건조이면 강수 없을 시 건조 우선, 2~6=습윤/젖음/적설/결빙/슬러시)
+  const curSurfaceCode = obs?.surfaceCode;
+  const curRainNow = Boolean(samples[0]?.rainActive || (Number.isFinite(obs?.precip) && obs.precip > 0));
+  const curSurfaceWet = Number.isFinite(curSurfaceCode)
+    ? [2, 3, 6].includes(curSurfaceCode)
+    : curRainNow;
+
   return {
     level,
     rank: peak.rank,
@@ -414,13 +470,209 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     conditionMetrics,
     decisionCards: [preheatCard, presaltCard, mainPlowCard, floodWindCard],
     minTemp: minTempVal,
+    curTemp: Number.isFinite(curTemp) ? curTemp : null,
     dewPoint: curDew,
     bridgeTemp: curBridge,
+    curSurfaceWet,
+    curSurfaceState: obs?.surfaceState || (curSurfaceWet ? '습윤(추정)' : '건조(추정)'),
+    maxSnowHourly,
     reason: reason + (peak.rank && incomplete ? ' 일부 시간대 자료가 부족합니다.' : ''),
     samples,
     snowActions,
     flood,
     windAlert
+  };
+}
+
+function formatKstHhmm(ms) {
+  if (!Number.isFinite(ms)) return '--:--';
+  const d = new Date(ms + 9 * 3600000);
+  return String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0');
+}
+
+function formatElapsedKo(elapsedMin) {
+  const m = Math.max(0, Math.floor(elapsedMin));
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  if (h === 0) return `${rem}분`;
+  return rem === 0 ? `${h}시간` : `${h}시간 ${rem}분`;
+}
+
+/**
+ * 재살포 지시 카드 판정:
+ * - 세부페이지에서 예비살포/본살포 클릭 후 살포 시각을 입력한 경우에만 재살포 카드로 전환
+ * - 기준: 제설제 살포 후 3시간 경과 AND 노면 습윤(젖음) AND (대기온도 ≤ 4°C OR 노면온도 ≤ 4°C)
+ */
+export function evaluateResaltCard(baseCard, spreadAtMs, ctx = {}) {
+  if (!baseCard || !Number.isFinite(spreadAtMs)) return baseCard;
+  const nowMs = Number.isFinite(ctx.nowMs) ? ctx.nowMs : Date.now();
+  const stageLabel = ctx.stageLabel || (baseCard.stageId === 'mainplow' ? '본살포' : '예비살포');
+  const airTemp = Number.isFinite(ctx.airTemp) ? ctx.airTemp : null;
+  const roadTemp = Number.isFinite(ctx.roadTemp) ? ctx.roadTemp : null;
+  const surfaceWet = Boolean(ctx.surfaceWet);
+  const surfaceLabel = ctx.surfaceState || (surfaceWet ? '습윤' : '건조');
+
+  const elapsedMs = Math.max(0, nowMs - spreadAtMs);
+  const elapsedMin = Math.floor(elapsedMs / 60000);
+  const elapsedHours = elapsedMs / 3600000;
+  const spreadClock = formatKstHhmm(spreadAtMs);
+  const targetClock = formatKstHhmm(spreadAtMs + 3 * 3600000);
+  const elapsedText = formatElapsedKo(elapsedMin);
+
+  const airCold = airTemp !== null && airTemp <= 4.0;
+  const roadCold = roadTemp !== null && roadTemp <= 4.0;
+  const coldForResalt = airCold || roadCold;
+  const tempParts = [
+    airTemp !== null ? `대기 ${airTemp.toFixed(1)}°C` : '',
+    roadTemp !== null ? `노면 ${roadTemp.toFixed(1)}°C` : ''
+  ].filter(Boolean).join(' · ');
+
+  if (elapsedHours >= 3.0 && surfaceWet && coldForResalt) {
+    return {
+      ...baseCard,
+      isResalt: true,
+      resaltStage: 'triggered',
+      originStageId: baseCard.stageId,
+      spreadAtMs,
+      spreadClock,
+      elapsedMin,
+      title: '재살포 지시',
+      subtitle: `(${stageLabel} ${spreadClock} · ${elapsedText} 경과)`,
+      status: '재살포 필요',
+      detail: `3h 경과 · 노면 ${surfaceLabel} · ${tempParts || '≤4°C 기준 충족'}`,
+      state: 'urgent',
+      hoursLeft: 0,
+      pcChip: '🔁 재살포 · 즉시',
+      mobChip: '🔁 재살포',
+      guideBanner: `🔁 [재살포 지시] ${stageLabel}(${spreadClock}) 후 ${elapsedText} 경과 — 노면 ${surfaceLabel} 및 저온(${tempParts || '4°C 이하'}) 지속으로 재살포를 지시하세요.`
+    };
+  }
+
+  if (elapsedHours < 3.0) {
+    const remainMin = Math.max(1, 180 - elapsedMin);
+    const remainText = formatElapsedKo(remainMin);
+    return {
+      ...baseCard,
+      isResalt: true,
+      resaltStage: 'waiting',
+      originStageId: baseCard.stageId,
+      spreadAtMs,
+      spreadClock,
+      elapsedMin,
+      title: '재살포 대기',
+      subtitle: `(${stageLabel} ${spreadClock} · ${elapsedText} 경과)`,
+      status: `${remainText} 후 점검`,
+      detail: `3h 경과(${targetClock}) 시 노면 습윤·≤4°C 여부로 재살포 판정`,
+      state: 'watch',
+      hoursLeft: Math.ceil(remainMin / 60),
+      pcChip: null,
+      mobChip: null,
+      guideBanner: `⏱️ [재살포 추적 중] ${stageLabel} ${spreadClock} 완료(${elapsedText} 경과) — ${targetClock}(+3h) 기준 노면 습윤·4°C 이하 지속 시 재살포 지시로 자동 전환됩니다.`
+    };
+  }
+
+  const clearReason = !surfaceWet
+    ? `노면 ${surfaceLabel} (습윤 기준 미충족)`
+    : `${tempParts || '기온·노면 >4°C'} (≤4°C 기준 미충족)`;
+  return {
+    ...baseCard,
+    isResalt: true,
+    resaltStage: 'cleared',
+    originStageId: baseCard.stageId,
+    spreadAtMs,
+    spreadClock,
+    elapsedMin,
+    title: '재살포 관찰',
+    subtitle: `(${stageLabel} ${spreadClock} · ${elapsedText} 경과)`,
+    status: '조건 미충족',
+    detail: `3h 경과 · ${clearReason}`,
+    state: 'idle',
+    hoursLeft: null,
+    pcChip: null,
+    mobChip: null,
+    guideBanner: null
+  };
+}
+
+/**
+ * 제설 관련 기상특보(대설·폭설·한파·결빙) 여부 판별
+ */
+export function isSnowRelatedWarning(w) {
+  if (!w) return false;
+  const text = `${w.kind || ''} ${w.title || ''}`;
+  return /대설|폭설|한파|결빙/.test(text);
+}
+
+/**
+ * 제설 관련 특보 해제 시 대기 차량 복귀 지시 판정:
+ * 반드시 상단 제설 기준(예비살포·본살포·재살포·노면결빙·도로위험012)을 모두 확인한 뒤 복귀 가능 여부 판단.
+ */
+export function evaluateStandbyReturnDirective({
+  recentlyCleared = false,
+  clearedTitles = [],
+  hasActiveSnowWrn = false,
+  ice = null,
+  roadRisk = null,
+  resolvedCards = null
+} = {}) {
+  if (!recentlyCleared || hasActiveSnowWrn) return null;
+
+  const titlesText = (clearedTitles && clearedTitles.length ? clearedTitles.join('·') : '제설 관련 특보');
+  const blockingReasons = [];
+
+  if (!Number.isFinite(ice?.curTemp) || ice?.level === '판단 보류' || !Number.isFinite(roadRisk?.iceLevel)) {
+    blockingReasons.push('기상·도로위험 자료 확인 필요');
+  }
+
+  const cards = Array.isArray(resolvedCards) ? resolvedCards : (ice?.decisionCards || []);
+  const presaltCard = cards.find(c => c?.stageId === 'presalt' || c?.originStageId === 'presalt');
+  const mainPlowCard = cards.find(c => c?.stageId === 'mainplow' || c?.originStageId === 'mainplow');
+
+  // 1. 재살포 기준 확인 (지시 또는 3시간 추적 대기 중)
+  const resaltUrgent = cards.some(c => c?.isResalt && c?.resaltStage === 'triggered');
+  const resaltWaiting = cards.some(c => c?.isResalt && c?.resaltStage === 'waiting');
+  if (resaltUrgent) blockingReasons.push('재살포 지시 충족(3h 경과·습윤·≤4°C)');
+  else if (resaltWaiting) blockingReasons.push('살포 후 3시간 재살포 점검 대기 중');
+
+  // 2. 예비살포 기준 확인 (강설·강우·안개·서리·어는비·대기≤4°C/노면≤2°C)
+  if ((ice?.rank || 0) >= 2 || (!presaltCard?.isResalt && presaltCard?.state === 'urgent')) {
+    blockingReasons.push(`예비살포·결빙 주의 잔존(${ice?.shortCause || '결빙 우려'})`);
+  } else if ((ice?.rank || 0) === 1) {
+    blockingReasons.push('살얼음 관심 조건 잔존');
+  }
+
+  // 3. 본살포(강설) 기준 확인
+  if ((ice?.maxSnowHourly || 0) >= 1.0 || (!mainPlowCard?.isResalt && mainPlowCard?.state === 'urgent')) {
+    blockingReasons.push('강설·본살포 기준 잔존');
+  }
+
+  // 4. 기상청 012 도로위험정보 확인
+  if ((roadRisk?.iceLevel || 0) >= 1) {
+    blockingReasons.push(`도로살얼음 ${ROAD_RISK_LABELS[roadRisk.iceLevel] || '주의'}(${roadRisk.iceLevel}단계)`);
+  }
+
+  // 5. 노면 습윤 + 4°C 이하 잔여 결빙 위험 확인
+  const coldNow = (Number.isFinite(ice?.curTemp) && ice.curTemp <= 4.0) || (Number.isFinite(ice?.bridgeTemp) && ice.bridgeTemp <= 4.0);
+  if (ice?.curSurfaceWet && coldNow && !blockingReasons.some(r => r.includes('재살포') || r.includes('예비살포'))) {
+    blockingReasons.push('노면 습윤 및 ≤4°C 저온 지속');
+  }
+
+  if (blockingReasons.length === 0) {
+    return {
+      status: 'return_ok',
+      title: '대기 차량 복귀 지시',
+      badge: '복귀 가능',
+      text: `✅ [대기 차량 복귀 지시] ${titlesText} 해제 및 상단 제설 기준(예비·본·재살포·도로살얼음) 모두 해소 — 대기 차량 복귀 및 장비 점검·세척 지시 가능`,
+      blockingReasons: []
+    };
+  }
+
+  return {
+    status: 'return_hold',
+    title: '대기 차량 복귀 보류',
+    badge: '상단 기준 잔존',
+    text: `⏸️ [대기 차량 복귀 보류] ${titlesText} 해제되었으나 상단 기준 잔존 (${blockingReasons.join(' · ')}) — 조건 해소 확인 후 복귀 지시`,
+    blockingReasons
   };
 }
 

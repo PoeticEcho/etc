@@ -103,11 +103,25 @@
                 <span><i class="dot-danger"></i>눈·호우·경고</span>
               </div>
             </div>
-            <div id="minimapContainer" class="minimap-box" role="region" aria-label="광주대구선 8개 관심지역 및 도로관측소 미니맵"></div>
-
+            <div class="map-stage">
+              <div id="minimapContainer" class="minimap-box" role="region" aria-label="광주대구선 8개 관심지역 및 도로관측소 미니맵"></div>
+              <div id="mapChoices" class="map-choice-layer" hidden>
+                <section class="map-choice-card" role="dialog" aria-labelledby="mapChoicePlace">
+                  <header>
+                    <div><small id="mapChoiceType"></small><h3 id="mapChoicePlace"></h3></div>
+                    <button id="closeMapChoices" class="map-choice-close" type="button" aria-label="영상 선택 닫기">×</button>
+                  </header>
+                  <div class="map-choice-actions">
+                    <button id="chooseWindy" type="button"><span aria-hidden="true">🛰️</span> 윈디 보기</button>
+                    <button id="chooseCctv" type="button"><span aria-hidden="true">📹</span> CCTV 보기</button>
+                  </div>
+                  <a id="mapChoiceDetail">지역 상세 보기 →</a>
+                </section>
+              </div>
+            </div>
             <div class="road-grid-header">
               <b>🛣️ 광주대구선(12호선) 도로기상관측소 노면온도(TR1) · 이정(km) · 012선 살얼음</b>
-              <small>남원(50k)~고령지사(80k~176k) 전 지점 · 클릭 시 영상 포커스</small>
+              <small>남원(50k)~고령지사(80k~176k) 전 지점 · 구간·관측소를 눌러 영상 선택</small>
             </div>
             <div id="corridorRiskSummary" class="corridor-risk-strip" aria-live="polite" hidden></div>
             <div id="roadStnStrip" class="road-stn-grid" aria-label="광주대구선 실시간 도로기상관측소 전체 목록"></div>
@@ -122,15 +136,16 @@
           <div id="visualPane" class="windy-panel card compact-card">
             <div class="head map-head">
               <div>
-                <span class="section-kicker">LIVE SATELLITE &amp; KMA RADAR</span>
-                <h2 id="visualPanelTitle">실시간 위성 · 강수 레이더 영상</h2>
+                <h2 id="visualPanelTitle">실시간 기상 · 도로 영상</h2>
               </div>
               <div class="visual-tabs" role="tablist">
-                <button type="button" id="tabWindy" class="vtab active" role="tab" aria-selected="true">🛰️ Windy 위성·레이더</button>
-                <button type="button" id="tabKmaRadar" class="vtab" role="tab" aria-selected="false">📡 기상청 HSR 레이더</button>
+                <button type="button" id="tabWindy" class="vtab active" role="tab" aria-selected="true">🛰️ 윈디</button>
+                <button type="button" id="tabKmaRadar" class="vtab" role="tab" aria-selected="false">📡 기상청 레이더</button>
+                <button type="button" id="tabCctv" class="vtab" role="tab" aria-selected="false" hidden>📹 CCTV</button>
               </div>
             </div>
 
+            <section id="mapCctv" class="cctv-player" hidden></section>
             <div id="windyBox" class="visual-body">
               <div class="windy-controls">
                 <span class="wc-label">레이어:</span>
@@ -205,7 +220,8 @@
           </div>
           <small id="stamp">기준 시각 확인 중</small>
         </div>
-        <button id="refresh" type="button" title="선택 지역 자료 다시 조회">↻ 새로고침</button>
+        <div class="detail-tools"><button id="refresh" type="button" title="선택 지역 자료 다시 조회">↻ 새로고침</button>
+          <a id="nearbyCctv" target="_blank" rel="noopener">📹 인근 CCTV보기</a></div>
       </section>
 
       <div id="status" role="status"></div>
@@ -298,22 +314,24 @@
             <div id="iceTimes" aria-label="시간대별 살얼음 전망"></div>
             <p class="bridge-note">* 교량·응달·터널 출입구는 대기보다 2~4°C 낮아 야간 1.5°C(주간 0.5°C) 이하부터 즉각 결빙 위험</p>
 
-            <!-- 4 Structured Decision Command Cards (시동ON·예열 / 예비살포 / 본살포 / 수방·횡풍) -->
+            <!-- 4 Structured Decision Command Cards (시동ON·예열 / 예비살포→재살포 / 본살포→재살포 / 수방·횡풍) -->
             <div id="decisionHead" class="decision-head">
               <b>🚜 제설 · 수방 단계별 지시 카드</b>
-              <small>결빙·강설 3h전 예열 → 1~2h전 예비살포 → 본살포</small>
+              <small>예비·본살포 클릭 시 살포시각 입력 → 재살포 카드 전환</small>
             </div>
             <div id="decisionCardsGrid" class="decision-cards-grid" aria-live="polite"></div>
+            <div id="spreadTimeEditor" class="spread-editor" hidden></div>
             <div id="actionGuides" class="action-guides" aria-live="polite"></div>
 
             <a class="rwis" href="https://rwis.kma.go.kr/comis5/uis/gis/map-e-risk.do" target="_blank" rel="noopener">기상청 도로살얼음 위험지도 (RWIS) ↗</a>
             <details class="info-accordion">
-              <summary><span>도로관리청 판정 기준 (교량 복사냉각 · 잔설 재결빙 · 3단계 제설)</span><em class="acc-more">더보기 ▾</em></summary>
+              <summary><span>도로관리청 판정 기준 (예비·본·재살포 · 특보해제 복귀 기준)</span><em class="acc-more">더보기 ▾</em></summary>
               <div class="info-accordion-body">
                 <ul class="iceguide">
-                  <li><b>살얼음 주의</b>: 어는 비·착빙성 안개 예보, 강수·안개 시 야간(21~08시) 1.5°C 이하 / 주간 0.5°C 이하, 직전 24시간 강설·잔설 후 0.5°C 이하 재결빙, 영하권 이슬점 편차(T-Td) 1.5°C 이하 서리 착빙</li>
-                  <li><b>살얼음 관심</b>: 기온 4°C 이하 + 최근 6시간 강수·안개·습도 90% 이상 또는 야간 저온·고습·약풍</li>
-                  <li><b>3단계 제설 역산</b>: 결빙·강설 예상 3시간 전 <b>제설차 시동 ON(살포기 유압 예열)</b> → 1~2시간 전 <b>예비살포(습염)</b> → 강설 1cm/h 이상 시 <b>본살포</b> (-6°C 이하 염화칼슘 배합 상향)</li>
+                  <li><b>예비살포 기준</b>: 강설·강우·안개·서리 등으로 결빙 우려 시, <b>대기 ≤4°C · 노면 ≤2°C · 비 시작</b> 시, <b>어는비(새벽 00~08시 영하→0°C 상승)</b> 결빙 예상 시 (결빙 3h 전 예열 → 1~2h 전 예비살포)</li>
+                  <li><b>본살포 기준</b>: 강설 1.0cm/h 이상(누적 3cm 이상) 시 연속 제설 투입 (-6°C 이하 염화칼슘 CaCl₂ 배합 상향)</li>
+                  <li><b>재살포 기준</b>: 세부페이지에서 예비·본살포 시각 입력 후 <b>3시간 경과</b>에도 <b>노면 습윤(젖음)</b> 및 <b>대기 ≤4°C 또는 노면 ≤4°C</b> 시 재살포 지시</li>
+                  <li><b>대기 차량 복귀 지시</b>: 대설·한파 등 제설 관련 특보 해제 시 상단 기준(예비·본·재살포·노면결빙) 모두 해소된 경우에 한해 복귀 지시</li>
                   <li><b>도로 수방 경보</b>: 시간당 10mm 이상 배수로 점검, 30mm 이상(누적 80mm) 지하차도·사면 주의, 50mm 이상(누적 120mm) 긴급 통제 검토</li>
                 </ul>
               </div>

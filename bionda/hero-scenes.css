@@ -31,7 +31,7 @@
   text-shadow: 0 1px 10px rgba(4, 14, 22, 0.34);
 }
 
-.hero.has-dynamic-scene #refresh {
+.hero.has-dynamic-scene .detail-tools {
   z-index: 4;
 }
 
@@ -427,7 +427,7 @@
     font-size: 11px;
     line-height: 1.35;
   }
-  .hero.has-dynamic-scene #refresh {
+  .hero.has-dynamic-scene .detail-tools {
     right: 12px;
     top: 12px;
     padding: 5px 9px;

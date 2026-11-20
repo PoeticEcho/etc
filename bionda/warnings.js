@@ -383,7 +383,7 @@ export async function fetchBatchWarnings(placesList = []) {
         if (data?.items) {
           for (const p of targetPlaces) {
             const entry = data.items[p.key];
-            resultsByKey.set(p.key, buildWarningsFromApi(entry?.warnings || []));
+            resultsByKey.set(p.key, { ...buildWarningsFromApi(entry?.warnings || []), confirmed: data.warningsConfirmed === true && Array.isArray(entry?.warnings) });
           }
           loadedPrimary = true;
           return { ok: true, stale: Boolean(data.stale), resultsByKey };

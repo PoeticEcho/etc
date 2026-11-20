@@ -239,6 +239,7 @@ function extractCctvs(payload) {
   }
   if (!Array.isArray(raw)) return [];
   return raw.map((item) => ({
+    id: item.id || item.cctvid || item.cctvId,
     name: String(item.name || item.cctvname || item.cctvName || '').trim(),
     url: item.url || item.cctvurl || item.cctvUrl || '',
     format: item.format || item.cctvformat || item.cctvFormat || 'HLS',
@@ -477,6 +478,9 @@ function renderStage() {
     `<b>${esc(item.format || 'HLS')}</b>` +
     (item.x != null && item.y != null ? ` · ${esc(item.y)}, ${esc(item.x)}` : '') +
     ` · <span class="mono">${esc(playUrl)}</span>`;
+  const pageLink = $('cameraPageLink');
+  pageLink.href = './cctv.html?' + new URLSearchParams({ id: item.id || [item.name, item.y, item.x].join('|') });
+  pageLink.hidden = false;
   el.openTabBtn.disabled = false;
 }
 
@@ -494,6 +498,7 @@ function renderEmpty(label) {
     suggestions
   });
   el.metaLine.textContent = '매칭 실패 · ' + label;
+  $('cameraPageLink').hidden = true;
   el.openTabBtn.disabled = true;
 }
 
