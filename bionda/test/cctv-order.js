@@ -1,5 +1,5 @@
 import { corridorCatalog } from './cctv-catalog.js';
-import { ROUTE12_POLYLINE_KM, ROUTE12_PLACE_KM } from './route12.js';
+import { ROUTE12_POLYLINE_KM } from './route12.js';
 
 export function cameraId(camera) {
   return String(camera.id ?? [camera.name, camera.y, camera.x].join('|'));
@@ -32,65 +32,35 @@ function cameraName(name) {
   return name.replace(/\s+/g, '').replace(/\((?:광주|대구|상행|하행)(?:방향)?\)$/, '');
 }
 
-function catalogPosition(record) {
-  return (record.basis === '산출' ? '산출 약 ' : '시설 ') + record.km.toFixed(2) + 'k';
-}
+const byId = new Map(corridorCatalog.map(row => [row.id, row]));
+const byName = new Map(corridorCatalog.map(row => [cameraName(row.name), row]));
+byName.set('가조터널', byName.get('가조터널(외부대구)'));
 
 export function cameraDirectory(payload) {
-  const references = new Map();
   const labels = new Set();
   for (const site of payload.sites || []) {
-    const siteKm = site.group === 'observatory' && /^\d+(\.\d+)?k$/i.test(site.sub)
-      ? parseFloat(site.sub) : ROUTE12_PLACE_KM[site.name];
     for (const entry of [site.nearest, ...(site.aux || [])]) {
-      if (!entry) continue;
-      labels.add(cameraName(entry.label));
-      if (!Number.isFinite(siteKm)) continue;
-      for (const camera of entry.items || []) {
-        const id = cameraId(camera);
-        const distance = entry === site.nearest && Number.isFinite(entry.km) ? entry.km : Infinity;
-        if (!references.has(id) || references.get(id).distance > distance) {
-          references.set(id, { km: siteKm, distance, label: site.name + ' 기준 ' + siteKm + 'k' });
-        }
-      }
+      if (entry?.label) labels.add(cameraName(entry.label));
     }
   }
 
-  const byId = new Map(corridorCatalog.map(row => [row.id, row]));
-  const byName = new Map(corridorCatalog.map(row => [cameraName(row.name), row]));
-  // The survey cross-reference identifies the dashboard's short name for this portal.
-  byName.set('가조터널', byName.get('가조터널(외부대구)'));
-  const seen = new Set();
-  const entries = (payload.cctvs || []).map(camera => {
+  const entries = [];
+  for (const camera of payload.cctvs || []) {
+    if (!/^https?:\/\/[^/\s]+/i.test(camera.url || '')) continue;
     const name = camera.name.trim();
     const routeTag = name.match(/^\[([^\]]+)\]/);
+    if (routeTag && !/^(광주대구(?:선|고속도로)?|무안광주대구선)$/.test(routeTag[1].replace(/\s/g, ''))) continue;
     const bare = name.replace(/^\[[^\]]+\]\s*/, '');
-    const taggedCorridor = routeTag ? /^(광주대구(?:선|고속도로)?|무안광주대구선)$/.test(routeTag[1].replace(/\s/g, '')) : labels.has(cameraName(bare));
-    const record = (!routeTag || taggedCorridor) && (byId.get(cameraId(camera)) || byName.get(cameraName(bare)));
-    if (record) seen.add(record.id);
-    const corridor = Boolean(record || taggedCorridor);
-    let km = null, position = '이정 미확인';
-    if (record) {
-      km = record.km;
-      position = catalogPosition(record);
-    } else if (corridor) {
-      km = projectedKm(camera);
-      if (km !== null) position = '좌표 추정 약 ' + Math.round(km) + 'k';
-      else {
-        const ref = references.get(cameraId(camera));
-        if (ref) {
-          km = ref.km;
-          position = ref.label;
-        }
-      }
-    }
-    return { camera, corridor, km, position, record };
-  });
-  for (const record of corridorCatalog) {
-    if (!seen.has(record.id)) entries.push({
-      camera: { id: record.id, name: record.name }, corridor: true, km: record.km,
-      position: catalogPosition(record), record
-    });
+    const key = cameraName(bare);
+    const record = byId.get(cameraId(camera)) || byName.get(key);
+    if (!record && !routeTag && !labels.has(key)) continue;
+
+    const km = record?.km ?? projectedKm(camera);
+    if (!Number.isFinite(km)) continue;
+    const approx = !record || record.basis === '산출';
+    const position = (approx ? '약 ' : '') + (record ? km.toFixed(2) : Math.round(km)) + 'k';
+    const displayName = bare.replace(/_광주대구(?:선)?$/, '') || record?.name;
+    entries.push({ camera, displayName, km, position, record });
   }
-  return entries.sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity) || a.camera.name.localeCompare(b.camera.name, 'ko', { numeric: true }));
+  return entries.sort((a, b) => a.km - b.km || a.displayName.localeCompare(b.displayName, 'ko', { numeric: true }));
 }

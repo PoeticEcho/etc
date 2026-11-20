@@ -1,5 +1,5 @@
 import { apiUrl } from './config.js';
-
+import { ROUTE12_PLACE_KM } from './route12.js';
 import { cameraDirectory, cameraId } from './cctv-order.js';
 
 export function mountCctv(root, query) {
@@ -45,7 +45,7 @@ export function mountCctv(root, query) {
     const entry = entries[selected];
     if (!entry) return;
     const camera = entry.camera;
-    summary.textContent = camera.name + ' · ' + entry.position;
+    summary.textContent = entry.displayName + ' · ' + entry.position;
     summary.setAttribute('aria-label', summary.textContent + ' · CCTV 전체 목록');
     for (const [index, row] of Array.from(list.children).entries()) {
       row.setAttribute('aria-pressed', String(index === selected));
@@ -56,15 +56,6 @@ export function mountCctv(root, query) {
     link.href = url.href;
     status.textContent = '';
     video.setAttribute('aria-label', summary.textContent + ' 영상');
-    if (!camera.url) {
-      video.hidden = true;
-      status.textContent = '목록에 등록된 지점입니다. 현재 연결 가능한 영상이 없습니다.';
-      return;
-    }
-    if (!/^https?:\/\//i.test(camera.url)) {
-      status.textContent = '재생 가능한 영상 주소가 없습니다.';
-      return;
-    }
     if (/hls|m3u8/i.test(camera.format + ' ' + camera.url) && !video.canPlayType('application/vnd.apple.mpegurl') && window.Hls?.isSupported()) {
       hls = new window.Hls();
       hls.on(window.Hls.Events.ERROR, (_, data) => {
@@ -95,24 +86,27 @@ export function mountCctv(root, query) {
         const match = entries.find(e => cameraId(e.camera) === query.get('id')) || entries.find(e => e.record?.id === query.get('id'));
         if (!match) throw new Error('요청한 CCTV를 찾을 수 없습니다.');
         initial = match.camera;
-        if (match.corridor) entries = entries.filter(e => e.corridor);
       } else if (query.has('site')) {
         const site = payload.sites?.find(s => s.id === query.get('site'));
         if (!site) throw new Error('요청한 지점을 찾을 수 없습니다.');
-        entries = entries.filter(e => e.corridor);
         const available = new Set(entries.map(e => cameraId(e.camera)));
         initial = [site.nearest, ...(site.aux || [])].flatMap(e => e?.items || []).find(c => available.has(cameraId(c)));
         if (!initial) initial = entries.find(e => e.record?.name === site.nearest?.label)?.camera;
-        if (!initial) throw new Error('이 지점에 연결된 CCTV가 없습니다.');
         title.textContent = site.name + ' · 노면 살얼음 CCTV';
+        if (!initial && entries.length) {
+          const siteKm = site.group === 'observatory' ? parseFloat(site.sub) : ROUTE12_PLACE_KM[site.name];
+          if (Number.isFinite(siteKm)) {
+            const nearest = entries.reduce((best, e) => Math.abs(e.km - siteKm) < Math.abs(best.km - siteKm) ? e : best);
+            initial = nearest.camera;
+          }
+          title.textContent = '노선 CCTV';
+        }
       } else if (query.has('lat') && query.has('lon')) {
         const lat = Number(query.get('lat')), lon = Number(query.get('lon'));
         const distance = c => (c.y - lat) ** 2 + ((c.x - lon) * Math.cos(lat * Math.PI / 180)) ** 2;
         initial = entries.map(e => e.camera).filter(c => Number.isFinite(c.y) && Number.isFinite(c.x))
           .sort((a, b) => distance(a) - distance(b))[0];
         title.textContent = '가까운 CCTV';
-      } else {
-        entries = entries.filter(e => e.corridor);
       }
       if (!entries.length) throw new Error('연결된 CCTV가 없습니다.');
       if (!video.canPlayType('application/vnd.apple.mpegurl')) await import('./vendor/hls.min.js');
@@ -120,15 +114,13 @@ export function mountCctv(root, query) {
       const indexOf = c => c ? entries.findIndex(e => cameraId(e.camera) === cameraId(c)) : -1;
       selected = indexOf(previous);
       if (selected < 0) selected = indexOf(initial);
-      if (selected < 0) selected = Math.max(0, entries.findIndex(e => e.camera.url));
+      if (selected < 0) selected = 0;
       list.replaceChildren(...entries.map((entry, index) => {
         const row = document.createElement('button');
         row.type = 'button';
         const mark = document.createElement('small');
-        const directions = entry.record ? entry.record.directions + ' 등록' : '';
-        mark.textContent = [directions, entry.position, entry.camera.url ? '' : '영상 미연결'].filter(Boolean).join(' · ');
-        if (entry.record?.name === '야로대교1') row.title = '시설 등록 144.58k · 영상 자막 144.4k';
-        row.append(document.createTextNode(entry.camera.name), mark);
+        mark.textContent = entry.position;
+        row.append(document.createTextNode(entry.displayName), mark);
         row.onclick = () => {
           picker.open = false;
           if (index !== selected) { selected = index; play(); }
