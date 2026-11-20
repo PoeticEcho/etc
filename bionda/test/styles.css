@@ -2706,3 +2706,12 @@ body.dark-mode .backend-pill.is-snapshot { background: #3b2a10; color: #fcd34d; 
   .map-choice-card { padding: 9px 12px; }
   .map-choice-actions { margin: 6px 0 2px; }
 }
+
+.camera-picker { min-width: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); }
+.camera-picker summary { padding: 10px 12px; font-weight: 650; }
+.camera-list { position: relative; max-height: 14rem; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--border); }
+.camera-list button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; min-height: 44px; border: 0; border-radius: 0; }
+.camera-list small { color: var(--muted); text-align: right; }
+.camera-list button[aria-pressed="true"] { background: var(--header-bg); color: white; }
+.camera-list button[aria-pressed="true"] small { color: var(--accent); }
+.camera-list button:focus-visible { outline-offset: -3px; }
