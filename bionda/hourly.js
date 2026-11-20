@@ -32,7 +32,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': 
 let state = {
   range: '12',     // '6' | '12' (1920x1080 1-screen default) | '24' | 'tomorrow'
   mode: 'all',     // 'all' | 'pop' | 'temp' | 'pcp' | 'wind'
-  sort: 'group',   // 'group' (고령·합천·거창·함양·달성) | 'route' (서->동)
+  sort: 'route',   // 'group' (고령·합천·거창·함양·달성) | 'route' (서->동)
   payload: null,
   fromSnapshot: false,
   fromCache: false,
@@ -252,10 +252,9 @@ function renderCellContent(h, iconInfo) {
 }
 
 function renderKPIs(regionsWithSlices) {
-  const labelRange = state.range === 'tomorrow' ? '내일까지' : `향후 ${state.range}시간`;
-  $('kpiWetLabel').textContent = `${labelRange} 강수 예상`;
-  $('kpiFreezingLabel').textContent = `${labelRange} 영하 예상`;
-  $('kpiOverlapLabel').textContent = `강수·영하 동시 겹침`;
+  const labelRange = state.range === 'tomorrow' ? '내일까지' : `${state.range}시간`;
+  $('kpiWetLabel').textContent = `${labelRange} 강수`;
+  $('kpiFreezingLabel').textContent = `${labelRange} 영하`;
 
   let wetRegions = 0, freezingRegions = 0, overlapRegions = 0;
   let earliestWet = null, earliestFreezing = null, earliestOverlap = null, lowestTemp = null;
@@ -397,7 +396,7 @@ function renderSheet() {
 
       const cell = renderCellContent(h, iconInfo);
       const popPct = Math.max(0, Math.min(100, Number(h.pop) || 0));
-      html += `<div class="${cellCls}" title="${esc(r.name)} ${esc(h.dateLabel)} ${String(h.hourKst).padStart(2, '0')}:00 · ${esc(iconInfo.label)} ${h.temp ?? '-'}℃ · 강수확률 ${popPct}%"><div class="hr-c1">${cell.c1}</div><div class="hr-c2 ${cell.hasAmt ? 'has-amt' : ''}">${cell.c2}</div><div class="hr-rainbar"><b style="width:${popPct}%"></b></div></div>`;
+      html += `<div class="${cellCls}" data-hour-index="${j}" title="${esc(r.name)} ${esc(h.dateLabel)} ${String(h.hourKst).padStart(2, '0')}:00 · ${esc(iconInfo.label)} ${h.temp ?? '-'}℃ · 강수확률 ${popPct}%"><div class="hr-c1">${cell.c1}</div><div class="hr-c2 ${cell.hasAmt ? 'has-amt' : ''}">${cell.c2}</div><div class="hr-rainbar"><b style="width:${popPct}%"></b></div></div>`;
     }
     html += '</div>';
   }
@@ -515,16 +514,26 @@ function updateSourceStatus() {
   if (!p) {
     pill.hidden = false;
     pill.textContent = '연결 오류';
+    stamp.textContent = '예보 수신 실패';
+    $('regionCount').textContent = '0';
+    for (const kpi of ['Wet', 'Freezing', 'Overlap']) {
+      $('kpi' + kpi + 'Count').textContent = '—';
+      $('kpi' + kpi + 'Pill').textContent = '미수신';
+    }
+    if (apiBtnLabel) apiBtnLabel.textContent = 'API 연결';
+    if (footerStamp) footerStamp.textContent = stamp.textContent;
     pill.className = 'hr-status-pill is-error';
     return;
   }
 
-  const shortStr = formatMdHm(p.sources?.shortBase) || '-';
-  const ultraStr = formatMdHm(p.sources?.ultraBase) || '-';
+  const [shortDay, shortTime] = formatMdHm(p.sources?.shortBase).split(' ');
+  const [ultraDay, ultraTime] = formatMdHm(p.sources?.ultraBase).split(' ');
+  const dayLabel = day => day ? day.split('-').map(Number).join('월 ') + '일 ' : '';
+  const received = p.regions.filter(r => r.hours?.length).length;
 
   if (state.fromSnapshot) {
     pill.hidden = false;
-    pill.textContent = '스냅샷 기준 (백엔드 오프라인)';
+    pill.textContent = '저장 자료';
     pill.className = 'hr-status-pill is-snapshot';
     if (apiBtnLabel) apiBtnLabel.textContent = '스냅샷';
   } else {
@@ -534,10 +543,10 @@ function updateSourceStatus() {
     if (apiBtnLabel) apiBtnLabel.textContent = 'API 연결됨';
   }
 
-  const uniqCount = p.uniqueGridCount ?? new Set(p.regions.filter(r => r.grid).map(r => r.grid.nx + ',' + r.grid.ny)).size;
-  $('regionCount').textContent = p.regions.length;
-  $('regionCoverage').textContent = `${new Set(p.regions.map(r => r.county)).size}개 시·군 · ${uniqCount}격자`;
-  const stampText = `단기예보 ${shortStr} 발표(3h주기) · 초단기 ${ultraStr}(매시35분+) · 1회 통합 호출(${uniqCount}격자)`;
+  $('regionCount').textContent = received;
+  $('regionCoverage').textContent = `${new Set(p.regions.map(r => r.county)).size}개 시·군`;
+  const ultraDate = shortDay && ultraDay !== shortDay ? dayLabel(ultraDay) : '';
+  const stampText = `${dayLabel(shortDay || ultraDay)}단기예보 ${shortTime || '—'} · ${ultraDate}초단기 ${ultraTime || '—'} · ${received}곳 수신`;
   stamp.textContent = stampText;
   if (footerStamp) {
     const syncNote = state.isRevalidating
@@ -545,7 +554,7 @@ function updateSourceStatus() {
       : state.fromCache
         ? '5분 내 캐시(3분 머무름 시 자동갱신) · 매 정시·36분·10분마다 자동 갱신'
         : '매 정시·36분·10분마다 자동 갱신';
-    footerStamp.textContent = `기준 자료: ${stampText} · 갱신 ${formatMdHm(p.updatedAt)} · ${syncNote}`;
+    footerStamp.textContent = `갱신 ${formatMdHm(p.updatedAt)} · ${syncNote}`;
   }
 }
 
@@ -585,14 +594,15 @@ function flashKpiCells(kind, cardEl) {
     cell.classList.add(cls);
     cell.closest('.hr-datarow')?.classList.add('flash-row');
   }
-  const wrap = $('sheetWrap');
-  if (wrap && targets[0]) {
-    const cellRect = targets[0].getBoundingClientRect();
-    const wrapRect = wrap.getBoundingClientRect();
-    if (cellRect.left < wrapRect.left + 220 || cellRect.right > wrapRect.right) {
-      targets[0].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
-  }
+  const first = targets.reduce((best, cell) =>
+    Number(cell.dataset.hourIndex) < Number(best.dataset.hourIndex) ? cell : best);
+  first.tabIndex = -1;
+  first.setAttribute('aria-label', first.title);
+  first.focus({ preventScroll: true });
+  first.scrollIntoView({
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+    block: 'center', inline: 'center'
+  });
 
   clearTimeout(flashClearTimer);
   flashClearTimer = setTimeout(() => {
@@ -826,7 +836,10 @@ function bindEvents() {
   document.querySelectorAll('[data-sort]').forEach(btn => {
     btn.addEventListener('click', () => {
       state.sort = btn.dataset.sort;
-      document.querySelectorAll('[data-sort]').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('[data-sort]').forEach(b => {
+        b.classList.toggle('active', b === btn);
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
       renderSheet();
     });
   });

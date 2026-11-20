@@ -17,7 +17,7 @@
   <meta name="twitter:image" content="https://bionda.pages.dev/og-image.jpg">
   <title>1시간 단기예보 (13개 지역) | 날씨봇 × 비온다?</title>
   <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./hourly.css">
+  <link rel="stylesheet" href="./hourly.css?view=route">
   <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
@@ -55,11 +55,11 @@
   <main class="hourly-wrap">
     <div class="hr-subhead">
       <div class="hr-subhead-left">
-        <h1 class="hr-title hr-title-single">기상청 시간별예보 비교상황판 <span class="hr-title-en">· KMA SHORT-TERM FORECAST MATRIX</span></h1>
+        <h1 class="hr-title hr-title-single">기상청 시간별예보 비교상황판</h1>
       </div>
       <div class="hr-subhead-right">
         <span id="hourlySourcePill" class="hr-status-pill" hidden></span>
-        <span id="hourlyStamp" class="hr-stamp">기상청 단기·초단기예보 연동 대기</span>
+        <span id="hourlyStamp" class="hr-stamp">예보 수신 중…</span>
       </div>
     </div>
 
@@ -67,14 +67,14 @@
     <section class="hr-metrics" aria-label="예보 조건 자동 요약 지표">
       <article class="hr-metric">
         <div class="hr-metric-copy">
-          <div class="hr-mk">모니터링 대상</div>
+          <div class="hr-mk">예보 수신</div>
           <div class="hr-mn"><span id="regionCount">—</span> <small>/ 13곳</small></div>
         </div>
         <span class="hr-mpill" id="regionCoverage">5개 시·군</span>
       </article>
       <article id="kpiWetCard" class="hr-metric hr-metric-btn" data-kpi-flash="wet" role="button" tabindex="0" title="클릭하면 강수 예상 시간 셀을 강조해 반짝입니다">
         <div class="hr-metric-copy">
-          <div class="hr-mk" id="kpiWetLabel">향후 12시간 강수 예상</div>
+          <div class="hr-mk" id="kpiWetLabel">12시간 강수</div>
           <div class="hr-mn" id="kpiWetCount">—</div>
         </div>
         <div class="hr-mpill-stack">
@@ -84,7 +84,7 @@
       </article>
       <article id="kpiFreezingCard" class="hr-metric hr-metric-btn" data-kpi-flash="freezing" role="button" tabindex="0" title="클릭하면 영하 기온 예상 셀을 강조해 반짝입니다">
         <div class="hr-metric-copy">
-          <div class="hr-mk" id="kpiFreezingLabel">향후 12시간 영하 예상</div>
+          <div class="hr-mk" id="kpiFreezingLabel">12시간 영하</div>
           <div class="hr-mn" id="kpiFreezingCount">—</div>
         </div>
         <div class="hr-mpill-stack">
@@ -94,7 +94,7 @@
       </article>
       <article id="kpiOverlapCard" class="hr-metric hr-metric-btn" data-kpi-flash="overlap" role="button" tabindex="0" title="클릭하면 강수·영하 동시 겹침 셀을 강조해 반짝입니다">
         <div class="hr-metric-copy">
-          <div class="hr-mk" id="kpiOverlapLabel">강수·영하 동시 겹침</div>
+          <div class="hr-mk" id="kpiOverlapLabel">강수·영하</div>
           <div class="hr-mn" id="kpiOverlapCount">—</div>
         </div>
         <div class="hr-mpill-stack">
@@ -123,8 +123,8 @@
       </div>
       <div class="hr-toolgroup" role="group" aria-label="지역 정렬">
         <span class="hr-toolname">정렬</span>
-        <button type="button" class="hr-tbtn active" data-sort="group">권역별</button>
-        <button type="button" class="hr-tbtn" data-sort="route">노선 서→동</button>
+        <button type="button" class="hr-tbtn" data-sort="group" aria-pressed="false">권역별</button>
+        <button type="button" class="hr-tbtn active" data-sort="route" aria-pressed="true">노선 서→동</button>
       </div>
       <div class="hr-hint">행 클릭 시 기상청 원본형 1시간 상세표 열기</div>
     </div>
@@ -133,7 +133,7 @@
     <section class="hr-sheet" aria-label="13개 지역 1시간 단기예보 매트릭스">
       <div class="hr-scroll">
         <div class="hr-scroller" id="sheet">
-          <div class="hr-loading">기상청 단기예보 12개 격자 데이터를 불러오는 중입니다…</div>
+          <div class="hr-loading">13개 지역의 시간별예보를 불러오는 중…</div>
         </div>
       </div>
     </section>
@@ -155,7 +155,7 @@
 
   <footer class="global-footer">
     <div class="wrap footer-inner">
-      <span id="hourlyFooterStamp">기준 자료: 로딩 중… · 1회 통합 호출 · 매 정시·36분·10분마다 자동 갱신</span>
+      <span id="hourlyFooterStamp">예보 수신 중…</span>
       <span class="footer-sources">출처: <a href="https://www.weather.go.kr/w/forecast/overall/short-term.do" target="_blank" rel="noopener">기상청 날씨누리 단기예보</a> · OpenAPI (getVilageFcst · getUltraSrtFcst)</span>
     </div>
   </footer>
@@ -204,6 +204,6 @@
     </div>
   </dialog>
 
-  <script type="module" src="./hourly.js?roster=13"></script>
+  <script type="module" src="./hourly.js?view=route"></script>
 </body>
 </html>
