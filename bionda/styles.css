@@ -1023,7 +1023,7 @@ body.dark-mode .quick-chip:hover {
   gap: 8px;
   flex-wrap: wrap;
 }
-.head h2 {
+.head :is(h1, h2) {
   font-size: 16.5px;
   font-weight: 800;
   margin: 0;
@@ -1185,20 +1185,34 @@ body.dark-mode .quick-chip:hover {
 body.dark-mode .road-stn-vals em { color: #8be0cb; }
 
 /* Windy & KMA HSR Radar Panel */
+#visualPane > .head { align-items: center; }
 .visual-tabs {
   display: flex;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 3px;
+  max-width: 100%;
+  background: var(--header-bg);
+  border-radius: 10px;
 }
 .vtab {
-  font-size: 13px;
-  min-height: 36px;
-  padding: 5px 10px;
-  border-radius: var(--control-radius);
+  flex: 1 0 auto;
+  min-height: 32px;
+  border: 0;
+  border-radius: 7px;
+  padding: 4px 10px;
+  background: transparent;
+  color: #d3e4e1;
+  font-size: 12px;
+  font-weight: 750;
 }
 .vtab.active {
-  background: var(--header-bg);
-  color: #fff;
-  border-color: var(--header-bg);
+  background: var(--accent);
+  color: #0e3335;
+}
+@media (max-width: 650px) {
+  .visual-tabs { width: 100%; }
+  .vtab { min-height: 36px; }
 }
 .windy-controls {
   display: flex;
@@ -2473,7 +2487,7 @@ input {
   .detailnav-right #jump { flex: 1 1 auto; min-width: 0; max-width: 192px; padding: 6px 8px; font-size: 13px; }
   #detailShareBtn { flex-shrink: 0; white-space: nowrap; padding: 6px 10px; font-size: 12px; }
   .card { padding: 12px; }
-  .head h2 { font-size: 14.5px; }
+  .head :is(h1, h2) { font-size: 14.5px; }
   .rain-timing-grid { gap: 8px; }
   .timing-box { padding: 10px 11px; }
   .timing-box strong { font-size: 16px; }
@@ -2586,7 +2600,7 @@ body.dark-mode .backend-pill.is-snapshot { background: #3b2a10; color: #fcd34d; 
   background: var(--card-bg);
   box-shadow: 0 6px 24px rgba(4, 22, 26, .3);
 }
-.map-choice-card header, .cctv-tools {
+.map-choice-card header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2635,10 +2649,8 @@ body.dark-mode .backend-pill.is-snapshot { background: #3b2a10; color: #fcd34d; 
   gap: 8px;
   min-width: 0;
 }
-#mapCctv { padding-top: 10px; }
-.cctv-player h2, .cctv-player p { margin: 0; }
-.cctv-player h2 { font-size: 16px; }
-.cctv-player p { font-size: 13px; color: var(--muted); }
+.cctv-player { padding-top: 10px; }
+.cctv-player p { margin: 0; font-size: 13px; color: var(--muted); }
 .cctv-player p:empty { display: none; }
 .cctv-player video {
   display: block;
@@ -2646,28 +2658,32 @@ body.dark-mode .backend-pill.is-snapshot { background: #3b2a10; color: #fcd34d; 
   height: auto;
   aspect-ratio: auto 4 / 3;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
   background: #071416;
 }
-.cctv-tools { flex-wrap: wrap; }
+.cctv-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .cctv-tools :is(a, button) {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   min-height: 36px;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--card-bg);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 650;
+  border-radius: var(--control-radius);
+  background: var(--bg);
+  color: var(--action-text);
+  font-size: 12px;
+  font-weight: 750;
   text-decoration: none;
 }
-#standaloneCctv { max-width: 1100px; margin: 16px auto; }
-@media (max-width: 650px) {
-  #standaloneCctv { margin: 8px; padding: 12px; }
-}
+.cctv-tools a:hover { border-color: var(--action-text); }
+.cctv-page { width: min(calc(100% - 24px), 1100px); margin: 12px auto; }
 @media (max-width: 650px) { .detail-tools { position: static; margin-top: 10px; } }
 
 .overview-container.layout-fhd-split #mapCctv video { height: var(--split-radar-h, 390px); }
@@ -2683,11 +2699,65 @@ body.dark-mode .backend-pill.is-snapshot { background: #3b2a10; color: #fcd34d; 
   .map-choice-actions { margin: 6px 0 2px; }
 }
 
-.camera-picker { min-width: 0; border: 1px solid var(--border); border-radius: var(--control-radius); background: var(--card-bg); }
-.camera-picker summary { padding: 10px 12px; font-weight: 650; }
-.camera-list { position: relative; max-height: 14rem; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--border); }
-.camera-list button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; min-height: 44px; border: 0; border-radius: 0; }
-.camera-list small { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.camera-list button[aria-pressed="true"] { background: var(--header-bg); color: white; }
-.camera-list button[aria-pressed="true"] small { color: var(--accent); }
+.camera-picker {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+  background: var(--card-bg);
+}
+.camera-picker summary, .camera-list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 7px 10px;
+  font-size: 13px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.camera-picker summary {
+  list-style: none;
+  background: var(--bg);
+  border-radius: inherit;
+}
+.camera-picker summary::-webkit-details-marker { display: none; }
+.camera-picker summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border: solid var(--action-text);
+  border-width: 0 1.5px 1.5px 0;
+  margin: 0 3px 4px;
+  transform: rotate(45deg);
+}
+.camera-picker[open] summary { border-radius: var(--control-radius) var(--control-radius) 0 0; }
+.camera-picker[open] summary::after { transform: rotate(225deg); margin-bottom: -3px; }
+.camera-mileage {
+  margin-inline-start: auto;
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--action-text);
+  background: color-mix(in srgb, var(--action-text) 10%, var(--card-bg));
+  font-size: 12px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.camera-list {
+  position: relative;
+  max-height: 14rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--control-radius) var(--control-radius);
+}
+.camera-list button { border: 0; border-radius: 0; }
+.camera-list button + button { border-top: 1px solid var(--border); }
+.camera-list button[aria-pressed="true"] {
+  color: var(--action-text);
+  background: var(--bg);
+  box-shadow: inset 3px 0 var(--action-text);
+}
 .camera-list button:focus-visible { outline-offset: -3px; }

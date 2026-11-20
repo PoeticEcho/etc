@@ -3039,7 +3039,7 @@ for (const [tabId, panelId] of Object.entries(visualTabs)) {
       selectedWindyKey = visualTarget.stnId != null ? 'stn:' + visualTarget.stnId : 'place:' + coord(visualTarget);
       renderMiniMap();
       if (tabId === 'tabWindy') focusWindyOnTarget(visualTarget);
-      else releaseCctv = mountCctv($(panelId), cctvQuery(visualTarget));
+      else releaseCctv = mountCctv($(panelId), cctvQuery(visualTarget), $('visualPanelTitle'));
     }
     if (tabId === 'tabKmaRadar') loadKmaRadarImage(false);
   };

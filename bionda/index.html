@@ -135,10 +135,11 @@
           <!-- Right / Bottom Sub-Pane: Windy Satellite/Radar + KMA HSR Radar -->
           <div id="visualPane" class="windy-panel card compact-card">
             <div class="head map-head">
-              <div>
+              <div class="map-title-with-shield">
+                <img src="./route12.svg" alt="고속국도 제12호선" class="route12-shield">
                 <h2 id="visualPanelTitle">실시간 기상 · 도로 영상</h2>
               </div>
-              <div class="visual-tabs" role="tablist">
+              <div class="visual-tabs" role="tablist" aria-label="영상 종류">
                 <button type="button" id="tabWindy" class="vtab active" role="tab" aria-selected="true">🛰️ 윈디</button>
                 <button type="button" id="tabKmaRadar" class="vtab" role="tab" aria-selected="false">📡 기상청 레이더</button>
                 <button type="button" id="tabCctv" class="vtab" role="tab" aria-selected="false" hidden>📹 CCTV</button>
