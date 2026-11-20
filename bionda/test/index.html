@@ -355,8 +355,7 @@
 
           <!-- External Imagery Links -->
           <section class="card media">
-            <h2>🛰️ 레이더 · 위성 · 고속도로 기상 영상</h2>
-            <p id="imagery">구름 분포와 주변 강수대의 이동을 확인하세요.</p>
+            <div class="head"><h2>🛰️ 레이더·위성 및 기상 영상</h2></div>
             <a id="radarLink" href="https://www.windy.com/-Weather-radar-radar?radar,35.52,127.725,10" target="_blank" rel="noopener">Windy 실시간 강수 레이더 <b>↗</b></a>
             <a href="https://www.weather.go.kr/w/weather/satellite/gk2a.do" target="_blank" rel="noopener">천리안 2A호 구름영상 <b>↗</b></a>
             <a href="https://www.weather.go.kr/w/weather/warning/status.do" target="_blank" rel="noopener">기상청 전국 특보 발효 현황 <b>↗</b></a>
@@ -365,7 +364,6 @@
       </div>
     </div>
   </main>
-  <p class="bot-guide"><small><a href="https://bionda.pages.dev/llms.txt">봇용 브리핑 수집 안내</a></small></p>
 
   <!-- Floating Warning Tooltip (PC Hover & Mobile Tap) -->
   <div id="wrnTooltip" class="wrn-tooltip" role="tooltip" hidden></div>
@@ -465,8 +463,9 @@
   <!-- Unified Bottom Timestamp Bar (Requirement 2.2) -->
   <footer class="global-footer">
     <div class="wrap footer-inner">
-      <span id="globalStamp">기준 자료: 확인 중 · 5분마다 자동 갱신 (모든 카드 통합 기준 시각)</span>
-      <span class="footer-sources">자료 출처: <a href="https://www.weather.go.kr" target="_blank" rel="noopener">기상청(도로기상관측 광주대구선14번·단기예보·CAP 특보)</a> · <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo(단기예보·ICON 앙상블)</a> · 자체 도로살얼음 판정 모델(KST)</span>
+      <span id="globalStamp" class="footer-item">자료 확인 중 · 5분마다 자동 갱신</span>
+      <span class="footer-sources">출처 <a href="https://www.weather.go.kr" target="_blank" rel="noopener">기상청</a> · <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · 자체 살얼음 판정 모델</span>
+      <a class="briefing-guide" href="https://bionda.pages.dev/llms.txt">봇용 브리핑 수집 안내</a>
     </div>
   </footer>
 

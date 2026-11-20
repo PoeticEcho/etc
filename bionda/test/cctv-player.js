@@ -28,7 +28,9 @@ export function mountCctv(root, query) {
   const actions = document.createElement('div');
   actions.className = 'cctv-tools';
   actions.append(link, retry);
-  root.replaceChildren(title, status, picker, video, actions);
+  const notice = document.createElement('p');
+  notice.textContent = '로드플러스에서 제공하는 짧은 영상으로, 실제 상황보다 늦게 표시될 수 있습니다. 근무 중 실시간 영상은 업무망이나 모바일교통상황실 앱에서 확인하세요.';
+  root.replaceChildren(title, status, picker, video, actions, notice);
   let hls;
   let entries = [];
   let selected = -1;

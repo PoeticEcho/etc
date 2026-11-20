@@ -694,11 +694,6 @@ body.dark-mode .hr-c2.has-amt { color: #7dd3fc; }
 .sw-overlap { background: #ef4444; }
 .sw-popbar { background: #64748b; }
 
-.hr-disclaimer a {
-  color: var(--teal);
-  font-weight: 800;
-}
-body.dark-mode .hr-disclaimer a { color: var(--accent); }
 
 /* KMA Style Detail Dialog */
 .hr-detail-dialog {

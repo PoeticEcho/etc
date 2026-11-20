@@ -753,30 +753,14 @@ function updateUnifiedGlobalStamp() {
     ? fmt(latestOverall)
     : fmt(new Date(Date.now() + 9 * 3600000).toISOString());
 
-  let footerLabel;
-  if (latestObs && latestModel) {
-    if (anyObsSnapshot) {
-      footerLabel = `기준 자료: 관측 ${fmt(latestObs)}(스냅샷) · 모델 ${fmt(latestModel)}(실시간) · 5분마다 자동 갱신`;
-    } else if (fmt(latestObs) === fmt(latestModel)) {
-      footerLabel = `기준 자료: ${fmt(latestObs)} · 5분마다 실시간 자동 갱신 (모든 카드 통합 기준 시각)`;
-    } else {
-      footerLabel = `기준 자료: 도로관측 ${fmt(latestObs)} · 모델 ${fmt(latestModel)} · 5분마다 실시간 자동 갱신`;
-    }
-  } else if (latestObs) {
-    footerLabel = `기준 자료: 관측 ${fmt(latestObs)}${anyObsSnapshot ? '(스냅샷)' : ''} · 5분마다 자동 갱신`;
-  } else if (latestModel) {
-    footerLabel = `기준 자료: 모델 ${fmt(latestModel)} · 5분마다 자동 갱신`;
-  } else {
-    footerLabel = `기준 자료: ${stampFormatted} · 5분마다 자동 갱신 (모든 카드 통합 기준 시각)`;
-  }
-
-  if (overviewRevalidating) {
-    footerLabel += ' · 백그라운드 최신화 중…';
-  } else if (overviewFromCache) {
-    footerLabel += ' · 5분 내 캐시(3분 머무름 시 자동갱신)';
-  }
-
-  $('globalStamp').textContent = footerLabel;
+  const sources = [];
+  if (latestObs) sources.push(`도로관측 ${fmt(latestObs)}${anyObsSnapshot ? ' (저장 자료 포함)' : ''}`);
+  if (latestModel) sources.push(`모델 ${fmt(latestModel)}`);
+  $('globalStamp').textContent = [
+    sources.length ? '기준 자료 · ' + sources.join(' · ') : '자료 확인 중',
+    '5분마다 자동 갱신',
+    ...(overviewRevalidating ? ['갱신 중'] : [])
+  ].join(' · ');
   return stampFormatted;
 }
 
@@ -2280,7 +2264,7 @@ function renderDetail() {
     }
     wrnBox.append(listWrap);
   } else {
-    wrnBox.append(el('p', '현재 이 지역에 발효 중인 기상특보(대설·호우·한파·강풍·안개 등)가 없습니다.'));
+    wrnBox.append(el('p', '현재 이 지역에 발효 중인 기상특보가 없습니다.', 'detail-note'));
   }
 
   $('radarLink').href = `https://www.windy.com/-Weather-radar-radar?radar,${p.lat},${p.lon},10`;

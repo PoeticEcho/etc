@@ -551,12 +551,8 @@ function updateSourceStatus() {
   const stampText = `${dayLabel(shortDay || ultraDay)}단기예보 ${shortTime || '—'} · ${ultraDate}초단기 ${ultraTime || '—'} · ${received}곳 수신`;
   stamp.textContent = stampText;
   if (footerStamp) {
-    const syncNote = state.isRevalidating
-      ? '캐시 즉시표출(백그라운드 최신화 중…) · 매 정시·36분·10분 자동 갱신'
-      : state.fromCache
-        ? '5분 내 캐시(3분 머무름 시 자동갱신) · 매 정시·36분·10분마다 자동 갱신'
-        : '매 정시·36분·10분마다 자동 갱신';
-    footerStamp.textContent = `갱신 ${formatMdHm(p.updatedAt)} · ${syncNote}`;
+    const label = state.fromSnapshot ? '저장 자료' : '갱신';
+    footerStamp.textContent = `${label} ${formatMdHm(p.updatedAt)}${state.isRevalidating ? ' · 갱신 중' : ''}`;
   }
 }
 

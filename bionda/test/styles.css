@@ -35,7 +35,10 @@ body {
   font-family: "Pretendard", Inter, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   line-height: 1.4;
   word-break: keep-all;
-  padding-bottom: 40px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 body.is-resizing {
   user-select: none;
@@ -1625,7 +1628,7 @@ th:first-child, td:first-child { text-align: left; font-weight: 700; }
 #ice.rank-3 { color: var(--danger); }
 #ice.rank-2 { color: #d96b00; }
 #ice.rank-1 { color: #a16207; }
-.ice-short-reason {
+.ice-short-reason, .detail-note {
   margin: 0;
   font-size: 12px;
   font-weight: 700;
@@ -2325,25 +2328,24 @@ body.dark-mode .wrn-item-card strong { color: #ff8e7d; }
 }
 
 /* Unified Global Footer (Requirement 2.2) */
+body > main:is(.wrap, .hourly-wrap) { width: 100%; }
 .global-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  margin-top: auto;
   background: var(--card-bg);
   border-top: 1px solid var(--border);
   padding: 6px 0;
-  z-index: 35;
   font-size: 11px;
   color: var(--muted);
 }
 .footer-inner {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
 }
-.footer-sources a { color: inherit; text-decoration: underline; }
+.footer-inner a { color: inherit; font: inherit; text-underline-offset: 2px; }
+.footer-item::before, .footer-inner .briefing-guide::before { content: "▪ "; }
+.briefing-guide { white-space: nowrap; }
 
 /* Dialogs */
 dialog {
@@ -2474,7 +2476,6 @@ input {
 
 /* Mobile 1-Screen High-Density Mode (Requirement 1) */
 @media (max-width: 768px) {
-  body { padding-bottom: 32px; }
   .wrap { padding: 0 8px; }
   .bar { height: auto; min-height: 42px; padding: 4px 0 5px; gap: 4px; }
   .page-tab { padding: 3.5px 6px; font-size: 11px; }
