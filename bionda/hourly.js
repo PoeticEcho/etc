@@ -15,7 +15,7 @@ import {
 } from './page-cache.js';
 
 const SETTINGS_KEY = 'weather-watch:settings:v2';
-const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v2';
+const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v3';
 const hourlyCacheScope = () => getApiBase() || '__same_origin__';
 const CORRIDOR_WATCH_POINTS = [
   { name: '대구 달성군남부', lat: 35.697, lon: 128.447 },
@@ -94,7 +94,10 @@ export function alignHourlyMatrix(regions = [], range = '12') {
   let allCols = [...colMap.values()].sort((a, b) => String(a.time).localeCompare(String(b.time)));
   if (range !== 'tomorrow') {
     const n = Number(range) || 12;
-    allCols = allCols.slice(0, n);
+    const start = Date.parse(regions.find(r => r.windowStart)?.windowStart);
+    allCols = Number.isFinite(start)
+      ? allCols.filter(h => Date.parse(h.time) < start + n * 3600000)
+      : allCols.slice(0, n);
   }
   const headerHours = allCols;
 
@@ -123,7 +126,7 @@ function getWindowHours(region) {
   const hrs = Array.isArray(region?.hours) ? region.hours : [];
   if (state.range === 'tomorrow') return hrs;
   const n = Number(state.range) || 12;
-  return hrs.slice(0, n);
+  return region.windowStart ? hrs.filter(h => h.offset < n) : hrs.slice(0, n);
 }
 
 function summarizeRegionSlice(hours) {

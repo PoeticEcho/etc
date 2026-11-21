@@ -1469,12 +1469,6 @@ body.dark-mode .back-link { color: #7ce3cb; }
   font-size: 12px;
 }
 
-#status {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 6px 2px 10px;
-}
-
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
@@ -1955,7 +1949,7 @@ body.dark-mode .guide-banner.return-hold {
   font-weight: 750;
   padding: 3px 9px;
 }
-.rwis { display: inline-block; font-size: 12px; font-weight: 750; color: #1d6652; margin-bottom: 6px; }
+.rwis { text-decoration: none; display: inline-block; font-size: 12px; font-weight: 750; color: #1d6652; margin-bottom: 6px; }
 .iceguide { padding-left: 18px; font-size: 12px; color: var(--muted); margin: 4px 0; line-height: 1.55; }
 .iceguide li { margin: 4px 0; }
 
@@ -2343,7 +2337,8 @@ body > main:is(.wrap, .hourly-wrap) { width: 100%; }
   align-items: baseline;
   gap: 2px 10px;
 }
-.footer-inner a { color: inherit; font: inherit; text-underline-offset: 2px; }
+.footer-inner a { color: inherit; font: inherit; text-decoration: none; text-underline-offset: 2px; }
+.rwis:hover, .media a:hover, .footer-inner a:hover { text-decoration: underline; }
 .footer-item::before, .footer-inner .briefing-guide::before { content: "▪ "; }
 .briefing-guide { white-space: nowrap; }
 

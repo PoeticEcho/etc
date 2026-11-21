@@ -1811,7 +1811,7 @@ function renderDetail() {
       : '12시간 내 강수 신호 없음';
     $('rainStartSub').textContent = a.now?.wet
       ? '기상청 초단기실황 관측 + 12시간 예보 기준'
-      : '기상청 초단기·단기예보 12시간 병합 기준';
+      : '첫 6시간 초단기 우선 · 이후 6시간 단기예보';
 
     $('rainEndText').textContent = ed
       ? `${ed}경 종료 추정`
@@ -1855,11 +1855,15 @@ function renderDetail() {
         return d;
       })
     );
+  } else {
+    $('rainStartText').textContent = $('rainEndText').textContent = '기상청 예보 미수신';
+    $('rainStartSub').textContent = $('rainEndSub').textContent = '';
+    $('horizonBadges').replaceChildren();
   }
 
   $('kmaTimeline').replaceChildren(
     ...Array.from({ length: 12 }, (_, idx) => {
-      const kh = kHours[idx];
+      const kh = kHours.find(h => h.offset === idx + 1);
       if (!kh) return el('div', '—', 'tl-slot');
       const cls = kh.wet ? (kh.type?.includes('눈') ? 'snow' : 'wet') : kh.risk ? 'risk' : '';
       const slot = el('div', '', `tl-slot ${cls}`.trim());
@@ -1870,7 +1874,7 @@ function renderDetail() {
         el('span', stateLabel),
         el('em', tempText)
       );
-      slot.title = `${kh.time.slice(11, 16)} · ${kh.wet ? kh.type + ' (' + kh.amount + ')' : '강수없음'} · 강수확률 ${kh.chance ?? 0}% · 기온 ${kh.temp}°C`;
+      slot.title = `${kh.time.slice(11, 16)} · ${kh.wet ? kh.type + ' (' + kh.amount + ')' : '강수없음'} · 강수확률 ${kh.chance == null ? '—' : kh.chance + '%'} · 기온 ${kh.temp ?? '—'}°C`;
       return slot;
     })
   );
@@ -1897,11 +1901,6 @@ function renderDetail() {
       return m;
     })
   );
-  $('totaltime').textContent = [
-    useObs ? `${o.name} 관측 ${fmt(o.time)}` : '',
-    pData ? `모델 누적 종료 ${fmt(w?.through)}` : '',
-    day ? '오늘 00시부터' : '최근 24시간 누적'
-  ].filter(Boolean).join(' · ');
 
   const rr = r.roadRisk;
   const riskBar = $('detailRoadRiskBar');
@@ -1918,7 +1917,7 @@ function renderDetail() {
       const stnLabel = stnName ? `${stnName}${stnKm != null ? `(${stnKm}k)` : ''}${stnDist != null ? ` · ${n(stnDist, 1)}km` : ''}` : '고속국도 12호선 연계';
       leftDiv.append(
         el('strong', `🛣️ 모니터링 개소: ${stnLabel} · ${trTxt}`),
-        el('small', `012 무안광주대구선 도로위험기상${rr?.tmKst ? ` · ${fmt(rr.tmKst)} (${rr.flagLabel || '분석'})` : ''}${bridgeTxt}`)
+        el('small', `광주대구선 도로위험기상${rr?.tmKst ? ` · ${fmt(rr.tmKst)} (${rr.flagLabel || '분석'})` : ''}${bridgeTxt}`)
       );
       const rightDiv = el('div', '', 'detail-road-pills');
       const iceLv = rr?.iceLevel ?? 0;
@@ -1941,15 +1940,21 @@ function renderDetail() {
   const tbody = $('forecast');
   const thead = $('forecastHead');
   tbody.replaceChildren();
-  if (tableMode === '12h' && kHours.length) {
+  if (tableMode === '12h') {
     thead.innerHTML = '<tr><th>시각</th><th>기온</th><th>강수형태</th><th>강수확률</th><th>예상 강수량</th><th>예상 적설</th><th>습도·풍속</th></tr>';
+    if (!kHours.length) {
+      const row = tbody.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = 7;
+      cell.textContent = '기상청 시간별예보를 아직 받지 못했습니다.';
+    }
     for (const kh of kHours) {
       const tr = el('tr');
       for (const v of [
         kh.time.slice(11, 16),
         `${kh.temp ?? '—'}°`,
         kh.wet ? `☔ ${kh.type}` : kh.skyLabel || '맑음',
-        `${kh.chance ?? 0}%`,
+        kh.chance == null ? '—' : `${kh.chance}%`,
         kh.amount || '강수없음',
         kh.snow || '적설없음',
         `${kh.humidity ?? '—'}% · ${kh.wind ?? '—'}m/s`
@@ -2268,12 +2273,6 @@ function renderDetail() {
   }
 
   $('radarLink').href = `https://www.windy.com/-Weather-radar-radar?radar,${p.lat},${p.lon},10`;
-  $('status').textContent = [
-    o ? `도로기상관측(${o.name}${o._fromSnapshot ? '·스냅샷' : ''})` : '관측 연동 중',
-    w?.kma ? `기상청 초단기·단기예보${w.kma._fromSnapshot ? '(스냅샷)' : ''}` : '',
-    w ? (w.stale ? '이전 모델 자료' : 'Open-Meteo·ICON 앙상블') : '예보 확인 중',
-    '5분마다 자동 갱신'
-  ].filter(Boolean).join(' · ');
 
   updateUnifiedGlobalStamp();
 }

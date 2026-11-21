@@ -292,7 +292,8 @@
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   footer.page-foot { max-width: 1180px; margin: 0 auto; padding: 0 20px 40px; color: var(--muted-2); font-size: 11.5px; line-height: 1.7; }
-  .page-foot .briefing-guide { color: inherit; font: inherit; text-underline-offset: 2px; }
+  .page-foot .briefing-guide { color: inherit; font: inherit; text-decoration: none; text-underline-offset: 2px; }
+  .page-foot .briefing-guide:hover { text-decoration: underline; }
   .page-foot .briefing-guide::before { content: "▪ "; }
   .modal-foot .cctv-notice { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--muted); }
   footer.page-foot code { color: var(--muted); background: #0d1728; border: 1px solid var(--line-soft); border-radius: 5px; padding: 1px 5px; }
@@ -418,7 +419,7 @@
   영상은 각 스트리밍 서버(<code>*.hscdn.com</code> 등)에서 브라우저가 직접 받아 재생하고,
   Worker는 CCTV 목록(JSON)만 15분 캐시로 중계합니다. 목록이 비었거나 이름이 안 맞으면
   <code>캐시 새로고침</code>으로 다시 받아 보세요.
-  <a class="briefing-guide" href="https://bionda.pages.dev/llms.txt">봇용 브리핑 수집 안내</a>
+  <a class="briefing-guide" target="_blank" rel="noopener" href="https://bionda.pages.dev/llms.txt">봇용 브리핑 수집 안내</a>
 </footer>
 
 <!-- ── 팝업 ───────────────────────────── -->
