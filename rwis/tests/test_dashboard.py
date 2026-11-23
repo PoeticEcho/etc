@@ -121,7 +121,7 @@ def main() -> int:
           unknown: [...document.querySelectorAll('#routeMap text')].some(t => t.textContent.includes('등급 없음')),
           meta: document.getElementById('routeMeta').textContent,
         })""")
-        check("스냅샷 모드에서도 노선도 렌더", sample_route["svg"] and len(sample_route["segs"]) == 8 and sample_route["nodes"] == 13,
+        check("스냅샷 모드에서도 노선도 렌더", sample_route["svg"] and len(sample_route["segs"]) == 16 and sample_route["nodes"] == 13,
               f"구간 {len(sample_route['segs'])} · 노드 {sample_route['nodes']}")
         check("스냅샷 등급은 노선도에 그리되 출처를 밝힘",
               "스냅샷" in (sample_route["eyebrow"] or "") and any(s["lv"] != "null" for s in sample_route["segs"]),
@@ -702,7 +702,7 @@ def main() -> int:
           bodyOn: document.querySelector('#routeMetric [data-rm="vir"]').classList.contains('on'),
         })""")
         check("가로 레일에서 가시거리 전환(본체 버튼과 동기화)",
-              lvir["railOn"] and lvir["bodyOn"] and len(lvir["segs"]) == 8 and all(v != "null" for v in lvir["segs"]),
+              lvir["railOn"] and lvir["bodyOn"] and len(lvir["segs"]) == 16 and all(v != "null" for v in lvir["segs"]),
               str(lvir["segs"]))
         lpage.click('#rail [data-rd="both"]')
         lpage.wait_for_timeout(300)
@@ -790,6 +790,7 @@ def main() -> int:
             provinces: document.querySelectorAll('#routeMap .provinces path').length,
             counties: document.querySelectorAll('#routeMap .counties path').length,
             title: [...document.querySelectorAll('#routeMap text')].map(t => t.textContent).find(t => t.includes('현황')),
+            hdr: [...document.querySelectorAll('#routeMap .hdr text')].map(t => t.textContent.trim()),
             legend: [...document.querySelectorAll('#routeMap .legend-item')].map(t => t.textContent.trim()),
             srcLine: [...document.querySelectorAll('#routeMap text')].filter(t => t.textContent.includes('rwis.kma.go.kr')).length,
             chips: [...document.querySelectorAll('#routeMap .chips text')].map(t => t.textContent.trim()),
@@ -798,7 +799,7 @@ def main() -> int:
         }""")
         check("노선도 SVG 렌더 (1600×900 viewBox)", route["exists"] and route["viewBox"] == "0 0 1600 900",
               f"{route['viewBox']} · 화면 {route['box']}")
-        check("8개 구간 색상 경로", len(route["segs"]) == 8 and all(s["dir"] == "E" for s in route["segs"]),
+        check("v8 기본 방향 '양방향' → 구간당 상·하행 16선", len(route["segs"]) == 16 and {s["dir"] for s in route["segs"]} == {"E", "S"},
               f"{len(route['segs'])}개 · 방향 {sorted({s['dir'] for s in route['segs']})}")
         check("실등급 0~3 색상 매핑", all(s["lv"] in {"0", "1", "2", "3"} for s in route["segs"]),
               str([s["lv"] for s in route["segs"]]))
@@ -812,7 +813,11 @@ def main() -> int:
         check("배경 지도(시도 4 + 시군 13)", route["provinces"] == 4 and route["counties"] >= 10,
               f"시도 {route['provinces']} · 시군 {route['counties']}")
         check("권역 이름 표기", set(route["regionNames"]) >= {"경남", "경북", "전북"}, str(route["regionNames"]))
-        check("헤더 제목·관측시각", bool(route["title"]) and "도로살얼음" in route["title"], str(route["title"]))
+        check("v8 컴팩트 헤더 — 출처·지표·관측시각·범위", len(route["hdr"]) == 2
+              and "기상청 RWIS" in route["hdr"][0] and "도로살얼음(FSM)" in route["hdr"][0]
+              and "관측" in route["hdr"][1] and "함양IC" in route["hdr"][1],
+              str(route["hdr"]))
+        check("v8 지도 안에 중복 큰 제목 없음", all("현황" not in h for h in route["hdr"]), str(route["hdr"]))
         check("4단계 범례 + 출처", len(route["legend"]) == 4 and route["srcLine"] >= 1, str(route["legend"]))
         check("방향 셰브런 표시", route["chevrons"] >= 8, str(route["chevrons"]))
 
@@ -837,7 +842,8 @@ def main() -> int:
               if (ox > 2 && oy > 2) bad.push([items[i].text, items[j].text, Math.round(ox), Math.round(oy)]);
             }
           }
-          const outside = items.filter(it => it.b.y < 150 || it.b.y + it.b.height > 790 || it.b.x < 0 || it.b.x + it.b.width > 1600).map(it => it.text);
+          const m = document.querySelector('#routeMap').dataset.map.split(',').map(Number);
+          const outside = items.filter(it => it.b.y < m[1] + 2 || it.b.y + it.b.height > m[1] + m[3] - 2 || it.b.x < m[0] || it.b.x + it.b.width > m[0] + m[2]).map(it => it.text);
           return { bad, outside };
         }""")
         check("노선도 라벨끼리 겹치지 않음", not overlap["bad"], json.dumps(overlap["bad"], ensure_ascii=False))
@@ -874,11 +880,12 @@ def main() -> int:
             lv: Object.fromEntries([...document.querySelectorAll('#routeMap path.seg[data-seg]')].map(s => [s.dataset.seg + s.dataset.dir, s.dataset.lv])),
             zone: map,
             title: [...document.querySelectorAll('#routeMap text')].map(t => t.textContent).find(t => t.includes('현황')),
+            hdr: [...document.querySelectorAll('#routeMap .hdr text')].map(t => t.textContent.trim()).join(' '),
             eyebrow: [...document.querySelectorAll('#routeMap text')].map(t => t.textContent).find(t => t.includes('기상청 RWIS')),
           };
         }""")
-        check("가시거리 모드 제목 전환", "도로가시거리" in vir["title"] and "VIR" in vir["eyebrow"],
-              f"{vir['title']} / {vir['eyebrow']}")
+        check("가시거리 모드 헤더 전환", "도로가시거리" in vir["hdr"] and "VIR" in vir["eyebrow"],
+              f"{vir['hdr']} / {vir['eyebrow']}")
         check("가시거리 등급이 구간 카드와 일치",
               all(vir["lv"].get(k) == v for k, v in vir["zone"].items() if k in vir["lv"]),
               f"노선도 {sorted(set(vir['lv'].values()))} / 카드 {sorted(set(vir['zone'].values()))}")
@@ -1282,8 +1289,8 @@ def main() -> int:
               rise["zones"] > 0 and rise["rises"] >= rise["zones"],
               f"상향 {rise['rises']}건 · 카드 {rise['zones']}구간")
         check("상향 구간 노선도 펄스 하이라이트 + ▲ 표식",
-              rise["halos"] > 0 and rise["halos"] == rise["marks"] and rise["halos"] <= rise["zones"],
-              f"펄스 {rise['halos']} · 표식 {rise['marks']}")
+              rise["halos"] > 0 and rise["halos"] == rise["marks"] and rise["halos"] <= rise["zones"] * 2,
+              f"펄스 {rise['halos']} · 표식 {rise['marks']} · 카드 {rise['zones']}구간(양방향 2선까지)")
         check("구간 카드 ▲ 배지 + 요약 '▲ 상향'",
               rise["chips"] == rise["zones"] and "▲ 상향" in rise["meta"],
               f"배지 {rise['chips']} · {rise['meta'][-24:]}")
@@ -1398,6 +1405,112 @@ def main() -> int:
         mpg.screenshot(path=str(ROOT.parent / "downloads" / "gwangju_daegu_v7_mobile_portrait.png"), full_page=False)
         check("v7 모바일 콘솔 에러 0건", not m_errors7, "; ".join(m_errors7[:2]))
         mob.close()
+
+        print("\n[15] v8 — 방향 일치 · 보조지표 시인성 · 하단 탭 · 지도 라벨 · 리포트")
+        page.goto(f"{base}/index.html", wait_until="load", timeout=40000)
+        page.wait_for_function("() => ['live', 'snapshot', 'sample'].includes(window.__gdc.state.mode)", timeout=40000)
+        page.wait_for_timeout(500)
+        v8 = page.evaluate("""() => {
+          const segs = () => [...document.querySelectorAll('#routeMap path.seg[data-seg]')].map(s => s.dataset.dir);
+          return {
+            dirBoth: document.querySelector('#routeDir [data-rd="both"]').getAttribute('aria-pressed'),
+            dirE: document.querySelector('#routeDir [data-rd="E"]').getAttribute('aria-pressed'),
+            segs: segs(),
+            cards: [...document.querySelectorAll('#zoneGrid .zone')].map(z => z.textContent.replace(/\\s+/g, ' ').trim()),
+            live: document.getElementById('routeLive').textContent,
+            meta: document.getElementById('routeMeta').textContent.replace(/\\s+/g, ' ').trim(),
+            sum: document.querySelector('#rwisSummary .sum-main .big').textContent.replace(/\\s+/g, ' ').trim(),
+            grp: (document.querySelector('#pointList .pgroup') || {}).textContent || '',
+            hdr: [...document.querySelectorAll('#routeMap .hdr text')].map(t => t.textContent.trim()),
+            alt: (() => {
+              const el = document.querySelector('#zoneGrid .zalt');
+              if (!el) return null;
+              const cs = getComputedStyle(el);
+              const m = cs.color.match(/\\d+/g).map(Number);
+              return { text: el.textContent.trim(), color: m, dot: !!el.querySelector('.adot'), fs: parseFloat(cs.fontSize) };
+            })(),
+          };
+        }""")
+        check("v8 기본 방향 탭 = 양방향", v8["dirBoth"] == "true" and v8["dirE"] == "false"
+              and set(v8["segs"]) == {"E", "S"} and all("양방향" in c for c in v8["cards"]),
+              f"both={v8['dirBoth']} · 카드 {v8['cards'][:1]}")
+        check("v8 지도 헤더가 패널 헤더와 중복되지 않음 (큰 제목 제거)",
+              len(v8["hdr"]) == 2 and not any("현황" in h for h in v8["hdr"]), str(v8["hdr"]))
+
+        page.click('#routeDir [data-rd="E"]')
+        page.wait_for_timeout(500)
+        east = page.evaluate("""() => ({
+          segs: [...new Set([...document.querySelectorAll('#routeMap path.seg[data-seg]')].map(s => s.dataset.dir))],
+          cards: [...document.querySelectorAll('#zoneGrid .zone')].map(z => z.textContent.replace(/\\s+/g, ' ').trim()),
+          live: document.getElementById('routeLive').textContent,
+          meta: document.getElementById('routeMeta').textContent.replace(/\\s+/g, ' ').trim(),
+          sum: document.querySelector('#rwisSummary .sum-main .big').textContent.replace(/\\s+/g, ' ').trim(),
+          sumBasis: document.querySelector('#rwisSummary .sum-time .dist').textContent.replace(/\\s+/g, ' ').trim(),
+          grp: [...document.querySelectorAll('#pointList .pgroup .pg-lv')].map(n => n.textContent.trim()),
+          tabsActive: [...document.querySelectorAll('#routeDir button')].filter(b => b.classList.contains('on')).map(b => b.textContent.trim()),
+        })""")
+        check("v8 '대구' 선택 — 지도·카드·요약·목록이 모두 대구 기준",
+              east["segs"] == ["E"] and all("대구" in c and "양방향" not in c for c in east["cards"])
+              and "대구방향 최고" in east["sum"] and "대구방향" in east["meta"]
+              and all("대구" in g for g in east["grp"]) and east["tabsActive"] == ["대구 ↑"],
+              f"{east['segs']} · {east['cards'][:2]} · {east['sum']}")
+        check("v8 방향 선택 시 상단 요약 문구까지 일치",
+              "대구방향(상행)" in east["live"] and "대구방향" in east["meta"] and "대구방향" in east["sumBasis"],
+              f"{east['live']} · {east['sumBasis']}")
+
+        page.click('#routeDir [data-rd="S"]')
+        page.wait_for_timeout(450)
+        south = page.evaluate("""() => ({
+          segs: [...new Set([...document.querySelectorAll('#routeMap path.seg[data-seg]')].map(s => s.dataset.dir))],
+          cards: [...document.querySelectorAll('#zoneGrid .zone')].map(z => z.textContent.replace(/\\s+/g, ' ').trim()),
+          live: document.getElementById('routeLive').textContent,
+        })""")
+        check("v8 '광주' 선택 — 광주 기준으로 전환",
+              south["segs"] == ["S"] and all("광주" in c and "대구" not in c for c in south["cards"])
+              and "광주방향(하행)" in south["live"],
+              f"{south['segs']} · {south['cards'][:1]}")
+        page.click('#routeDir [data-rd="both"]')
+        page.wait_for_timeout(400)
+
+        check("v8 보조 지표(가시거리 주의) 앰버 톤 + 점",
+              v8["alt"] is not None and v8["alt"]["color"][0] > 190 and v8["alt"]["color"][2] < 140
+              and v8["alt"]["dot"] and v8["alt"]["fs"] >= 10,
+              str(v8["alt"]))
+
+        # 리포트 — CCTV 열이 주요 거점 + 영상 상태, 분포 문구 확대
+        rep8 = page.evaluate("() => window.__gdc.reportSvg()")
+        check("v8 리포트 CCTV 열 = 주요 거점 + 영상 상태",
+              "CCTV · 영상" in rep8 and "지점" in rep8 and ("영상 연결" in rep8 or "영상 없음" in rep8)
+              and any(name in rep8 for name in ("함양산삼골휴게소", "함양·지곡", "거창·살피재TN")),
+              "CCTV 열 확인")
+        check("v8 리포트 8구간 분포 문구 확대", "8구간 분포" in rep8 and 'font-size="18"' in rep8 and 'font-size="20"' in rep8,
+              "폰트 18/20 확인")
+
+        # 모바일 — 하단 탭 숫자 제거 · 고령JC 여백
+        mob8 = browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+        mpg8 = mob8.new_page()
+        mpg8.goto(f"{base}/index.html", wait_until="load", timeout=40000)
+        mpg8.wait_for_timeout(700)
+        m8 = mpg8.evaluate("""() => {
+          const svg = document.querySelector('#routeMap');
+          const w = svg.viewBox.baseVal.width;
+          const jc = [...document.querySelectorAll('#routeMap .node')].find(n => n.querySelector('.lbl').textContent === '고령JC');
+          const pill = jc.querySelector('.label-pill').getBBox();
+          const ic = [...document.querySelectorAll('#routeMap .node')].find(n => n.querySelector('.lbl').textContent === '함양IC');
+          const hjc = [...document.querySelectorAll('#routeMap .node')].find(n => n.querySelector('.lbl').textContent === '함양JC');
+          const hjcPill = hjc.querySelector('.label-pill').getBBox();
+          const icGlyph = ic.querySelector('.glyph').getBBox();
+          return {
+            dock: document.getElementById('dockBar').textContent.replace(/\\s+/g, ' ').trim(),
+            right: Math.round(w - (pill.x + pill.width)),
+            hamGap: Math.round(hjcPill.x - (icGlyph.x + icGlyph.width)),
+            alt: (() => { const el = document.querySelector('#zoneGrid .zalt'); return el ? el.textContent.trim() : null; })(),
+          };
+        }""")
+        check("v8 모바일 하단 탭 CCTV 숫자 제거", "CCTV" in m8["dock"] and "62" not in m8["dock"], m8["dock"])
+        check("v8 모바일 고령JC 오른쪽 여백 확보", m8["right"] >= 20, f"오른쪽 여백 {m8['right']}")
+        check("v8 함양JC 말풍선이 시점 마커를 덮지 않음", m8["hamGap"] >= 30, f"시점 마커와 {m8['hamGap']}px")
+        mob8.close()
 
         page.screenshot(path=str(ROOT.parent / "downloads" / "gwangju_daegu_v7_desktop.png"), full_page=False)
         # 화면 3장(데스크톱·세로·가로)은 tests/test_dashboard_visual.py 가 따로 찍는다
