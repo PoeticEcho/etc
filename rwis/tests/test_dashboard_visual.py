@@ -87,6 +87,50 @@ SMALL = """() => {
 }"""
 
 
+# v11 — 모바일 상단 배지('… 전')와 지도 위 상·하행 화살표 분리도.
+# 화살표는 SVG 경로라 화면 픽셀을 모르므로, 같은 구간의 반대 방향 화살표끼리
+# ① 호 위 위치 간격 ② 촘촘히 샘플링한 점 사이 최소 거리를 재 둘 다 보고한다.
+V11_MOBILE = """() => {
+  const t = document.getElementById('modeText');
+  const pill = document.getElementById('modePill');
+  const topbar = document.getElementById('topbar');
+  const svg = document.querySelector('#routeMap');
+  const vb = (svg.getAttribute('viewBox') || '0 0 1 1').split(' ').map(Number);
+  const scale = svg.getBoundingClientRect().width / vb[2];
+  const paths = [...document.querySelectorAll('#routeMap .chevrons path')];
+  const info = paths.map((p) => {
+    const L = p.getTotalLength();
+    const pts = [];
+    for (let i = 0; i <= 24; i += 1) { const q = p.getPointAtLength(L * i / 24); pts.push([q.x, q.y]); }
+    return { seg: p.dataset.seg, dir: p.dataset.dir, s: +p.dataset.s, size: +p.dataset.size, pts };
+  });
+  let pairs = 0, minArc = 1e9, minPx = 1e9, minArcRatio = 1e9, worst = null;
+  for (let i = 0; i < info.length; i += 1) {
+    for (let j = i + 1; j < info.length; j += 1) {
+      const a = info[i], b = info[j];
+      if (a.seg !== b.seg || a.dir === b.dir) continue;
+      pairs += 1;
+      let m = 1e9;
+      for (const p of a.pts) for (const q of b.pts) m = Math.min(m, Math.hypot(p[0] - q[0], p[1] - q[1]));
+      const arc = Math.abs(a.s - b.s);
+      const box = Math.min(a.size, b.size);
+      minArc = Math.min(minArc, arc);
+      minArcRatio = Math.min(minArcRatio, arc / box);
+      minPx = Math.min(minPx, m * scale);
+      if (!worst || m * scale < worst.px) worst = { seg: a.seg, px: +(m * scale).toFixed(1), arc: +arc.toFixed(1) };
+    }
+  }
+  return {
+    badge: t.textContent.trim(),
+    textOvf: t.scrollWidth - t.clientWidth,
+    pillOvf: pill.scrollWidth - pill.clientWidth,
+    headerOvf: topbar.scrollWidth - topbar.clientWidth,
+    paths: paths.length, pairs,
+    minArc: +minArc.toFixed(1), minArcRatio: +minArcRatio.toFixed(2), minPx: +minPx.toFixed(1), worst,
+  };
+}"""
+
+
 def check(name: str, ok: bool, detail: str = "") -> None:
     RESULTS.append((name, bool(ok), detail))
     print(("  ✔ " if ok else "  ✘ ") + name + (f"  — {detail}" if detail else ""))
@@ -188,6 +232,31 @@ def main() -> int:
                   f"카드하단 {info.get('bandBottom')} ≤ 독 {info.get('dockTop')}")
             page.screenshot(path=str(dl / f"{shot}.png"), full_page=False)
             check(f"v10 {shot}.png 저장", (dl / f"{shot}.png").exists(), str(dl / f"{shot}.png"))
+            ctx.close()
+            browser.close()
+
+        print("\n[V4] v11 — 모바일 배지 '… 전' · 지도 화살표 상·하행 분리")
+        for vw, vh in ((390, 680), (360, 640)):
+            browser = pw.chromium.launch()
+            ctx = browser.new_context(viewport={"width": vw, "height": vh}, device_scale_factor=2,
+                                      is_mobile=True, has_touch=True)
+            page = ctx.new_page()
+            page.goto(f"{base}/index.html", wait_until="load", timeout=40000)
+            page.wait_for_timeout(900)
+            info = page.evaluate(V11_MOBILE) or {}
+            label = f"{vw}×{vh}"
+            badge = info.get("badge", "")
+            import re
+            check(f"v11 {label} 상단 배지가 경과를 '… 전'으로 표기",
+                  bool(re.fullmatch(r"스냅샷 (방금|\d+분 전|\d+시간 전|\d+일 전)", badge)),
+                  f"배지 '{badge}'")
+            check(f"v11 {label} 배지·헤더가 말줄임·넘칩니다",
+                  info.get("textOvf", 1) <= 0 and info.get("pillOvf", 1) <= 0 and info.get("headerOvf", 1) <= 0,
+                  f"텍스트 {info.get('textOvf')} · 배지 {info.get('pillOvf')} · 헤더 {info.get('headerOvf')}px")
+            check(f"v11 {label} 상·하행 화살표가 같은 자리에 겹치지 않음",
+                  info.get("pairs", 0) >= 8 and info.get("minArcRatio", 0) >= 2.5 and info.get("minPx", 0) >= 3.0,
+                  f"쌍 {info.get('pairs')} · 최소 호 간격 {info.get('minArc')}(화살 크기의 "
+                  f"{info.get('minArcRatio')}배) · 최소 화면 거리 {info.get('minPx')}px · {info.get('worst')}")
             ctx.close()
             browser.close()
 

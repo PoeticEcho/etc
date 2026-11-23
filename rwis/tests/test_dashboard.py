@@ -1564,6 +1564,55 @@ def main() -> int:
               "CCTV · 등록" in rep9 and "등록 CCTV ·" in rep9 and "영상 연결" not in rep9,
               "등록 CCTV 표기 확인")
 
+        print("\n[17] v11 — 데스크톱 카드 '인근 CCTV ›' 우측 여백 · 이정 단위 접기")
+        for vw in (1024, 1280, 1440):
+            page.set_viewport_size({"width": vw, "height": 900})
+            page.wait_for_timeout(320)
+            v11 = page.evaluate("""() => {
+              const gcs = (e) => getComputedStyle(e);
+              const rows = [...document.querySelectorAll('#zoneGrid .zone')].map(c => {
+                const cr = c.getBoundingClientRect();
+                const st = gcs(c);
+                const inner = cr.right - parseFloat(st.paddingRight) - parseFloat(st.borderRightWidth);
+                const btn = c.querySelector('.zcctv');
+                const chev = c.querySelector('.zchev');
+                const unit = c.querySelector('.zk-u');
+                const meta = c.querySelector('.zmeta');
+                const b = btn && btn.getBoundingClientRect();
+                const v = chev && chev.getBoundingClientRect();
+                return {
+                  name: (c.querySelector('.zh strong') || {}).textContent || '',
+                  cardW: +cr.width.toFixed(1),
+                  btnRight: b ? +(inner - b.right).toFixed(1) : null,
+                  chevRight: v ? +(inner - v.right).toFixed(1) : null,
+                  metaOvf: meta ? meta.scrollWidth - meta.clientWidth : 0,
+                  unitHidden: unit ? gcs(unit).display === 'none' : null,
+                  chevShown: chev ? gcs(chev).display !== 'none' && v.width > 0.5 : false,
+                  titleHasKm: /km/.test(c.getAttribute('title') || ''),
+                };
+              });
+              return rows;
+            }""")
+            btns = [r for r in v11 if r["btnRight"] is not None]
+            gaps = [r["btnRight"] for r in btns]
+            check(f"v11 {vw}px 모든 구간 카드에서 '인근 CCTV ›'가 카드 안 여백을 두고 들어감",
+                  bool(btns) and min(gaps) >= 1 and not [r for r in v11 if r["metaOvf"] > 0],
+                  f"최소 우측 여백 {min(gaps) if gaps else '-'}px · 카드 {len(v11)}개 · 넘침 "
+                  f"{[r['name'] for r in v11 if r['metaOvf'] > 0]}")
+            longest = [r for r in v11 if r["name"] in ("고령JC ↔ 옥포JC", "고령IC ↔ 동고령IC")]
+            check(f"v11 {vw}px 이정이 가장 긴 두 카드도 버튼·› 잘림 없음",
+                  len(longest) == 2 and all(r["btnRight"] >= 1 and (r["chevRight"] is None or r["chevRight"] >= 1)
+                                            for r in longest),
+                  " · ".join(f"{r['name']} 여백 {r['btnRight']}px" for r in longest))
+            check(f"v11 {vw}px '인근 CCTV' 버튼의 › 가 접히지 않고 보임",
+                  bool(btns) and all(r["chevShown"] for r in btns),
+                  f"› 보임 {sum(1 for r in btns if r['chevShown'])}/{len(btns)}")
+            check(f"v11 {vw}px 카드에서는 이정 단위 km를 접고 툴팁에는 남김",
+                  all(r["unitHidden"] for r in v11) and all(r["titleHasKm"] for r in v11),
+                  f"단위 숨김 {sum(bool(r['unitHidden']) for r in v11)}/{len(v11)}")
+        page.set_viewport_size({"width": 1280, "height": 900})
+        page.wait_for_timeout(250)
+
         page.screenshot(path=str(ROOT.parent / "downloads" / "gwangju_daegu_v7_desktop.png"), full_page=False)
         # 화면 3장(데스크톱·세로·가로)은 tests/test_dashboard_visual.py 가 따로 찍는다
         # (오래 산 브라우저에서 새 컨텍스트를 여는 것이 이 환경에서 멈추기 때문)

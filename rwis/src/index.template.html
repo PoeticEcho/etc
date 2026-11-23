@@ -541,7 +541,8 @@
 
   @media (max-width: 400px) {
     .brand h1 { font-size: 12px; }
-    .pill span:last-child { max-width: 74px; overflow: hidden; text-overflow: ellipsis; }
+    /* v11 — '스냅샷 11시간 전'이 말줄임되지 않도록 폭을 열어 두고, 제목이 먼저 줄어들게 한다 */
+    .pill span:last-child { max-width: none; overflow: visible; white-space: nowrap; }
     .route-head .right .seg-filter button { padding: 7px 4px; font-size: 11px; }
     .zone .badge { font-size: 10px; padding: 2px 5px; }
     /* v10 — 좁은 폭에서 제목이 '광주대…'로 잘리지 않게: 자동 갱신이 꺼져 있으면 '수동 갱신' 칩을 접는다(⚙에서 확인) */
@@ -875,13 +876,16 @@
   .zone .zalt[data-lv="2"] { color: #ef9a4c; }
   .zone .zalt[data-lv="3"] { color: #f0908c; }
   .zone .zmeta {
-    margin-top: auto; padding-top: 8px; font-size: 10.5px; color: #5f7794;
-    display: flex; align-items: center; justify-content: space-between; gap: 4px 8px; flex-wrap: nowrap;
+    margin-top: auto; padding-top: 8px; padding-right: 2px; font-size: 10.5px; color: #5f7794;
+    display: flex; align-items: center; justify-content: space-between; gap: 4px 7px; flex-wrap: nowrap;
   }
-  .zone .zkm { font-size: 10.5px; color: #5f7794; letter-spacing: .01em; white-space: nowrap; }
+  /* v11 — 이정 범위가 길어도 '인근 CCTV ›' 버튼이 카드 밖으로 밀리지 않게:
+     범위는 줄어들며 말줄임(버튼은 flex:none), 단위 km는 카드에서 접는다(툴팁에는 남김) */
+  .zone .zkm { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 10.5px; color: #5f7794; letter-spacing: .01em; white-space: nowrap; }
+  .zone .zkm .zk-u { display: none; }
   /* v9 — '인근 CCTV'를 누를 수 있는 버튼으로 보이게 (테두리·배경·hover/active·›) */
   .zone .zcctv {
-    display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; white-space: nowrap;
+    flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; white-space: nowrap;
     font-size: 10px; font-weight: 700; color: #9cc4e6; letter-spacing: .01em;
     border: 1px solid rgba(124,168,207,.36); border-radius: 999px;
     background: rgba(64,132,196,.14);
@@ -891,7 +895,23 @@
   .zone .zcctv:hover { color: #e2f2ff; border-color: rgba(124,190,240,.72); background: rgba(64,150,220,.28); }
   .zone .zcctv:active { background: rgba(64,150,220,.4); border-color: rgba(150,205,245,.9); }
   .zone .zcctv:focus-visible { outline: 2px solid rgba(56,189,248,.65); outline-offset: 1px; }
-  .zone .zno { font-size: 10px; color: #7d94af; }
+  .zone .zno { flex: none; font-size: 10px; color: #7d94af; }
+  /* v11 — 1024~1200px의 좁은 데스크톱 카드: 버튼을 한 단계 조여 '인근 CCTV ›'가 온전히 들어가게 */
+  @media (min-width: 1024px) and (max-width: 1200px) {
+    .zone .zmeta { gap: 4px 6px; padding-right: 1px; }
+    .zone .zkm { font-size: 10px; }
+    .zone .zcctv { font-size: 9.5px; padding: 2px 6px; gap: 3px; }
+    .zone .zcctv > span[aria-hidden="true"] { font-size: 9px; }
+    .zone .zcctv .zchev { font-size: 10px; }
+  }
+  /* 1024~1120px — 카드가 더 좁아지면 아이콘을 접고 글자를 한 단계 줄여 이정 범위까지 온전히 보이게 */
+  @media (min-width: 1024px) and (max-width: 1120px) {
+    .zone .zkm { font-size: 9.5px; }
+    .zone .zcctv { font-size: 9px; padding: 2px 5px; gap: 2px; }
+    /* v11 — 접는 것은 📹 아이콘뿐. ›(.zchev)는 aria-hidden 이라 같은 규칙에 걸려 사라지던 것을 제외한다 */
+    .zone .zcctv > span[aria-hidden="true"]:not(.zchev) { display: none; }
+    .zone .zcctv .zchev { font-size: 9.5px; }
+  }
 
   /* 선택 지표 하나로만 강조 — 다른 지표는 글자로만 알린다 */
   .zone.hot { border-color: var(--edge-2); background: #0c1727; }
@@ -1566,6 +1586,15 @@ const ROUTE_GEO = __ROUTE_GEO__;
     return `${Math.floor(hours / 24)}일 전`;
   }
 
+  /** v11 — 짧은 경과 표기: '11시간 전' · '12분 전' · '2일 전' */
+  function shortAge(min) {
+    if (min < 1) return '방금';
+    if (min < 60) return `${min}분 전`;
+    const hours = Math.floor(min / 60);
+    if (hours < 24) return `${hours}시간 전`;
+    return `${Math.floor(hours / 24)}일 전`;
+  }
+
   /** 지금 화면의 데이터가 무엇인지 — 한눈에 구분되도록 kind/label 을 만든다. */
   function freshness() {
     if (state.mode === 'loading') return { kind: 'loading', label: '연결 확인 중', short: '확인 중', minutes: null, tm: '' };
@@ -1583,7 +1612,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
       return {
         kind: 'snapshot',
         label: `스냅샷${clock ? ' ' + clock : ''}${minutes !== null ? ' · ' + ageText(minutes) : ''}`,
-        short: `스냅샷${minutes !== null ? ' ' + (minutes < 60 ? `${minutes}분` : `${Math.floor(minutes / 60)}시간`) : ''}`,
+        /* v11 — '전'을 붙여 시간 경과임을 분명히 (좁은 화면은 이 짧은 표기를 쓴다) */
+        short: `스냅샷${minutes !== null ? ' ' + shortAge(minutes) : ''}`,
         minutes, tm,
       };
     }
@@ -2342,6 +2372,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
     branchCase: 13, branchStroke: 7.5, provStroke: 3, countyStroke: 1.3, countyDash: '',
     shadowDy: 3, shadowBlur: 5, glowBlur: 7, pillDy: 2, pillBlur: 3,
     bothOffset: 9.5, dashOn: 12, dashOff: 10, minChevronLen: 26, chevronSplit: 220,
+    chevBothScale: 0.75, chevArm: 0.72, chevGap: 2.4, chevShift: 0.12,
     hitWidth: 40, pillStroke: 1.6, subGap: 7,
   };
 
@@ -2370,7 +2401,12 @@ const ROUTE_GEO = __ROUTE_GEO__;
       regionSpacing: 3, leaderW: 1.1, branchFont: 8 * K, branchLen: 56,
       branchCase: 6, branchStroke: 3.2, provStroke: 1.3, countyStroke: 0.6, countyDash: '3 3',
       shadowDy: 1.2, shadowBlur: 2, glowBlur: 3, pillDy: 0.8, pillBlur: 1.2,
-      bothOffset: 4.6, dashOn: 6, dashOff: 5, minChevronLen: 22, chevronSplit: 120,
+      bothOffset: 7.0, dashOn: 6, dashOff: 5, minChevronLen: 22, chevronSplit: 120,
+      /* v11 — 모바일 축척에서는 두 차로 간격(5.6)보다 화살표가 커서 상·하행이 'N'자로 붙었다.
+         화살을 조금 줄이고(0.68) 팔 폭도 줄이며(0.62), 두 방향을 호 위에서 꽤 떨어뜨린다 */
+      chevBothScale: 0.68, chevArm: 0.62, chevGap: 3.2, chevShift: 0.24,
+      /* v11 — 상·하행 화살표를 구간 양 끝 쪽에 나눠 앉혀, 같은 자리에서 'N'처럼 붙지 않게 */
+      chevPair: { long: [[0.26, 0.6], [0.4, 0.74]], short: [[0.32], [0.68]] },
       hitWidth: 26, pillStroke: 1, subGap: 3.4,
     };
   }
@@ -3191,18 +3227,25 @@ const ROUTE_GEO = __ROUTE_GEO__;
 
     /* 진행 방향 셰브런 — 노선 곡선을 따라 붙는다 (v8: 급커브에서 'w'처럼 깍여 보이던 문제 수정) */
     out.push('<g class="chevrons" aria-hidden="true">');
+    /* v11 — 같은 구간의 상·하행 화살표가 호 위 같은 자리에 붙으면 두 대가 'N'자로 겹쳐 보인다.
+       먼저 놓인 방향의 자리를 기억해 두고, 반대 방향은 그 자리에서 최소 간격만큼 떨어져 앉힌다. */
+    const chevSeats = {};
     for (const seg of segs) {
       if (seg.level === null || seg.level === undefined) continue;
       if (seg.pts.length < 3) continue;
       const tab = arcTable(densePath(seg.pts));
       if (tab.total < cfg.minChevronLen) continue;
-      const size = dir === 'both' ? cfg.stroke.chevron * 0.75 : cfg.stroke.chevron;
+      const size = dir === 'both' ? cfg.stroke.chevron * (cfg.chevBothScale || 0.75) : cfg.stroke.chevron;
       const travel = seg.travel < 0 ? -1 : 1;
       /* v9 — 양방향 셰브런은 서로 다른 호 위치에 두어 두 화살표가 나란히 붙어 'w'가 되지 않게 한다 */
-      const shift = dir === 'both' && seg.dirCode === 'S' ? 0.12 : 0;
-      const targets = (tab.total > cfg.chevronSplit ? [0.3, 0.7] : [0.5])
-        .map((t) => Math.min(0.86, t + shift));
+      const shift = dir === 'both' && seg.dirCode === 'S' ? (cfg.chevShift || 0.12) : 0;
+      const targets = cfg.chevPair && dir === 'both'
+        ? (tab.total > cfg.chevronSplit ? cfg.chevPair.long : cfg.chevPair.short)[seg.dirCode === 'E' ? 0 : 1].slice()
+        : (tab.total > cfg.chevronSplit ? [0.3, 0.7] : [0.5]).map((t) => Math.min(0.86, t + shift));
       const picked = [];
+      /* 반대 방향이 이미 앉은 자리 — 여기서 최소 간격만큼 피해서 앉힌다 */
+      const otherSeats = dir === 'both' ? (chevSeats[seg.zone.suffix] || []) : [];
+      const seatGap = size * (cfg.chevGap || 2.4);
       /* v9 — 터널·IC·JC 아이콘 위에 화살표가 얹히지 않게 그 주변은 비용을 더 준다 */
       const glyphPts = ROUTE_NODES
         .filter((n) => n.km >= seg.zone.startKm - 0.3 && n.km <= seg.zone.endKm + 0.3)
@@ -3210,6 +3253,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
       for (const target of targets) {
         /* 목표 지점 근처에서 곡률이 가장 낮은 자리를 골라 화살이 길 방향과 나란하게 붙는다 */
         let best = null;
+        /* 최소 간격을 지킬 자리가 없을 때(짧은 구간)만 쓰는 차선책 */
+        let fallback = null;
         const from = Math.max(0.16, target - 0.14);
         const to = Math.min(0.84, target + 0.14);
         for (let k = 0; k <= 28; k += 1) {
@@ -3218,16 +3263,24 @@ const ROUTE_GEO = __ROUTE_GEO__;
           if (picked.some((p) => Math.abs(p - s) < tab.total * 0.12)) continue;
           const bend = Math.abs(angleDelta(tangentAt(tab, s - 9).ang, tangentAt(tab, s + 9).ang));
           let cost = Math.abs(f - target) * 220 + bend * 140;
+          /* 반대 방향 화살표와 너무 가까우면 크게 물러나 앉는다('N'자 겹침 제거) */
+          let nearest = Infinity;
+          for (const o of otherSeats) nearest = Math.min(nearest, Math.abs(o - s));
+          if (seatGap > 0 && nearest < seatGap) cost += (seatGap - nearest) * 400;
           const at = arcAt(tab, s);
           for (const gp of glyphPts) {
             const d = Math.hypot(at.x - gp.x, at.y - gp.y);
             const lim = cfg.glyph.tnW * 0.5 + 10 + size;
             if (d < lim) cost += (lim - d) * 30;
           }
-          if (!best || cost < best.cost) best = { s, cost };
+          if (seatGap > 0 && nearest < seatGap * 0.9) {
+            if (!fallback || nearest > fallback.nearest) fallback = { s, cost, nearest };
+          } else if (!best || cost < best.cost) best = { s, cost };
         }
+        if (!best) best = fallback;
         if (!best) continue;
         picked.push(best.s);
+        if (dir === 'both') (chevSeats[seg.zone.suffix] = chevSeats[seg.zone.suffix] || []).push(best.s);
         /* v9 — 접선 하나로 두 팔을 그리면 급커브에서 팔 길이가 어긋나 'ㄱ'·'w'로 접힌다.
            뒤점↔끝점을 잇는 현의 수직을 써서 두 팔을 항상 같은 길이·각도로 그린다. */
         const tip = arcAt(tab, best.s + size * 0.45 * travel);
@@ -3240,8 +3293,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
         const nx = -uy;
         const ny = ux;
         /* 팔 폭은 자기 차로 폭(양방향 12) 안에 들어가게 — 옆 차로 화살표와 겹치지 않는다 */
-        const w = size * 0.72;
-        out.push(`<path d="M${n1(back.x + nx * w)} ${n1(back.y + ny * w)}L${n1(tip.x)} ${n1(tip.y)}L${n1(back.x - nx * w)} ${n1(back.y - ny * w)}" fill="none" stroke="#ffffff" stroke-width="${n1(size * 0.5)}" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>`);
+        const w = size * (cfg.chevArm || 0.72);
+        out.push(`<path d="M${n1(back.x + nx * w)} ${n1(back.y + ny * w)}L${n1(tip.x)} ${n1(tip.y)}L${n1(back.x - nx * w)} ${n1(back.y - ny * w)}" data-seg="${seg.zone.suffix}" data-dir="${seg.dirCode}" data-s="${n1(best.s)}" data-size="${n1(size)}" fill="none" stroke="#ffffff" stroke-width="${n1(size * 0.5)}" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>`);
       }
     }
     out.push('</g>');
