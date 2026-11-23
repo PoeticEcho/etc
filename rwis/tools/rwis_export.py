@@ -42,8 +42,8 @@ TABLE = f"{BASE}/rrw/algo/data/getNrmRiskRoadTableAll"
 UA = {"User-Agent": "Mozilla/5.0 (gwangju-daegu-rwis-export)"}
 ROAD = {"roadNo": "012", "roadNoN1": "12", "roadNoN2": "0120"}
 DIRS = [("E", "대구방향", "대구"), ("S", "광주방향", "광주")]
-LEVEL_NAME = ["안전", "관심", "주의", "경계"]
-LEVEL_DETAIL = ["0단계 · 안전", "1단계 · 관심", "2단계 · 주의", "3단계 · 경계(심각)"]
+LEVEL_NAME = ["안전", "관심", "주의", "위험"]
+LEVEL_DETAIL = ["0단계 · 안전", "1단계 · 관심", "2단계 · 주의", "3단계 · 위험"]
 TIMEOUT = 45
 # 최신 5분 슬롯 표가 아직 안 올라왔을 때(NODATA_ERROR·빈 표) 5분씩 직전 슬롯으로 후퇴하는 한도
 SLOT_MINUTES = 5

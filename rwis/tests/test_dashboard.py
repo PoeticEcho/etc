@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -54,31 +55,45 @@ def main() -> int:
         page.goto(f"{base}/index.html", wait_until="load")
         page.wait_for_timeout(400)
 
-        sample = page.evaluate("""() => ({
-          points: document.querySelectorAll('#pointList .point').length,
-          cams: document.querySelectorAll('#pointList .cam').length,
-          zones: document.querySelectorAll('#zoneGrid .zone').length,
-          dirrows: document.querySelectorAll('#zoneGrid .dirrow').length,
-          listCount: document.getElementById('listCount').textContent,
-          mode: document.getElementById('modeText').textContent,
-          pill: document.getElementById('modePill').dataset.state,
-          tm: document.getElementById('rwisTm').textContent,
-          badges: document.querySelectorAll('#zoneGrid .badge').length,
-          levels: [...document.querySelectorAll('#zoneGrid .badge')].map(b => b.dataset.level),
-          firstKm: document.querySelector('#pointList .point .km')?.textContent,
-          footer: !!document.querySelector('footer'),
-        })""")
+        sample = page.evaluate("""() => {
+          const zones = [...document.querySelectorAll('#zoneGrid .zone')];
+          const info = zones.map(z => ({
+            lv: ['lvEFsm', 'lvEVir', 'lvSFsm', 'lvSVir'].map(k => z.dataset[k]),
+            safe: !!z.querySelector('.zsafe'),
+            badges: z.querySelectorAll('.badge').length,
+          }));
+          return {
+            points: document.querySelectorAll('#pointList .point').length,
+            cams: document.querySelectorAll('#pointList .cam').length,
+            zones: zones.length,
+            allLevels: info.every(z => z.lv.every(v => v !== '' && v !== undefined && !Number.isNaN(Number(v)))),
+            hierarchy: info.every(z => (z.lv.some(v => Number(v) >= 1) ? z.badges >= 1 : z.safe)),
+            safeZones: info.filter(z => z.safe).length,
+            elevated: info.filter(z => z.lv.some(v => Number(v) >= 1)).length,
+            badges: document.querySelectorAll('#zoneGrid .badge').length,
+            listCount: document.getElementById('listCount').textContent,
+            mode: document.getElementById('modeText').textContent,
+            pill: document.getElementById('modePill').dataset.state,
+            tm: document.getElementById('rwisTm').textContent,
+            firstKm: document.querySelector('#pointList .point .km')?.textContent,
+            footer: !!document.querySelector('footer'),
+          };
+        }""")
         check("정적 스냅샷 62지점 렌더", sample["points"] == 62, f"{sample['points']}지점")
         check("정적 스냅샷 123대 CCTV 버튼", sample["cams"] == 123, f"{sample['cams']}대")
-        check("RWIS 8개 구간 × 2방향 = 16줄", sample["zones"] == 8 and sample["dirrows"] == 16,
-              f"{sample['zones']}구간 / {sample['dirrows']}방향줄")
+        check("RWIS 8개 구간 × 방향·지표 4값", sample["zones"] == 8 and sample["allLevels"],
+              f"{sample['zones']}구간 · 등급 {'있음' if sample['allLevels'] else '결측'}")
+        check("평시 안전 구간은 1줄로 축약 (안전 배지 남발 없음)",
+              sample["hierarchy"] and sample["safeZones"] == 8 - sample["elevated"]
+              and sample["badges"] <= sample["elevated"] * 4,
+              f"안전 {sample['safeZones']}구간 · 상향 {sample['elevated']}구간 · 배지 {sample['badges']}개")
         check("정적 JSON은 '스냅샷'으로 표시 (실시간이라 부르지 않음)",
               sample["pill"] == "snapshot" and "스냅샷" in sample["mode"] and "스냅샷" in sample["tm"],
               f"{sample['pill']} · {sample['mode']} · {sample['tm']}")
         check("스냅샷 경과 시간 표시",
               any(unit in sample["mode"] for unit in ("분", "시간", "일")), sample["mode"])
-        check("스냅샷 등급은 실제 값으로 렌더", sample["badges"] == 32 and all(v != "null" for v in sample["levels"]),
-              f"뱃지 {sample['badges']}개 · 등급 {sorted(set(sample['levels']))}")
+        check("스냅샷 등급은 실제 값으로 렌더", sample["allLevels"],
+              f"배지 {sample['badges']}개 · 상향 {sample['elevated']}구간")
         check("이정 오름차순 첫 지점 95.0", sample["firstKm"] == "95.0k", str(sample["firstKm"]))
 
         sample_route = page.evaluate("""() => ({
@@ -104,7 +119,9 @@ def main() -> int:
           pill: document.getElementById('modePill').dataset.state,
           mode: document.getElementById('modeText').textContent,
           tm: document.getElementById('rwisTm').textContent,
-          levels: [...document.querySelectorAll('#zoneGrid .badge')].map(b => b.dataset.level),
+          levels: [...document.querySelectorAll('#zoneGrid .zone')].map(z => z.dataset.lvEFsm),
+          badges: document.querySelectorAll('#zoneGrid .badge').length,
+          safeLines: document.querySelectorAll('#zoneGrid .zsafe').length,
           segs: [...document.querySelectorAll('#routeMap path.seg[data-seg]')].map(s => ({ lv: s.dataset.lv, dash: s.getAttribute('stroke-dasharray') })),
           eyebrow: [...document.querySelectorAll('#routeMap text')].map(t => t.textContent).find(t => t.includes('기상청 RWIS')),
           unknown: [...document.querySelectorAll('#routeMap text')].some(t => t.textContent.includes('등급 없음')),
@@ -112,8 +129,9 @@ def main() -> int:
         })""")
         check("샘플 모드 표시", fallback["pill"] == "sample" and "샘플" in fallback["mode"] and "샘플" in fallback["tm"],
               f"{fallback['pill']} · {fallback['mode']} / {fallback['tm']}")
-        check("샘플은 등급을 지어내지 않음 (모두 결측 뱃지)", all(v == "null" for v in fallback["levels"]),
-              str(sorted(set(fallback["levels"]))))
+        check("샘플은 등급을 지어내지 않음 (모두 결측)", all(v == "" for v in fallback["levels"]) and fallback["badges"] == 0
+              and fallback["safeLines"] == 8,
+              f"등급 {sorted(set(fallback['levels']))} · 배지 {fallback['badges']} · 안전줄 {fallback['safeLines']}")
         check("샘플은 등급을 지어내지 않음 (회색 점선)", all(s["lv"] == "null" and s["dash"] for s in fallback["segs"]),
               str(fallback["segs"][:2]))
         check("샘플 노선도 문구", "샘플" in (fallback["eyebrow"] or "") and fallback["unknown"],
@@ -129,7 +147,8 @@ def main() -> int:
         page.wait_for_timeout(400)
 
         live = page.evaluate("""() => {
-          const levels = [...document.querySelectorAll('#zoneGrid .badge')].map(b => b.dataset.level);
+          const levels = [...document.querySelectorAll('#zoneGrid .zone')]
+            .flatMap(z => ['lvEFsm', 'lvEVir', 'lvSFsm', 'lvSVir'].map(k => z.dataset[k]));
           return {
             mode: document.getElementById('modePill').dataset.state,
             modeText: document.getElementById('modeText').textContent,
@@ -139,14 +158,18 @@ def main() -> int:
             summary: document.querySelectorAll('#rwisSummary .sum-box').length,
             points: document.querySelectorAll('#pointList .point').length,
             alertText: document.querySelector('#rwisFilter [data-f=alert]').textContent,
+            dangerWord: [...document.querySelectorAll('#routeMap text')].some(t => t.textContent.includes('3단계는 위험')),
+            noGyeonggye: !document.getElementById('zoneGrid').textContent.includes('경계'),
           };
         }""")
         check("실시간 모드 진입", live["mode"] == "live", f"{live['mode']} · {live['modeText']}")
         check("관측시각 표시", "관측 20" in live["tm"], live["tm"])
         check("요약 3개 박스", live["summary"] == 3, str(live["summary"]))
-        check("실등급 뱃지 32개", len(live["levels"]) == 32, f"{len(live['levels'])}개")
-        check("실등급 값이 숫자로 렌더", all(v != "null" for v in live["levels"]),
-              "결측: " + str([i for i, v in enumerate(live["levels"]) if v == "null"][:6]))
+        check("실등급 값 32개(8구간×4)", len(live["levels"]) == 32, f"{len(live['levels'])}개")
+        check("실등급 값이 숫자로 렌더", all(v != "" and v is not None for v in live["levels"]),
+              "결측: " + str([i for i, v in enumerate(live["levels"]) if v == ""][:6]))
+        check("기상청 RWIS 공식 3단계는 '위험' 표기", live["dangerWord"] and live["noGyeonggye"],
+              f"3단계 위험={live['dangerWord']} · 경계 잔존={not live['noGyeonggye']}")
         check("살얼음 주의 이상 필터에 건수 표시", "살얼음 주의 이상" in live["alertText"], live["alertText"])
         check("연결 상태 문구", "RWIS 실시간" in live["status"] and "관측 20" in live["status"], live["status"][:90])
         print(f"    상태줄: {live['status']}")
@@ -155,11 +178,19 @@ def main() -> int:
         # 지점 카드에도 구간 등급이 붙었는지
         point_risk = page.evaluate("""() => {
           const card = [...document.querySelectorAll('#pointList .point')].find(p => p.querySelector('h3').textContent.trim() === '거창');
-          const badges = [...card.querySelectorAll('.pt-risk .badge')].map(b => ({ level: b.dataset.level, text: b.textContent.trim(), title: b.title }));
-          const cams = [...card.querySelectorAll('.cam')].map(c => c.textContent.trim());
-          return { badges, cams, count: document.querySelectorAll('#pointList .point').length };
+          const risk = card.querySelector('.pt-risk');
+          return {
+            fsm: risk.dataset.lvFsm, vir: risk.dataset.lvVir,
+            text: risk.textContent.trim(),
+            badges: risk.querySelectorAll('.badge').length,
+            safe: !!risk.querySelector('.pt-safe'),
+            cams: [...card.querySelectorAll('.cam')].map(c => c.textContent.trim()),
+          };
         }""")
-        check("지점 카드에 살얼음·가시거리 뱃지", len(point_risk["badges"]) == 2, json.dumps(point_risk["badges"], ensure_ascii=False))
+        check("지점 카드에 살얼음·가시거리 등급",
+              point_risk["fsm"] != "" and point_risk["vir"] != ""
+              and (point_risk["badges"] > 0 or point_risk["safe"]),
+              json.dumps(point_risk, ensure_ascii=False))
         check("거창 지점 양방향 재생 버튼", len(point_risk["cams"]) == 2, str(point_risk["cams"]))
 
         print("\n[3] 검색 · 필터 · 정렬")
@@ -431,10 +462,13 @@ def main() -> int:
         mpage.screenshot(path=str(ROOT / "tests" / "shots" / "mobile-live.png"), full_page=False)
         ml = mpage.evaluate("""() => ({
           scrollW: document.documentElement.scrollWidth, innerW: window.innerWidth,
-          levels: [...document.querySelectorAll('#zoneGrid .badge')].map(b => b.dataset.level),
+          levels: [...document.querySelectorAll('#zoneGrid .zone')].flatMap(z => ['lvEFsm', 'lvEVir', 'lvSFsm', 'lvSVir'].map(k => z.dataset[k])),
+          safe: document.querySelectorAll('#zoneGrid .zsafe').length,
         })""")
-        check("모바일 실시간 모드 레이아웃 유지", ml["scrollW"] <= ml["innerW"] + 1 and len(ml["levels"]) == 32,
-              f"scrollW={ml['scrollW']}/{ml['innerW']}, badges={len(ml['levels'])}")
+        check("모바일 실시간 모드 레이아웃 유지",
+              ml["scrollW"] <= ml["innerW"] + 1 and len(ml["levels"]) == 32
+              and all(v != "" for v in ml["levels"]),
+              f"scrollW={ml['scrollW']}/{ml['innerW']}, 등급={len(ml['levels'])}개, 안전줄={ml['safe']}")
         mpage.wait_for_timeout(200)
         mpage.screenshot(path=str(ROOT.parent / "downloads" / "gwangju_daegu_route_mobile_live.png"), full_page=False)
         check("모바일 콘솔 에러 0건", not m_errors, "; ".join(m_errors[:3]))
@@ -723,7 +757,7 @@ def main() -> int:
         check("실등급 0~3 색상 매핑", all(s["lv"] in {"0", "1", "2", "3"} for s in route["segs"]),
               str([s["lv"] for s in route["segs"]]))
         check("등급별 색상이 단계 팔레트와 일치", all(
-            s["stroke"].lower() == ["#2f8fe0", "#f2c21b", "#f97316", "#e02424"][int(s["lv"])] for s in route["segs"]),
+            s["stroke"].lower() == page.evaluate("() => window.__gdc.palette()")[int(s["lv"])] for s in route["segs"]),
             str(sorted({(s['lv'], s['stroke']) for s in route['segs']})))
         check("주요 노드 13곳 라벨", route["nodes"] == 13 and len(route["labels"]) == 13, str(route["labels"]))
         check("노드 이름에 IC·JC·터널 포함", {"함양IC", "함양JC", "거창IC", "살피재TN", "가조TN", "가야1TN", "가야3TN", "해인사IC", "고령IC", "동고령IC", "고령JC", "옥포JC"} <= set(route["labels"]),
@@ -787,9 +821,8 @@ def main() -> int:
         vir = page.evaluate("""() => {
           const map = {};
           document.querySelectorAll('#zoneGrid .zone').forEach(z => {
-            const rows = [...z.querySelectorAll('.dirrow')];
-            const e = rows[0] && rows[0].querySelectorAll('.badge[data-level]')[1];
-            if (e) map[z.dataset.segment + 'E'] = e.dataset.level;
+            map[z.dataset.segment + 'E'] = z.dataset.lvEVir;
+            map[z.dataset.segment + 'S'] = z.dataset.lvSVir;
           });
           return {
             lv: Object.fromEntries([...document.querySelectorAll('#routeMap path.seg[data-seg]')].map(s => [s.dataset.seg + s.dataset.dir, s.dataset.lv])),
@@ -800,7 +833,8 @@ def main() -> int:
         }""")
         check("가시거리 모드 제목 전환", "도로가시거리" in vir["title"] and "VIR" in vir["eyebrow"],
               f"{vir['title']} / {vir['eyebrow']}")
-        check("가시거리 등급이 구간 카드와 일치", vir["lv"] == vir["zone"],
+        check("가시거리 등급이 구간 카드와 일치",
+              all(vir["lv"].get(k) == v for k, v in vir["zone"].items() if k in vir["lv"]),
               f"노선도 {sorted(set(vir['lv'].values()))} / 카드 {sorted(set(vir['zone'].values()))}")
         page.click('#routeMetric [data-rm="fsm"]')
         page.wait_for_timeout(200)
@@ -841,17 +875,33 @@ def main() -> int:
         download = download_info.value
         share_path = dl_dir / "gwangju_daegu_route_share.png"
         download.save_as(str(share_path))
-        check("PNG 다운로드 파일명", download.suggested_filename.startswith("gwangju-daegu-route-ice-") and download.suggested_filename.endswith(".png"), download.suggested_filename)
+        check("PNG 다운로드 파일명", download.suggested_filename.startswith("gwangju-daegu-report-ice-") and download.suggested_filename.endswith(".png"), download.suggested_filename)
         check("PNG 저장됨", share_path.exists() and share_path.stat().st_size > 20000, f"{share_path.name} {share_path.stat().st_size:,}bytes")
         try:
             from PIL import Image
-            im = Image.open(share_path)
-            colors = im.convert("RGB").getcolors(maxcolors=200000) or []
-            check("PNG 3200×1800 고해상도", im.size == (3200, 1800), str(im.size))
+            im = Image.open(share_path).convert("RGB")
+            colors = im.getcolors(maxcolors=400000) or []
+            check("PNG 3200×4140 리포트 해상도", im.size == (3200, 4140), str(im.size))
             check("PNG 내용이 비어 있지 않음", len(colors) > 50, f"색 {len(colors)}종")
+            # 지도 영역에 노선(파랑)이 실제로 그려졌는지 — 흰 배경만 남는 회귀를 막는다
+            map_band = im.crop((0, 500, 3200, 2200))
+            px = list(map_band.resize((800, 425)).getdata())
+            blue = [p for p in px if p[2] > 150 and p[0] < 120 and p[1] < 170]
+            table_band = list(im.crop((0, 2500, 3200, 3900)).resize((800, 350)).getdata())
+            ink = [p for p in table_band if sum(p) < 480]
+            check("리포트 지도에 노선이 그려짐", len(blue) > 40, f"파랑 픽셀 {len(blue)}")
+            check("리포트 표가 그려짐", len(ink) > 200, f"진한 픽셀 {len(ink)}")
         except ImportError:
             head = share_path.read_bytes()[:8]
             check("PNG 시그니처", head == b"\x89PNG\r\n\x1a\n", str(head))
+
+        rep = page.evaluate("""() => ({ svg: window.__gdc.reportSvg(), size: window.__gdc.reportSize() }) """)
+        check("한 장 리포트 = 요약 + 노선도 + 8구간 표",
+              "8개 구간 등급 요약" in rep["svg"]
+              and all(name in rep["svg"] for name in ("함양IC–함양JC", "고령JC–옥포JC"))
+              and "이정 · 대시보드" in rep["svg"] and "3 위험" in rep["svg"]
+              and rep["size"]["w"] == 1600 and rep["size"]["mapH"] == 900,
+              f"SVG {len(rep['svg']):,}자 · {rep['size']}")
         page.screenshot(path=str(dl_dir / "gwangju_daegu_v3_desktop.png"), full_page=False)
         page.screenshot(path=str(dl_dir / "gwangju_daegu_route_preview.png"), full_page=False)
         page.locator("#routeSection").screenshot(path=str(dl_dir / "gwangju_daegu_route_card.png"))
@@ -1016,15 +1066,18 @@ def main() -> int:
         pp.wait_for_timeout(200)
 
         safe_style = pp.evaluate("""() => {
-          const q = document.querySelector('#zoneGrid .badge.quiet');
-          const quietBg = q ? getComputedStyle(q).backgroundColor : null;
-          const quietNumbers = [...document.querySelectorAll('#zoneGrid .badge.quiet .n')]
-            .filter(n => getComputedStyle(n).display !== 'none').length;
           const tile = document.querySelector('#zoneGrid .zone[data-worst="0"]');
-          return { quietBg, quietNumbers, border: tile ? getComputedStyle(tile).borderTopColor : null };
+          const safe = tile ? tile.querySelector('.zsafe') : null;
+          return {
+            hasSafe: !!safe,
+            safeText: safe ? safe.textContent.trim() : null,
+            badges: tile ? tile.querySelectorAll('.badge').length : -1,
+            border: tile ? getComputedStyle(tile).borderTopColor : null,
+          };
         }""")
-        check("0단계(안전) 배지는 저채도·투명 배경", safe_style["quietBg"] in ("rgba(0, 0, 0, 0)", "transparent")
-              and safe_style["quietNumbers"] == 0, json.dumps(safe_style, ensure_ascii=False))
+        check("0단계(안전) 구간은 배지 없이 1줄로 축약",
+              safe_style["hasSafe"] and safe_style["badges"] == 0 and "안전" in (safe_style["safeText"] or ""),
+              json.dumps(safe_style, ensure_ascii=False))
 
         porder = pp.evaluate("""() => {
           const box = (name) => {
@@ -1054,7 +1107,7 @@ def main() -> int:
           const hot = document.querySelector('#zoneGrid .zone[data-worst="3"]');
           const safe = document.querySelector('#zoneGrid .zone[data-worst="0"]');
           const strong = document.querySelector('#zoneGrid .badge.lv3');
-          const quiet = document.querySelector('#zoneGrid .badge.quiet');
+          const safeLine = safe ? safe.querySelector('.zsafe') : null;
           return {
             pill: document.getElementById('modeText').textContent,
             tm: document.getElementById('rwisTm').textContent,
@@ -1063,28 +1116,129 @@ def main() -> int:
             hotShadow: hot ? getComputedStyle(hot).boxShadow : null,
             safeBorder: safe ? getComputedStyle(safe).borderTopColor : null,
             strongBg: strong ? getComputedStyle(strong).backgroundColor : null,
-            quietBg: quiet ? getComputedStyle(quiet).backgroundColor : null,
+            safeBadges: safe ? safe.querySelectorAll('.badge').length : -1,
+            safeLineShown: !!safeLine,
             counts: {
               lv3: document.querySelectorAll('#zoneGrid .badge.lv3').length,
               lv2: document.querySelectorAll('#zoneGrid .badge.lv2').length,
               lv1: document.querySelectorAll('#zoneGrid .badge.lv1').length,
-              quiet: document.querySelectorAll('#zoneGrid .badge.quiet').length,
+              safe: document.querySelectorAll('#zoneGrid .zsafe').length,
             },
           };
         }""")
         check("미리보기는 모의 등급임을 밝힘", "미리보기" in prev["pill"] and "모의" in prev["tm"],
               f"{prev['pill']} / {prev['tm']}")
-        check("주의·경계 타일이 안전 타일과 확연히 다름",
+        check("주의·위험 타일이 안전 타일과 확연히 다름",
               "3" in prev["worst"] and prev["hotBorder"] != prev["safeBorder"] and prev["hotShadow"] != "none",
-              f"경계 {prev['hotBorder']} vs 안전 {prev['safeBorder']}")
-        check("경계 배지는 채워지고 안전 배지는 비어 있음",
+              f"위험 {prev['hotBorder']} vs 안전 {prev['safeBorder']}")
+        check("위험 배지는 채워지고 안전 구간은 배지 없음",
               prev["strongBg"] not in ("rgba(0, 0, 0, 0)", "transparent")
-              and prev["quietBg"] in ("rgba(0, 0, 0, 0)", "transparent"),
-              f"{prev['strongBg']} / {prev['quietBg']}")
+              and prev["safeBadges"] == 0 and prev["safeLineShown"],
+              f"{prev['strongBg']} / 안전배지 {prev['safeBadges']}")
         check("미리보기에 1·2·3단계가 섞여 표시", prev["counts"]["lv1"] > 0 and prev["counts"]["lv2"] > 0
-              and prev["counts"]["lv3"] > 0 and prev["counts"]["quiet"] > 0, json.dumps(prev["counts"]))
+              and prev["counts"]["lv3"] > 0 and prev["counts"]["safe"] > 0, json.dumps(prev["counts"]))
         pp.screenshot(path=str(ROOT.parent / "downloads" / "gwangju_daegu_v4_alert_preview.png"), full_page=False)
         port4.close()
+
+        print("\n[13] v6 — 다크 톤 · 자동 갱신 · 상향 하이라이트 · 리포트")
+        v6 = page.evaluate("""() => {
+          const wrap = getComputedStyle(document.getElementById('routeWrap'));
+          const lbl = document.querySelector('#routeMap .lbl');
+          const region = document.querySelector('#routeMap .region');
+          const grad = [...document.querySelectorAll('#routeMap linearGradient#rmPaper stop')].map(s => s.getAttribute('stop-color'));
+          const sizes = {};
+          const pick = { zmeta: '#zoneGrid .zmeta', sum: '#rwisSummary .sum-box .label', foot: 'footer.side-foot', addr: '#pointList .pt-addr' };
+          for (const k of Object.keys(pick)) {
+            const el = document.querySelector(pick[k]);
+            sizes[k] = el ? parseFloat(getComputedStyle(el).fontSize) : null;
+          }
+          return {
+            wrapBg: wrap.backgroundImage,
+            lblFill: lbl ? getComputedStyle(lbl).fill : null,
+            regionFill: region ? getComputedStyle(region).fill : null,
+            grad, sizes,
+            refNote: !!document.querySelector('.ref-note') && document.querySelector('.ref-note').textContent.includes('95.0–176.0'),
+            reportBtn: !!document.getElementById('btnReport'),
+            refreshOpts: [...document.querySelectorAll('#refreshOpts button')].map(b => b.dataset.min),
+          };
+        }""")
+        check("다크 톤 지도 — 흰 종이 박스 제거", "rgb(10, 21, 36)" in v6["wrapBg"] and v6["grad"][0] == "#081120",
+              f"{v6['wrapBg'][:46]} · 종이 {v6['grad']}")
+        check("지도 라벨·도명이 밝은 색", v6["lblFill"] in ("rgb(233, 243, 252)",) and v6["regionFill"] == "rgb(74, 108, 140)",
+              f"{v6['lblFill']} / {v6['regionFill']}")
+        check("작은 회색 메타 글씨 10.5px 이상",
+              v6["sizes"]["zmeta"] >= 10.5 and v6["sizes"]["sum"] >= 10.5
+              and v6["sizes"]["foot"] >= 11 and v6["sizes"]["addr"] >= 10.5,
+              json.dumps(v6["sizes"], ensure_ascii=False))
+        check("⚙에 자동 갱신 6주기 + 리포트 + 자료 기준",
+              v6["refreshOpts"] == ["0", "1", "5", "10", "30", "60"] and v6["reportBtn"] and v6["refNote"],
+              f"{v6['refreshOpts']} · 리포트={v6['reportBtn']} · 기준={v6['refNote']}")
+
+        page.click("#btnSettings")
+        page.wait_for_timeout(200)
+        page.click('#refreshOpts button[data-min="5"]')
+        page.wait_for_timeout(1400)
+        auto1 = page.evaluate("""() => ({
+          saved: localStorage.getItem('gdc.refreshMin'),
+          on: document.getElementById('autoNext').dataset.on,
+          text: document.getElementById('autoNext').textContent,
+          line: document.getElementById('refreshText').textContent,
+          minutes: window.__gdc.auto.minutes,
+          ticker: !!window.__gdc.auto.ticker,
+          nextAt: window.__gdc.auto.nextAt,
+        })""")
+        check("자동 갱신 5분 선택 + localStorage 저장",
+              auto1["saved"] == "5" and auto1["minutes"] == 5 and auto1["on"] == "1",
+              json.dumps(auto1, ensure_ascii=False))
+        check("setInterval 타이머 + 다음 갱신 시각 설정",
+              auto1["ticker"] and isinstance(auto1["nextAt"], (int, float)) and auto1["nextAt"] > 0,
+              f"ticker={auto1['ticker']} nextAt={auto1['nextAt']}")
+        check("다음 갱신까지 카운트다운 표시",
+              "다음" in auto1["text"] and re.search(r"\d\d:\d\d", auto1["text"])
+              and "다음 갱신" in auto1["line"],
+              f"{auto1['text']} / {auto1['line']}")
+        page.click('#refreshOpts button[data-min="0"]')
+        page.wait_for_timeout(300)
+        auto2 = page.evaluate("() => ({ saved: localStorage.getItem('gdc.refreshMin'), text: document.getElementById('autoNext').textContent, minutes: window.__gdc.auto.minutes })")
+        check("수동으로 되돌리면 카운트다운 종료",
+              auto2["saved"] == "0" and auto2["minutes"] == 0 and "수동" in auto2["text"], str(auto2))
+        page.click("#btnSettings")
+        page.wait_for_timeout(150)
+
+        # ── 상향 하이라이트 시뮬레이션: 직전 관측(전부 안전)을 심고 모의 등급과 비교 ──
+        zero = {f"{d}{s}{m}": 0 for d in "ES" for s in ["160", "170", "180", "190", "200", "210", "220", "230"] for m in ["fsm", "vir"]}
+        page.goto(f"{base}/index.html", wait_until="load")
+        page.wait_for_function('() => !!window.__gdc', timeout=30000)
+        page.evaluate("() => localStorage.removeItem('gdc.workerBase')")
+        page.goto(f"{base}/index.html", wait_until="load")
+        page.wait_for_function("() => ['live','snapshot'].includes(window.__gdc.state.mode)", timeout=30000)
+        page.wait_for_timeout(400)
+        applied = page.evaluate("(m) => window.__gdc.setPrev(m, '202611230900|202611230850')", zero)
+        page.wait_for_timeout(500)
+        check("모의 상향 시나리오 적용", applied is True, str(applied))
+        rise = page.evaluate("""() => ({
+          zones: document.querySelectorAll('#zoneGrid .zone[data-rise="1"]').length,
+          chips: document.querySelectorAll('#zoneGrid .zrise').length,
+          halos: document.querySelectorAll('#routeMap path.rise-halo').length,
+          marks: document.querySelectorAll('#routeMap .rise-mark').length,
+          meta: document.getElementById('routeMeta').textContent,
+          rises: Object.keys(window.__gdc.rises()).length,
+          dbgCards: [...document.querySelectorAll('#zoneGrid .zone')].map(z => [z.dataset.segment, z.dataset.rise, z.dataset.lvEFsm, z.querySelectorAll('.badge').length]),
+          dbgFilter: window.__gdc.state.rwisFilter,
+          dbgPreview: window.__gdc.state.rwis.preview,
+          dbgKeys: Object.keys(window.__gdc.rises()),
+        })""")
+        print("    상향 시나리오:", json.dumps(rise, ensure_ascii=False))
+        check("직전 관측 대비 등급 상향 구간 자동 감지",
+              rise["zones"] > 0 and rise["rises"] >= rise["zones"],
+              f"상향 {rise['rises']}건 · 카드 {rise['zones']}구간")
+        check("상향 구간 노선도 펄스 하이라이트 + ▲ 표식",
+              rise["halos"] > 0 and rise["halos"] == rise["marks"] and rise["halos"] <= rise["zones"],
+              f"펄스 {rise['halos']} · 표식 {rise['marks']}")
+        check("구간 카드 ▲ 배지 + 요약 '▲ 상향'",
+              rise["chips"] == rise["zones"] and "▲ 상향" in rise["meta"],
+              f"배지 {rise['chips']} · {rise['meta'][-24:]}")
+        page.screenshot(path=str(dl_dir / "gwangju_daegu_v6_alert_rise.png"), full_page=False)
 
         # ── 10종 해상도: 한 화면 · 지리 순서 · 도명 ──
         sizes = [(360, 640), (390, 844), (412, 915), (430, 932), (768, 1024),
@@ -1105,12 +1259,19 @@ def main() -> int:
               const regions = [...document.querySelectorAll('#routeMap .region')].map(t => {
                 const b = t.getBBox(); return { name: t.textContent, x: b.x, right: b.x + b.width };
               });
+              const pills = [...document.querySelectorAll('#routeMap .label-pill')].map(r => { const b = r.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
+              const glyphs = [...document.querySelectorAll('#routeMap .glyph')].map(r => { const b = r.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
+              let pg = 0;
+              for (const p of pills) for (const g of glyphs) {
+                if (Math.min(p.x + p.w, g.x + g.w) - Math.max(p.x, g.x) > 0 && Math.min(p.y + p.h, g.y + g.h) - Math.max(p.y, g.y) > 0) pg += 1;
+              }
               return {
                 pageW: doc.scrollWidth, innerW: window.innerWidth,
                 pageH: doc.scrollHeight, innerH: window.innerHeight,
                 dong: box('동고령IC'), goryeong: box('고령JC'),
                 outside: regions.filter(r => r.x < 2 || r.right > vb[2] - 2).map(r => r.name),
                 labels: document.querySelectorAll('#routeMap .lbl').length,
+                pg,
               };
             }""")
             check(f"{vw}×{vh} 한 화면(스크롤 없음)",
@@ -1119,6 +1280,7 @@ def main() -> int:
             check(f"{vw}×{vh} 동고령IC가 고령JC 왼쪽 · 도명 잘림 없음",
                   size_info["dong"] < size_info["goryeong"] and not size_info["outside"] and size_info["labels"] == 13,
                   f"동고령 {size_info['dong']} < 고령JC {size_info['goryeong']} · 도명 {size_info['outside']}")
+            check(f"{vw}×{vh} 라벨·아이콘 겹침 없음", size_info["pg"] == 0, f"겹침 {size_info['pg']}쌍")
             c.close()
 
         # ── v4 스크린샷 (실시간 연결 상태) ──

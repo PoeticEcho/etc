@@ -627,6 +627,166 @@
   body.immersive[data-view="list"] .point .pt-addr { font-size: 9px; }
 
   @media (prefers-reduced-motion: reduce) { * { animation-duration: .001s !important; transition-duration: .001s !important; } }
+
+  /* ══════════════════════════════════════════════════════════════
+     v6 — 다크 관제 톤 · 정보 위계 · 자동 갱신 · 상향 하이라이트
+     (위 규칙을 덮어쓰는 레이어. 지도 색은 buildScene 의 THEME 가 담당)
+     ══════════════════════════════════════════════════════════════ */
+  :root {
+    --ink: #e8eef8;
+    --ink-dim: #9db3cd;
+    --ink-faint: #6f88a6;
+    --edge: #1b2a40;
+    --rise: #f43f5e;
+  }
+
+  /* ── 지도/노선도: 흰 종이 박스 → 대시보드와 같은 다크 톤 ── */
+  .route-wrap {
+    background: linear-gradient(180deg, #0a1524 0%, #081120 100%);
+    box-shadow: inset 0 0 0 1px rgba(120, 160, 210, .09), inset 0 0 60px rgba(3, 8, 16, .55);
+  }
+  body.immersive .route-card { background: #081120; }
+  #routeMap .label-pill { transition: fill .15s, stroke .15s; }
+  #routeMap .node:hover .label-pill { fill: #16283f; stroke: #3f6b96; }
+
+  /* ── 설정 팝오버: 자동 갱신 · 리포트 ── */
+  .settings { width: min(560px, calc(100vw - 24px)); gap: 11px; }
+  .settings .sec-lab {
+    font-size: 11px; font-weight: 800; letter-spacing: .04em; color: var(--ink-faint);
+    text-transform: uppercase; display: flex; align-items: center; gap: 7px; margin-top: 1px;
+  }
+  .settings .sec-lab::after { content: ''; flex: 1 1 auto; height: 1px; background: var(--edge); }
+  .refresh-opts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+  .refresh-opts button {
+    min-height: 34px; padding: 6px 2px; border-radius: 9px; font-size: 12px; font-weight: 800;
+    background: #0b1626; border: 1px solid var(--line); color: var(--muted);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .refresh-opts button:hover { color: var(--text); border-color: #35527b; }
+  .refresh-opts button.on {
+    color: #04121f; background: linear-gradient(180deg, #7dd3fc, #38bdf8);
+    border-color: #38bdf8; box-shadow: 0 2px 10px rgba(56, 189, 248, .28);
+  }
+  .auto-line { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink-dim); }
+  .auto-line b { color: #7dd3fc; font-variant-numeric: tabular-nums; font-weight: 800; }
+  .auto-line .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+  .auto-line[data-on="0"] .dot { background: #526785; }
+  .report-btn {
+    display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
+    min-height: 40px; font-size: 12.5px; font-weight: 800; border-radius: 10px;
+    background: linear-gradient(180deg, #1a2d47, #14233a); border: 1px solid #2b4368; color: var(--text);
+  }
+  .report-btn:hover { background: linear-gradient(180deg, #21395a, #18294a); border-color: #3a5a86; }
+  .report-btn small { font-weight: 600; color: var(--ink-faint); }
+  .ref-note {
+    margin: 0; font-size: 11.5px; line-height: 1.6; color: var(--ink-faint); word-break: keep-all;
+  }
+  .ref-note b { color: var(--ink-dim); font-weight: 800; }
+
+  /* 상단 다음 갱신 표시 */
+  .auto-chip {
+    display: inline-flex; align-items: center; gap: 5px; flex: none;
+    font-size: 11px; font-weight: 700; color: var(--ink-dim);
+    background: rgba(125, 211, 252, .07); border: 1px solid rgba(125, 211, 252, .18);
+    border-radius: 999px; padding: 3px 8px; white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .auto-chip b { color: #7dd3fc; font-weight: 800; }
+  .auto-chip[data-on="0"] { color: var(--ink-faint); background: rgba(120, 150, 190, .06); border-color: var(--edge); }
+
+  /* ── 구간 타일: 안전은 한 줄, 관심 이상만 강조 ── */
+  .zone { gap: 3px; padding: 7px 9px 8px; }
+  .zone .zh { gap: 6px; margin-bottom: 1px; align-items: flex-start; }
+  .zone .zh strong { font-size: 11.5px; color: #cfe0f2; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.22; word-break: keep-all; }
+  .zone .zh .range { font-size: 10.5px; color: #7f97b3; padding-top: 1px; }
+  .zone .zrise {
+    flex: none; display: inline-flex; align-items: center; gap: 2px;
+    font-size: 10px; font-weight: 900; letter-spacing: -.02em;
+    color: #ffe4e6; background: rgba(244, 63, 94, .26); border: 1px solid rgba(244, 63, 94, .62);
+    border-radius: 999px; padding: 1px 4px 1px 5px; animation: riseSoft 2.2s ease-in-out infinite;
+  }
+  @keyframes riseSoft { 0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, .0); } 50% { box-shadow: 0 0 0 3px rgba(244, 63, 94, .18); } }
+  .zone[data-rise="1"] { border-color: rgba(244, 63, 94, .5) !important; }
+  .zone[data-rise="1"][data-worst="0"] { background: rgba(244, 63, 94, .06); }
+  .zone .ztags { display: grid; gap: 2px; min-width: 0; }
+  .zone .zrow { display: flex; align-items: center; gap: 5px; min-width: 0; flex-wrap: nowrap; }
+  .zone .zrow .zdir {
+    flex: none; font-size: 10px; font-weight: 800; color: #7f97b3; width: 21px;
+  }
+  .zone .zsafe {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 800; color: #7f9ab8; letter-spacing: -.01em; padding: 4px 0 3px;
+  }
+  .zone .zsafe .sdot { width: 6px; height: 6px; border-radius: 50%; background: #2f8fe0; opacity: .8; }
+  .zone .zrest { font-size: 10px; color: #61799a; font-weight: 700; padding-left: 26px; }
+  .zone .zmeta { font-size: 10.5px; color: #7f97b3; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .zone .zmeta b { color: #a9c0d8; }
+  .zone .badge { padding: 2.5px 6px; font-size: 10.5px; gap: 3px; }
+  .zone .badge .ico { font-size: 10px; }
+  .zone .badge .n { display: none; }
+  .zone .zbadge { display: inline-flex; align-items: center; gap: 2px; }
+  .zone .rup {
+    font-style: normal; font-size: 9.5px; font-weight: 900; color: #fff1f2;
+    background: #e11d48; border-radius: 999px; padding: 1px 3px; line-height: 1.1;
+    animation: riseSoft 2.2s ease-in-out infinite;
+  }
+  .zone .zcov { font-size: 9.5px; font-weight: 800; color: #647c9c; }
+  .route-meta .rm-rise { color: #fda4af; font-weight: 800; }
+  .point .pt-safe { font-size: 10.5px; font-weight: 800; color: #6f88a6; letter-spacing: -.01em; }
+  .sum-box .label { font-size: 10.5px; }
+  .side-foot { font-size: 11px; line-height: 1.55; }
+  .point .pt-addr { font-size: 10.5px; }
+  .point .km { font-size: 10.5px; }
+  .list-meta { font-size: 11px; }
+  .sheet .badge .n { display: none; }
+
+  /* ── 지도 범례 메모(이정 기준) ── */
+  .route-note {
+    flex-basis: 100%; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-size: 10.5px; line-height: 1.45; color: var(--ink-faint);
+  }
+  .route-note b { color: var(--ink-dim); font-weight: 700; }
+  .route-note .k { flex: none; font-weight: 800; color: #7dd3fc; }
+  .rise-note { color: #fda4af; font-weight: 800; }
+
+  /* 모바일: 손가락으로 읽는 크기 */
+  @media (max-width: 1023px) {
+    .route-head .right .btn { display: none; }
+    .route-head .right .btn--report { display: inline-flex; }
+    .zone { padding: 8px 10px 9px; }
+    .zone .zh { align-items: flex-start; }
+    .zone .zh strong { font-size: 12px; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.22; word-break: keep-all; }
+    .zone .zh .range { display: none; }
+    .zone .zsafe { font-size: 12.5px; }
+    .zone .zrow .zdir { font-size: 11px; width: 23px; }
+    .zone .zmeta { font-size: 11px; }
+    .zone .badge { font-size: 11px; padding: 2.5px 6px; }
+    .zone .zrise { font-size: 10.5px; }
+    .route-note { font-size: 11px; }
+    .auto-chip { font-size: 10.5px; padding: 3px 7px; }
+    .settings { max-height: min(64dvh, 520px); }
+    .refresh-opts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .refresh-opts button { min-height: 40px; font-size: 12.5px; }
+    .route-foot .route-note { margin-top: 4px; }
+    .sum-box .label { font-size: 10px; }
+    .side-foot { font-size: 11px; }
+  }
+  @media (max-width: 400px) {
+    .zone .zh strong { font-size: 11.5px; }
+    .zone .zsafe { font-size: 12px; }
+  }
+  @media (max-width: 1023px) and (orientation: portrait) and (max-height: 680px) {
+    .zone { padding: 5px 8px 5px; gap: 1px; }
+    .zone .zh strong { font-size: 11px; }
+    .zone .zsafe { font-size: 11px; padding: 2px 0; }
+    .zone .zmeta { font-size: 10px; }
+    .zone .badge { font-size: 10px; padding: 1.5px 5px; }
+    .route-note { font-size: 10px; }
+  }
+  @media (max-width: 1023px) and (orientation: portrait) and (max-height: 600px) {
+    .zone .zsafe { font-size: 10.5px; }
+    .zone .zmeta { font-size: 9.5px; }
+    .route-note { display: none; }
+  }
 </style>
 </head>
 <body data-view="route">
@@ -642,12 +802,13 @@
     </div>
     <button type="button" class="pill" id="modePill" data-state="loading" aria-live="polite" aria-label="데이터 연결 상태 · Worker 설정 열기"><span class="dot" aria-hidden="true"></span><span id="modeText">연결 확인 중</span></button>
     <div class="tb-right">
+      <span class="auto-chip" id="autoNext" data-on="0" title="자동 새로고침 · ⚙에서 주기 변경">수동 갱신</span>
       <button id="btnReload" class="icon-btn" type="button" title="새로고침" aria-label="새로고침">⟳</button>
-      <button id="btnSettings" class="icon-btn" type="button" title="Worker 연결 설정" aria-label="Worker 연결 설정" aria-expanded="false">⚙</button>
+      <button id="btnSettings" class="icon-btn" type="button" title="설정 · Worker 연결 · 자동 갱신" aria-label="설정" aria-expanded="false">⚙</button>
     </div>
   </div>
   <div class="settings" id="settingsPanel" hidden>
-    <div class="lab"><span aria-hidden="true">⚙</span> Worker 주소 <span class="note">연결하면 실시간 CCTV 목록과 RWIS 등급을 받아옵니다</span></div>
+    <div class="sec-lab">Worker 연결</div>
     <div class="url-field">
       <input id="workerUrl" type="text" inputmode="url" autocomplete="off" spellcheck="false"
              placeholder="https://gwangju-daegu-cctv.내서브도메인.workers.dev" aria-label="Worker 주소" />
@@ -656,6 +817,26 @@
     <div class="status-line" id="statusLine">
       <span>Worker를 연결하면 ITS CCTV 목록과 RWIS 실시간 등급을 받아옵니다. 연결하지 않아도 62지점 구조는 그대로 볼 수 있습니다.</span>
     </div>
+
+    <div class="sec-lab">자동 새로고침</div>
+    <div class="refresh-opts" id="refreshOpts" role="group" aria-label="자동 새로고침 주기">
+      <button type="button" data-min="0" class="on" aria-pressed="true">수동</button>
+      <button type="button" data-min="1" aria-pressed="false">1분</button>
+      <button type="button" data-min="5" aria-pressed="false">5분</button>
+      <button type="button" data-min="10" aria-pressed="false">10분</button>
+      <button type="button" data-min="30" aria-pressed="false">30분</button>
+      <button type="button" data-min="60" aria-pressed="false">1시간</button>
+    </div>
+    <div class="auto-line" id="refreshLine" data-on="0"><span class="dot" aria-hidden="true"></span><span id="refreshText">수동 갱신 — ⟳ 을 누를 때만 새로 받아옵니다.</span></div>
+
+    <div class="sec-lab">공유 리포트</div>
+    <button id="btnReport" class="report-btn" type="button">🖼 한 장 요약 리포트 PNG <small>요약 · 노선도 · 8구간 표</small></button>
+
+    <div class="sec-lab">자료 기준</div>
+    <p class="ref-note">
+      <b>이정</b> 대시보드 <b>95.0–176.0km</b>(광주대구선 함양IC 기점) / 기상청 RWIS 누적 <b>133.2–213.4km</b> — 기점이 달라 같은 구간도 숫자가 다릅니다.<br />
+      <b>등급</b> 0 안전 / 1 관심 / 2 주의 / 3 위험(기상청 RWIS 공식) · 구간 등급은 구간 내 링크 최고 등급입니다.
+    </p>
   </div>
 </header>
 
@@ -673,8 +854,8 @@
           <button type="button" data-rd="S" aria-pressed="false" title="광주방향(하행)">광주 ↓</button>
           <button type="button" data-rd="both" aria-pressed="false" title="양방향">양방향</button>
         </div>
-        <button id="btnShot" class="btn btn--primary" type="button" title="3200×1800 PNG로 저장">🖼 PNG</button>
-        <button id="btnCapture" class="btn btn--ghost" type="button" title="카드만 크게 보기">캡처 모드</button>
+        <button id="btnShot" class="btn btn--primary btn--report" type="button" title="요약·노선도·8구간 표를 한 장 리포트 PNG로 저장">🖼 리포트</button>
+        <button id="btnCapture" class="btn btn--ghost" type="button" title="노선도만 크게 보기">지도 크게</button>
       </div>
     </div>
     <div class="route-wrap" id="routeWrap"></div>
@@ -736,8 +917,9 @@
 
     <footer class="side-foot">
       <b>자료</b> CCTV 123대/62지점: 한국도로공사 로드플러스(2026-11-20) · <b>도로기상</b> 기상청 RWIS(FSM·VIR) ·
-      배경 경계 통계청 시도·시군(2013). <b>등급</b> 0 안전 / 1 관심 / 2 주의 / 3 경계 — 구간 등급은 구간 내 링크 최고 등급.
-      참고용이며 실제 통제·제설은 현장 안내를 따르세요.
+      배경 경계 통계청 시도·시군(2013). <b>등급</b> 0 안전 / 1 관심 / 2 주의 / 3 위험 — 구간 등급은 구간 내 링크 최고 등급.
+      <br /><b>이정</b> 대시보드 95.0–176.0km(광주대구선 함양IC 기점)와 기상청 RWIS 누적거리 133.2–213.4km는
+      기점이 달라 같은 구간도 숫자가 다릅니다. 참고용이며 실제 통제·제설은 현장 안내를 따르세요.
     </footer>
   </aside>
 </main>
@@ -746,7 +928,7 @@
   <nav class="dock-bar" id="dockBar" aria-label="화면 전환">
     <button type="button" data-view="route" class="on" aria-pressed="true"><span class="ic" aria-hidden="true">🗺️</span>노선도</button>
     <button type="button" data-view="list" aria-pressed="false"><span class="ic" aria-hidden="true">📹</span>CCTV <span id="dockCount">62</span></button>
-    <button type="button" id="btnShotDock"><span class="ic" aria-hidden="true">📸</span>PNG 저장</button>
+    <button type="button" id="btnShotDock"><span class="ic" aria-hidden="true">📸</span>리포트</button>
   </nav>
 </div>
 
@@ -833,8 +1015,8 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
 (function () {
   'use strict';
 
-  const LEVEL_NAME = ['안전', '관심', '주의', '경계'];
-  const LEVEL_DETAIL = ['0단계 · 안전', '1단계 · 관심', '2단계 · 주의', '3단계 · 경계(심각)'];
+  const LEVEL_NAME = ['안전', '관심', '주의', '위험'];
+  const LEVEL_DETAIL = ['0단계 · 안전', '1단계 · 관심', '2단계 · 주의', '3단계 · 위험'];
   const DIR_LABEL = { D: '대구방향', G: '광주방향' };
   const FACILITY_GROUP = {
     'IC': 'ic', 'JC': 'ic',
@@ -868,6 +1050,9 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     zoneFocus: null,
     view: 'route',
     routeNodes: [],       // 노선도 마커 화면 좌표(CSS px) — 밀집 마커 판별용
+    refreshMin: 0,        // 자동 새로고침 주기(분) — 0 이면 수동
+    rises: {},            // 직전 관측 대비 상향: 'E170fsm' → { from, to }
+    prevLevels: null,     // localStorage 에 남긴 직전 관측 { tm, levels }
   };
 
   const $ = (id) => document.getElementById(id);
@@ -896,6 +1081,8 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     dock: $('dock'), dockBar: $('dockBar'), dockCount: $('dockCount'),
     rail: $('rail'), railList: $('railList'), railShot: $('railShot'), railReload: $('railReload'),
     railSettings: $('railSettings'), railCount: $('railCount'),
+    autoNext: $('autoNext'), refreshOpts: $('refreshOpts'), refreshLine: $('refreshLine'),
+    refreshText: $('refreshText'), btnReport: $('btnReport'), riseNote: $('riseNote'),
     nodeSheet: $('nodeSheet'), nodeSheetTitle: $('nodeSheetTitle'), nodeSheetHint: $('nodeSheetHint'),
     nodeSheetList: $('nodeSheetList'), nodeSheetZone: $('nodeSheetZone'),
     nodeSheetClose: $('nodeSheetClose'), nodeSheetClose2: $('nodeSheetClose2'),
@@ -1027,6 +1214,51 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     };
   }
 
+  /* ── 직전 관측 대비 상향 ─────────────── */
+
+  const PREV_KEY = 'gdc.prevLevels';
+
+  function readPrevLevels() {
+    try {
+      const raw = safeStorageGet(PREV_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      return obj && obj.levels ? obj : null;
+    } catch (e) { return null; }
+  }
+
+  function captureLevels(rwis) {
+    const map = {};
+    for (const zone of (rwis && rwis.zones) || []) {
+      if (zone.fsm) map[zone.dir + zone.suffix + 'fsm'] = zone.fsm.level;
+      if (zone.vir) map[zone.dir + zone.suffix + 'vir'] = zone.vir.level;
+    }
+    return map;
+  }
+
+  function computeRises(prev, levels) {
+    const out = {};
+    if (!prev || !prev.levels) return out;
+    for (const key of Object.keys(levels)) {
+      const before = prev.levels[key];
+      const now = levels[key];
+      if (typeof before === 'number' && typeof now === 'number' && now > before) {
+        out[key] = { from: before, to: now };
+      }
+    }
+    return out;
+  }
+
+  /** 지금 받은 관측을 직전 관측과 비교해 하이라이트 목록을 만들고, 이번 관측을 기억한다. */
+  function rememberRises() {
+    if (!hasData()) { state.rises = {}; return; }
+    const levels = captureLevels(state.rwis);
+    state.rises = computeRises(state.prevLevels, levels);
+    const tm = state.rwis.tm || {};
+    state.prevLevels = { tm: `${tm.FR || ''}|${tm.VR || ''}`, levels, at: new Date().toISOString() };
+    safeStorageSet(PREV_KEY, JSON.stringify(state.prevLevels));
+  }
+
   /* ── 데이터 ─────────────────────────── */
 
   /** Worker 없이도 62지점/123대 구조가 그려지도록 하는 기본 데이터 */
@@ -1099,6 +1331,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       state.errors = {};
       state.lastLoadedAt = new Date();
       setMode('snapshot');
+      rememberRises();
       renderAll();
       return true;
     } catch (err) {
@@ -1144,6 +1377,8 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       zones,
       summary: Object.assign({}, base.summary, { fsmMax, fsmZoneCounts: counts }),
     });
+    // 모의 등급은 직전 실제 관측과 비교해 상향 하이라이트를 시험할 수 있게 한다(저장은 하지 않음)
+    state.rises = computeRises(state.prevLevels, captureLevels(state.rwis));
     renderAll();
     return true;
   }
@@ -1170,6 +1405,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
 
       if (data.cctv || data.rwis) {
         setMode('live');
+        rememberRises();
         const fresh = freshness();
         const parts = [];
         parts.push(state.rwis && !state.rwis.sample
@@ -1190,6 +1426,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     } catch (err) {
       state.cctv = null;
       state.rwis = sampleRwis();
+      state.rises = {};
       state.errors = { fetch: { message: String(err && err.message || err) } };
       setMode('error');
       statusLine([
@@ -1219,6 +1456,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
         btn.disabled = false;
         btn.removeAttribute('aria-busy');
       }
+      if (auto.minutes) auto.nextAt = Date.now() + auto.minutes * 60000;
     }
   }
 
@@ -1251,6 +1489,21 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
 
   /* ── 렌더: RWIS ─────────────────────── */
 
+  function riseFor(suffix, dir, metric) {
+    return state.rises[dir + suffix + metric] || null;
+  }
+
+  function zoneRises(suffix) {
+    const out = [];
+    for (const dir of ['E', 'S']) {
+      for (const metric of ['fsm', 'vir']) {
+        const rise = state.rises[dir + suffix + metric];
+        if (rise) out.push({ dir, metric, from: rise.from, to: rise.to });
+      }
+    }
+    return out;
+  }
+
   function renderZones(index, isSample) {
     const filter = state.rwisFilter;
     let shown = 0;
@@ -1258,40 +1511,66 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     const cards = MASTER.zones.map((segment) => {
       const dZone = index.get('E' + segment.suffix);
       const gZone = index.get('S' + segment.suffix);
-      const hot = ((dZone && dZone.fsm.level !== null && dZone.fsm.level >= 2) || (gZone && gZone.fsm.level !== null && gZone.fsm.level >= 2));
+      const lv = (zone, metric) => (isSample || !zone || !zone[metric] ? null : zone[metric].level);
+      const levels = {
+        fsmE: lv(dZone, 'fsm'), virE: lv(dZone, 'vir'),
+        fsmS: lv(gZone, 'fsm'), virS: lv(gZone, 'vir'),
+      };
+      const hot = [levels.fsmE, levels.virE, levels.fsmS, levels.virS].some((v) => v !== null && v >= 2);
       if (filter === 'alert' && !hot) return '';
       shown += 1;
       const inZone = points.filter((p) => p.zone === segment.suffix);
       const camCount = inZone.reduce((n, p) => n + (p.cams || []).length, 0);
       const nocam = camCount === 0;
-      const worst = isSample ? null : maxLevel([
-        dZone && dZone.fsm.level, dZone && dZone.vir.level,
-        gZone && gZone.fsm.level, gZone && gZone.vir.level,
-      ]);
+      const worst = isSample ? null : maxLevel([levels.fsmE, levels.virE, levels.fsmS, levels.virS]);
       const worstKey = worst === null || worst === undefined ? 'none' : String(worst);
-      const row = (zone, dirLabel) => {
-        if (!zone) return `<div class="dirrow"><span class="dir">${dirLabel}</span><span class="mini">구간 정보 없음</span></div>`;
-        const fsmLevel = isSample ? null : zone.fsm.level;
-        const virLevel = isSample ? null : zone.vir.level;
-        const fsmTitle = isSample ? '샘플 구조' : `${segment.name} ${zone.dirLabel} · ${zone.fsm.levelDetail} · 링크 ${zone.fsm.knownLinks}/${zone.fsm.totalLinks}` + (zone.fsm.counts ? ` (경계 ${zone.fsm.counts[3]}·주의 ${zone.fsm.counts[2]}·관심 ${zone.fsm.counts[1]}·안전 ${zone.fsm.counts[0]})` : '');
-        const virTitle = isSample ? '샘플 구조' : `${segment.name} ${zone.dirLabel} · ${zone.vir.levelDetail} · 링크 ${zone.vir.knownLinks}/${zone.vir.totalLinks}` + (zone.vir.counts ? ` (경계 ${zone.vir.counts[3]}·주의 ${zone.vir.counts[2]}·관심 ${zone.vir.counts[1]}·안전 ${zone.vir.counts[0]})` : '');
-        return `<div class="dirrow">
-          <span class="dir">${dirLabel}</span>
-          ${badge(fsmLevel, { ico: '❄', quiet: true, title: fsmTitle })}
-          ${badge(virLevel, { ico: '👁', quiet: true, title: virTitle })}
-        </div>`;
+      const rises = isSample ? [] : zoneRises(segment.suffix);
+      const riseWorst = rises.reduce((m, r) => Math.max(m, r.to), -1);
+
+      const rowFor = (zone, dirLabel, dirCode) => {
+        if (!zone) return '';
+        const parts = [];
+        for (const metric of ['fsm', 'vir']) {
+          const level = lv(zone, metric);
+          if (level === null || level === undefined || level < 1) continue;
+          const info = zone[metric];
+          const counts = info.counts
+            ? ` (위험 ${info.counts[3]}·주의 ${info.counts[2]}·관심 ${info.counts[1]}·안전 ${info.counts[0]})`
+            : '';
+          const title = `${segment.name} ${zone.dirLabel} · ${info.levelDetail} · 링크 ${info.knownLinks}/${info.totalLinks}${counts}`;
+          const rise = riseFor(segment.suffix, dirCode, metric);
+          const riseChip = rise
+            ? `<em class="rup" title="직전 관측 ${LEVEL_NAME[rise.from]} → ${LEVEL_NAME[rise.to]}">▲</em>`
+            : '';
+          parts.push(`<span class="zbadge">${badge(level, { ico: metric === 'fsm' ? '❄' : '👁', title })}${riseChip}</span>`);
+        }
+        if (!parts.length) return '';
+        return `<div class="zrow"><span class="zdir">${dirLabel}</span>${parts.join('')}</div>`;
       };
-      const focus = state.zoneFocus === segment.suffix ? ' focus' : '';
+
+      const rows = [rowFor(dZone, '대구', 'E'), rowFor(gZone, '광주', 'S')].filter(Boolean);
+      const body = rows.length
+        ? (rows.join('') + (rows.length === 1 ? '<div class="zrest">다른 방향은 안전</div>' : ''))
+        : '<div class="zsafe"><span class="sdot" aria-hidden="true"></span>양방향 안전</div>';
+
+      const kmRange = `${kmText(segment.startKm)}–${kmText(segment.endKm)}k`;
       const meta = nocam
-        ? `${inZone.length}지점 <b class="no-cam">CCTV 없음</b> · 도로기상만`
-        : `${inZone.length}지점 <b>${camCount}대</b> CCTV · ${worst === null || worst === undefined ? '등급 없음' : '최고 ' + LEVEL_NAME[worst]}<span class="go"> ›</span>`;
-      return `<div class="zone${hot ? ' hot' : ''}${focus}${nocam ? ' nocam' : ''}" data-segment="${segment.suffix}"
-          data-worst="${worstKey}" data-cams="${camCount}" data-points="${inZone.length}" role="button" tabindex="0"
-          aria-pressed="${Boolean(state.zoneFocus === segment.suffix)}"
-          title="${esc(segment.name)} ${kmText(segment.startKm)}–${kmText(segment.endKm)}km · ${nocam ? 'CCTV 없는 구간 · ' : ''}${worst === null || worst === undefined ? '등급 없음' : '최고 ' + LEVEL_NAME[worst]} · 눌러서 이 구간 보기">
-        <div class="zh"><strong>${esc(segment.name)}</strong><span class="range">${kmText(segment.startKm)}–${kmText(segment.endKm)}k</span></div>
-        ${row(dZone, '대구')}
-        ${row(gZone, '광주')}
+        ? `${kmRange} · <b class="no-cam">CCTV 없음</b>`
+        : `${kmRange} · ${inZone.length}지점 ${camCount}대 CCTV<span class="go"> ›</span>`;
+
+      const riseTitle = rises.length
+        ? `직전 관측 대비 상향 — ` + rises.map((r) => `${r.dir === 'E' ? '대구' : '광주'} ${r.metric === 'fsm' ? '살얼음' : '가시거리'} ${LEVEL_NAME[r.from]}→${LEVEL_NAME[r.to]}`).join(' · ')
+        : '';
+
+      return `<div class="zone${hot ? ' hot' : ''}${state.zoneFocus === segment.suffix ? ' focus' : ''}${nocam ? ' nocam' : ''}"
+          data-segment="${segment.suffix}" data-worst="${worstKey}" data-rise="${rises.length ? 1 : 0}"
+          data-cams="${camCount}" data-points="${inZone.length}"
+          data-lv-e-fsm="${levels.fsmE === null ? '' : levels.fsmE}" data-lv-e-vir="${levels.virE === null ? '' : levels.virE}"
+          data-lv-s-fsm="${levels.fsmS === null ? '' : levels.fsmS}" data-lv-s-vir="${levels.virS === null ? '' : levels.virS}"
+          role="button" tabindex="0" aria-pressed="${Boolean(state.zoneFocus === segment.suffix)}"
+          title="${esc(segment.name)} ${kmText(segment.startKm)}–${kmText(segment.endKm)}km · ${nocam ? 'CCTV 없는 구간 · ' : ''}${worst === null || worst === undefined ? '등급 없음' : '최고 ' + LEVEL_NAME[worst]}${riseTitle ? ' · ' + esc(riseTitle) : ''} · 눌러서 이 구간 보기">
+        <div class="zh"><strong>${esc(segment.name)}</strong>${rises.length ? `<span class="zrise" title="${esc(riseTitle)}" aria-label="직전 관측 대비 상향 ${LEVEL_NAME[riseWorst]}">▲</span>` : ''}</div>
+        <div class="ztags">${body}</div>
         <div class="zmeta">${meta}</div>
       </div>`;
     }).filter(Boolean);
@@ -1316,8 +1595,8 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       for (const segment of MASTER.zones) {
         const dZone = index.get('E' + segment.suffix);
         const gZone = index.get('S' + segment.suffix);
-        const lv = isSample ? null : maxLevel([dZone && dZone.fsm.level, gZone && gZone.fsm.level]);
-        const dot = lv === null || lv === undefined ? '#5b7d99' : ['#38bdf8', '#fbbf24', '#fb923c', '#f87171'][lv];
+        const lvl = isSample ? null : maxLevel([dZone && dZone.fsm.level, gZone && gZone.fsm.level]);
+        const dot = lvl === null || lvl === undefined ? '#5b7d99' : ['#38bdf8', '#fbbf24', '#fb923c', '#f87171'][lvl];
         const on = state.zoneFocus === segment.suffix;
         chips.push(`<button type="button" class="chip ${on ? 'on' : ''}" data-zonechip="${segment.suffix}" aria-pressed="${on}">
           <span style="color:${on ? '#04121f' : dot}" aria-hidden="true">●</span> ${esc(segment.name.split('–')[0])}</button>`);
@@ -1351,13 +1630,13 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       `<div class="sum-box">
         <div class="label"><span aria-hidden="true">❄</span> 살얼음 최고</div>
         <div class="big">${badge(isSample ? null : fsmMax)}<span class="muted">${isSample ? '데이터 없음' : '구간 최고'}</span></div>
-        <div class="dist"><span><b>경계</b> ${fsmCounts[3]}</span><span><b>주의</b> ${fsmCounts[2]}</span>
+        <div class="dist"><span><b>위험</b> ${fsmCounts[3]}</span><span><b>주의</b> ${fsmCounts[2]}</span>
           <span><b>관심</b> ${fsmCounts[1]}</span><span><b>안전</b> ${fsmCounts[0]}</span></div>
       </div>`,
       `<div class="sum-box">
         <div class="label"><span aria-hidden="true">👁</span> 가시거리 최고</div>
         <div class="big">${badge(isSample ? null : virMax)}<span class="muted">${isSample ? '데이터 없음' : '구간 최고'}</span></div>
-        <div class="dist"><span><b>경계</b> ${virCounts[3]}</span><span><b>주의</b> ${virCounts[2]}</span>
+        <div class="dist"><span><b>위험</b> ${virCounts[3]}</span><span><b>주의</b> ${virCounts[2]}</span>
           <span><b>관심</b> ${virCounts[1]}</span><span><b>안전</b> ${virCounts[0]}</span></div>
       </div>`,
       `<div class="sum-box">
@@ -1440,6 +1719,13 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       const fsmTitle = `${zone ? zone.name : ''} · ${dirDetail('대구', dRisk.fsm)} / ${dirDetail('광주', gRisk.fsm)}`;
       const virTitle = `${zone ? zone.name : ''} · ${dirDetail('대구', dRisk.vir)} / ${dirDetail('광주', gRisk.vir)}`;
       const facClass = FACILITY_GROUP[point.facility] || 'etc';
+      const riskCell = () => {
+        const items = [];
+        if (fsmWorst !== null && fsmWorst !== undefined && fsmWorst >= 1) items.push(badge(fsmWorst, { ico: '❄', title: isSample ? '샘플 구조' : fsmTitle }));
+        if (virWorst !== null && virWorst !== undefined && virWorst >= 1) items.push(badge(virWorst, { ico: '👁', title: isSample ? '샘플 구조' : virTitle }));
+        if (items.length) return items.join('');
+        return `<span class="pt-safe" title="${esc(isSample ? '샘플 구조' : `${fsmTitle} / ${virTitle}`)}">${isSample ? '—' : '안전'}</span>`;
+      };
 
       const cams = visibleCams(point).map((cam) => {
         const matched = (point.its || []).length > 0;
@@ -1461,9 +1747,8 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
           <h3>${esc(point.name)}</h3>
           <span class="fac ${facClass}">${esc(point.facility)}</span>
         </div>
-        <div class="pt-risk">
-          ${badge(fsmWorst, { ico: '❄', title: isSample ? '샘플 구조' : fsmTitle })}
-          ${badge(virWorst, { ico: '👁', title: isSample ? '샘플 구조' : virTitle })}
+        <div class="pt-risk" data-lv-fsm="${fsmWorst === null || fsmWorst === undefined ? '' : fsmWorst}" data-lv-vir="${virWorst === null || virWorst === undefined ? '' : virWorst}">
+          ${riskCell()}
         </div>
         <p class="pt-addr" title="${esc(point.address)}">${esc(point.address)}</p>
         <div class="pt-cams">${cams}</div>
@@ -1487,9 +1772,63 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
 
   /* ══ 노선도(SVG) ══════════════════════ */
 
-  const LV_COLOR = ['#2f8fe0', '#f2c21b', '#f97316', '#e02424'];
+  const LV_COLOR = ['#2f8fe0', '#f2c21b', '#f97316', '#e02424'];        // 공유 리포트(라이트·인쇄)
+  const LV_COLOR_DARK = ['#38bdf8', '#f5c518', '#fb923c', '#f4536b'];    // 화면(다크 관제)
+  function lvColor(level, theme) { return (theme === 'dark' ? LV_COLOR_DARK : LV_COLOR)[level]; }
   const RM_FONT = "'Pretendard','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif";
-  const LEVEL_FULL = ['0단계 안전', '1단계 관심', '2단계 주의', '3단계 경계'];
+  const LEVEL_FULL = ['0단계 안전', '1단계 관심', '2단계 주의', '3단계 위험'];
+
+  /** 노선도 색 — 화면(다크)과 공유 리포트(라이트)를 같은 코드로 그리기 위한 팔레트 */
+  const SKIN = {
+    dark: {
+      paper0: '#081120', paper1: '#0b1828',
+      sea0: '#0b1727', sea1: '#060e19',
+      prov: { '경상남도': '#122a44', '경상북도': '#112639', '전라북도': '#132c49', '대구광역시': '#1a3652', '전라남도': '#112739' },
+      provDefault: '#132a43', provStroke: '#24486b',
+      countyStroke: '#203a56',
+      fade: '#081120',
+      region: '#4a6c8c',
+      casing: '#040a12',
+      pillFill: '#0f1f34', pillStroke: '#2c4d72', pillStrokeJc: '#2f7d5a', pillStrokeTn: '#35526f',
+      lbl: '#e9f3fc', lblSub: '#93aec8',
+      icFill: '#e9f3ff', icStroke: '#0a1726',
+      jcFill: '#34d399', jcStroke: '#06131f',
+      tnFill: '#c7dced', tnStroke: '#0a1726', tnLine: '#35597a',
+      leader: '#3f6486',
+      branch: '#2fbf8a', branchCase: '#081120',
+      tickLine: '#40617f', tickLbl: '#5f7f9e',
+      hdrTitle: '#f2f8ff', hdrSub: '#8fa9c4', hdrEyebrow: '#6d89a8',
+      footBg: '#060d18', footLine: '#15283d', footText: '#9fb6cd', footFaint: '#6d89a8',
+      shieldBlue: '#1c63a6', shieldRed: '#d13b4b',
+      shadowFlood: '#000000', shadowOpacity: '.55',
+      pillShadowFlood: '#000000', pillShadowOpacity: '.45',
+      halo: 0.20, legendText: '#b7cbe0',
+    },
+    report: {
+      paper0: '#ffffff', paper1: '#f7fafd',
+      sea0: '#f3f8fd', sea1: '#e6eff8',
+      prov: { '경상남도': '#d8e7f5', '경상북도': '#cee0f1', '전라북도': '#e2edf8', '대구광역시': '#c3d9ed', '전라남도': '#dde9f6' },
+      provDefault: '#dfeaf5', provStroke: '#ffffff',
+      countyStroke: '#a5bed6',
+      fade: '#ffffff',
+      region: '#7d99b4',
+      casing: '#ffffff',
+      pillFill: '#ffffff', pillStroke: '#c9daea', pillStrokeJc: '#8fd3b2', pillStrokeTn: '#c3d4e4',
+      lbl: '#0d2740', lblSub: '#5b7d99',
+      icFill: '#ffffff', icStroke: '#17324a',
+      jcFill: '#ffffff', jcStroke: '#0f7a4a',
+      tnFill: '#ffffff', tnStroke: '#3d5a7a', tnLine: '#7d97b3',
+      leader: '#93aec6',
+      branch: '#37a06d', branchCase: '#ffffff',
+      tickLine: '#93a7bb', tickLbl: '#8ba6bd',
+      hdrTitle: '#0d2740', hdrSub: '#5b7d99', hdrEyebrow: '#5b7d99',
+      footBg: '#ffffff', footLine: '#dbe6f0', footText: '#2b4a64', footFaint: '#8296a8',
+      shieldBlue: '#1c63a6', shieldRed: '#d13b4b',
+      shadowFlood: '#26456a', shadowOpacity: '.30',
+      pillShadowFlood: '#1e3a5c', pillShadowOpacity: '.22',
+      halo: 0, legendText: '#3a5a76',
+    },
+  };
   const DIR_TEXT = { E: '대구방향(상행)', S: '광주방향(하행)', both: '양방향' };
   const GEO = (typeof ROUTE_GEO === 'object' && ROUTE_GEO && ROUTE_GEO.proj) ? ROUTE_GEO
     : { provinces: [], counties: [], labels: [], proj: { lonC: 128.1003, latC: 35.6573, cosLat: 0.81217, scale: 1900, x0: 800, y0: 455 } };
@@ -1508,7 +1847,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
    */
   const SCENE_WIDE = {
     w: 1600, h: 900, head: 148, foot: 108, rot: 0,
-    big: true, compact: false, header: true,
+    big: true, compact: false, header: true, theme: 'dark',
     fit: { l: 172, r: 172, t: 78, b: 92 },
     fs: { eyebrow: 18, title: 43, sub: 19, label: 25, sublabel: 15.5, region: 29, legend: 20, foot: 15.5, tick: 14, chip: 21 },
     pill: { padX: 14, dx: 3 },
@@ -1528,7 +1867,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     const w = Math.max(320, Math.round(boxW * 2));
     const h = Math.max(160, Math.round(boxH * 2));
     return {
-      w, h, rot: 0, big: false, compact: true,
+      w, h, rot: 0, big: false, compact: true, theme: 'dark',
       head: landscape ? Math.round(64 * K) : 0,
       foot: Math.round(landscape ? 38 * K : 28),
       header: Boolean(landscape),
@@ -1552,8 +1891,15 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     };
   }
 
+  /** 공유용 리포트(라이트) — 헤더·범례는 리포트 레이아웃이 따로 그리므로 끈다 */
+  const SCENE_REPORT = Object.assign({}, SCENE_WIDE, {
+    head: 0, foot: 0, header: false, theme: 'report', big: true,
+    fit: { l: 150, r: 150, t: 44, b: 40 },
+  });
+
   function sceneFor(mode, box) {
     if (mode === 'wide') return SCENE_WIDE;
+    if (mode === 'report') return SCENE_REPORT;
     return compactScene(box && box.w ? box.w : 374, box && box.h ? box.h : 182, mode === 'landscape');
   }
 
@@ -1829,12 +2175,14 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     const glyphR = Math.max(cfg.glyph.ic, cfg.glyph.jc, cfg.glyph.tnW / 2) + 3;
     const nodeBoxes = ROUTE_NODES.map((n) => {
       const p = pointAtKm(n.km, tg);
-      return { x: p.x, y: p.y, r: cfg.glyph.tnW / 2 + 4 };
+      const r = n.kind === 'tn' ? cfg.glyph.tnW / 2 + 3 : n.kind === 'jc' ? cfg.glyph.jc + 6 : cfg.glyph.ic + 5;
+      return { name: n.name, x: p.x, y: p.y, r };
     });
     const DELTAS = [0, 30, -30, 62, -62, 90, -90, 128, -128, 180];
-    const extras = cfg.compact ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 2, 3, 4];
+    const extras = cfg.compact ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] : [0, 1, 2, 3, 4, 5, 6, 7];
     const wOverlap = cfg.compact ? 26 : 3.2;
     const wHit = cfg.compact ? 55 : 26;
+    const wGlyph = cfg.compact ? 34 : 46;
 
     for (const node of ROUTE_NODES) {
       const p = pointAtKm(node.km, tg);
@@ -1871,8 +2219,11 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
             const myCx = r.x + w / 2;
             if (myCx < west.cx + 14) cost += 60000 + (west.cx + 14 - myCx) * 400;
           }
-          for (const b of nodeBoxes) cost += overlapArea(r, { x: b.x - b.r, y: b.y - b.r, w: b.r * 2, h: b.r * 2 }, 2) * 0.9;
-          for (const o of obstacles) cost += overlapArea(r, o, 2) * 0.5;
+          for (const b of nodeBoxes) {
+            if (b.name === node.name) continue;
+            cost += overlapArea(r, { x: b.x - b.r, y: b.y - b.r, w: b.r * 2, h: b.r * 2 }, 2) * wGlyph;
+          }
+          for (const o of obstacles) cost += overlapArea(r, o, 2) * (cfg.compact ? 9 : 12);
           let hits = 0;
           for (let i = 0; i < tg.length; i += 2) {
             const t = tg[i];
@@ -1892,7 +2243,91 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       out.push({ node, subText, rect: best.r, ang: best.ang, d: best.d, zone: zone.suffix, markerX: p.x, markerY: p.y });
     }
     enforceNodeOrder(out, rect);
+    resolveGlyphOverlaps(out, tg, cfg, rect);
+    resolvePillOverlaps(out, rect, cfg);
+    enforceNodeOrder(out, rect);
+    resolveGlyphOverlaps(out, tg, cfg, rect);
+    resolvePillOverlaps(out, rect, cfg);
     return out;
+  }
+
+  function boxesOverlap(a, b, pad) {
+    const p = pad || 0;
+    return Math.min(a.x + a.w + p, b.x + b.w + p) - Math.max(a.x - p, b.x - p) > 0
+      && Math.min(a.y + a.h + p, b.y + b.h + p) - Math.max(a.y - p, b.y - p) > 0;
+  }
+
+  function clampPill(r, rect) {
+    r.x = Math.min(Math.max(r.x, rect.x + 4), rect.x + rect.w - r.w - 4);
+    r.y = Math.min(Math.max(r.y, rect.y + 4), rect.y + rect.h - r.h - 4);
+    r.cx = r.x + r.w / 2;
+    r.cy = r.y + r.h / 2;
+  }
+
+  /** 다른 노드의 아이콘을 가리지 않게 라벨을 밀어낸다 (세로 우선, 안 되면 가로) */
+  function resolveGlyphOverlaps(items, tg, cfg, rect) {
+    const glyphBoxes = ROUTE_NODES.map((node) => {
+      const q = pointAtKm(node.km, tg);
+      const r = node.kind === 'tn' ? cfg.glyph.tnW / 2 + 4 : node.kind === 'jc' ? cfg.glyph.jc + 7 : cfg.glyph.ic + 6;
+      return { name: node.name, x: q.x - r, y: q.y - r, w: r * 2, h: r * 2 };
+    });
+    const step = cfg.compact ? 16 : 14;
+    for (let pass = 0; pass < 60; pass += 1) {
+      let moved = false;
+      for (const item of items) {
+        const others = glyphBoxes;
+        if (!others.some((g) => boxesOverlap(item.rect, g, 2))) continue;
+        const base = { x: item.rect.x, y: item.rect.y };
+        const cands = [];
+        for (let k = 1; k <= 7; k += 1) {
+          cands.push([0, -step * k], [0, step * k], [-step * k, 0], [step * k, 0]);
+        }
+        let best = null;
+        for (const cand of cands) {
+          const trial = { x: base.x + cand[0], y: base.y + cand[1], w: item.rect.w, h: item.rect.h };
+          if (trial.x < rect.x + 4 || trial.y < rect.y + 4) continue;
+          if (trial.x + trial.w > rect.x + rect.w - 4 || trial.y + trial.h > rect.y + rect.h - 4) continue;
+          if (others.some((g) => boxesOverlap(trial, g, 2))) continue;
+          best = trial;
+          break;
+        }
+        if (!best) continue;
+        Object.assign(item.rect, best);
+        clampPill(item.rect, rect);
+        moved = true;
+      }
+      if (!moved) break;
+    }
+  }
+
+  /** 라벨끼리 겹치면 노드에서 더 멀리 떨어진 쪽을 세로로 밀어낸다 */
+  function resolvePillOverlaps(items, rect, cfg) {
+    const pad = cfg.compact ? 2 : 3;
+    for (let pass = 0; pass < 70; pass += 1) {
+      let hit = null;
+      for (let i = 0; i < items.length && !hit; i += 1) {
+        for (let j = i + 1; j < items.length; j += 1) {
+          const a = items[i];
+          const b = items[j];
+          const ox = Math.min(a.rect.x + a.rect.w + pad, b.rect.x + b.rect.w + pad) - Math.max(a.rect.x - pad, b.rect.x - pad);
+          const oy = Math.min(a.rect.y + a.rect.h + pad, b.rect.y + b.rect.h + pad) - Math.max(a.rect.y - pad, b.rect.y - pad);
+          if (ox > 0 && oy > 0) { hit = { a, b, oy }; break; }
+        }
+      }
+      if (!hit) break;
+      const target = hit.a.d >= hit.b.d ? hit.a : hit.b;
+      const other = target === hit.a ? hit.b : hit.a;
+      const need = Math.min(hit.oy + pad, 46);
+      const down = target.rect.y + target.rect.h / 2 >= other.rect.y + other.rect.h / 2;
+      const roomDown = rect.y + rect.h - 4 - (target.rect.y + target.rect.h);
+      const roomUp = target.rect.y - (rect.y + 4);
+      if (down && roomDown >= need) target.rect.y += need;
+      else if (!down && roomUp >= need) target.rect.y -= need;
+      else if (roomUp >= need) target.rect.y -= need;
+      else if (roomDown >= need) target.rect.y += need;
+      else target.rect.y += down ? -need : need;
+      clampPill(target.rect, rect);
+    }
   }
 
   function overlapArea(a, b, pad) {
@@ -1904,6 +2339,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
   }
 
   function glyphSvg(p, kind, cfg) {
+    const S = SKIN[cfg.theme === 'report' ? 'report' : 'dark'];
     const g = cfg.glyph;
     const sw = Math.max(1.4, cfg.stroke.case * 0.55);
     // v4 — 손가락 목표(지름 44px 안팢)를 위해 투명 히트 영역을 넓혔다. 데스크톱은 마우스라 조금 작게.
@@ -1911,8 +2347,8 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     if (kind === 'jc') {
       const r = g.jc + 4;
       return `<circle class="node-hit" cx="${n1(p.x)}" cy="${n1(p.y)}" r="${n1(Math.max(r + 8, hitR))}" fill="transparent"/>
-        <rect x="${n1(p.x - r * 0.72)}" y="${n1(p.y - r * 0.72)}" width="${n1(r * 1.44)}" height="${n1(r * 1.44)}" rx="${n1(r * 0.28)}"
-          transform="rotate(45 ${n1(p.x)} ${n1(p.y)})" fill="#ffffff" stroke="#0f7a4a" stroke-width="${n1(sw + 0.8)}"/>`;
+        <rect class="glyph" x="${n1(p.x - r * 0.72)}" y="${n1(p.y - r * 0.72)}" width="${n1(r * 1.44)}" height="${n1(r * 1.44)}" rx="${n1(r * 0.28)}"
+          transform="rotate(45 ${n1(p.x)} ${n1(p.y)})" fill="${S.jcFill}" stroke="${S.jcStroke}" stroke-width="${n1(sw + 0.8)}"/>`;
     }
     if (kind === 'tn') {
       const w = Math.max(g.tnW + 18, hitR * 2);
@@ -1920,19 +2356,21 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       const gw = g.tnW;
       const gh = g.tnH;
       return `<rect class="node-hit" x="${n1(p.x - w / 2)}" y="${n1(p.y - h / 2)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(h * 0.3)}" fill="transparent"/>
-        <rect x="${n1(p.x - gw / 2)}" y="${n1(p.y - gh / 2)}" width="${n1(gw)}" height="${n1(gh)}" rx="${n1(gh * 0.34)}"
-          fill="#ffffff" stroke="#3d5a7a" stroke-width="${n1(sw)}"/>
-        <path d="M${n1(p.x - gw * 0.24)} ${n1(p.y + gh * 0.26)}v${n1(-gh * 0.42)}a${n1(gw * 0.24)} ${n1(gh * 0.42)} 0 0 1 ${n1(gw * 0.48)} 0v${n1(gh * 0.42)}"
-          fill="none" stroke="#7d97b3" stroke-width="${n1(sw * 0.8)}" stroke-linecap="round"/>`;
+        <rect class="glyph" x="${n1(p.x - gw / 2)}" y="${n1(p.y - gh / 2)}" width="${n1(gw)}" height="${n1(gh)}" rx="${n1(gh * 0.34)}"
+          fill="${S.tnFill}" stroke="${S.tnStroke}" stroke-width="${n1(sw)}"/>
+        <path class="glyph" d="M${n1(p.x - gw * 0.24)} ${n1(p.y + gh * 0.26)}v${n1(-gh * 0.42)}a${n1(gw * 0.24)} ${n1(gh * 0.42)} 0 0 1 ${n1(gw * 0.48)} 0v${n1(gh * 0.42)}"
+          fill="none" stroke="${S.tnLine}" stroke-width="${n1(sw * 0.8)}" stroke-linecap="round"/>`;
     }
     return `<circle class="node-hit" cx="${n1(p.x)}" cy="${n1(p.y)}" r="${n1(Math.max(g.ic + 5, hitR))}" fill="transparent"/>
-      <circle cx="${n1(p.x)}" cy="${n1(p.y)}" r="${n1(g.ic)}" fill="#ffffff" stroke="#17324a" stroke-width="${n1(sw + 0.6)}"/>`;
+      <circle class="glyph" cx="${n1(p.x)}" cy="${n1(p.y)}" r="${n1(g.ic)}" fill="${S.icFill}" stroke="${S.icStroke}" stroke-width="${n1(sw + 0.6)}"/>`;
   }
 
   /** 노선도 마크업 생성 — 화면과 공유 PNG가 같은 함수를 씁니다. */
   function buildScene(mode, box) {
     const cfg = sceneFor(mode, box);
     const D = sceneData();
+    const S = SKIN[cfg.theme === 'report' ? 'report' : 'dark'];
+    const lvC = (level) => lvColor(level, cfg.theme);
     const dir = D.dir;
     const metric = D.metric;
     const rows = D.rows;
@@ -1956,38 +2394,41 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     /* ── defs ── */
     out.push(`<defs>
       <style>
-        .seg-case { fill: none; stroke: #ffffff; stroke-linecap: round; stroke-linejoin: round; }
+        .seg-case { fill: none; stroke: ${S.casing}; stroke-linecap: round; stroke-linejoin: round; }
         .seg { fill: none; stroke-linecap: round; stroke-linejoin: round; }
         .seg-hit { fill: none; stroke: #000000; stroke-opacity: 0; stroke-linecap: round; cursor: pointer; }
         .seg3 { animation: segPulse 2.6s ease-in-out infinite; }
+        .rise-halo { animation: riseHalo 2.2s ease-in-out infinite; }
         @keyframes segPulse { 0%, 100% { opacity: 1; } 50% { opacity: .68; } }
-        .lbl { font-family: ${RM_FONT}; font-size: ${fs.label}px; font-weight: 800; fill: #0d2740; letter-spacing: -.02em; }
-        .lbl-sub { font-family: ${RM_FONT}; font-size: ${fs.sublabel}px; font-weight: 650; fill: #5b7d99; }
-        .region { font-family: ${RM_FONT}; font-size: ${fs.region}px; font-weight: 800; fill: #7d99b4; letter-spacing: ${cfg.regionSpacing}px; }
+        @keyframes riseHalo { 0%, 100% { stroke-opacity: .22; } 50% { opacity: .55; stroke-opacity: .48; } }
+        .lbl { font-family: ${RM_FONT}; font-size: ${fs.label}px; font-weight: 800; fill: ${S.lbl}; letter-spacing: -.02em; }
+        .lbl-sub { font-family: ${RM_FONT}; font-size: ${fs.sublabel}px; font-weight: 650; fill: ${S.lblSub}; }
+        .region { font-family: ${RM_FONT}; font-size: ${fs.region}px; font-weight: 800; fill: ${S.region}; letter-spacing: ${cfg.regionSpacing}px; }
         .node-hit { pointer-events: all; }
-        .leader { stroke: #93aec6; stroke-width: ${cfg.leaderW}; fill: none; }
-        .branch-lbl { font-family: ${RM_FONT}; font-size: ${cfg.branchFont}px; font-weight: 700; fill: #2f7d58; letter-spacing: -.01em;
-                      paint-order: stroke; stroke: #ffffff; stroke-width: 4.5px; stroke-linejoin: round; }
-        .tick-lbl { font-family: ${RM_FONT}; font-size: ${fs.tick}px; font-weight: 700; fill: #8ba6bd; }
+        .glyph { pointer-events: none; }
+        .leader { stroke: ${S.leader}; stroke-width: ${cfg.leaderW}; fill: none; }
+        .branch-lbl { font-family: ${RM_FONT}; font-size: ${cfg.branchFont}px; font-weight: 700; fill: ${S.branch}; letter-spacing: -.01em;
+                      paint-order: stroke; stroke: ${S.paper0}; stroke-width: 4.5px; stroke-linejoin: round; }
+        .tick-lbl { font-family: ${RM_FONT}; font-size: ${fs.tick}px; font-weight: 700; fill: ${S.tickLbl}; }
         svg, text { font-family: ${RM_FONT}; }
       </style>
       <clipPath id="rmMapClip"><rect x="0" y="${rect.y}" width="${rect.w}" height="${rect.h}"/></clipPath>
-      <linearGradient id="rmPaper" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f7fafd"/>
+      <linearGradient id="rmPaper" x1="0" y1="0" x2="0.15" y2="1">
+        <stop offset="0" stop-color="${S.paper0}"/><stop offset="1" stop-color="${S.paper1}"/>
       </linearGradient>
       <linearGradient id="rmSea" x1="0" y1="0" x2="0.35" y2="1">
-        <stop offset="0" stop-color="#f3f8fd"/><stop offset="1" stop-color="#e6eff8"/>
+        <stop offset="0" stop-color="${S.sea0}"/><stop offset="1" stop-color="${S.sea1}"/>
       </linearGradient>
       <linearGradient id="rmFade" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#ffffff" stop-opacity=".92"/><stop offset=".10" stop-color="#ffffff" stop-opacity="0"/>
-        <stop offset=".90" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#ffffff" stop-opacity=".95"/>
+        <stop offset="0" stop-color="${S.fade}" stop-opacity=".92"/><stop offset=".10" stop-color="${S.fade}" stop-opacity="0"/>
+        <stop offset=".90" stop-color="${S.fade}" stop-opacity="0"/><stop offset="1" stop-color="${S.fade}" stop-opacity=".95"/>
       </linearGradient>
       <filter id="rmShadow" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="${cfg.shadowDy}" stdDeviation="${cfg.shadowBlur}" flood-color="#26456a" flood-opacity=".30"/>
+        <feDropShadow dx="0" dy="${cfg.shadowDy}" stdDeviation="${cfg.shadowBlur}" flood-color="${S.shadowFlood}" flood-opacity="${S.shadowOpacity}"/>
       </filter>
       <filter id="rmGlow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="${cfg.glowBlur}"/></filter>
       <filter id="rmPill" x="-12%" y="-40%" width="124%" height="180%">
-        <feDropShadow dx="0" dy="${cfg.pillDy}" stdDeviation="${cfg.pillBlur}" flood-color="#1e3a5c" flood-opacity=".22"/>
+        <feDropShadow dx="0" dy="${cfg.pillDy}" stdDeviation="${cfg.pillBlur}" flood-color="${S.pillShadowFlood}" flood-opacity="${S.pillShadowOpacity}"/>
       </filter>
     </defs>`);
 
@@ -1996,16 +2437,16 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     /* ── 지도 배경 ── */
     out.push(`<g clip-path="url(#rmMapClip)">`);
     out.push(`<rect x="0" y="${rect.y}" width="${rect.w}" height="${rect.h}" fill="url(#rmSea)"/>`);
-    const PROV_FILL = { 경상남도: '#d8e7f5', 경상북도: '#cee0f1', 전라북도: '#e2edf8', 대구광역시: '#c3d9ed', 전라남도: '#dde9f6' };
+    const PROV_FILL = S.prov;
     out.push(`<g transform="${G.matrix}">`);
     out.push('<g class="provinces">');
     for (const prov of GEO.provinces || []) {
-      out.push(`<path d="${prov.d}" fill="${PROV_FILL[prov.name] || '#dfeaf5'}" stroke="#ffffff" stroke-width="${cfg.provStroke}"/>`);
+      out.push(`<path d="${prov.d}" fill="${PROV_FILL[prov.name] || S.provDefault}" stroke="${S.provStroke}" stroke-width="${cfg.provStroke}" stroke-opacity=".55"/>`);
     }
     out.push('</g>');
     out.push('<g class="counties">');
     for (const county of GEO.counties || []) {
-      out.push(`<path d="${county.d}" fill="none" stroke="#a5bed6" stroke-width="${cfg.countyStroke}" stroke-dasharray="${cfg.countyDash}"/>`);
+      out.push(`<path d="${county.d}" fill="none" stroke="${S.countyStroke}" stroke-width="${cfg.countyStroke}" stroke-dasharray="${cfg.countyDash}"/>`);
     }
     out.push('</g>');
     out.push('</g>');
@@ -2048,6 +2489,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     out.push('</g>');
 
     /* 분기선(다른 고속도로) */
+    const branchBoxes = [];
     out.push('<g class="branches">');
     for (const node of ROUTE_NODES) {
       if (!node.branch) continue;
@@ -2056,8 +2498,12 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       const len = cfg.branchLen;
       const q1 = G.map(pb.x + Math.cos((a1 * Math.PI) / 180) * len, pb.y + Math.sin((a1 * Math.PI) / 180) * len);
       const q2 = G.map(pb.x + Math.cos((a2 * Math.PI) / 180) * len, pb.y + Math.sin((a2 * Math.PI) / 180) * len);
-      out.push(`<path d="M${n1(q1.x)} ${n1(q1.y)}L${n1(q2.x)} ${n1(q2.y)}" fill="none" stroke="#ffffff" stroke-width="${cfg.branchCase}" stroke-linecap="round" opacity=".9"/>`);
-      out.push(`<path d="M${n1(q1.x)} ${n1(q1.y)}L${n1(q2.x)} ${n1(q2.y)}" fill="none" stroke="#37a06d" stroke-width="${cfg.branchStroke}" stroke-linecap="round"/>`);
+      branchBoxes.push({
+        x: Math.min(q1.x, q2.x) - 8, y: Math.min(q1.y, q2.y) - 8,
+        w: Math.abs(q2.x - q1.x) + 16, h: Math.abs(q2.y - q1.y) + 16,
+      });
+      out.push(`<path d="M${n1(q1.x)} ${n1(q1.y)}L${n1(q2.x)} ${n1(q2.y)}" fill="none" stroke="${S.branchCase}" stroke-width="${cfg.branchCase}" stroke-linecap="round" opacity=".9"/>`);
+      out.push(`<path d="M${n1(q1.x)} ${n1(q1.y)}L${n1(q2.x)} ${n1(q2.y)}" fill="none" stroke="${S.branch}" stroke-width="${cfg.branchStroke}" stroke-linecap="round"/>`);
     }
     out.push('</g>');
 
@@ -2076,7 +2522,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
         : [{ d: dir, level: row[dir], pts: (dir === 'E' ? trackE : trackS).slice(r.start, r.end + 1) }];
       for (const seg of list) {
         const level = seg.level;
-        const color = level === null || level === undefined ? '#93a7bb' : LV_COLOR[level];
+        const color = level === null || level === undefined ? (cfg.theme === 'report' ? '#93a7bb' : '#4a6079') : lvC(level);
         const width = dir === 'both' ? cfg.stroke.both : (level === 3 ? cfg.stroke.lv3 : cfg.stroke.base);
         segs.push({ zone, d: smoothPath(seg.pts), level, color, width, dirCode: seg.d, pts: seg.pts, travel: seg.d === 'E' ? 1 : -1 });
       }
@@ -2085,6 +2531,14 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     out.push('<g class="route-casing" filter="url(#rmShadow)">');
     for (const seg of segs) out.push(`<path d="${seg.d}" class="seg-case" stroke-width="${seg.width + cfg.stroke.case}"/>`);
     out.push('</g>');
+    /* 다크 화면에서는 모든 구간에 약한 네온 헤일로를 깔아 어두운 배경 위에서도 선이 뜨게 한다 */
+    if (S.halo) {
+      out.push('<g class="route-halo">');
+      for (const seg of segs) {
+        out.push(`<path d="${seg.d}" class="seg" stroke="${seg.color}" stroke-width="${seg.width + cfg.stroke.glow}" opacity="${seg.level === 3 ? S.halo + 0.18 : S.halo}" filter="url(#rmGlow)"/>`);
+      }
+      out.push('</g>');
+    }
     out.push('<g class="route-glow">');
     for (const seg of segs) {
       if (seg.level !== 3) continue;
@@ -2126,7 +2580,32 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       out.push('<g class="route-sel">');
       for (const seg of segs) {
         if (seg.zone.suffix !== state.zoneFocus) continue;
-        out.push(`<path d="${seg.d}" class="seg" stroke="#0d2740" stroke-width="${seg.width + cfg.stroke.case + 8}" opacity=".16"/>`);
+        out.push(`<path d="${seg.d}" class="seg" stroke="${cfg.theme === 'report' ? S.lbl : '#e8f4ff'}" stroke-width="${seg.width + cfg.stroke.case + 8}" opacity=".16"/>`);
+      }
+      out.push('</g>');
+    }
+
+    /* 직전 관측 대비 상향 구간 — 붉은 점선 펄스 + ▲ 표식 */
+    const riseSegs = [];
+    for (const seg of segs) {
+      const key = seg.dirCode + seg.zone.suffix + metric;
+      if (!state.rises[key]) continue;
+      riseSegs.push({ seg, key, rise: state.rises[key] });
+    }
+    if (riseSegs.length) {
+      out.push('<g class="route-rises" aria-hidden="true">');
+      for (const item of riseSegs) {
+        const seg = item.seg;
+        const w = seg.width + Math.max(6, cfg.stroke.case + 2);
+        out.push(`<path d="${seg.d}" class="seg rise-halo" data-rise-seg="${seg.zone.suffix}" stroke="#f43f5e" stroke-width="${w}" stroke-dasharray="${cfg.compact ? '5 6' : '8 10'}" stroke-linecap="round" fill="none"/>`);
+        const mid = seg.pts[Math.max(1, Math.floor(seg.pts.length / 2))] || seg.pts[0];
+        if (mid) {
+          const tw = Math.max(cfg.compact ? 14 : 20, fs.tick * 1.5);
+          out.push(`<g class="rise-mark" transform="translate(${n1(mid.x)} ${n1(mid.y - (dir === 'both' ? 26 : 24))})">
+            <rect x="${n1(-tw / 2 - 3)}" y="${n1(-tw * 0.62)}" width="${n1(tw + 6)}" height="${n1(tw * 0.92)}" rx="${n1(tw * 0.34)}" fill="#f43f5e" stroke="#4c0519" stroke-width="1"/>
+            ${svgText(0, n1(tw * 0.14), '▲', ` text-anchor="middle" font-size="${n1(tw * 0.62)}" font-weight="900" fill="#fff1f2"`)}
+          </g>`);
+        }
       }
       out.push('</g>');
     }
@@ -2140,6 +2619,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     /* ── 노드 + 라벨 ── */
     const obstacles = [];
     for (const box of regionLayout) obstacles.push({ x: box.x, y: box.y, w: box.w, h: box.h });
+    for (const box of branchBoxes) obstacles.push(box);
     const layout = layoutNodes(tg, cfg, rect, obstacles);
 
     /* km 눈금 (라벨·노드와 겹치면 생략) */
@@ -2155,7 +2635,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
         const nX = Math.sin(p.tangent);
         const nY = -Math.cos(p.tangent);
         const flip = nY > 0 ? -1 : 1;
-        out.push(`<line x1="${n1(p.x + nX * 9 * flip)}" y1="${n1(p.y + nY * 9 * flip)}" x2="${n1(p.x + nX * 20 * flip)}" y2="${n1(p.y + nY * 20 * flip)}" stroke="#93a7bb" stroke-width="1.6" opacity=".85"/>`);
+        out.push(`<line x1="${n1(p.x + nX * 9 * flip)}" y1="${n1(p.y + nY * 9 * flip)}" x2="${n1(p.x + nX * 20 * flip)}" y2="${n1(p.y + nY * 20 * flip)}" stroke="${S.tickLine}" stroke-width="1.6" opacity=".85"/>`);
         out.push(`<text class="tick-lbl" x="${n1(p.x + nX * 34 * flip)}" y="${n1(p.y + nY * 34 * flip + 4)}" text-anchor="middle">${km}</text>`);
       }
       out.push('</g>');
@@ -2188,7 +2668,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       out.push(glyphSvg(p, node.kind, cfg));
       out.push(`<path class="leader" d="M${n1(startX)} ${n1(startY)}L${n1(gx)} ${n1(gy)}"/>`);
       out.push(`<rect class="label-pill" x="${n1(r.x)}" y="${n1(r.y)}" width="${n1(r.w)}" height="${n1(r.h)}" rx="${n1(Math.min(9, r.h / 2.4))}"
-        fill="#ffffff" fill-opacity=".97" stroke="${node.kind === 'jc' ? '#8fd3b2' : node.kind === 'tn' ? '#c3d4e4' : '#c9daea'}" stroke-width="${cfg.pillStroke}" filter="url(#rmPill)"/>`);
+        fill="${S.pillFill}" fill-opacity=".97" stroke="${node.kind === 'jc' ? S.pillStrokeJc : node.kind === 'tn' ? S.pillStrokeTn : S.pillStroke}" stroke-width="${cfg.pillStroke}" filter="url(#rmPill)"/>`);
       const nameY = item.subText ? r.y + r.h * 0.42 : cy + fs.label * 0.34;
       out.push(svgText(cx, nameY, node.name, ` class="lbl" text-anchor="middle"`));
       if (item.subText) {
@@ -2203,38 +2683,39 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
 
     /* ── 헤더 ── */
     const hot = (summary.counts[3] || 0) + (summary.counts[2] || 0) > 0;
-    if (cfg.big) {
+    const stateDot = isSample ? '#94a3b8' : hot ? lvC(3) : '#12b981';
+    if (cfg.header && cfg.big) {
       out.push(`<g class="hdr">
-        <circle cx="46" cy="40" r="7" fill="${isSample ? '#94a3b8' : hot ? '#e02424' : '#12b981'}"/>
-        <circle cx="46" cy="40" r="11" fill="none" stroke="${isSample ? '#94a3b8' : hot ? '#e02424' : '#12b981'}" stroke-opacity=".28" stroke-width="2"/>
-        ${svgText(64, 47, `기상청 RWIS · ${stateText} ${metricName}(${metricCode})`, ' font-size="18" font-weight="700" fill="#5b7d99" letter-spacing=".6"')}
+        <circle cx="46" cy="40" r="7" fill="${stateDot}"/>
+        <circle cx="46" cy="40" r="11" fill="none" stroke="${stateDot}" stroke-opacity=".28" stroke-width="2"/>
+        ${svgText(64, 47, `기상청 RWIS · ${stateText} ${metricName}(${metricCode})`, ` font-size="18" font-weight="700" fill="${S.hdrEyebrow}" letter-spacing=".6"`)}
         ${cfg.shield ? `<g class="shield" transform="translate(46 96) scale(1.02)" aria-hidden="true">
-          <rect x="-17" y="-19" width="34" height="8" rx="2.4" fill="#d13b4b"/>
-          <path d="M-17 -12H17V6C17 17 8 23 0 26C-8 23 -17 17 -17 6Z" fill="#1c63a6"/>
+          <rect x="-17" y="-19" width="34" height="8" rx="2.4" fill="${S.shieldRed}"/>
+          <path d="M-17 -12H17V6C17 17 8 23 0 26C-8 23 -17 17 -17 6Z" fill="${S.shieldBlue}"/>
           ${svgText(0, 8, '12', ' text-anchor="middle" font-size="16" font-weight="800" fill="#ffffff"')}
         </g>` : ''}
-        ${svgText(84, 106, `광주대구선 ${metricName} 현황`, ` font-size="${fs.title}" font-weight="800" fill="#0d2740" letter-spacing="-1.4"`)}
-        ${svgText(86, 140, `${range.startName} ${range.startKm.toFixed(1)}km → ${range.endName} ${range.endKm.toFixed(1)}km · 8개 구간 ${totalKm}km · ${dirText} · ${isSample ? '관측시각 없음' : `관측 ${tmText}${ageSuffix}`}`, ` font-size="${fs.sub}" font-weight="600" fill="#5b7d99"`)}
+        ${svgText(84, 106, `광주대구선 ${metricName} 현황`, ` font-size="${fs.title}" font-weight="800" fill="${S.hdrTitle}" letter-spacing="-1.4"`)}
+        ${svgText(86, 140, `${range.startName} ${range.startKm.toFixed(1)}km → ${range.endName} ${range.endKm.toFixed(1)}km · 8개 구간 ${totalKm}km · ${dirText} · ${isSample ? '관측시각 없음' : `관측 ${tmText}${ageSuffix}`}`, ` font-size="${fs.sub}" font-weight="600" fill="${S.hdrSub}"`)}
       </g>`);
       // 요약 카드 4개
       const chipW = 122, chipH = 44, chipGap = 8;
       const x0 = cfg.w - 46 - (chipW * 4 + chipGap * 3);
       out.push('<g class="chips">');
-      [[3, '경계'], [2, '주의'], [1, '관심'], [0, '안전']].forEach((pair, i) => {
+      [[3, '위험'], [2, '주의'], [1, '관심'], [0, '안전']].forEach((pair, i) => {
         const [lv, label] = pair;
         const x = x0 + (chipW + chipGap) * i;
-        const c = LV_COLOR[lv];
+        const c = lvC(lv);
         const n = summary.counts[lv] || 0;
         out.push(`<g opacity="${n ? 1 : .5}">
-          <rect x="${x}" y="24" width="${chipW}" height="${chipH}" rx="11" fill="${c}12" stroke="${c}55" stroke-width="1.4"/>
+          <rect x="${x}" y="24" width="${chipW}" height="${chipH}" rx="11" fill="${c}${n ? '24' : '12'}" stroke="${c}66" stroke-width="1.4"/>
           <circle cx="${x + 17}" cy="${24 + chipH / 2}" r="5.5" fill="${c}"/>
-          ${svgText(x + 30, 24 + chipH / 2 + 7, label, ' font-size="19" font-weight="800" fill="#17324a"')}
-          ${svgText(x + chipW - 14, 24 + chipH / 2 + 9, String(n), ` font-size="23" font-weight="800" fill="${n ? c : '#9aabbd'}" text-anchor="end"`)}
+          ${svgText(x + 30, 24 + chipH / 2 + 7, label, ` font-size="19" font-weight="800" fill="${S.hdrTitle}"`)}
+          ${svgText(x + chipW - 14, 24 + chipH / 2 + 9, String(n), ` font-size="23" font-weight="800" fill="${n ? c : S.hdrSub}" text-anchor="end"`)}
         </g>`);
       });
       const mx = summary.max;
-      out.push(`<text x="${cfg.w - 46}" y="101" text-anchor="end" font-size="17" font-weight="700" fill="#7f95a8">${
-        summary.unknown ? `등급 없음 ${summary.unknown}구간 · ` : ''}최고 <tspan font-size="20" font-weight="800" fill="${mx === null ? '#8296a8' : LV_COLOR[mx]}">${mx === null ? '—' : LEVEL_FULL[mx]}</tspan></text>`);
+      out.push(`<text x="${cfg.w - 46}" y="101" text-anchor="end" font-size="17" font-weight="700" fill="${S.hdrSub}">${
+        summary.unknown ? `등급 없음 ${summary.unknown}구간 · ` : ''}최고 <tspan font-size="20" font-weight="800" fill="${mx === null ? S.hdrSub : lvC(mx)}">${mx === null ? '—' : LEVEL_FULL[mx]}</tspan></text>`);
       out.push('</g>');
     } else if (cfg.header) {
       /* 휴대폰 가로 몰입형 — 제목 한 줄 + 등급 요약 칩, 그 아래로 지도 */
@@ -2242,61 +2723,61 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       const y1 = Math.round(cfg.head * 0.36);
       const y2 = cfg.head - Math.round(cfg.head * 0.18);
       out.push(`<g class="hdr">
-        <circle cx="${pad + 5}" cy="${y1 - 4}" r="4.2" fill="${isSample ? '#94a3b8' : hot ? '#e02424' : '#12b981'}"/>
-        ${svgText(pad + 15, y1 + 1, `기상청 RWIS · ${stateText} ${metricName}(${metricCode})`, ` font-size="${fs.eyebrow}" font-weight="700" fill="#5b7d99" letter-spacing=".4"`)}
-        ${svgText(pad, y2, `광주대구선 ${metricName}`, ` font-size="${fs.title}" font-weight="800" fill="#0d2740" letter-spacing="-.8"`)}
-        ${svgText(cfg.w - pad, y2, `${range.startName} ${range.startKm.toFixed(0)} → ${range.endName} ${range.endKm.toFixed(0)}km · ${dirText}${isSample ? '' : ` · 관측 ${tmText.slice(5)}${ageSuffix}`}`, ` text-anchor="end" font-size="${fs.sub}" font-weight="600" fill="#5b7d99"`)}
+        <circle cx="${pad + 5}" cy="${y1 - 4}" r="4.2" fill="${stateDot}"/>
+        ${svgText(pad + 15, y1 + 1, `기상청 RWIS · ${stateText} ${metricName}(${metricCode})`, ` font-size="${fs.eyebrow}" font-weight="700" fill="${S.hdrEyebrow}" letter-spacing=".4"`)}
+        ${svgText(pad, y2, `광주대구선 ${metricName}`, ` font-size="${fs.title}" font-weight="800" fill="${S.hdrTitle}" letter-spacing="-.8"`)}
+        ${svgText(cfg.w - pad, y2, `${range.startName} ${range.startKm.toFixed(0)} → ${range.endName} ${range.endKm.toFixed(0)}km · ${dirText}${isSample ? '' : ` · 관측 ${tmText.slice(5)}${ageSuffix}`}`, ` text-anchor="end" font-size="${fs.sub}" font-weight="600" fill="${S.hdrSub}"`)}
       </g>`);
       out.push('<g class="chips">');
       let chipX = cfg.w - pad;
-      [[0, '안전'], [1, '관심'], [2, '주의'], [3, '경계']].forEach((pair) => {
+      [[0, '안전'], [1, '관심'], [2, '주의'], [3, '위험']].forEach((pair) => {
         const [lv, label] = pair;
-        const c = LV_COLOR[lv];
+        const c = lvC(lv);
         const n = summary.counts[lv] || 0;
         const text = `${label} ${n}`;
         const tw = measure(text, fs.chip, 800);
         chipX -= tw;
         out.push(`<g opacity="${n ? 1 : .55}"><circle cx="${n1(chipX - fs.chip * 0.5)}" cy="${n1(y1 - 4)}" r="${n1(fs.chip * 0.26)}" fill="${c}"/>
-          ${svgText(chipX, y1 + 1, text, ` font-size="${fs.chip}" font-weight="800" fill="#2b4a64"`)}</g>`);
+          ${svgText(chipX, y1 + 1, text, ` font-size="${fs.chip}" font-weight="800" fill="${S.legendText}"`)}</g>`);
         chipX -= fs.chip * 1.7;
       });
       out.push('</g>');
-      out.push(`<line x1="0" y1="${cfg.head}" x2="${cfg.w}" y2="${cfg.head}" stroke="#dbe6f0" stroke-width="1"/>`);
+      out.push(`<line x1="0" y1="${cfg.head}" x2="${cfg.w}" y2="${cfg.head}" stroke="${S.footLine}" stroke-width="1"/>`);
     }
 
     /* ── 범례 ── */
     const footY = rect.y + rect.h;
     out.push(`<g class="ftr">
-      <rect x="0" y="${footY}" width="${cfg.w}" height="${cfg.h - footY}" fill="#ffffff"/>
-      <line x1="0" y1="${footY}" x2="${cfg.w}" y2="${footY}" stroke="#dbe6f0" stroke-width="1"/>
+      <rect x="0" y="${footY}" width="${cfg.w}" height="${cfg.h - footY}" fill="${S.footBg}"/>
+      <line x1="0" y1="${footY}" x2="${cfg.w}" y2="${footY}" stroke="${S.footLine}" stroke-width="1"/>
     </g>`);
-    if (cfg.big) {
+    if (cfg.foot > 0 && cfg.big) {
       LEVEL_FULL.forEach((text, level) => {
         const x = 44 + level * 172;
-        out.push(`<g class="legend-item"><rect x="${x}" y="${footY + 30}" width="52" height="13" rx="6.5" fill="${LV_COLOR[level]}"/>
-          ${svgText(x + 62, footY + 42, text, ' font-size="19" font-weight="700" fill="#2b4a64"')}</g>`);
+        out.push(`<g class="legend-item"><rect x="${x}" y="${footY + 30}" width="52" height="13" rx="6.5" fill="${lvC(level)}"/>
+          ${svgText(x + 62, footY + 42, text, ` font-size="19" font-weight="700" fill="${S.legendText}"`)}</g>`);
       });
       if (summary.unknown) {
-        out.push(`<g class="legend-item"><rect x="734" y="${footY + 30}" width="52" height="13" rx="6.5" fill="#93a7bb"/>
-          ${svgText(796, footY + 42, '등급 없음', ' font-size="19" font-weight="700" fill="#7a8fa3"')}</g>`);
+        out.push(`<g class="legend-item"><rect x="734" y="${footY + 30}" width="52" height="13" rx="6.5" fill="${cfg.theme === 'report' ? '#93a7bb' : '#4a6079'}"/>
+          ${svgText(796, footY + 42, '등급 없음', ` font-size="19" font-weight="700" fill="${S.footFaint}"`)}</g>`);
       }
-      out.push(svgText(44, footY + 74, `방향 · ${dirText}${dir === 'both' ? ' (위: 대구방향 상행 / 아래: 광주방향 하행)' : ''}`, ' font-size="15.5" font-weight="600" fill="#8296a8"'));
-      out.push(svgText(cfg.w - 44, footY + 40, '출처 · 기상청 도로기상정보시스템(rwis.kma.go.kr) · 한국도로공사 CCTV 마스터 62지점', ' text-anchor="end" font-size="15.5" font-weight="600" fill="#8296a8"'));
-      out.push(svgText(cfg.w - 44, footY + 70, `생성 ${stampText()} · 배경 경계 통계청 시도·시군(2013) · 실제 통제·제설은 현장 안내 우선`, ' text-anchor="end" font-size="15.5" font-weight="600" fill="#9aabbd"'));
-    } else {
+      out.push(svgText(44, footY + 74, `방향 · ${dirText}${dir === 'both' ? ' (위: 대구방향 상행 / 아래: 광주방향 하행)' : ''} · 이정 95.0–176.0km(함양IC 기점) / RWIS 133.2–213.4km`, ` font-size="17" font-weight="600" fill="${S.footText}"`));
+      out.push(svgText(cfg.w - 44, footY + 40, '출처 · 기상청 도로기상정보시스템(rwis.kma.go.kr) · 한국도로공사 CCTV 마스터 62지점', ` text-anchor="end" font-size="16.5" font-weight="600" fill="${S.footText}"`));
+      out.push(svgText(cfg.w - 44, footY + 70, `생성 ${stampText()} · 실제 통제·제설은 현장 안내 우선 · RWIS 공식 3단계는 위험`, ` text-anchor="end" font-size="16.5" font-weight="600" fill="${S.footText}"`));
+    } else if (cfg.foot > 0) {
       const pad = Math.round(cfg.w * 0.018);
       const step = (cfg.w * 0.6) / 4;
       const ly = footY + Math.round((cfg.h - footY) * 0.66);
       LEVEL_FULL.forEach((text, level) => {
         const x = pad + level * step;
-        out.push(`<g class="legend-item"><rect x="${n1(x)}" y="${n1(ly - fs.legend * 0.45)}" width="${n1(fs.legend * 1.45)}" height="${n1(fs.legend * 0.5)}" rx="${n1(fs.legend * 0.25)}" fill="${LV_COLOR[level]}"/>
-          ${svgText(x + fs.legend * 1.8, ly, text, ` font-size="${fs.legend}" font-weight="700" fill="#3a5a76"`)}</g>`);
+        out.push(`<g class="legend-item"><rect x="${n1(x)}" y="${n1(ly - fs.legend * 0.45)}" width="${n1(fs.legend * 1.45)}" height="${n1(fs.legend * 0.5)}" rx="${n1(fs.legend * 0.25)}" fill="${lvC(level)}"/>
+          ${svgText(x + fs.legend * 1.8, ly, text, ` font-size="${fs.legend}" font-weight="700" fill="${S.legendText}"`)}</g>`);
       });
       if (cfg.w >= 900) {
-        out.push(svgText(cfg.w - pad, ly, `출처 기상청 RWIS · ${dirText} · ${stampText()}`, ` text-anchor="end" font-size="${fs.foot}" font-weight="600" fill="#8296a8"`));
+        out.push(svgText(cfg.w - pad, ly, `출처 기상청 RWIS · ${dirText} · ${stampText()}`, ` text-anchor="end" font-size="${fs.foot}" font-weight="600" fill="${S.footFaint}"`));
       } else {
         // 세로 화면: 남는 자리에 "돌리면 크게" 안내
-        out.push(svgText(cfg.w - pad, ly, '↻ 가로로 돌리면 크게', ` text-anchor="end" font-size="${fs.foot}" font-weight="700" fill="#93aec6"`));
+        out.push(svgText(cfg.w - pad, ly, '↻ 가로로 돌리면 크게', ` text-anchor="end" font-size="${fs.foot}" font-weight="700" fill="${S.footFaint}"`));
       }
     }
 
@@ -2364,14 +2845,23 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
 
     if (el.routeMeta) {
       const fresh = freshness();
+      const dirs = state.routeDir === 'both' ? ['E', 'S'] : [state.routeDir];
+      const riseCount = Object.keys(state.rises).filter((k) => k.endsWith(D.metric) && dirs.includes(k[0])).length;
       el.routeMeta.dataset.kind = fresh.kind;
       el.routeMeta.innerHTML = [
         `<span class="rm-src">${D.isSample ? '샘플 구조' : `${esc(D.stateText)} ${esc(D.tmText)}${esc(D.ageSuffix)}`}</span>`,
-        `<span class="rm-lv lv3">경계 ${D.summary.counts[3]}</span>`,
+        `<span class="rm-lv lv3">위험 ${D.summary.counts[3]}</span>`,
         `<span class="rm-lv lv2">주의 ${D.summary.counts[2]}</span>`,
         `<span class="rm-lv lv1">관심 ${D.summary.counts[1]}</span>`,
         `<span class="rm-lv lv0">안전 ${D.summary.counts[0]}</span>`,
-      ].join('<span class="sep">·</span>');
+        riseCount ? `<span class="rm-rise">▲ 상향 ${riseCount}</span>` : '',
+      ].filter(Boolean).join('<span class="sep">·</span>');
+    }
+    if (el.riseNote) {
+      const dirs = state.routeDir === 'both' ? ['E', 'S'] : [state.routeDir];
+      const riseCount = Object.keys(state.rises).filter((k) => k.endsWith(D.metric) && dirs.includes(k[0])).length;
+      el.riseNote.classList.toggle('hidden', !riseCount);
+      el.riseNote.textContent = riseCount ? `▲ 직전 관측 대비 상향 ${riseCount}` : '';
     }
     if (el.routeHint) {
       el.routeHint.innerHTML = state.zoneFocus
@@ -2381,7 +2871,14 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     syncModePill();
   }
 
-  /* ── 공유 이미지(PNG) ─────────────────── */
+  /* ── 공유 이미지(PNG) — 한 장 요약 리포트 ───────── */
+
+  const REPORT_W = 1600;
+  const REPORT_H = 2070;
+  const REPORT_MAP_Y = 236;
+  const REPORT_MAP_H = 900;
+  const REPORT_ROW_Y = 1268;
+  const REPORT_ROW_H = 76;
 
   function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
@@ -2395,41 +2892,164 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     window.setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
-  function routePngName() {
+  function reportPngName() {
     const now = new Date();
     const p = (v) => String(v).padStart(2, '0');
     const metric = state.routeMetric === 'fsm' ? 'ice' : 'vis';
-    return `gwangju-daegu-route-${metric}-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}.png`;
+    return `gwangju-daegu-report-${metric}-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}.png`;
   }
 
-  function saveRoutePng(scale) {
-    let markup;
-    try { markup = buildScene('wide').svg; } catch (err) { return Promise.reject(err); }
-    const source = '<?xml version="1.0" encoding="UTF-8"?>\n' + markup;
-    const ratio = scale || 2;
-    const svgUrl = URL.createObjectURL(new Blob([source], { type: 'image/svg+xml;charset=utf-8' }));
+  /** 리포트 안에서 쓰는 등급 칩(라이트 배경) */
+  function reportChip(x, y, metric, level) {
+    const w = 152;
+    const h = 40;
+    const color = level === null || level === undefined ? '#93a7bb' : LV_COLOR[level];
+    const label = level === null || level === undefined ? '등급 없음' : `${LEVEL_NAME[level]} ${level}`;
+    const metricLabel = metric === 'fsm' ? '살얼음' : '가시';
+    return `<g>
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="${color}14" stroke="${color}${level === null || level === undefined ? '55' : '66'}" stroke-width="1.4"/>
+      <circle cx="${x + 14}" cy="${y + h / 2}" r="4.6" fill="${color}"/>
+      ${svgText(x + 25, y + h / 2 + 6, `${metricLabel} ${label}`, ` font-size="16.5" font-weight="800" fill="#17324a"`)}
+    </g>`;
+  }
+
+  /** 요약(시각·최고 단계) + 8개 구간 표 + 출처를 담은 한 장 리포트(라이트) */
+  function buildReportOverlay() {
+    const D = sceneData();
+    const rwis = state.rwis || sampleRwis();
+    const isSample = D.isSample;
+    const out = [];
+    const now = new Date();
+    const p2 = (v) => String(v).padStart(2, '0');
+    const stamp = `${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())} ${p2(now.getHours())}:${p2(now.getMinutes())}`;
+    const summary = rwis.summary || {};
+    const fsmMax = isSample ? null : summary.fsmMax;
+    const virMax = isSample ? null : summary.virMax;
+    const fsmCounts = summary.fsmZoneCounts || [0, 0, 0, 0];
+
+    /* 배경은 캔버스가 이미 흰색 — 지도 이미지를 덮지 않도록 투명하게 둔다 */
+    out.push(`<rect x="0" y="0" width="${REPORT_W}" height="7" fill="#0b3a66"/>`);
+    out.push(`<rect x="0" y="7" width="${REPORT_W}" height="3" fill="#2f8fe0"/>`);
+
+    /* ── 헤더: 무엇을 언제 본 리포트인지 ── */
+    out.push(svgText(64, 64, '기상청 RWIS 도로기상 · 한국도로공사 로드플러스 CCTV', ' font-size="18" font-weight="700" fill="#6b82a4" letter-spacing=".6"'));
+    out.push(svgText(64, 118, '광주대구선 CCTV · 도로기상 리포트', ' font-size="41" font-weight="800" fill="#0b1f38" letter-spacing="-1.2"'));
+    out.push(svgText(64, 158, `${D.range.startName} ${D.range.startKm.toFixed(1)}km → ${D.range.endName} ${D.range.endKm.toFixed(1)}km · 8개 구간 81.0km · ${D.dirText} · ${D.metricName}(${D.metricCode})`, ' font-size="19" font-weight="600" fill="#5b7d99"'));
+    const tmLine = isSample ? '관측시각 없음(샘플)' : `관측 ${D.tmText}${D.ageSuffix}`;
+    const stateLabel = isSample ? '샘플' : D.stateText;
+    const stateW = measure(`${stateLabel} · ${tmLine}`, 17, 800) + 40;
+    out.push(`<g>
+      <rect x="64" y="176" width="${n1(Math.max(250, stateW))}" height="34" rx="17" fill="#eef6ff" stroke="#bfd9f2" stroke-width="1.2"/>
+      <circle cx="84" cy="193" r="5" fill="${isSample ? '#94a3b8' : D.stateText === '실시간' ? '#12b981' : '#eab308'}"/>
+      ${svgText(98, 199, `${stateLabel} · ${tmLine}`, ' font-size="17" font-weight="800" fill="#2b4a64"')}
+    </g>`);
+
+    /* 오른쪽: 두 지표 최고 단계 */
+    [[1150, '도로살얼음 최고', fsmMax], [1360, '도로가시거리 최고', virMax]].forEach(([x, label, level]) => {
+      const color = level === null || level === undefined ? '#93a7bb' : LV_COLOR[level];
+      out.push(`<g>
+        <rect x="${x}" y="44" width="196" height="112" rx="14" fill="${color}0f" stroke="${color}59" stroke-width="1.6"/>
+        ${svgText(x + 20, 76, label, ' font-size="16" font-weight="700" fill="#5b7d99"')}
+        ${svgText(x + 20, 118, isSample ? '관측 없음' : LEVEL_NAME[level], ` font-size="32" font-weight="800" fill="${color}"`)}
+        ${svgText(x + 20, 142, isSample ? '샘플 구조' : `${level}단계 · 링크 최고`, ' font-size="15" font-weight="600" fill="#7a8fa3"')}
+      </g>`);
+    });
+    /* 오른쪽 아래: 16구간 분포 */
+    let cx = REPORT_W - 64;
+    [[3, '위험'], [2, '주의'], [1, '관심'], [0, '안전']].forEach(([lv, label]) => {
+      const text = `${label} ${fsmCounts[lv] || 0}`;
+      const w = measure(text, 17, 800);
+      cx -= w;
+      out.push(`<g><circle cx="${n1(cx - 13)}" cy="178" r="5" fill="${LV_COLOR[lv]}"/>
+        ${svgText(cx, 184, text, ' font-size="17" font-weight="800" fill="#2b4a64"')}</g>`);
+      cx -= 34;
+    });
+    out.push(svgText(REPORT_W - 64, 206, '위 분포는 살얼음 16구간 기준', ' text-anchor="end" font-size="14" font-weight="600" fill="#8ba0b6"'));
+    out.push(`<line x1="64" y1="222" x2="${REPORT_W - 64}" y2="222" stroke="#dbe6f0" stroke-width="1.4"/>`);
+
+    /* ── 8개 구간 요약표 ── */
+    const tableTop = REPORT_MAP_Y + REPORT_MAP_H + 28;   // 1164
+    out.push(svgText(64, tableTop + 12, '8개 구간 등급 요약', ' font-size="25" font-weight="800" fill="#0b1f38" letter-spacing="-.6"'));
+    out.push(svgText(REPORT_W - 64, tableTop + 10, '구간 등급 = 구간 내 링크 최고 등급 · FSM 도로살얼음 / VIR 도로가시거리', ' text-anchor="end" font-size="15" font-weight="600" fill="#7a8fa3"'));
+    const headY = tableTop + 26;
+    const headH = 40;
+    out.push(`<rect x="64" y="${headY}" width="${REPORT_W - 128}" height="${headH}" rx="9" fill="#eef4fa"/>`);
+    out.push(svgText(84, headY + 26, '구간', ' font-size="16" font-weight="800" fill="#5b7d99"'));
+    out.push(svgText(396, headY + 26, '이정', ' font-size="16" font-weight="800" fill="#5b7d99"'));
+    out.push(svgText(576, headY + 26, '대구방향(상행)', ' font-size="16" font-weight="800" fill="#5b7d99"'));
+    out.push(svgText(1046, headY + 26, '광주방향(하행)', ' font-size="16" font-weight="800" fill="#5b7d99"'));
+    out.push(svgText(REPORT_W - 84, headY + 26, 'CCTV', ' text-anchor="end" font-size="16" font-weight="800" fill="#5b7d99"'));
+
+    const index = zoneIndex();
+    const points = currentPoints();
+    const rises = state.rises || {};
+    MASTER.zones.forEach((segment, i) => {
+      const y = REPORT_ROW_Y + i * REPORT_ROW_H;
+      if (i % 2 === 1) out.push(`<rect x="64" y="${y}" width="${REPORT_W - 128}" height="${REPORT_ROW_H}" fill="#f8fbfe"/>`);
+      const d = index.get('E' + segment.suffix);
+      const g = index.get('S' + segment.suffix);
+      const lvF = (z, m) => (isSample || !z || !z[m] ? null : z[m].level);
+      const inZone = points.filter((p) => p.zone === segment.suffix);
+      const cams = inZone.reduce((n, p) => n + (p.cams || []).length, 0);
+      const rose = ['fsm', 'vir'].some((m) => rises['E' + segment.suffix + m] || rises['S' + segment.suffix + m]);
+      out.push(svgText(84, y + 34, segment.name, ' font-size="20" font-weight="800" fill="#0d2740"'));
+      if (rose) out.push(`<g><rect x="${84 + measure(segment.name, 20, 800) + 10}" y="${y + 15}" width="26" height="22" rx="6" fill="#f43f5e"/>
+        ${svgText(84 + measure(segment.name, 20, 800) + 20, y + 32, '▲', ' font-size="15" font-weight="900" fill="#fff1f2"')}</g>`);
+      out.push(svgText(396, y + 34, `${kmText(segment.startKm)}–${kmText(segment.endKm)}km`, ' font-size="16" font-weight="600" fill="#5b7d99"'));
+      out.push(reportChip(576, y + 18, 'fsm', lvF(d, 'fsm')));
+      out.push(reportChip(576 + 160, y + 18, 'vir', lvF(d, 'vir')));
+      out.push(reportChip(1046, y + 18, 'fsm', lvF(g, 'fsm')));
+      out.push(reportChip(1046 + 160, y + 18, 'vir', lvF(g, 'vir')));
+      out.push(svgText(REPORT_W - 84, y + 34, cams ? `${inZone.length}지점 · ${cams}대` : '영상 없음', ` text-anchor="end" font-size="17" font-weight="${cams ? 700 : 800}" fill="${cams ? '#2b4a64' : '#b45309'}"`));
+    });
+    out.push(`<line x1="64" y1="${REPORT_ROW_Y + 8 * REPORT_ROW_H + 8}" x2="${REPORT_W - 64}" y2="${REPORT_ROW_Y + 8 * REPORT_ROW_H + 8}" stroke="#dbe6f0" stroke-width="1.4"/>`);
+
+    /* ── 꼬리말: 출처·이정 기준·주의 ── */
+    const foot = REPORT_ROW_Y + 8 * REPORT_ROW_H + 40;
+    out.push(svgText(64, foot, '출처 · 기상청 도로기상정보시스템(rwis.kma.go.kr) · 한국도로공사 로드플러스 CCTV 123대/62지점 · 배경 경계 통계청 시도·시군(2013)', ' font-size="15" font-weight="600" fill="#5b7d99"'));
+    out.push(svgText(64, foot + 28, '이정 · 대시보드 95.0–176.0km(광주대구선 함양IC 기점) / 기상청 RWIS 누적 133.2–213.4km — 기점이 달라 같은 구간도 숫자가 다릅니다', ' font-size="15" font-weight="600" fill="#5b7d99"'));
+    out.push(svgText(64, foot + 56, '등급 · 0 안전 / 1 관심 / 2 주의 / 3 위험(기상청 RWIS 공식) · 참고용이며 실제 통제·제설은 현장 안내를 따르세요', ' font-size="15" font-weight="600" fill="#5b7d99"'));
+    out.push(svgText(REPORT_W - 64, foot, `생성 ${stamp} · ${state.base ? '실시간(Worker)' : '정적 스냅샷'}`, ' text-anchor="end" font-size="15" font-weight="600" fill="#8ba0b6"'));
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${REPORT_W}" height="${REPORT_H}" viewBox="0 0 ${REPORT_W} ${REPORT_H}">${out.join('')}</svg>`;
+  }
+
+  function svgImage(markup) {
+    const url = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml;charset=utf-8' }));
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = SCENE_WIDE.w * ratio;
-          canvas.height = SCENE_WIDE.h * ratio;
-          const ctx = canvas.getContext('2d');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          URL.revokeObjectURL(svgUrl);
-          canvas.toBlob((blob) => {
-            if (!blob) { reject(new Error('PNG 생성 실패')); return; }
-            downloadBlob(blob, routePngName());
-            resolve({ size: blob.size, width: canvas.width, height: canvas.height });
-          }, 'image/png');
-        } catch (err) { reject(err); }
-      };
-      img.onerror = () => { URL.revokeObjectURL(svgUrl); reject(new Error('SVG를 이미지로 만들지 못했습니다')); };
-      img.src = svgUrl;
+      img.onload = () => resolve({ img, url });
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('SVG를 이미지로 만들지 못했습니다')); };
+      img.src = url;
     });
+  }
+
+  /** 요약·노선도·8구간 표를 한 장(1600×2070, 2배=3200×4140)으로 저장 */
+  async function saveReportPng(scale) {
+    const ratio = scale || 2;
+    const map = buildScene('report').svg;
+    const overlay = buildReportOverlay();
+    const [mapImg, overlayImg] = await Promise.all([
+      svgImage('<?xml version="1.0" encoding="UTF-8"?>\n' + map),
+      svgImage('<?xml version="1.0" encoding="UTF-8"?>\n' + overlay),
+    ]);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = REPORT_W * ratio;
+      canvas.height = REPORT_H * ratio;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(mapImg.img, 0, REPORT_MAP_Y * ratio, REPORT_W * ratio, REPORT_MAP_H * ratio);
+      ctx.drawImage(overlayImg.img, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('PNG 생성 실패');
+      downloadBlob(blob, reportPngName());
+      return { size: blob.size, width: canvas.width, height: canvas.height, svg: overlay };
+    } finally {
+      URL.revokeObjectURL(mapImg.url);
+      URL.revokeObjectURL(overlayImg.url);
+    }
   }
 
   /* ── 재생 모달 ──────────────────────── */
@@ -2643,6 +3263,59 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
 
   function closeSettings() { openSettings(false); }
 
+  /* ── 자동 새로고침 ───────────────── */
+
+  const REFRESH_KEY = 'gdc.refreshMin';
+  const auto = { minutes: 0, nextAt: null, ticker: null };
+
+  function refreshLabel(min) {
+    return min === 0 ? '수동' : min === 60 ? '1시간' : `${min}분`;
+  }
+
+  function clockText(ms) {
+    const total = Math.max(0, Math.round(ms / 1000));
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  }
+
+  function tickRefresh() {
+    if (!auto.minutes) return;
+    const left = auto.nextAt - Date.now();
+    el.autoNext.textContent = isMobile() ? `다음 ${clockText(left)}` : `자동 갱신 ${refreshLabel(auto.minutes)} · 다음 ${clockText(left)}`;
+    el.autoNext.title = `${refreshLabel(auto.minutes)}마다 자동 새로고침 · ⚙에서 변경`;
+    if (el.refreshText) el.refreshText.textContent = `${refreshLabel(auto.minutes)}마다 자동으로 새로 받아옵니다 · 다음 갱신 ${clockText(left)}`;
+    if (left <= 0) {
+      auto.nextAt = Date.now() + auto.minutes * 60000;
+      const busy = document.hidden || !el.modal.hidden || document.body.classList.contains('capture-mode');
+      if (!busy) refreshData();
+    }
+  }
+
+  function applyRefresh(min, opts) {
+    const value = Math.max(0, Math.min(180, Number(min) || 0));
+    auto.minutes = value;
+    state.refreshMin = value;
+    if (!(opts && opts.quiet)) safeStorageSet(REFRESH_KEY, String(value));
+    for (const btn of el.refreshOpts.querySelectorAll('button')) {
+      const on = Number(btn.dataset.min) === value;
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', String(on));
+    }
+    if (el.refreshLine) el.refreshLine.dataset.on = value ? '1' : '0';
+    if (auto.ticker) { window.clearInterval(auto.ticker); auto.ticker = null; }
+    if (!value) {
+      auto.nextAt = null;
+      el.autoNext.dataset.on = '0';
+      el.autoNext.textContent = isMobile() ? '수동 갱신' : '수동 갱신';
+      el.autoNext.title = '자동 새로고침 꺼짐 · ⚙에서 주기 설정';
+      if (el.refreshText) el.refreshText.textContent = '수동 갱신 — ⟳ 을 누를 때만 새로 받아옵니다.';
+      return;
+    }
+    el.autoNext.dataset.on = '1';
+    auto.nextAt = Date.now() + value * 60000;
+    auto.ticker = window.setInterval(tickRefresh, 1000);
+    tickRefresh();
+  }
+
   /* ── 노선 ↔ 목록 · 영상 연동 ─────────── */
 
   let sheetZone = null;
@@ -2759,6 +3432,12 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
 
   el.btnReload.addEventListener('click', refreshData);
   if (el.railReload) el.railReload.addEventListener('click', refreshData);
+
+  el.refreshOpts.addEventListener('click', (event) => {
+    const btn = event.target.closest('button[data-min]');
+    if (!btn) return;
+    applyRefresh(btn.dataset.min);
+  });
 
   el.rwisFilter.addEventListener('click', (event) => {
     const btn = event.target.closest('button[data-f]');
@@ -2969,14 +3648,14 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
   const runShot = (button) => {
     const label = button.innerHTML;
     button.disabled = true;
-    button.textContent = '저장 중…';
-    saveRoutePng(2).then((info) => {
+    button.textContent = '리포트 만드는 중…';
+    saveReportPng(2).then((info) => {
       button.textContent = `저장됨 ${Math.round(info.size / 1024)}KB`;
-      window.setTimeout(() => { button.innerHTML = label; }, 2600);
+      window.setTimeout(() => { button.innerHTML = label; }, 2800);
     }).catch((err) => {
       button.textContent = '저장 실패';
       window.setTimeout(() => { button.innerHTML = label; }, 3200);
-      console.warn('route png failed', err);
+      console.warn('report png failed', err);
     }).finally(() => { button.disabled = false; });
   };
 
@@ -2984,6 +3663,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
   el.btnShot2.addEventListener('click', () => runShot(el.btnShot2));
   el.btnShotDock.addEventListener('click', () => runShot(el.btnShotDock));
   el.railShot.addEventListener('click', () => runShot(el.railShot));
+  el.btnReport.addEventListener('click', () => { closeSettings(); runShot(el.btnReport); });
 
   const setCapture = (on) => {
     document.body.classList.toggle('capture-mode', Boolean(on));
@@ -3056,6 +3736,8 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     state.base = normalizeBase(savedBase);
     el.workerUrl.value = state.base;
   }
+  state.prevLevels = readPrevLevels();
+  applyRefresh(safeStorageGet(REFRESH_KEY) || 0, { quiet: true });
   applyImmersive();
   setView('route');
   renderAll();
@@ -3063,6 +3745,24 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
   const afterLoad = () => { if (PREVIEW_ALERT) applyAlertPreview(); };
   if (state.base) loadStatus(false).then(afterLoad);
   else loadSnapshot().then(afterLoad);
+
+  /* 검증용 최소 창구 — 화면 동작을 그대로 쓰고, 테스트가 상태만 들여다본다. */
+  window.__gdc = {
+    state,
+    auto,
+    readPrevLevels,
+    rises: () => Object.assign({}, state.rises),
+    applyRefresh: (min) => applyRefresh(min),
+    setPrev: (levels, tm) => {
+      state.prevLevels = { tm: tm || 'test', levels: levels || {} };
+      return applyAlertPreview();
+    },
+    reportSvg: () => buildReportOverlay(),
+    sceneSvg: (mode) => buildScene(mode === 'report' ? 'report' : (mode || 'wide')).svg,
+    reportSize: () => ({ w: REPORT_W, h: REPORT_H, mapY: REPORT_MAP_Y, mapH: REPORT_MAP_H }),
+    palette: (theme) => (theme === 'report' ? LV_COLOR.slice() : LV_COLOR_DARK.slice()),
+    levels: () => captureLevels(state.rwis),
+  };
 })();
 </script>
 </body>

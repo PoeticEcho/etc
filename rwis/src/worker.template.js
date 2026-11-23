@@ -21,7 +21,7 @@
  * .m3u8/영상 조각은 브라우저의 hls.js가 *.hscdn.com에서 직접 받습니다.
  */
 
-const VERSION = '2.1.0';
+const VERSION = '2.2.0';
 
 const CACHE_TTL = {
   cctv: 900,      // 15분 — ITS 원본 갱신 주기
@@ -51,9 +51,9 @@ const RWIS_DIRS = [
   { code: 'S', label: '광주방향', short: '광주' },
 ];
 
-/** 위험등급 이름: 0 안전 · 1 관심 · 2 주의 · 3 경계(심각) */
-const LEVEL_NAME = ['안전', '관심', '주의', '경계'];
-const LEVEL_DETAIL = ['0단계 · 안전', '1단계 · 관심', '2단계 · 주의', '3단계 · 경계(심각)'];
+/** 위험등급 이름(기상청 RWIS 공식): 0 안전 · 1 관심 · 2 주의 · 3 위험 */
+const LEVEL_NAME = ['안전', '관심', '주의', '위험'];
+const LEVEL_DETAIL = ['0단계 · 안전', '1단계 · 관심', '2단계 · 주의', '3단계 · 위험'];
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',

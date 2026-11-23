@@ -1,0 +1,49 @@
+# PoeticEcho/etc 기존 GitHub Pages(main 루트)를 건드리지 않고
+# rwis/data/rwis_latest.json 만 5분마다 main에 커밋·갱신하는 워크플로입니다.
+#
+# 적용 방법:
+#   1) GitHub 웹에서 .github/workflows/rwis-export.yml 로 이 내용을 추가
+#   2) Actions 탭에서 한 번 수동 실행(workflow_dispatch)해 동작 확인
+#   3) Worker 배포 시 아래 주소를 RWIS_SOURCE_URL 시크릿으로 등록하면 CPU 10ms 제한 회피:
+#      https://poeticecho.github.io/etc/rwis/data/rwis_latest.json
+
+name: rwis-export
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rwis-export
+  cancel-in-progress: true
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: RWIS 16개 구간 등급 계산
+        working-directory: rwis
+        run: python3 tools/rwis_export.py --out data/rwis_latest.json
+
+      - name: 변경 시 main에 커밋·푸시
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add rwis/data/rwis_latest.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(rwis): update rwis_latest.json [skip ci]"
+          git pull --rebase origin main
+          git push origin main

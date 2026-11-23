@@ -1,7 +1,7 @@
 {
  "ok": true,
  "kind": "rwis",
- "generatedAt": "2026-11-23T09:51:27+09:00",
+ "generatedAt": "2026-11-23T12:58:43+09:00",
  "source": "rwis.kma.go.kr 도로기상정보시스템",
  "road": {
   "no": "012",
@@ -15,16 +15,16 @@
   }
  },
  "tm": {
-  "FR": "202611230940",
-  "VR": "202611230930"
+  "FR": "202611231245",
+  "VR": "202611231235"
  },
  "tmLabel": {
-  "FR": "2026-11-23 09:40",
-  "VR": "2026-11-23 09:30"
+  "FR": "2026-11-23 12:45",
+  "VR": "2026-11-23 12:35"
  },
  "tmLatest": {
-  "FR": "202611230940",
-  "VR": "202611230930"
+  "FR": "202611231245",
+  "VR": "202611231235"
  },
  "tmFallbackSteps": {
   "FR": 0,
@@ -39,33 +39,66 @@
   "안전",
   "관심",
   "주의",
-  "경계"
+  "위험"
  ],
  "levelDetails": [
   "0단계 · 안전",
   "1단계 · 관심",
   "2단계 · 주의",
-  "3단계 · 경계(심각)"
+  "3단계 · 위험"
  ],
  "summary": {
-  "fsmMax": 0,
-  "virMax": 0,
+  "fsmMax": 3,
+  "virMax": 2,
   "fsmZoneCounts": [
-   16,
+   14,
    0,
    0,
-   0
+   2
   ],
   "virZoneCounts": [
-   16,
+   14,
    0,
-   0,
+   2,
    0
   ],
   "missingZones": [],
   "zonesWithoutData": []
  },
- "alerts": [],
+ "alerts": [
+  {
+   "id": "0120CZE170",
+   "name": "함양JC-거창IC",
+   "dirLabel": "대구방향",
+   "fsm": 3,
+   "vir": 0,
+   "text": "함양JC-거창IC(대구방향) 도로살얼음 위험"
+  },
+  {
+   "id": "0120CZS170",
+   "name": "거창IC-함양JC",
+   "dirLabel": "광주방향",
+   "fsm": 3,
+   "vir": 0,
+   "text": "거창IC-함양JC(광주방향) 도로살얼음 위험"
+  },
+  {
+   "id": "0120CZE230",
+   "name": "고령JC-옥포JC",
+   "dirLabel": "대구방향",
+   "fsm": 0,
+   "vir": 2,
+   "text": "고령JC-옥포JC(대구방향) 가시거리 주의"
+  },
+  {
+   "id": "0120CZS230",
+   "name": "옥포JC-고령JC",
+   "dirLabel": "광주방향",
+   "fsm": 0,
+   "vir": 2,
+   "text": "옥포JC-고령JC(광주방향) 가시거리 주의"
+  }
+ ],
  "zones": [
   {
    "id": "0120CZE160",
@@ -158,14 +191,14 @@
    "linkCount": 34,
    "missing": false,
    "fsm": {
-    "level": 0,
-    "levelName": "안전",
-    "levelDetail": "0단계 · 안전",
+    "level": 3,
+    "levelName": "위험",
+    "levelDetail": "3단계 · 위험",
     "counts": [
-     34,
+     30,
+     2,
      0,
-     0,
-     0
+     2
     ],
     "knownLinks": 34,
     "totalLinks": 34
@@ -197,14 +230,14 @@
    "linkCount": 34,
    "missing": false,
    "fsm": {
-    "level": 0,
-    "levelName": "안전",
-    "levelDetail": "0단계 · 안전",
+    "level": 3,
+    "levelName": "위험",
+    "levelDetail": "3단계 · 위험",
     "counts": [
-     34,
+     30,
+     2,
      0,
-     0,
-     0
+     2
     ],
     "knownLinks": 34,
     "totalLinks": 34
@@ -639,13 +672,13 @@
     "totalLinks": 9
    },
    "vir": {
-    "level": 0,
-    "levelName": "안전",
-    "levelDetail": "0단계 · 안전",
+    "level": 2,
+    "levelName": "주의",
+    "levelDetail": "2단계 · 주의",
     "counts": [
-     9,
+     4,
      0,
-     0,
+     5,
      0
     ],
     "knownLinks": 9,
@@ -678,13 +711,13 @@
     "totalLinks": 10
    },
    "vir": {
-    "level": 0,
-    "levelName": "안전",
-    "levelDetail": "0단계 · 안전",
+    "level": 2,
+    "levelName": "주의",
+    "levelDetail": "2단계 · 주의",
     "counts": [
-     10,
+     5,
      0,
-     0,
+     5,
      0
     ],
     "knownLinks": 10,
