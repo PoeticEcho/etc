@@ -52,6 +52,40 @@ MEASURE = """() => {
   };
 }"""
 
+SMALL = """() => {
+  const doc = document.documentElement;
+  const vh = window.innerHeight;
+  const band = document.getElementById('zoneGrid');
+  const bandBox = band.getBoundingClientRect();
+  const dockTop = document.getElementById('dockBar').getBoundingClientRect().top;
+  const inBox = (b, o) => b.top >= o.top - 0.5 && b.bottom <= o.bottom + 0.5
+                        && b.left >= o.left - 0.5 && b.right <= o.right + 0.5;
+  const bad = [];
+  const cards = [...band.querySelectorAll('.zone')];
+  for (const z of cards) {
+    const zb = z.getBoundingClientRect();
+    const name = (z.querySelector('.zh strong') || {}).textContent || '?';
+    for (const sel of ['.zh strong', '.ztags', '.zmeta', '.zcctv']) {
+      const e = z.querySelector(sel);
+      if (!e) continue;
+      const b = e.getBoundingClientRect();
+      const why = [];
+      if (b.height < 1) why.push('높이 0');
+      if (!inBox(b, zb)) why.push('카드 밖');
+      if (b.top < 0 || b.bottom > vh) why.push('화면 밖');
+      if (e.scrollWidth > e.clientWidth + 1) why.push('가로 잘림');
+      if (why.length) bad.push(`${name} ${sel}: ${why.join('·')}`);
+    }
+  }
+  return {
+    pageW: doc.scrollWidth, pageH: doc.scrollHeight,
+    bandScrollH: band.scrollHeight, bandClientH: band.clientHeight,
+    bandOverflow: getComputedStyle(band).overflowY,
+    bandBottom: Math.round(bandBox.bottom), dockTop: Math.round(dockTop),
+    cards: cards.length, bad,
+  };
+}"""
+
 
 def check(name: str, ok: bool, detail: str = "") -> None:
     RESULTS.append((name, bool(ok), detail))
@@ -127,6 +161,33 @@ def main() -> int:
             check(f"{name}.png 저장", out.exists() and out.stat().st_size > 20000,
                   f"{out.stat().st_size:,}bytes · {pill}")
             check(f"{name} 콘솔 에러 0건", not errors, "; ".join(errors[:2]))
+            ctx.close()
+            browser.close()
+
+        print("\n[V3] v10 — 삼성 브라우저식 좁은 세로: 카드 잘림·스크롤 없음")
+        for vw, vh, shot in ((390, 680, "v9_fix_mobile_680"), (360, 640, "v9_fix_mobile_640"),
+                             (390, 700, "v9_fix_mobile_700"), (360, 600, "v9_fix_mobile_600")):
+            browser = pw.chromium.launch()
+            ctx = browser.new_context(viewport={"width": vw, "height": vh}, device_scale_factor=2,
+                                      is_mobile=True, has_touch=True)
+            page = ctx.new_page()
+            page.goto(f"{base}/index.html", wait_until="load", timeout=40000)
+            page.wait_for_timeout(900)
+            info = page.evaluate(SMALL) or {}
+            label = f"{vw}×{vh}"
+            check(f"v10 {label} 페이지 스크롤 없음(100dvh)",
+                  info.get("pageW", 10 ** 6) <= vw + 1 and info.get("pageH", 10 ** 6) <= vh + 1,
+                  f"{info.get('pageW')}×{info.get('pageH')} / {vw}×{vh}")
+            check(f"v10 {label} 구간 영역 안쪽 스크롤 없음",
+                  info.get("bandScrollH", 1) <= info.get("bandClientH", 0) + 1,
+                  f"{info.get('bandScrollH')}/{info.get('bandClientH')} · overflow {info.get('bandOverflow')}")
+            check(f"v10 {label} 8구간 카드·버튼이 잘리지 않고 화면 안", not info.get("bad"),
+                  f"카드 {info.get('cards')}개 · {info.get('bad')}")
+            check(f"v10 {label} 카드가 하단 독을 침범하지 않음",
+                  info.get("bandBottom", 10 ** 6) <= info.get("dockTop", 0) + 1,
+                  f"카드하단 {info.get('bandBottom')} ≤ 독 {info.get('dockTop')}")
+            page.screenshot(path=str(dl / f"{shot}.png"), full_page=False)
+            check(f"v10 {shot}.png 저장", (dl / f"{shot}.png").exists(), str(dl / f"{shot}.png"))
             ctx.close()
             browser.close()
 

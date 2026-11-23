@@ -195,7 +195,9 @@
 
   .route-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 7px; font-size: 11px; color: var(--muted-2); }
   .route-foot .focus-chip { margin-left: auto; }
-  .route-meta { display: flex; gap: 5px; flex-wrap: wrap; font-size: 10.5px; color: var(--muted-2); align-items: center; }
+  .route-meta { display: flex; gap: 0; flex-wrap: wrap; font-size: 10.5px; color: var(--muted-2); align-items: center; }
+  /* 구분점은 항목 사이에만 — 숨긴 0건이 자국을 남기지 않도록 */
+  .route-meta > span + span::before { content: '·'; margin: 0 5px; color: #3b4f68; font-weight: 700; }
   .route-meta .rm-lv { font-weight: 800; }
   .route-meta .rm-lv.lv0 { color: #7dd3fc; }
   .route-meta .rm-lv.lv1 { color: #fcd34d; }
@@ -542,6 +544,9 @@
     .pill span:last-child { max-width: 74px; overflow: hidden; text-overflow: ellipsis; }
     .route-head .right .seg-filter button { padding: 7px 4px; font-size: 11px; }
     .zone .badge { font-size: 10px; padding: 2px 5px; }
+    /* v10 — 좁은 폭에서 제목이 '광주대…'로 잘리지 않게: 자동 갱신이 꺼져 있으면 '수동 갱신' 칩을 접는다(⚙에서 확인) */
+    .auto-chip[data-on="0"] { display: none; }
+    .brand h1 { min-width: 0; }
   }
 
   @media (max-width: 1023px) and (orientation: portrait) and (max-height: 680px) {
@@ -1019,6 +1024,108 @@
   }
   @media (max-width: 1023px) and (orientation: portrait) and (max-height: 600px) {
     .zone .zmeta { display: none; }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     v10 — 좁은 모바일 세로: 구간 카드 잘림·스크롤 제거
+     (삼성 브라우저처럼 주소창 때문에 가용 높이가 660~720px로 줄어도
+      8구간 카드의 글자·'인근 CCTV' 버튼이 1px도 잘리지 않게)
+     원칙: ① 카드 행은 내용 높이만큼만(1fr로 눌러 잘리던 원인 제거)
+           ② 남는 높이는 지도가 받는다(최소·최대만 지킴) ③ 페이지·구간 영역 모두 스크롤 없음
+     ══════════════════════════════════════════════════════════════ */
+  .rm-src-s { display: none; }
+
+  @media (max-width: 1023px) and (orientation: portrait) {
+    .board { display: flex; flex-direction: column; min-height: 0; }
+    body[data-view="list"] .side { flex: 1 1 auto; min-height: 0; }
+
+    .route-card { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+    /* 지도 — 남는 높이를 받되, 읽을 수 있는 최소(104px)와 과하게 길어지지 않는 최대(46dvh·264px) 사이 */
+    .route-wrap {
+      flex: 1 1 auto; min-height: 104px;
+      max-height: min(46dvh, calc((100vw - 34px) / 1.72));
+      aspect-ratio: auto;
+    }
+
+    /* 관측 한 줄 — 좁은 화면은 짧은 시각 표기 + 0건 숨김으로 한 줄 유지 */
+    .route-foot { margin: 4px 1px 0; flex-wrap: nowrap; min-width: 0; }
+    .route-meta { gap: 0; flex-wrap: nowrap; min-width: 0; font-size: 9.5px; }
+    .route-meta > span + span::before { margin: 0 4px; }
+    .route-meta .rm-src-l { display: none; }
+    .route-meta .rm-src-s { display: inline; }
+    .route-meta .rm-lv[data-zero="1"] { display: none; }
+
+    /* 8구간 카드 2×4 — 행 최소 높이는 내용(min-content). 남는 높이는 카드와 지도가 나뉘어 갖고,
+       행을 1fr로 눌러 잘리던 예전 동작은 없앤다. */
+    .zone-band {
+      flex: 1 1 auto; min-height: auto; overflow: hidden;
+      grid-auto-rows: minmax(min-content, 1fr); align-content: stretch;
+      margin-top: 6px; gap: 4px;
+    }
+    .zone-band .zone {
+      padding: clamp(3px, .72dvh, 5px) clamp(5px, 1.4vw, 8px);
+      gap: 0; justify-content: center;
+    }
+    .zone { justify-content: center; }
+    .zone .zh { margin: 0 0 2px; gap: 4px; align-items: center; flex: none; }
+    .zone .zh strong { font-size: clamp(9.9px, 1.62dvh, 11.2px); line-height: 1.2; }
+    .zone .zh .range { display: none; }
+    .zone .ztags { flex: none; gap: 0; flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 6px; row-gap: 0; min-width: 0; }
+    .zone .zline, .zone .zrow, .zone .zsafe { min-height: 0; }
+    .zone .zsafe { font-size: clamp(9.8px, 1.6dvh, 11.2px); line-height: 1.24; gap: 4px; }
+    .zone .zrow { gap: 2px; flex-wrap: nowrap; }
+    .zone .zrow .zdir { font-size: clamp(8.8px, 1.4dvh, 9.8px); width: auto; }
+    .zone .badge { font-size: clamp(9.7px, 1.56dvh, 11.2px); gap: 4px; }
+    .zone .badge::before { width: 5px; height: 5px; }
+    .zone .zalt { margin-top: 0; font-size: clamp(8.6px, 1.38dvh, 9.8px); gap: 3px; white-space: nowrap; }
+    .zone .zmeta {
+      margin-top: 1px; padding-top: 2px; min-height: 16px; flex: none;
+      display: flex; align-items: center; justify-content: space-between; gap: 3px;
+      white-space: nowrap; overflow: hidden;
+    }
+    .zone .zkm { font-size: clamp(8.4px, 1.34dvh, 9.6px); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .zone .zcctv {
+      flex: none; height: 16px; padding: 0 5px; gap: 2px;
+      font-size: clamp(8.4px, 1.34dvh, 9.6px);
+    }
+    .zone .zcctv > span[aria-hidden="true"] { font-size: 8px; }
+    .zone .zcctv .zchev { font-size: 9px; }
+    .zone .zno { font-size: clamp(8.4px, 1.34dvh, 9.6px); }
+  }
+  /* 아주 좁은 세로(≤340px) — 2px짜리 넘침까지 없앤다 */
+  @media (max-width: 1023px) and (orientation: portrait) and (max-width: 340px) {
+    .zone-band { gap: 2px; margin-top: 4px; }
+    .zone-band .zone { padding: 2px 4px; }
+    .zone .zh { margin-bottom: 1px; }
+    .zone .zalt { display: none; }
+    .zone .zh strong { font-size: 9.6px; }
+    .zone .zmeta { min-height: 15px; }
+    .zone .zcctv { height: 15px; }
+    .route-wrap { min-height: 82px; }
+  }
+  /* 높은 세로 화면(≥780px) — 남는 높이는 글자 크기와 손가락 여백으로 */
+  @media (max-width: 1023px) and (orientation: portrait) and (min-height: 780px) {
+    .zone-band { gap: 5px; }
+    .zone-band .zone { padding: 8px 9px; }
+    .zone .zh { margin-bottom: 3px; }
+    .zone .zh strong { font-size: 12px; }
+    .zone .zsafe { font-size: 12px; }
+    .zone .badge { font-size: 12px; }
+    .zone .zalt { font-size: 10.5px; }
+    .zone .zkm { font-size: 10px; }
+    .zone .zcctv { height: 18px; padding: 0 6px; font-size: 9.8px; }
+    .zone .zmeta { min-height: 18px; margin-top: 2px; padding-top: 3px; }
+  }
+  /* 아주 낮은 세로 화면(≤600px)은 한 단계 더 조인다 — 그래도 버튼은 남긴다 */
+  @media (max-width: 1023px) and (orientation: portrait) and (max-height: 600px) {
+    .route-wrap { min-height: 84px; }
+    .zone-band { gap: 3px; margin-top: 5px; }
+    .zone-band .zone { padding: 3px 5px; }
+    .zone .zh { margin-bottom: 1px; }
+    .zone .zalt { display: none; }
+    .zone .zmeta { display: flex; min-height: 15px; margin-top: 1px; padding-top: 0; }
+    .zone .zcctv { height: 15px; }
+    .route-foot .route-note { display: none; }
   }
 
   /* 사진·모달·시트는 기존 톤 유지하되 알약만 정리 */
@@ -3417,15 +3524,21 @@ const ROUTE_GEO = __ROUTE_GEO__;
       const riseCount = Object.keys(state.rises).filter((k) => k.endsWith(D.metric) && dirs.includes(k[0])).length;
       el.routeMeta.dataset.kind = fresh.kind;
       const dirTag = state.routeDir === 'both' ? '양방향' : state.routeDir === 'S' ? '광주방향' : '대구방향';
+      /* v10 — 좁은 세로 화면에서 한 줄에 담기도록 짧은 출처 표기와 0건 숨김을 함께 둔다 */
+      const counts = D.summary.counts;
+      const anyWarn = counts[1] + counts[2] + counts[3] > 0;
+      const zeroFlag = (lv) => (anyWarn && !counts[lv] ? ' data-zero="1"' : '');
+      const srcLong = D.isSample ? '샘플 구조' : `${esc(D.stateText)} ${esc(D.tmText)}${esc(D.ageSuffix)}`;
+      const srcShort = D.isSample ? '샘플 구조' : `${esc(D.stateText)} ${esc(String(D.tmText).slice(11))}${esc(D.ageSuffix)}`;
       el.routeMeta.innerHTML = [
         `<span class="rm-basis">${dirTag} 8구간</span>`,
-        `<span class="rm-src">${D.isSample ? '샘플 구조' : `${esc(D.stateText)} ${esc(D.tmText)}${esc(D.ageSuffix)}`}</span>`,
-        `<span class="rm-lv lv3">위험 ${D.summary.counts[3]}</span>`,
-        `<span class="rm-lv lv2">주의 ${D.summary.counts[2]}</span>`,
-        `<span class="rm-lv lv1">관심 ${D.summary.counts[1]}</span>`,
-        `<span class="rm-lv lv0">안전 ${D.summary.counts[0]}</span>`,
+        `<span class="rm-src"><span class="rm-src-l">${srcLong}</span><span class="rm-src-s">${srcShort}</span></span>`,
+        `<span class="rm-lv lv3"${zeroFlag(3)}>위험 ${counts[3]}</span>`,
+        `<span class="rm-lv lv2"${zeroFlag(2)}>주의 ${counts[2]}</span>`,
+        `<span class="rm-lv lv1"${zeroFlag(1)}>관심 ${counts[1]}</span>`,
+        `<span class="rm-lv lv0"${zeroFlag(0)}>안전 ${counts[0]}</span>`,
         riseCount ? `<span class="rm-rise">▲ 상향 ${riseCount}</span>` : '',
-      ].filter(Boolean).join('<span class="sep">·</span>');
+      ].filter(Boolean).join('');
     }
     if (el.riseNote) {
       const dirs = state.routeDir === 'both' ? ['E', 'S'] : [state.routeDir];
@@ -4374,6 +4487,26 @@ const ROUTE_GEO = __ROUTE_GEO__;
     if (!now) setView('route');
     relayout(false);
   });
+  /* v10 — 카드 높이가 자료·글꼴에 따라 몇 px 달라져도 지도 캔버스가 상자 비율을 따라가게 */
+  if (window.ResizeObserver) {
+    let roTimer = null;
+    let roW = el.routeWrap.clientWidth;
+    let roH = el.routeWrap.clientHeight;
+    const ro = new ResizeObserver((entries) => {
+      const box = entries[0].contentRect;
+      if (Math.abs(box.width - roW) < 2 && Math.abs(box.height - roH) < 2) return;
+      roW = box.width;
+      roH = box.height;
+      window.clearTimeout(roTimer);
+      roTimer = window.setTimeout(() => {
+        if (state.view !== 'route') return;
+        const built = buildScene(routeMode(), routeMode() === 'wide' ? null : routeBoxSize());
+        if (built.cfg.w + 'x' + built.cfg.h === el.routeWrap.querySelector('#routeMap')?.getAttribute('viewBox').split(' ').slice(2).join('x')) return;
+        renderRoute();
+      }, 130);
+    });
+    ro.observe(el.routeWrap);
+  }
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && document.body.classList.contains('capture-mode') && el.modal.hidden) setCapture(false);
   });
