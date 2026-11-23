@@ -871,14 +871,21 @@
   .zone .zalt[data-lv="3"] { color: #f0908c; }
   .zone .zmeta {
     margin-top: auto; padding-top: 8px; font-size: 10.5px; color: #5f7794;
-    display: flex; align-items: center; justify-content: space-between; gap: 4px 8px; flex-wrap: wrap;
+    display: flex; align-items: center; justify-content: space-between; gap: 4px 8px; flex-wrap: nowrap;
   }
   .zone .zkm { font-size: 10.5px; color: #5f7794; letter-spacing: .01em; white-space: nowrap; }
+  /* v9 — '인근 CCTV'를 누를 수 있는 버튼으로 보이게 (테두리·배경·hover/active·›) */
   .zone .zcctv {
-    display: inline-flex; align-items: center; gap: 4px; padding: 2px 0; white-space: nowrap;
-    font-size: 10px; font-weight: 700; color: #7ba8cf; letter-spacing: .01em;
+    display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; white-space: nowrap;
+    font-size: 10px; font-weight: 700; color: #9cc4e6; letter-spacing: .01em;
+    border: 1px solid rgba(124,168,207,.36); border-radius: 999px;
+    background: rgba(64,132,196,.14);
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
   }
-  .zone .zcctv:hover { color: #b8e2ff; }
+  .zone .zcctv .zchev { font-size: 11px; line-height: 1; margin-left: 1px; opacity: .8; }
+  .zone .zcctv:hover { color: #e2f2ff; border-color: rgba(124,190,240,.72); background: rgba(64,150,220,.28); }
+  .zone .zcctv:active { background: rgba(64,150,220,.4); border-color: rgba(150,205,245,.9); }
+  .zone .zcctv:focus-visible { outline: 2px solid rgba(56,189,248,.65); outline-offset: 1px; }
   .zone .zno { font-size: 10px; color: #7d94af; }
 
   /* 선택 지표 하나로만 강조 — 다른 지표는 글자로만 알린다 */
@@ -989,7 +996,13 @@
     .zone .zh strong { font-size: 11.5px; }
     .zone .badge { font-size: 11.5px; }
     .zone .zmeta { padding-top: 5px; font-size: 10px; }
-    .zone .zcctv { font-size: 9.5px; }
+    /* 좁은 카드에서도 한 줄에 들어가게 — 테두리·배경은 유지하고 폭만 줄인다 */
+    .zone .zcctv { font-size: 9px; padding: 1px 4px; gap: 2px; }
+    .zone .zcctv > span[aria-hidden="true"] { font-size: 8px; }
+    .zone .zcctv .zchev { font-size: 9px; }
+    .zone .zmeta { column-gap: 5px; }
+    .zone .zkm { font-size: 9.5px; }
+    .zone .zkm .zk-u { display: none; }
     .zone .zalt { font-size: 10px; }
     .sum-box .big .badge { font-size: 16px; }
     .pgroup { padding: 9px 1px 3px; }
@@ -1875,11 +1888,12 @@ const ROUTE_GEO = __ROUTE_GEO__;
           + `<i class="adot" aria-hidden="true"></i>${METRIC_SHORT[other]} ${LEVEL_NAME[altWorst]}</div>`
         : '';
 
-      const kmRange = `${kmText(segment.startKm)}–${kmText(segment.endKm)}km`;
+      /* v9 — 휴대폰에서는 단위 'km'를 CSS로 접어, 카드 아래 '범위 + 인근 CCTV 버튼'이 한 줄에 들어간다 */
+      const kmRange = `${kmText(segment.startKm)}–${kmText(segment.endKm)}<span class="zk-u">km</span>`;
       const meta = nocam
         ? `<span class="zkm">${kmRange}</span><span class="zno">CCTV 없음</span>`
         : `<span class="zkm">${kmRange}</span><button class="zcctv" type="button" data-zonecctv="${segment.suffix}"
-             aria-label="${esc(title)} 인근 CCTV 목록 보기"><span aria-hidden="true">📹</span> 인근 CCTV</button>`;
+             aria-label="${esc(title)} 인근 CCTV 목록 보기"><span aria-hidden="true">📹</span> 인근 CCTV<span class="zchev" aria-hidden="true">›</span></button>`;
 
       return `<div class="zone${hot ? ' hot' : ''}${state.zoneFocus === segment.suffix ? ' focus' : ''}${nocam ? ' nocam' : ''}"
           data-segment="${segment.suffix}" data-metric="${metric}" data-worst="${worstKey}" data-alt="${altWorst === null || altWorst === undefined ? 'none' : altWorst}"
@@ -2618,6 +2632,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
     const wGlyph = cfg.compact ? 34 : 46;
     /* 지도 가장자리·모서리에 바짝 붙지 않게 남기는 여백 (v8 · 휴대폰 위주) */
     const edgePad = cfg.compact ? 13 : 6;
+    /* v9 — 세로 화면은 지도 아래 범례 줄이 바로 붙어 있어, 말풍선 밑동이 범례에 닿지 않게 더 넓게 비운다 */
+    const bottomPad = cfg.compact && !cfg.header ? Math.max(52, Math.round(cfg.foot * 1.85)) : edgePad;
 
     for (const node of ROUTE_NODES) {
       const p = pointAtKm(node.km, tg);
@@ -2652,7 +2668,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
           if (r.x < rect.x + pad) cost += (rect.x + pad - r.x) * 90;
           if (r.y < rect.y + pad) cost += (rect.y + pad - r.y) * 90;
           if (r.x + w > rect.x + rect.w - pad) cost += (r.x + w - (rect.x + rect.w - pad)) * 90;
-          if (r.y + h > rect.y + rect.h - pad) cost += (r.y + h - (rect.y + rect.h - pad)) * 90;
+          /* 하단은 범례와의 사이를 bottomPad 만큼 비운다 (v9 · 함양JC) */
+          if (r.y + h > rect.y + rect.h - bottomPad) cost += (r.y + h - (rect.y + rect.h - bottomPad)) * 90;
           /* 휴대폰 — 라벨이 오른쪽 변·오른쪽 아래 모서리에 바짝 붙지 않게 (고령JC) */
           if (cfg.compact) {
             const nearR = r.x + w > rect.x + rect.w - 24;
@@ -2684,7 +2701,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
       }
       // 라벨이 지도 밖으로 나가 잘리지 않도록 안쪽으로 당긴다 (지시선은 아래에서 다시 계산)
       best.r.x = Math.min(Math.max(best.r.x, rect.x + edgePad), rect.x + rect.w - best.r.w - edgePad);
-      best.r.y = Math.min(Math.max(best.r.y, rect.y + edgePad), rect.y + rect.h - best.r.h - edgePad);
+      best.r.y = Math.min(Math.max(best.r.y, rect.y + edgePad), rect.y + rect.h - best.r.h - bottomPad);
       best.r.name = node.name;
       best.r.cx = best.r.x + best.r.w / 2;
       placed.push(best.r);
@@ -2699,10 +2716,27 @@ const ROUTE_GEO = __ROUTE_GEO__;
     resolvePillOverlaps(out, rect, cfg);
     clearStartBubble(out, rect, cfg);
     keepRightMargin(out, rect, cfg);
+    keepBottomMargin(out, rect, cfg);
     return out;
   }
 
 
+
+  /** v9 — 지도 아래 범례에 닿은 말풍선(휴대폰 세로 함양JC)을 위로 당겨 여백을 만든다 (다른 말풍선과 겹치면 그대로) */
+  function keepBottomMargin(items, rect, cfg) {
+    if (!cfg.compact || cfg.header) return;
+    const pad = Math.max(52, Math.round(cfg.foot * 1.85));
+    const limit = rect.y + rect.h - pad;
+    for (const item of items) {
+      const over = item.rect.y + item.rect.h - limit;
+      if (over <= 0) continue;
+      const ny = Math.max(rect.y + 8, item.rect.y - over);
+      const box = { x: item.rect.x, y: ny, w: item.rect.w, h: item.rect.h };
+      if (items.some((it) => it !== item && boxesOverlap(box, it.rect, 4))) continue;
+      item.rect.y = ny;
+      item.rect.cy = ny + item.rect.h / 2;
+    }
+  }
 
   /** v8 — 오른쪽 변에 바짝 붙은 말풍선(휴대폰 고령JC)을 안쪽으로 조금 당겨 여백을 만든다 (겹치면 그대로) */
   function keepRightMargin(items, rect, cfg) {
@@ -2724,11 +2758,12 @@ const ROUTE_GEO = __ROUTE_GEO__;
     const jc = items.find((it) => it.node.name === '함양JC');
     if (!jc) return;
     const pad = cfg.compact ? 13 : 6;
+    const bPad = cfg.compact && !cfg.header ? Math.max(52, Math.round(cfg.foot * 1.85)) : pad;
     const step = cfg.compact ? 1 : 2;
     const box = { x: jc.rect.x, y: jc.rect.y, w: jc.rect.w, h: jc.rect.h };
     for (let k = 1; k <= 12; k += 1) {
       const nx = Math.min(jc.rect.x + step * k, rect.x + rect.w - jc.rect.w - pad);
-      const ny = Math.min(jc.rect.y + step * k * 0.7, rect.y + rect.h - jc.rect.h - pad);
+      const ny = Math.min(jc.rect.y + step * k * 0.7, rect.y + rect.h - jc.rect.h - bPad);
       box.x = nx; box.y = ny;
       const clash = items.some((it) => it !== jc && boxesOverlap(box, it.rect, 4));
       if (clash) return;
@@ -3056,8 +3091,15 @@ const ROUTE_GEO = __ROUTE_GEO__;
       if (tab.total < cfg.minChevronLen) continue;
       const size = dir === 'both' ? cfg.stroke.chevron * 0.75 : cfg.stroke.chevron;
       const travel = seg.travel < 0 ? -1 : 1;
-      const targets = tab.total > cfg.chevronSplit ? [0.3, 0.7] : [0.5];
+      /* v9 — 양방향 셰브런은 서로 다른 호 위치에 두어 두 화살표가 나란히 붙어 'w'가 되지 않게 한다 */
+      const shift = dir === 'both' && seg.dirCode === 'S' ? 0.12 : 0;
+      const targets = (tab.total > cfg.chevronSplit ? [0.3, 0.7] : [0.5])
+        .map((t) => Math.min(0.86, t + shift));
       const picked = [];
+      /* v9 — 터널·IC·JC 아이콘 위에 화살표가 얹히지 않게 그 주변은 비용을 더 준다 */
+      const glyphPts = ROUTE_NODES
+        .filter((n) => n.km >= seg.zone.startKm - 0.3 && n.km <= seg.zone.endKm + 0.3)
+        .map((n) => pointAtKm(n.km, tg));
       for (const target of targets) {
         /* 목표 지점 근처에서 곡률이 가장 낮은 자리를 골라 화살이 길 방향과 나란하게 붙는다 */
         let best = null;
@@ -3068,16 +3110,31 @@ const ROUTE_GEO = __ROUTE_GEO__;
           const s = tab.total * f;
           if (picked.some((p) => Math.abs(p - s) < tab.total * 0.12)) continue;
           const bend = Math.abs(angleDelta(tangentAt(tab, s - 9).ang, tangentAt(tab, s + 9).ang));
-          const cost = Math.abs(f - target) * 220 + bend * 140;
+          let cost = Math.abs(f - target) * 220 + bend * 140;
+          const at = arcAt(tab, s);
+          for (const gp of glyphPts) {
+            const d = Math.hypot(at.x - gp.x, at.y - gp.y);
+            const lim = cfg.glyph.tnW * 0.5 + 10 + size;
+            if (d < lim) cost += (lim - d) * 30;
+          }
           if (!best || cost < best.cost) best = { s, cost };
         }
         if (!best) continue;
         picked.push(best.s);
-        const b = arcAt(tab, best.s);
-        const tan = tangentAt(tab, best.s);
-        const back = arcAt(tab, best.s - size * 1.55 * travel);
-        const w = size * 0.98;
-        out.push(`<path d="M${n1(back.x + tan.nx * w)} ${n1(back.y + tan.ny * w)}L${n1(b.x)} ${n1(b.y)}L${n1(back.x - tan.nx * w)} ${n1(back.y - tan.ny * w)}" fill="none" stroke="#ffffff" stroke-width="${n1(size * 0.55)}" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>`);
+        /* v9 — 접선 하나로 두 팔을 그리면 급커브에서 팔 길이가 어긋나 'ㄱ'·'w'로 접힌다.
+           뒤점↔끝점을 잇는 현의 수직을 써서 두 팔을 항상 같은 길이·각도로 그린다. */
+        const tip = arcAt(tab, best.s + size * 0.45 * travel);
+        const back = arcAt(tab, best.s - size * 1.05 * travel);
+        let ux = tip.x - back.x;
+        let uy = tip.y - back.y;
+        const ul = Math.hypot(ux, uy) || 1;
+        ux /= ul;
+        uy /= ul;
+        const nx = -uy;
+        const ny = ux;
+        /* 팔 폭은 자기 차로 폭(양방향 12) 안에 들어가게 — 옆 차로 화살표와 겹치지 않는다 */
+        const w = size * 0.72;
+        out.push(`<path d="M${n1(back.x + nx * w)} ${n1(back.y + ny * w)}L${n1(tip.x)} ${n1(tip.y)}L${n1(back.x - nx * w)} ${n1(back.y - ny * w)}" fill="none" stroke="#ffffff" stroke-width="${n1(size * 0.5)}" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>`);
       }
     }
     out.push('</g>');
@@ -3466,16 +3523,16 @@ const ROUTE_GEO = __ROUTE_GEO__;
     return seen.map((s) => s.name);
   }
 
-  /** 리포트 CCTV 칸 — 요약 문구와 보조 문구 */
+  /** 리포트 CCTV 칸 — 요약 문구와 보조 문구 (v9: '영상 연결'은 실시간 송출로 읽히므로 '등록 CCTV') */
   function reportCctvCell(inZone) {
-    if (!inZone.length) return { main: '영상 없음', sub: '' };
+    if (!inZone.length) return { main: 'CCTV 없음', sub: '' };
     const cams = inZone.reduce((n, p) => n + (p.cams || []).length, 0);
     const linked = inZone.filter((p) => (p.cams || []).length > 0).length;
     const anchors = zoneAnchors(inZone);
     const main = `${anchors.join('·')}${inZone.length > anchors.length ? ' 등' : ''} ${inZone.length}지점`;
-    const sub = !cams ? '영상 없음'
-      : linked === inZone.length ? `영상 연결 · ${cams}대`
-        : `영상 ${linked}곳 · ${cams}대`;
+    const sub = !cams ? '등록 CCTV 없음'
+      : linked === inZone.length ? `등록 CCTV · ${cams}대`
+        : `등록 CCTV ${linked}곳 · ${cams}대`;
     return { main, sub };
   }
 
@@ -3548,7 +3605,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
     out.push(svgText(470, headY + 26, '이정', ' font-size="16" font-weight="800" fill="#5b7d99"'));
     out.push(svgText(700, headY + 26, '살얼음', ' font-size="16" font-weight="800" fill="#5b7d99"'));
     out.push(svgText(1010, headY + 26, '가시거리', ' font-size="16" font-weight="800" fill="#5b7d99"'));
-    out.push(svgText(REPORT_W - 84, headY + 26, 'CCTV · 영상', ' text-anchor="end" font-size="16" font-weight="800" fill="#5b7d99"'));
+    out.push(svgText(REPORT_W - 84, headY + 26, 'CCTV · 등록', ' text-anchor="end" font-size="16" font-weight="800" fill="#5b7d99"'));
 
     const points = currentPoints();
     const rises = state.rises || {};
@@ -3580,7 +3637,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
     /* ── 꼬리말: 출처·이정 기준·주의 ── */
     const foot = REPORT_ROW_Y + 8 * REPORT_ROW_H + 40;
     out.push(svgText(64, foot, '출처 · 기상청 도로기상정보시스템(rwis.kma.go.kr) · 한국도로공사 로드플러스 CCTV 123대/62지점 · 배경 경계 통계청 시도·시군(2013)', ' font-size="15" font-weight="600" fill="#5b7d99"'));
-    out.push(svgText(64, foot + 26, 'CCTV · 주요 거점은 구간 안 대표 지점, ‘영상 연결’은 로드플러스 CCTV ID 매칭 기준입니다(실시간 송출 상태 아님)', ' font-size="15" font-weight="600" fill="#5b7d99"'));
+    out.push(svgText(64, foot + 26, 'CCTV · 주요 거점은 구간 안 대표 지점, ‘등록 CCTV’는 로드플러스에 등록·매칭된 CCTV 수입니다(실시간 송출 상태 아님)', ' font-size="15" font-weight="600" fill="#5b7d99"'));
     out.push(svgText(64, foot + 52, '이정 · 대시보드 95.0–176.0km(광주대구선 함양IC 기점) / 기상청 RWIS 누적 133.2–213.4km — 기점이 달라 같은 구간도 숫자가 다릅니다', ' font-size="15" font-weight="600" fill="#5b7d99"'));
     out.push(svgText(64, foot + 78, '등급 · 0 안전 / 1 관심 / 2 주의 / 3 위험(기상청 RWIS 공식) · 참고용이며 실제 통제·제설은 현장 안내를 따르세요', ' font-size="15" font-weight="600" fill="#5b7d99"'));
     out.push(svgText(REPORT_W - 64, foot, `생성 ${stamp} · ${state.base ? '실시간(Worker)' : '정적 스냅샷'}`, ' text-anchor="end" font-size="15" font-weight="600" fill="#8ba0b6"'));

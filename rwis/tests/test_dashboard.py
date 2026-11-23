@@ -1363,8 +1363,8 @@ def main() -> int:
         check("v7 리포트: 반복 '안전 0' 알약 제거 · 옅은 — 표기",
               "안전 0" not in rep and rep.count("양방향 —") >= 6,
               f"안전0={'안전 0' in rep} · — 표기 {rep.count('양방향 —')}개")
-        check("v7 리포트: '영상 없음'은 중립 회색",
-              '영상 없음' in rep and 'fill="#9aabbd"' in rep and 'fill="#b45309"' not in rep,
+        check("v9 리포트: CCTV 없는 구간은 중립 회색 'CCTV 없음'",
+              'CCTV 없음' in rep and 'fill="#9aabbd"' in rep and 'fill="#b45309"' not in rep,
               "회색 확인" if 'fill="#9aabbd"' in rep else "빨강 잔존")
         check("v7 리포트: 양방향 동급은 '양방향' 한 칸",
               rep.count("양방향") >= 8, f"양방향 {rep.count('양방향')}회")
@@ -1479,8 +1479,8 @@ def main() -> int:
 
         # 리포트 — CCTV 열이 주요 거점 + 영상 상태, 분포 문구 확대
         rep8 = page.evaluate("() => window.__gdc.reportSvg()")
-        check("v8 리포트 CCTV 열 = 주요 거점 + 영상 상태",
-              "CCTV · 영상" in rep8 and "지점" in rep8 and ("영상 연결" in rep8 or "영상 없음" in rep8)
+        check("v9 리포트 CCTV 열 = 주요 거점 + 등록 대수",
+              "CCTV · 등록" in rep8 and "지점" in rep8 and "등록 CCTV" in rep8 and "영상 연결" not in rep8
               and any(name in rep8 for name in ("함양산삼골휴게소", "함양·지곡", "거창·살피재TN")),
               "CCTV 열 확인")
         check("v8 리포트 8구간 분포 문구 확대", "8구간 분포" in rep8 and 'font-size="18"' in rep8 and 'font-size="20"' in rep8,
@@ -1499,18 +1499,70 @@ def main() -> int:
           const ic = [...document.querySelectorAll('#routeMap .node')].find(n => n.querySelector('.lbl').textContent === '함양IC');
           const hjc = [...document.querySelectorAll('#routeMap .node')].find(n => n.querySelector('.lbl').textContent === '함양JC');
           const hjcPill = hjc.querySelector('.label-pill').getBBox();
+          const hjcCss = hjc.querySelector('.label-pill').getBoundingClientRect();
+          const footTop = document.querySelector('#routeMap .ftr').getBoundingClientRect().y;
           const icGlyph = ic.querySelector('.glyph').getBBox();
           return {
             dock: document.getElementById('dockBar').textContent.replace(/\\s+/g, ' ').trim(),
             right: Math.round(w - (pill.x + pill.width)),
             hamGap: Math.round(hjcPill.x - (icGlyph.x + icGlyph.width)),
+            legendGap: Math.round(footTop - hjcCss.bottom),
             alt: (() => { const el = document.querySelector('#zoneGrid .zalt'); return el ? el.textContent.trim() : null; })(),
           };
         }""")
         check("v8 모바일 하단 탭 CCTV 숫자 제거", "CCTV" in m8["dock"] and "62" not in m8["dock"], m8["dock"])
         check("v8 모바일 고령JC 오른쪽 여백 확보", m8["right"] >= 20, f"오른쪽 여백 {m8['right']}")
         check("v8 함양JC 말풍선이 시점 마커를 덮지 않음", m8["hamGap"] >= 30, f"시점 마커와 {m8['hamGap']}px")
+        check("v9 모바일 세로(390) 함양JC 라벨 아래 범례 여백", m8["legendGap"] >= 16, f"범례까지 {m8['legendGap']}px")
+        # 더 작은 세로 화면(360×640)에서도 범례에 닿지 않는지
+        mpg8.set_viewport_size({"width": 360, "height": 640})
+        mpg8.wait_for_timeout(600)
+        m8b = mpg8.evaluate("""() => {
+          const hjc = [...document.querySelectorAll('#routeMap .node')].find(n => n.querySelector('.lbl').textContent === '함양JC');
+          const pill = hjc.querySelector('.label-pill').getBoundingClientRect();
+          const foot = document.querySelector('#routeMap .ftr').getBoundingClientRect();
+          return { gap: Math.round(foot.y - pill.bottom) };
+        }""")
+        check("v9 모바일 세로(360×640) 함양JC 라벨 아래 범례 여백", m8b["gap"] >= 16, f"범례까지 {m8b['gap']}px")
         mob8.close()
+
+        print("\n[16] v9 — 셰브런 대칭 · 등록 CCTV · 인근 CCTV 버튼감")
+        page.click('#routeDir [data-rd="both"]')
+        page.wait_for_timeout(450)
+        v9 = page.evaluate("""() => {
+          const paths = [...document.querySelectorAll('#routeMap .chevrons path')];
+          const arms = paths.map(p => {
+            const m = (p.getAttribute('d') || '').match(/M([-0-9.]+) ([-0-9.]+)L([-0-9.]+) ([-0-9.]+)L([-0-9.]+) ([-0-9.]+)/);
+            if (!m) return null;
+            const [x1, y1, x2, y2, x3, y3] = m.slice(1).map(Number);
+            const a = Math.hypot(x2 - x1, y2 - y1);
+            const b = Math.hypot(x2 - x3, y2 - y3);
+            return { ratio: Math.max(a, b) / Math.min(a, b), span: Math.hypot(x3 - x1, y3 - y1) };
+          }).filter(Boolean);
+          const btn = document.querySelector('#zoneGrid .zcctv');
+          const cs = btn ? getComputedStyle(btn) : null;
+          return {
+            n: arms.length,
+            maxRatio: Math.max(...arms.map(a => a.ratio)),
+            span: Math.min(...arms.map(a => a.span)),
+            btn: btn ? {
+              border: parseFloat(cs.borderTopWidth), bg: cs.backgroundColor, radius: cs.borderRadius,
+              chev: !!btn.querySelector('.zchev'), title: btn.getAttribute('aria-label') || '',
+            } : null,
+          };
+        }""")
+        check("v9 셰브런 두 팔 길이 대칭 (급커브 ㄱ·w 접힘 제거)", v9["n"] >= 8 and v9["maxRatio"] <= 1.06 and v9["span"] > 0,
+              f"{v9['n']}개 · 두 팔 비율 최대 {round(v9['maxRatio'], 3)}")
+        check("v9 인근 CCTV 버튼감 (테두리·배경·둥근 모서리·›)",
+              bool(v9["btn"]) and v9["btn"]["border"] >= 1
+              and v9["btn"]["bg"] not in ("rgba(0, 0, 0, 0)", "transparent")
+              and v9["btn"]["radius"] not in ("0px", "")
+              and v9["btn"]["chev"] and "인근 CCTV" in v9["btn"]["title"],
+              str(v9["btn"]))
+        rep9 = page.evaluate("() => window.__gdc.reportSvg()")
+        check("v9 리포트 표는 '등록 CCTV' 기준 (실시간 송출 오해 제거)",
+              "CCTV · 등록" in rep9 and "등록 CCTV ·" in rep9 and "영상 연결" not in rep9,
+              "등록 CCTV 표기 확인")
 
         page.screenshot(path=str(ROOT.parent / "downloads" / "gwangju_daegu_v7_desktop.png"), full_page=False)
         # 화면 3장(데스크톱·세로·가로)은 tests/test_dashboard_visual.py 가 따로 찍는다
