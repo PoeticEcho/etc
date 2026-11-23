@@ -104,64 +104,140 @@ table{border-collapse:collapse;width:100%}
 
 /* ============================ hero ============================ */
 .hero{
-  position:relative;min-height:100svh;min-height:720px;
-  display:grid;align-items:end;overflow:hidden;background:#0b1220;
+  position:relative;isolation:isolate;overflow:hidden;
+  display:grid;align-items:center;
+  min-height:100svh;min-height:100dvh;
+  color:#f7f4ee;background:#0a1220;
 }
-.hero__media{position:absolute;inset:0}
-.hero__media img{
-  width:100%;height:100%;object-fit:cover;object-position:50% 44%;
-  transform:scale(1.03);
-  animation:heroDrift 26s ease-in-out infinite alternate;
-}
-@keyframes heroDrift{from{transform:scale(1.03)}to{transform:scale(1.09) translateY(-1.2%)}}
-.hero__veil{
-  position:absolute;inset:0;
+/* 바탕: 짙은 네이비 + 우측 상단의 은은한 브라스 광 */
+.hero::before{
+  content:"";position:absolute;inset:0;z-index:0;
   background:
-    linear-gradient(180deg,rgba(8,13,22,.62) 0%,rgba(8,13,22,.1) 26%,rgba(8,13,22,.08) 48%,rgba(8,13,22,.55) 76%,rgba(8,13,22,.9) 100%);
+    radial-gradient(78% 62% at 24% 12%,rgba(201,168,119,.13),transparent 62%),
+    linear-gradient(180deg,#0c1728 0%,#0a1220 58%,#070d17 100%);
+}
+/* 조감도는 우측으로 밀어 두고 좌측은 텍스트 자리로 비워 둡니다 */
+.hero__media{
+  position:absolute;top:0;right:0;bottom:0;z-index:1;
+  width:70%;max-width:1060px;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,rgba(0,0,0,.5) 12%,#000 28%);
+  mask-image:linear-gradient(90deg,transparent 0,rgba(0,0,0,.5) 12%,#000 28%);
+}
+.hero__media img{
+  width:100%;height:100%;object-fit:cover;object-position:47% 48%;
+  transform:scale(1.04);transform-origin:62% 50%;
+  filter:brightness(1.06) saturate(1.05);
+  animation:heroDrift 28s ease-in-out infinite alternate;
+}
+@keyframes heroDrift{from{transform:scale(1.04)}to{transform:scale(1.1) translate(-.6%,-1%)}}
+.hero__media::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,13,22,.42) 0%,rgba(8,13,22,0) 22%,rgba(8,13,22,0) 68%,rgba(8,13,22,.52) 100%);
+}
+/* 좌→우 다크 스크림(가독성) + 상·하 페이드 */
+.hero__veil{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(11,16,28,.93) 0%,rgba(11,16,28,.72) 40%,rgba(11,16,28,.2) 70%,rgba(11,16,28,.04) 100%),
+    linear-gradient(180deg,rgba(8,13,22,.5) 0%,rgba(8,13,22,0) 20%,rgba(8,13,22,0) 80%,rgba(8,13,22,.5) 100%);
 }
 .hero__inner{
-  position:relative;z-index:2;
+  position:relative;z-index:3;
   width:min(1240px,calc(100% - var(--pad) * 2));
   margin-inline:auto;
-  padding-top:150px;padding-bottom:clamp(64px,9vh,110px);
-  color:#f7f4ee;
+  padding-top:clamp(96px,12vh,120px);
+  padding-bottom:clamp(40px,5vh,64px);
 }
+.hero__copy{max-width:640px}
 .hero__kicker{
-  display:inline-flex;align-items:center;gap:12px;
-  font-size:11.5px;letter-spacing:.18em;color:rgba(247,244,238,.78);
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;
+  font-size:11.5px;letter-spacing:.06em;color:rgba(247,244,238,.74);
 }
-.hero__kicker::before{content:"";width:34px;height:1px;background:var(--brass-2)}
-.hero__title{display:flex;flex-direction:column;margin-top:clamp(18px,3vh,32px)}
-.hero__en{font-size:11px;letter-spacing:.58em;color:var(--brass-2);font-weight:500}
+.hero__tag{
+  display:inline-flex;align-items:center;height:23px;padding:0 9px;
+  border-radius:4px;border:1px solid rgba(201,168,119,.38);
+  background:rgba(201,168,119,.14);color:#e9cfa4;
+  font-size:10.5px;font-weight:700;letter-spacing:.1em;
+}
+.hero__bar{display:block;width:1px;height:11px;background:rgba(247,244,238,.32)}
+.hero__title{display:flex;flex-direction:column;margin-top:clamp(16px,2.4vh,24px)}
+.hero__en{
+  display:flex;align-items:center;gap:12px;
+  font-size:11px;letter-spacing:.52em;color:var(--brass-2);font-weight:700;
+}
+.hero__en::before{content:"";width:38px;height:3px;border-radius:2px;background:linear-gradient(90deg,#efd6a8,#a8824e)}
 .hero__ko{
-  font-family:var(--serif);font-weight:600;
-  font-size:clamp(62px,11.5vw,132px);
-  line-height:.98;letter-spacing:-.035em;margin-top:14px;
-  text-shadow:0 2px 30px rgba(0,0,0,.18);
+  display:flex;align-items:baseline;
+  font-family:var(--sans);font-weight:900;
+  font-size:clamp(54px,8vw,102px);line-height:.94;letter-spacing:-.055em;
+  margin-top:12px;
+  text-shadow:0 10px 46px rgba(4,8,16,.55);
+}
+.hero__ko-accent{
+  background:linear-gradient(145deg,#fbe9c6 4%,#e8c895 42%,#c69a5b 96%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  -webkit-text-fill-color:transparent;
 }
 .hero__lead{
-  margin-top:clamp(18px,2.6vh,30px);
-  font-size:clamp(14.5px,1.5vw,19px);font-weight:300;line-height:1.8;
-  color:rgba(247,244,238,.88);
+  margin-top:clamp(16px,2.2vh,24px);
+  font-size:clamp(14px,1.32vw,17.5px);line-height:1.75;
+  color:rgba(247,244,238,.78);max-width:46ch;
 }
-.hero__stats{
-  display:flex;flex-wrap:wrap;gap:clamp(22px,4.6vw,64px);
-  margin-top:clamp(30px,4.4vh,48px);
-  padding-top:26px;border-top:1px solid rgba(247,244,238,.24);
-  max-width:860px;
+.hero__lead strong{display:block;font-weight:600;font-size:1.08em;color:#f7f4ee;letter-spacing:-.015em}
+.hero__lead em{
+  font-style:normal;color:#f7e7c7;padding:0 1px;
+  background:linear-gradient(180deg,transparent 64%,rgba(201,168,119,.42) 64%,rgba(201,168,119,.42) 94%,transparent 94%);
 }
-.hero__stats li{display:grid;grid-template-columns:auto auto;align-items:baseline;justify-content:start;column-gap:6px}
-.hero__stats b{
-  font-family:var(--serif);font-weight:500;font-size:clamp(28px,3.6vw,44px);
-  line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+/* 핵심 스펙 글래스 카드 */
+.hero__cards{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
+  margin-top:clamp(20px,3.2vh,32px);max-width:640px;
 }
-.hero__stats .u{font-size:13px;color:rgba(247,244,238,.72)}
-.hero__stats em{
-  grid-column:1/-1;margin-top:9px;font-style:normal;
-  font-size:10.5px;letter-spacing:.16em;color:rgba(247,244,238,.58);
+.hcard{
+  display:flex;align-items:center;gap:11px;
+  padding:12px 12px;border-radius:14px;
+  background:linear-gradient(155deg,rgba(24,38,58,.66),rgba(12,20,34,.58));
+  border:1px solid rgba(247,244,238,.15);
+  box-shadow:0 22px 44px -30px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.09);
+  backdrop-filter:blur(16px) saturate(1.15);
+  -webkit-backdrop-filter:blur(16px) saturate(1.15);
 }
+.hcard__icon{
+  flex:0 0 auto;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;
+  color:#e8ca96;border:1px solid rgba(201,168,119,.32);
+  background:linear-gradient(160deg,rgba(201,168,119,.26),rgba(201,168,119,.06));
+}
+.hcard__icon svg{width:18px;height:18px}
+.hcard__text{display:flex;flex-direction:column;line-height:1.05;min-width:0}
+.hcard__text em{font-style:normal;font-size:10px;font-weight:500;letter-spacing:.1em;color:rgba(247,244,238,.6)}
+.hcard__text b{
+  display:flex;align-items:baseline;gap:3px;margin-top:5px;
+  font-family:var(--sans);font-weight:700;font-size:clamp(17px,1.7vw,21px);
+  letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:#fff;
+}
+.hcard__text b i{font-style:normal;font-size:11px;font-weight:500;color:rgba(247,244,238,.68);letter-spacing:0}
+/* CTA — 문의·예약 없이 콘텐츠로 넘기는 앵커 */
+.hero__cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:clamp(20px,3vh,30px)}
+.hero__btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  height:50px;padding:0 23px;border-radius:999px;
+  font-size:14px;font-weight:700;letter-spacing:-.015em;
+  transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s var(--ease),border-color .25s var(--ease);
+}
+.hero__btn svg{width:17px;height:17px;transition:transform .25s var(--ease)}
+.hero__btn--primary{
+  color:#1c1408;background:linear-gradient(135deg,#f0d7a8,#d0a76c 52%,#b68a4d);
+  box-shadow:0 18px 36px -20px rgba(214,176,116,.9),inset 0 1px 0 rgba(255,255,255,.45);
+}
+.hero__btn--primary:hover{transform:translateY(-2px);box-shadow:0 24px 42px -20px rgba(214,176,116,1)}
+.hero__btn--primary:hover svg{transform:translateX(3px)}
+.hero__btn--ghost{
+  color:#f7f4ee;border:1px solid rgba(247,244,238,.34);
+  background:rgba(247,244,238,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.hero__btn--ghost:hover{background:rgba(247,244,238,.14);border-color:rgba(247,244,238,.55);transform:translateY(-2px)}
 .hero__scroll{
-  position:absolute;right:calc(var(--pad) + 4px);bottom:34px;z-index:3;
+  position:absolute;right:calc(var(--pad) + 4px);bottom:34px;z-index:4;
   display:flex;align-items:center;gap:14px;
   writing-mode:vertical-rl;font-size:9.5px;letter-spacing:.42em;
   color:rgba(247,244,238,.55);
@@ -722,15 +798,30 @@ body.is-locked{overflow:hidden}
   .park__stats{grid-template-columns:1fr 1fr}
   .future__grid{grid-template-columns:1fr}
   .footer__inner{grid-template-columns:1fr;gap:26px}
-  .hero{min-height:660px}
+  .hero{min-height:100svh;min-height:100dvh;align-items:end}
+  /* 모바일: 조감도를 전체 배경으로 쓰고 위→아래 스크림으로 글자를 살립니다 */
+  .hero__media{width:100%;max-width:none}
+  .hero__media img{object-position:52% 38%;transform-origin:50% 50%}
+  .hero__media::after{background:linear-gradient(180deg,rgba(8,13,22,.34) 0%,rgba(8,13,22,.05) 26%,rgba(8,13,22,.28) 62%,rgba(8,13,22,.86) 100%)}
+  .hero__veil{
+    background:linear-gradient(180deg,rgba(8,12,20,.8) 0%,rgba(8,12,20,.6) 32%,rgba(8,12,20,.78) 66%,rgba(8,12,20,.95) 100%);
+  }
+  .hero__inner{padding-top:92px;padding-bottom:clamp(30px,5vh,48px)}
+  .hero__copy{max-width:none}
   .hero__scroll{display:none}
 
 }
 @media (max-width:600px){
   :root{--pad:18px}
   body{font-size:15px}
-  .hero__stats{display:grid;grid-template-columns:1fr 1fr;gap:20px 24px}
+  .hero__cards{grid-template-columns:1fr 1fr;gap:9px;max-width:none}
+  .hero__bar{display:none}
+  .hero__kicker{row-gap:4px}
   .hero__ko{font-size:clamp(52px,15vw,72px)}
+  .hcard{padding:11px 11px;gap:9px}
+  .hcard__icon{width:30px;height:30px;border-radius:9px}
+  .hcard__icon svg{width:16px;height:16px}
+  .hero__btn{flex:1 1 0;min-width:0;padding:0 14px;height:48px;font-size:13.5px}
   .gallery,.docs__grid,.park__grid{grid-template-columns:1fr}
   .features{grid-template-columns:1fr}
   .specs > div{grid-template-columns:104px 1fr;gap:10px}
