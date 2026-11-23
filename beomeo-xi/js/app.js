@@ -557,6 +557,200 @@
     if (e.key === 'ArrowRight') { e.preventDefault(); stepLightbox(1); }
   });
 
+  /* ------------------------------------------------------- section folding */
+  var FOLD_KEY = 'beomeo_collapsed_sections';
+  var foldables = $$('.sec-fold[data-fold]').map(function (btn) {
+    var id = btn.getAttribute('data-fold');
+    var sec = document.getElementById(id);
+    var body = sec ? $('.sec-body', sec) : null;
+    var h = sec ? $('h2', sec) : null;
+    return {
+      id: id,
+      sec: sec,
+      body: body,
+      inner: body ? $('.sec-body__inner', body) : null,
+      btn: btn,
+      txt: $('.sec-fold__txt', btn),
+      name: h ? (h.innerText || h.textContent || '').replace(/\s+/g, ' ').trim() : id
+    };
+  }).filter(function (f) { return !!f.sec; });
+
+  var revisitToggle = $('#revisit-toggle');
+  var revisitState = $('#revisit-state');
+  var newsSection = $('#news');
+
+  function readCollapsed() {
+    try {
+      var raw = window.localStorage.getItem(FOLD_KEY);
+      var list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+  }
+  function saveCollapsed() {
+    var list = foldables.filter(function (f) {
+      return f.sec.classList.contains('is-collapsed');
+    }).map(function (f) { return f.id; });
+    try { window.localStorage.setItem(FOLD_KEY, JSON.stringify(list)); } catch (e) {}
+    syncRevisit();
+  }
+  function isCollapsed(item) { return item.sec.classList.contains('is-collapsed'); }
+  function setFold(item, on, opts) {
+    opts = opts || {};
+    if (!item || isCollapsed(item) === on) return;
+    item.sec.classList.toggle('is-collapsed', on);
+    item.btn.setAttribute('aria-expanded', String(!on));
+    item.btn.setAttribute('aria-label', item.name + ' ' + (on ? '펼치기' : '접기'));
+    if (item.txt) item.txt.textContent = on ? '펼치기' : '접기';
+    if (item.inner) {
+      if (on) {
+        item.inner.setAttribute('inert', '');
+        item.inner.setAttribute('aria-hidden', 'true');
+      } else {
+        item.inner.removeAttribute('inert');
+        item.inner.removeAttribute('aria-hidden');
+      }
+    }
+    if (on && item.inner && item.inner.contains(document.activeElement)) {
+      item.btn.focus({ preventScroll: true });
+    }
+    if (opts.save !== false) saveCollapsed();
+  }
+  function allCollapsed() {
+    return foldables.length > 0 && foldables.every(isCollapsed);
+  }
+  function syncRevisit() {
+    var on = allCollapsed();
+    if (revisitToggle) revisitToggle.setAttribute('aria-checked', String(on));
+    if (revisitState) revisitState.textContent = on ? '켜짐' : '꺼짐';
+  }
+
+  // restore saved state
+  var savedCollapsed = readCollapsed();
+  foldables.forEach(function (f) {
+    if (savedCollapsed.indexOf(f.id) !== -1) setFold(f, true, { save: false });
+  });
+  foldables.forEach(function (f) {
+    f.btn.setAttribute('aria-label', f.name + (isCollapsed(f) ? ' 펼치기' : ' 접기'));
+  });
+  syncRevisit();
+
+  foldables.forEach(function (f) {
+    f.btn.addEventListener('click', function () {
+      var willCollapse = !isCollapsed(f);
+      setFold(f, willCollapse);
+      // 내용이 맨 위보다 위에서 접히면 시선을 헤더로 올려 둡니다.
+      if (willCollapse) {
+        var top = f.sec.getBoundingClientRect().top;
+        if (top < 0) {
+          window.scrollTo({ top: window.pageYOffset + top - 12, behavior: reduced ? 'auto' : 'smooth' });
+        }
+      }
+    });
+  });
+
+  if (revisitToggle) {
+    revisitToggle.addEventListener('click', function () {
+      var turnOn = !allCollapsed();
+      foldables.forEach(function (f) { setFold(f, turnOn, { save: false }); });
+      saveCollapsed();
+      if (turnOn && newsSection) {
+        // 접기 애니메이션이 끝난 뒤 최종 위치로 시선을 옮깁니다.
+        window.setTimeout(function () {
+          var top = newsSection.getBoundingClientRect().top + window.pageYOffset - 72;
+          if (window.pageYOffset > top + 4) window.scrollTo({ top: top, behavior: reduced ? 'auto' : 'smooth' });
+        }, 640);
+      }
+    });
+  }
+
+  // 안내 링크로 접힌 섹션을 찾아가면 그 섹션은 펼쳐 둡니다.
+  $$('a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function () {
+      var id = a.getAttribute('href').slice(1);
+      if (!id) return;
+      var target = foldables.filter(function (f) { return f.id === id; })[0];
+      if (target && isCollapsed(target)) {
+        setFold(target, false);
+        window.setTimeout(function () {
+          var el2 = document.getElementById(id);
+          if (el2) el2.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+        }, 620);
+      }
+    });
+  });
+
+  // 주소에 붙은 해시가 접힌 섹션이면 열고 보여줍니다.
+  if (location.hash) {
+    var hashId = location.hash.slice(1);
+    var hashTarget = foldables.filter(function (f) { return f.id === hashId; })[0];
+    if (hashTarget && isCollapsed(hashTarget)) setFold(hashTarget, false);
+  }
+
+  /* --------------------------------------------------------- footer actions */
+  var toastNode = $('#toast');
+  var toastTimer = null;
+  function toast(msg) {
+    if (!toastNode) return;
+    toastNode.textContent = msg;
+    toastNode.classList.add('is-on');
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(function () { toastNode.classList.remove('is-on'); }, 3200);
+  }
+
+  var toTop = $('#to-top');
+  if (toTop) {
+    toTop.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+      var brand = $('.brand');
+      if (brand) window.setTimeout(function () { brand.focus({ preventScroll: true }); }, reduced ? 0 : 520);
+    });
+  }
+
+  var favModal = $('#fav-modal');
+  var favAdd = $('#fav-add');
+  var favShare = $('#fav-share');
+  var favCopy = $('#fav-copy');
+  var uaStr = navigator.userAgent || '';
+  var isTouchPad = /iPhone|iPad|iPod/.test(uaStr);
+  var isMac = !isTouchPad && (/Macintosh|Mac OS X/.test(uaStr) || /Mac/.test(navigator.platform || ''));
+  if (isMac) { var kbd = $('#fav-kbd'); if (kbd) kbd.textContent = '⌘'; }
+  if (favShare && navigator.share) favShare.hidden = false;
+
+  if (favAdd && favModal) {
+    favAdd.addEventListener('click', function () { openDialog(favModal); });
+  }
+  if (favShare) {
+    favShare.addEventListener('click', function () {
+      navigator.share({ title: document.title, text: '범어자이 — 동쪽엔 숲, 서쪽엔 도심', url: location.href.split('#')[0] })
+        .catch(function () {});
+    });
+  }
+  function copyPageUrl() {
+    var url = location.href.split('#')[0];
+    function done() { toast('링크를 복사했습니다. 주소창에 붙여 넣으면 바로 열립니다.'); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = url;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); }
+      catch (e) { toast('복사가 막혔습니다. 주소창의 주소를 직접 복사해 주세요.'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, fallback);
+    } else {
+      fallback();
+    }
+  }
+  if (favCopy) favCopy.addEventListener('click', copyPageUrl);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && favModal && favModal.classList.contains('is-open')) closeDialog(favModal);
+  });
+
   /* ------------------------------------------------------------------ boot */
   initNews();
   initGallery();

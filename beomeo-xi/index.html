@@ -94,12 +94,16 @@
   <section class="section" id="overview">
     <div class="container">
       <header class="sec-head reveal">
-        <p class="sec-no">01</p>
-        <p class="sec-label">THE COMPLEX</p>
+        <div class="sec-head__top">
+          <p class="sec-no">01</p>
+          <p class="sec-label">THE COMPLEX</p>
+          <button class="sec-fold" type="button" data-fold="overview" aria-controls="overview-body" aria-expanded="true"><span class="sec-fold__txt">접기</span><i class="sec-fold__chev" aria-hidden="true"></i></button>
+        </div>
         <h2>수성구 첫 자이,<br />34층 트윈 스카이라인</h2>
         <p class="sec-lead">범어동 48-26번지 8,844.90㎡의 대지 위, 아파트 399세대와 오피스텔 52실이 네 개의 동으로 섰습니다. 동쪽으로는 야시골공원의 숲, 서쪽으로는 범어네거리와 동대구역의 도심이 창을 나눠 가집니다.</p>
       </header>
 
+      <div class="sec-body" id="overview-body"><div class="sec-body__inner">
       <div class="overview">
         <figure class="overview__figure reveal">
           <button class="zoomable" data-zoom="assets/photos/11-aerial-forest.jpg" data-cap="동쪽(오른쪽)으로 야시골공원의 숲이 그대로 이어지는 대지 · 호갱노노 단지 사진" aria-label="단지 항공뷰 크게 보기">
@@ -183,12 +187,23 @@
           </button></li>
         </ul>
       </div>
+      </div></div>
     </div>
   </section>
 
   <!-- ============ NEWS ============ -->
   <section class="section section--paper" id="news">
     <div class="container">
+      <div class="revisit reveal" id="revisit">
+        <div class="revisit__text">
+          <p class="revisit__title">재방문자 모드</p>
+          <p class="revisit__desc">고정 안내(단지개요·평면도·입지)를 접어두고 <strong>주간소식 · 뷰·야시골</strong>부터 바로 봅니다. 상태는 다음 방문에도 유지됩니다.</p>
+        </div>
+        <button class="switch" id="revisit-toggle" type="button" role="switch" aria-checked="false" aria-label="재방문자 모드: 고정 안내 접어두기">
+          <span class="switch__track" aria-hidden="true"><span class="switch__knob"></span></span>
+          <span class="switch__state" id="revisit-state">꺼짐</span>
+        </button>
+      </div>
       <header class="sec-head reveal">
         <p class="sec-no">02</p>
         <p class="sec-label">WEEKLY MAGAZINE</p>
@@ -273,12 +288,16 @@
   <section class="section section--paper" id="plan">
     <div class="container">
       <header class="sec-head reveal">
-        <p class="sec-no">04</p>
-        <p class="sec-label">FLOOR PLAN</p>
+        <div class="sec-head__top">
+          <p class="sec-no">04</p>
+          <p class="sec-label">FLOOR PLAN</p>
+          <button class="sec-fold" type="button" data-fold="plan" aria-controls="plan-body" aria-expanded="true"><span class="sec-fold__txt">접기</span><i class="sec-fold__chev" aria-hidden="true"></i></button>
+        </div>
         <h2>여덟 개의 평면,<br />하나의 기준</h2>
         <p class="sec-lead">전용 84㎡ 다섯 타입과 114㎡, 오피스텔 두 타입. 4Bay 판상형과 타워형을 섞어 동·서·남향 배치를 확보했습니다. 타입을 누르면 평면도가 바뀝니다.</p>
       </header>
 
+      <div class="sec-body" id="plan-body"><div class="sec-body__inner">
       <div class="plan__tabs reveal" role="tablist" aria-label="평면 타입 선택" id="plan-tabs"></div>
       <div class="plan__panel reveal" id="plan-panel"></div>
       <ul class="plan__notices reveal" id="plan-notices"></ul>
@@ -295,6 +314,7 @@
           </tfoot>
         </table>
       </div>
+      </div></div>
     </div>
   </section>
 
@@ -302,12 +322,16 @@
   <section class="section" id="location">
     <div class="container">
       <header class="sec-head reveal">
-        <p class="sec-no">05</p>
-        <p class="sec-label">LOCATION &amp; LIFE</p>
+        <div class="sec-head__top">
+          <p class="sec-no">05</p>
+          <p class="sec-label">LOCATION &amp; LIFE</p>
+          <button class="sec-fold" type="button" data-fold="location" aria-controls="location-body" aria-expanded="true"><span class="sec-fold__txt">접기</span><i class="sec-fold__chev" aria-hidden="true"></i></button>
+        </div>
         <h2>숲과 도심 사이,<br />교통의 교차점</h2>
         <p class="sec-lead">동대구역까지 차량 11분, 수성구청역까지 도보 17분. 이미 완성된 교통과 준비 중인 호재가 겹치는 자리입니다.</p>
       </header>
 
+      <div class="sec-body" id="location-body"><div class="sec-body__inner">
       <div class="loc">
         <figure class="loc__map reveal">
           <button class="zoomable" data-zoom="assets/photos/02-location-map.jpg" data-cap="범어자이 입지도와 주변 명소 실사 (GS건설 공식)" aria-label="입지도 크게 보기">
@@ -336,7 +360,41 @@
               <li><b>30분</b><span>도보 · 1.8km</span></li>
             </ul>
           </div>
-          <p class="dist__note">카카오맵 경로 기준 · 2026-11-23 조회. 도보 시간은 개인과 경로에 따라 달라집니다.</p>
+          <p class="dist__note">카카오맵 경로 기준 · 2026-11-23 조회. 도보 시간은 개인과 경로에 따라 달라집니다. <a class="dist__jump" href="#school">통학 안내 보기 ↓</a></p>
+        </div>
+      </div>
+
+      <!-- ---------- school & shuttle ---------- -->
+      <div class="school reveal" id="school">
+        <div class="school__head">
+          <p class="sec-label">SCHOOL · 대구범어초등학교</p>
+          <h3>걸어서 19분, <em>그래서 통학버스</em></h3>
+          <p class="school__lead">2026년 기준 배정 학교는 대구범어초등학교(달구벌대로489길 55)입니다. 단지 정문에서 학교 정문까지 도보 1.0km·약 19분. 길은 야시골공원 북동측 순환로를 따라 이어지고, 학교 쪽문(후문) 방면으로 들어서면 15~17분대로 줄어듭니다. 오르내림이 있는 길이라 도보 체감은 가구마다 다르고, 그래서 통학버스가 함께 운영됩니다.</p>
+        </div>
+
+        <div class="school__grid">
+          <article class="school__card">
+            <p class="school__badge">도보 실측</p>
+            <h4>정문까지 1.0km · 19분<br />쪽문 진입 15~17분대</h4>
+            <ul class="school__facts">
+              <li><b>1.0km</b><span>단지 정문(동대구로80길 40) → 범어초 정문 · 도보 약 19분</span></li>
+              <li><b>15~17분</b><span>야시골공원 북동측 순환로 → 학교 쪽문(후문) 방면 진입</span></li>
+              <li><b>고저차</b><span>공원 순환로를 끼는 구간에 오르내림이 있어 체감 시간은 개인차가 있습니다</span></li>
+            </ul>
+            <p class="school__src">카카오맵 도보 경로 실측 · 2026-11-23. 지도 DB에 ‘범어초 후문’ 별도 지점이 없어 정문 기준으로 측정하고, 쪽문 진입 구간은 따로 표기했습니다.</p>
+          </article>
+
+          <article class="school__card school__card--bus">
+            <p class="school__badge school__badge--on">통학 지원</p>
+            <h4>등교 4회 · 하교 4회<br />순환 통학버스</h4>
+            <ul class="school__facts">
+              <li><b>4 + 4회</b><span>등교 4회 · 하교 4회 순환 운행</span></li>
+              <li><b>도우미</b><span>차량 도우미 동승 · 하차 후 학교 쪽문까지 시니어 안전도우미 인솔</span></li>
+              <li><b>최대 7년</b><span>통학버스 지원 (헤럴드경제 2026-02-19 보도)</span></li>
+              <li><b>102동</b><span>1층 스쿨버스존에서 승·하차</span></li>
+            </ul>
+            <p class="school__src">운행 횟수·도우미 운영은 입주민 후기와 공개된 단지 안내에 근거합니다. 학기별 실제 운행표와 노선은 관리사무소 안내를 확인해 주세요.</p>
+          </article>
         </div>
       </div>
 
@@ -416,7 +474,11 @@
             </div>
             <div class="acc__item">
               <button class="acc__head" aria-expanded="false"><span>초등학교는 어디로 배정되나요?</span><span class="acc__icon" aria-hidden="true"></span></button>
-              <div class="acc__body"><div class="acc__inner"><p>2026년 기준 대구범어초등학교 배정입니다. 도보 약 19분(1.0km) 거리이고, 통학버스가 최대 7년간 제공된다는 보도가 있었습니다(헤럴드경제 2026-02-19). 다만 단지 바로 앞이 아니라 도보 20분권이라 통학 체감은 가구별로 다를 수 있고, 학급 배정은 연도별로 바뀔 수 있습니다.</p></div></div>
+              <div class="acc__body"><div class="acc__inner"><p>2026년 기준 대구범어초등학교 배정입니다. 단지 정문에서 학교 정문까지 도보 1.0km·약 19분이고, 야시골공원 북동측 순환로를 따라 학교 쪽문(후문)으로 들어서면 15~17분대입니다(카카오맵 실측 2026-11-23). 길에 오르내림이 있어 도보 체감은 가구별로 다를 수 있고, 학급 배정은 연도별로 바뀔 수 있습니다.</p></div></div>
+            </div>
+            <div class="acc__item">
+              <button class="acc__head" aria-expanded="false"><span>통학버스와 안전 지원은 어떻게 되나요?</span><span class="acc__icon" aria-hidden="true"></span></button>
+              <div class="acc__body"><div class="acc__inner"><p>등교 4회·하교 4회 순환하는 통학버스가 운영되고, 단지 102동 1층 스쿨버스존에서 타고 내립니다. 차량 도우미가 동승하며, 하차 후에는 시니어 안전도우미가 학교 쪽문(후문)까지 인솔합니다. 통학버스는 최대 7년간 지원된다는 보도가 있었습니다(헤럴드경제 2026-02-19). 운행 횟수와 도우미 운영은 입주민 후기·공개 단지 안내에 근거하며, 학기별 실제 운행표는 관리사무소 안내를 확인해 주세요.</p></div></div>
             </div>
             <div class="acc__item">
               <button class="acc__head" aria-expanded="false"><span>지하철과 기차는 얼마나 가깝나요?</span><span class="acc__icon" aria-hidden="true"></span></button>
@@ -441,6 +503,7 @@
           </div>
         </div>
       </div>
+      </div></div>
     </div>
   </section>
 
@@ -464,6 +527,19 @@
       <p>이 페이지는 공개된 자료를 바탕으로 제작한 참고용 홍보 페이지입니다. 기재된 내용과 수치는 2026년 11월 23일 기준이며, 이후 변경될 수 있습니다.</p>
       <p>이미지는 소비자의 이해를 돕기 위한 것으로 실제와 다를 수 있습니다. 조감도·배치도·평면도는 GS건설 공식 자료입니다.</p>
       <p>사진 출처 — 직접 촬영(2026-11), GS건설, 호갱노노 입주민 게시(원문 링크 표기), cklee88.tistory.com, 대경일보, 뉴스핌.</p>
+    </div>
+    <div class="footer__actions">
+      <p class="footer__actions-note">주간소식이 올라올 때 바로 찾아올 수 있게 담아두세요.</p>
+      <div class="footer__btns">
+        <button class="fbtn" id="to-top" type="button">
+          <span>맨 위로</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg>
+        </button>
+        <button class="fbtn fbtn--brass" id="fav-add" type="button">
+          <span>즐겨찾기 추가</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3.6 2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.8l5.9-.8z"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 </footer>
@@ -506,6 +582,40 @@
   </figure>
   <button class="lightbox__nav lightbox__nav--next" id="lb-next" aria-label="다음 사진">›</button>
 </div>
+
+<!-- ============ FAVORITE / SHARE MODAL ============ -->
+<div class="modal fav" id="fav-modal" role="dialog" aria-modal="true" aria-labelledby="fav-title" aria-hidden="true">
+  <div class="modal__backdrop" data-close></div>
+  <div class="modal__sheet fav__sheet" role="document">
+    <button class="modal__close" data-close aria-label="닫기">닫기 <span aria-hidden="true">✕</span></button>
+    <p class="sec-label">BOOKMARK</p>
+    <h2 id="fav-title">이 페이지를 담아두는 방법</h2>
+    <p class="fav__lead">주간소식이 새로 올라올 때마다 다시 찾기 쉽게, 브라우저 즐겨찾기(북마크)나 휴대폰 홈 화면에 추가해 두세요.</p>
+    <ul class="fav__steps">
+      <li>
+        <span class="fav__k">PC</span>
+        <span class="fav__v"><b id="fav-kbd">Ctrl</b> + <b>D</b> 를 누르면 즐겨찾기에 추가됩니다.<span class="fav__sub">Mac은 <b>Command</b> + <b>D</b></span></span>
+      </li>
+      <li>
+        <span class="fav__k">휴대폰</span>
+        <span class="fav__v">Safari는 <b>공유</b> → <b>홈 화면에 추가</b>, Chrome은 <b>⋮</b> → <b>홈 화면에 추가</b> 또는 <b>북마크</b>를 선택하세요.</span>
+      </li>
+    </ul>
+    <div class="fav__actions">
+      <button class="fbtn fbtn--brass" id="fav-share" type="button" hidden>
+        <span>공유하기</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="m8 8 4-4 4 4"/><path d="M5 13v5.5c0 .8.7 1.5 1.5 1.5h11c.8 0 1.5-.7 1.5-1.5V13"/></svg>
+      </button>
+      <button class="fbtn" id="fav-copy" type="button">
+        <span>링크 복사</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 6.5V5.5A1.5 1.5 0 0 0 13.5 4h-8A1.5 1.5 0 0 0 4 5.5v8A1.5 1.5 0 0 0 5.5 15h1"/></svg>
+      </button>
+    </div>
+    <p class="fav__url">poeticecho.github.io/etc/beomeo-xi/</p>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="js/app.js"></script>
 </body>
