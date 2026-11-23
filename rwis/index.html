@@ -2930,7 +2930,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     out.push('<g class="route-hits">');
     for (const seg of segs) {
       if (seg.dirCode === 'S' && dir === 'both') continue;
-      out.push(`<path d="${seg.d}" class="seg-hit" data-seg="${seg.zone.suffix}" stroke-width="${cfg.hitWidth}"><title>${esc(`${seg.zone.name} · ${LEVEL_FULL[seg.level] || '등급 없음'} · 눌러서 이 구간 보기`)}</title></path>`);
+      out.push(`<path d="${seg.d}" class="seg-hit" data-seg="${seg.zone.suffix}" stroke-width="${cfg.hitWidth}"><title>${esc(`${segLabel(seg.zone.name)} · ${LEVEL_FULL[seg.level] || '등급 없음'} · 눌러서 이 구간 보기`)}</title></path>`);
     }
     out.push('</g>');
 
