@@ -1724,7 +1724,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
         if (fsmWorst !== null && fsmWorst !== undefined && fsmWorst >= 1) items.push(badge(fsmWorst, { ico: '❄', title: isSample ? '샘플 구조' : fsmTitle }));
         if (virWorst !== null && virWorst !== undefined && virWorst >= 1) items.push(badge(virWorst, { ico: '👁', title: isSample ? '샘플 구조' : virTitle }));
         if (items.length) return items.join('');
-        return `<span class="pt-safe" title="${esc(isSample ? '샘플 구조' : `${fsmTitle} / ${virTitle}`)}">${isSample ? '—' : '안전'}</span>`;
+        const safeTitle = `${zone ? zone.name : ''} · 살얼음 대구 ${dRisk.fsm === null || dRisk.fsm === undefined ? '—' : LEVEL_NAME[dRisk.fsm]} 광주 ${gRisk.fsm === null || gRisk.fsm === undefined ? '—' : LEVEL_NAME[gRisk.fsm]} · 가시거리 대구 ${dRisk.vir === null || dRisk.vir === undefined ? '—' : LEVEL_NAME[dRisk.vir]} 광주 ${gRisk.vir === null || gRisk.vir === undefined ? '—' : LEVEL_NAME[gRisk.vir]}`;
+        return `<span class="pt-safe" title="${esc(isSample ? '샘플 구조' : safeTitle)}">${isSample ? '—' : '안전'}</span>`;
       };
 
       const cams = visibleCams(point).map((cam) => {
