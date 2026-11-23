@@ -2,6 +2,7 @@
   "filters": [
     { "key": "all", "label": "전체" },
     { "key": "live", "label": "현장 실사" },
+    { "key": "garden", "label": "조경" },
     { "key": "city", "label": "시티뷰" },
     { "key": "sunset", "label": "노을" },
     { "key": "night", "label": "야경" },
@@ -41,6 +42,78 @@
       "credit": "직접 촬영",
       "date": "2026-11-15",
       "source_note": "범어자이를 직접 찾아 촬영한 사진입니다."
+    },
+    {
+      "id": "live-day-square",
+      "src": "assets/photos/30-beomeo-day.jpg",
+      "alt": "맑은 하늘 아래 범어자이 102동과 '범어자이 Square' 상가동",
+      "label": "102동과 범어자이 Square",
+      "desc": "상가동 'Square'의 사인과 102동이 마주 선 낮 풍경. 단지 안쪽 주차장 입구와 상가 앞 보행로가 함께 보인다.",
+      "tag": "live",
+      "credit": "네이버 블로그 '어나드범어'",
+      "creditUrl": "https://blog.naver.com/anadd_/224192118336",
+      "date": "2026-02",
+      "source_note": "네이버 블로그 게시글(2026-02-23)의 사진입니다. 원문 링크에서 확인할 수 있습니다."
+    },
+    {
+      "id": "live-sign-night",
+      "src": "assets/photos/31-beomeo-sign-night.jpg",
+      "alt": "밤에 불 켜진 '범어자이' 사인과 단지 저층부의 가로 조명",
+      "label": "밤에 켜지는 '범어자이'",
+      "desc": "저층부 화강석 벽에 은은한 가로 조명과 함께 켜지는 '범어자이' 사인. 사전점검 점등식이 열린 날 밤의 모습.",
+      "tags": ["live", "night"],
+      "credit": "네이버 블로그 '범어에 살으리랏다'",
+      "creditUrl": "https://blog.naver.com/beomou/224138489055",
+      "date": "2025-12-31",
+      "source_note": "입주 사전점검 점등식이 열린 2025년 12월 31일 밤에 촬영돼 2026-01-08 게시된 사진입니다."
+    },
+    {
+      "id": "garden-elysian",
+      "src": "assets/photos/32-elysian-garden.jpg",
+      "alt": "밤에 조명이 켜진 'Elysian Garden' 석재 사인",
+      "label": "Elysian Garden, 밤의 입구",
+      "desc": "단지 조경 공간 '엘리시안가든'의 석재 사인. 아래에서 비추는 빛이 돌의 결을 드러낸다.",
+      "tags": ["garden", "night"],
+      "credit": "네이버 블로그 '범어에 살으리랏다'",
+      "creditUrl": "https://blog.naver.com/beomou/224138489055",
+      "date": "2025-12-31",
+      "source_note": "사전점검 점등식이 열린 2025년 12월 31일 밤에 촬영된 사진입니다."
+    },
+    {
+      "id": "garden-water",
+      "src": "assets/photos/33-landscape-night.jpg",
+      "alt": "푸른 조명이 비치는 조경 수벽과 징검다리, 뒤로 단지 저층부",
+      "label": "푸른 빛 조경 수벽",
+      "desc": "단지 안 조경 공간. 물이 흐르는 석재 벽면에 푸른 조명이 번지고, 징검다리와 자갈 정원이 이어진다.",
+      "tags": ["garden", "night"],
+      "credit": "네이버 블로그 '범어에 살으리랏다'",
+      "creditUrl": "https://blog.naver.com/beomou/224138489055",
+      "date": "2025-12-31",
+      "source_note": "사전점검 점등식이 열린 2025년 12월 31일 밤에 촬영된 사진입니다."
+    },
+    {
+      "id": "forest-yasigol-view",
+      "src": "assets/photos/34-yasigol-view.jpg",
+      "alt": "단지 고층에서 바라본 범어동 저층 주택가와 야시골공원 숲",
+      "label": "창밖의 야시골 숲",
+      "desc": "고층 세대에서 내려다본 범어동. 붉은 지붕의 저층 주택가 너머로 야시골공원의 숲이 길게 이어진다.",
+      "tag": "forest",
+      "credit": "네이버 블로그 '어나드범어'",
+      "creditUrl": "https://blog.naver.com/anadd_/224293088344",
+      "date": "2026-04-19",
+      "source_note": "47평 동향 세대에서 2026-04-19 촬영해 2026-05-22 게시된 사진입니다."
+    },
+    {
+      "id": "night-panorama",
+      "src": "assets/photos/35-beomeo-night.jpg",
+      "alt": "밤에 불 켜진 범어자이 세 동과 104동 오피스텔 전경",
+      "label": "단지 야경, 세 동과 104동",
+      "desc": "단지 밖에서 올려다본 범어자이 야경. 세 동과 104동이 나란히 불을 켜고, 저층부의 가로 조명이 아래를 받친다.",
+      "tags": ["night", "live"],
+      "credit": "네이버 블로그 '범어에 살으리랏다'",
+      "creditUrl": "https://blog.naver.com/beomou/224138489055",
+      "date": "2025-12-31",
+      "source_note": "사전점검 점등식이 열린 2025년 12월 31일 밤에 촬영된 사진입니다. 원문 링크에서 확인할 수 있습니다."
     },
     {
       "id": "sunset-1",
