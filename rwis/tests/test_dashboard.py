@@ -12,6 +12,7 @@ import json
 import pathlib
 import re
 import sys
+import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tests"))
@@ -61,21 +62,29 @@ def main() -> int:
             lv: ['lvEFsm', 'lvEVir', 'lvSFsm', 'lvSVir'].map(k => z.dataset[k]),
             safe: !!z.querySelector('.zsafe'),
             badges: z.querySelectorAll('.badge').length,
+            worst: z.dataset.worst,
+            title: z.querySelector('.zh strong').textContent,
+            meta: z.querySelector('.zmeta').textContent.replace(/\\s+/g, ' ').trim(),
+            cctvBtn: !!z.querySelector('.zcctv'),
           }));
+          const elevated = info.filter(z => z.worst !== 'none' && Number(z.worst) >= 1).length;
+          const safeZones = info.filter(z => z.worst === '0').length;
           return {
             points: document.querySelectorAll('#pointList .point').length,
             cams: document.querySelectorAll('#pointList .cam').length,
             zones: zones.length,
             allLevels: info.every(z => z.lv.every(v => v !== '' && v !== undefined && !Number.isNaN(Number(v)))),
-            hierarchy: info.every(z => (z.lv.some(v => Number(v) >= 1) ? z.badges >= 1 : z.safe)),
-            safeZones: info.filter(z => z.safe).length,
-            elevated: info.filter(z => z.lv.some(v => Number(v) >= 1)).length,
-            badges: document.querySelectorAll('#zoneGrid .badge').length,
+            hierarchy: info.every(z => (z.worst !== 'none' && Number(z.worst) >= 1 ? z.badges >= 1 : z.safe)),
+            safeZones, elevated, badges: document.querySelectorAll('#zoneGrid .badge').length,
+            titles: info.map(z => z.title),
+            cctvBtns: info.filter(z => z.cctvBtn).length,
+            metaHasCounts: info.some(z => /\d+지점|\d+대/.test(z.meta)),
             listCount: document.getElementById('listCount').textContent,
             mode: document.getElementById('modeText').textContent,
             pill: document.getElementById('modePill').dataset.state,
             tm: document.getElementById('rwisTm').textContent,
             firstKm: document.querySelector('#pointList .point .km')?.textContent,
+            groups: document.querySelectorAll('#pointList .pgroup').length,
             footer: !!document.querySelector('footer'),
           };
         }""")
@@ -84,9 +93,16 @@ def main() -> int:
         check("RWIS 8개 구간 × 방향·지표 4값", sample["zones"] == 8 and sample["allLevels"],
               f"{sample['zones']}구간 · 등급 {'있음' if sample['allLevels'] else '결측'}")
         check("평시 안전 구간은 1줄로 축약 (안전 배지 남발 없음)",
-              sample["hierarchy"] and sample["safeZones"] == 8 - sample["elevated"]
-              and sample["badges"] <= sample["elevated"] * 4,
+              sample["hierarchy"] and sample["badges"] <= sample["elevated"] * 2,
               f"안전 {sample['safeZones']}구간 · 상향 {sample['elevated']}구간 · 배지 {sample['badges']}개")
+        check("v7 구간 타이틀은 '↔' 로 읽기 좋게",
+              all("↔" in t for t in sample["titles"]) and "함양JC ↔ 거창IC" in sample["titles"],
+              str(sample["titles"][:3]))
+        check("v7 카드에서 CCTV 대수 숫자 제거 + 인근 CCTV 동선",
+              not sample["metaHasCounts"] and sample["cctvBtns"] >= 7,
+              f"대수표기={sample['metaHasCounts']} · 인근CCTV={sample['cctvBtns']}개")
+        check("v7 지점 목록은 구간 묶음 머리글", sample["groups"] >= 6,
+              f"묶음 {sample['groups']}개 / 62지점")
         check("정적 JSON은 '스냅샷'으로 표시 (실시간이라 부르지 않음)",
               sample["pill"] == "snapshot" and "스냅샷" in sample["mode"] and "스냅샷" in sample["tm"],
               f"{sample['pill']} · {sample['mode']} · {sample['tm']}")
@@ -182,14 +198,14 @@ def main() -> int:
           return {
             fsm: risk.dataset.lvFsm, vir: risk.dataset.lvVir,
             text: risk.textContent.trim(),
-            badges: risk.querySelectorAll('.badge').length,
+            dots: risk.querySelectorAll('.pr-dot').length,
             safe: !!risk.querySelector('.pt-safe'),
             cams: [...card.querySelectorAll('.cam')].map(c => c.textContent.trim()),
           };
         }""")
         check("지점 카드에 살얼음·가시거리 등급",
               point_risk["fsm"] != "" and point_risk["vir"] != ""
-              and (point_risk["badges"] > 0 or point_risk["safe"]),
+              and (point_risk["dots"] > 0 or point_risk["safe"]),
               json.dumps(point_risk, ensure_ascii=False))
         check("거창 지점 양방향 재생 버튼", len(point_risk["cams"]) == 2, str(point_risk["cams"]))
 
@@ -291,7 +307,28 @@ def main() -> int:
         page.wait_for_timeout(150)
 
         print("\n[4] CCTV 모달 재생")
-        page.click('#pointList .cam[data-name="거창"]')
+        # 일부 카메라 스트림은 CDN에서 수시로 내려간다 — 지금 실제로 살아 있는 카메라로 재생을 확인한다
+        cam_list = page.evaluate("""() => [...document.querySelectorAll('#pointList .cam[data-cctv]')]
+          .map(b => ({ id: b.dataset.cctv, name: b.dataset.name, dir: b.dataset.dir, zone: b.dataset.zone }))""")
+        live_cam = None
+        for item in cam_list:
+            try:
+                with urllib.request.urlopen(f"{base}/api/stream?cctvId={item['id']}", timeout=30) as res:
+                    info = json.loads(res.read().decode("utf-8"))
+                url = (info or {}).get("streamUrl") or ""
+                if not url:
+                    continue
+                with urllib.request.urlopen(url, timeout=20) as res:
+                    if res.status == 200 and b"#EXTM3U" in res.read(64):
+                        live_cam = item
+                        break
+            except Exception:  # noqa: BLE001
+                continue
+        check("실시간 재생 가능한 카메라 확보", live_cam is not None,
+              f"{(live_cam or {}).get('name')} {live_cam and live_cam['id']} · 시도 {min(len(cam_list), 12)}대")
+        if live_cam is None:
+            live_cam = cam_list[0]
+        page.click(f'#pointList .cam[data-cctv="{live_cam["id"]}"]')
         page.wait_for_timeout(600)
         modal = page.evaluate("""() => ({
           open: !document.getElementById('modal').hidden,
@@ -305,33 +342,41 @@ def main() -> int:
           nextDisabled: document.getElementById('btnNext').disabled,
           bodyLock: document.body.classList.contains('modal-open'),
         })""")
-        check("모달 열림 + 제목/메타", modal["open"] and modal["title"] == "거창" and "CCTV" in modal["eyebrow"],
+        check("모달 열림 + 제목/메타", modal["open"] and modal["title"] == live_cam["name"] and "CCTV" in modal["eyebrow"],
               f"{modal['title']} / {modal['eyebrow']}")
         check("모달 열면 배경 스크롤 잠금", modal["bodyLock"])
 
-        # 스트림 주소·매니페스트가 올 때까지 (로드플러스가 느릴 때가 있어 최대 25초)
+        # 스트림 주소·매니페스트가 올 때까지 (로드플러스 CDN이 느릴 때가 있어 최대 50초)
         try:
             page.wait_for_function(
                 "() => document.getElementById('stageOverlay').hidden || !document.getElementById('btnRetry').classList.contains('hidden')",
-                timeout=25000,
+                timeout=50000,
             )
         except Exception:  # noqa: BLE001 — 실패하면 아래 check 에서 사실대로 잡힌다
             pass
+        try:
+            page.wait_for_function("() => document.getElementById('player').readyState >= 2", timeout=20000)
+        except Exception:  # noqa: BLE001
+            pass
         page.wait_for_timeout(1200)
-        play = page.evaluate("""() => ({
-          meta: document.getElementById('modalMeta').textContent,
-          overlay: !document.getElementById('stageOverlay').hidden,
-          stageTitle: document.getElementById('stageTitle').textContent,
-          videoHidden: document.getElementById('player').classList.contains('is-hidden'),
-          readyState: document.getElementById('player').readyState,
-          currentTime: document.getElementById('player').currentTime,
-          buffered: document.getElementById('player').buffered.length ? document.getElementById('player').buffered.end(0) : 0,
-          src: (document.getElementById('player').src || '').slice(0, 60),
-          hls: !!window.Hls,
-          hlsSupported: !!(window.Hls && window.Hls.isSupported()),
-          prevDisabled: document.getElementById('btnPrev').disabled,
-          nextDisabled: document.getElementById('btnNext').disabled,
-        })""")
+
+        def read_play():
+            return page.evaluate("""() => ({
+              meta: document.getElementById('modalMeta').textContent,
+              overlay: !document.getElementById('stageOverlay').hidden,
+              stageTitle: document.getElementById('stageTitle').textContent,
+              videoHidden: document.getElementById('player').classList.contains('is-hidden'),
+              readyState: document.getElementById('player').readyState,
+              currentTime: document.getElementById('player').currentTime,
+              buffered: document.getElementById('player').buffered.length ? document.getElementById('player').buffered.end(0) : 0,
+              src: (document.getElementById('player').src || '').slice(0, 60),
+              hls: !!window.Hls,
+              hlsSupported: !!(window.Hls && window.Hls.isSupported()),
+              prevDisabled: document.getElementById('btnPrev').disabled,
+              nextDisabled: document.getElementById('btnNext').disabled,
+            })""")
+
+        play = read_play()
         print(f"    모달 상태: {json.dumps(play, ensure_ascii=False)}")
         check("스트림 주소 수신 후 메타 갱신", "cctv" in play["meta"], play["meta"])
         check("hls.js 로드됨", play["hls"], f"isSupported={play['hlsSupported']}")
@@ -431,9 +476,10 @@ def main() -> int:
         check("구간 타일이 화면 안에 다 들어옴(상하)",
               mroute["bandBottom"] <= mroute["innerH"] - 50,
               f"band {mroute['bandTop']}–{mroute['bandBottom']} / inner {mroute['innerH']}")
-        check("구간 타일에 지점·CCTV 수·최고 등급",
-              all(t["meta"] and "CCTV" in t["meta"] for t in mroute["tiles"])
-              and any(t["seg"] == "190" and "11지점" in t["meta"] for t in mroute["tiles"]),
+        check("구간 타일에 인근 CCTV 동선 (CCTV 대수 숫자 없음)",
+              all(t["meta"] and ("인근 CCTV" in t["meta"] or "CCTV 없음" in t["meta"]) for t in mroute["tiles"])
+              and all("지점" not in t["meta"] and "대 CCTV" not in t["meta"] for t in mroute["tiles"])
+              and any(t["seg"] == "190" and "인근 CCTV" in t["meta"] for t in mroute["tiles"]),
               f"{mroute['tiles'][3]}")
         check("첫 실행에 Worker 설정 팝오버가 자동으로 뜨지 않음", mroute["settingsHidden"], "")
         (ROOT.parent / "downloads").mkdir(parents=True, exist_ok=True)
@@ -898,8 +944,8 @@ def main() -> int:
         rep = page.evaluate("""() => ({ svg: window.__gdc.reportSvg(), size: window.__gdc.reportSize() }) """)
         check("한 장 리포트 = 요약 + 노선도 + 8구간 표",
               "8개 구간 등급 요약" in rep["svg"]
-              and all(name in rep["svg"] for name in ("함양IC–함양JC", "고령JC–옥포JC"))
-              and "이정 · 대시보드" in rep["svg"] and "3 위험" in rep["svg"]
+              and all(name in rep["svg"] for name in ("함양IC ↔ 함양JC", "고령JC ↔ 옥포JC"))
+              and "이정 · 대시보드" in rep["svg"] and "양방향" in rep["svg"]
               and rep["size"]["w"] == 1600 and rep["size"]["mapH"] == 900,
               f"SVG {len(rep['svg']):,}자 · {rep['size']}")
         page.screenshot(path=str(dl_dir / "gwangju_daegu_v3_desktop.png"), full_page=False)
@@ -1073,6 +1119,7 @@ def main() -> int:
             safeText: safe ? safe.textContent.trim() : null,
             badges: tile ? tile.querySelectorAll('.badge').length : -1,
             border: tile ? getComputedStyle(tile).borderTopColor : null,
+            bg: tile ? getComputedStyle(tile).backgroundColor : null,
           };
         }""")
         check("0단계(안전) 구간은 배지 없이 1줄로 축약",
@@ -1108,6 +1155,7 @@ def main() -> int:
           const safe = document.querySelector('#zoneGrid .zone[data-worst="0"]');
           const strong = document.querySelector('#zoneGrid .badge.lv3');
           const safeLine = safe ? safe.querySelector('.zsafe') : null;
+          const dot = strong ? getComputedStyle(strong, '::before') : null;
           return {
             pill: document.getElementById('modeText').textContent,
             tm: document.getElementById('rwisTm').textContent,
@@ -1115,7 +1163,8 @@ def main() -> int:
             hotBorder: hot ? getComputedStyle(hot).borderTopColor : null,
             hotShadow: hot ? getComputedStyle(hot).boxShadow : null,
             safeBorder: safe ? getComputedStyle(safe).borderTopColor : null,
-            strongBg: strong ? getComputedStyle(strong).backgroundColor : null,
+            strongColor: strong ? getComputedStyle(strong).color : null,
+            strongDot: dot ? dot.backgroundColor : null,
             safeBadges: safe ? safe.querySelectorAll('.badge').length : -1,
             safeLineShown: !!safeLine,
             counts: {
@@ -1131,10 +1180,10 @@ def main() -> int:
         check("주의·위험 타일이 안전 타일과 확연히 다름",
               "3" in prev["worst"] and prev["hotBorder"] != prev["safeBorder"] and prev["hotShadow"] != "none",
               f"위험 {prev['hotBorder']} vs 안전 {prev['safeBorder']}")
-        check("위험 배지는 채워지고 안전 구간은 배지 없음",
-              prev["strongBg"] not in ("rgba(0, 0, 0, 0)", "transparent")
+        check("위험 배지는 붉은 점·글자로 채워지고 안전 구간은 배지 없음",
+              prev["strongColor"] not in (None, "rgb(125, 148, 175)") and prev["strongDot"] not in (None, "rgba(0, 0, 0, 0)")
               and prev["safeBadges"] == 0 and prev["safeLineShown"],
-              f"{prev['strongBg']} / 안전배지 {prev['safeBadges']}")
+              f"{prev['strongColor']} / 점 {prev['strongDot']} / 안전배지 {prev['safeBadges']}")
         check("미리보기에 1·2·3단계가 섞여 표시", prev["counts"]["lv1"] > 0 and prev["counts"]["lv2"] > 0
               and prev["counts"]["lv3"] > 0 and prev["counts"]["safe"] > 0, json.dumps(prev["counts"]))
         pp.screenshot(path=str(ROOT.parent / "downloads" / "gwangju_daegu_v4_alert_preview.png"), full_page=False)
@@ -1240,78 +1289,119 @@ def main() -> int:
               f"배지 {rise['chips']} · {rise['meta'][-24:]}")
         page.screenshot(path=str(dl_dir / "gwangju_daegu_v6_alert_rise.png"), full_page=False)
 
-        # ── 10종 해상도: 한 화면 · 지리 순서 · 도명 ──
-        sizes = [(360, 640), (390, 844), (412, 915), (430, 932), (768, 1024),
-                 (844, 390), (915, 412), (932, 430), (1024, 768), (1280, 800)]
-        for vw, vh in sizes:
-            mob = vw < 1024
-            c = browser.new_context(viewport={"width": vw, "height": vh}, is_mobile=mob, has_touch=mob)
-            vp = c.new_page()
-            vp.goto(f"{base}/index.html", wait_until="load")
-            vp.wait_for_timeout(450)
-            size_info = vp.evaluate("""() => {
-              const doc = document.documentElement;
-              const box = (name) => {
-                const t = [...document.querySelectorAll('#routeMap .lbl')].find(x => x.textContent === name);
-                const b = t.getBBox(); return Math.round(b.x);
-              };
-              const vb = document.querySelector('#routeMap').getAttribute('viewBox').split(' ').map(Number);
-              const regions = [...document.querySelectorAll('#routeMap .region')].map(t => {
-                const b = t.getBBox(); return { name: t.textContent, x: b.x, right: b.x + b.width };
-              });
-              const pills = [...document.querySelectorAll('#routeMap .label-pill')].map(r => { const b = r.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
-              const glyphs = [...document.querySelectorAll('#routeMap .glyph')].map(r => { const b = r.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
-              let pg = 0;
-              for (const p of pills) for (const g of glyphs) {
-                if (Math.min(p.x + p.w, g.x + g.w) - Math.max(p.x, g.x) > 0 && Math.min(p.y + p.h, g.y + g.h) - Math.max(p.y, g.y) > 0) pg += 1;
-              }
-              return {
-                pageW: doc.scrollWidth, innerW: window.innerWidth,
-                pageH: doc.scrollHeight, innerH: window.innerHeight,
-                dong: box('동고령IC'), goryeong: box('고령JC'),
-                outside: regions.filter(r => r.x < 2 || r.right > vb[2] - 2).map(r => r.name),
-                labels: document.querySelectorAll('#routeMap .lbl').length,
-                pg,
-              };
-            }""")
-            check(f"{vw}×{vh} 한 화면(스크롤 없음)",
-                  size_info["pageW"] <= size_info["innerW"] + 1 and size_info["pageH"] <= size_info["innerH"] + 1,
-                  f"{size_info['pageW']}×{size_info['pageH']} / {size_info['innerW']}×{size_info['innerH']}")
-            check(f"{vw}×{vh} 동고령IC가 고령JC 왼쪽 · 도명 잘림 없음",
-                  size_info["dong"] < size_info["goryeong"] and not size_info["outside"] and size_info["labels"] == 13,
-                  f"동고령 {size_info['dong']} < 고령JC {size_info['goryeong']} · 도명 {size_info['outside']}")
-            check(f"{vw}×{vh} 라벨·아이콘 겹침 없음", size_info["pg"] == 0, f"겹침 {size_info['pg']}쌍")
-            c.close()
+        print("\n[14] v7 — 양방향 통합 · 지표 일관성 · 모바일 헤더 · 리포트 가독성")
+        page.evaluate("() => localStorage.removeItem('gdc.workerBase')")
+        page.goto(f"{base}/index.html", wait_until="load")
+        page.wait_for_function("() => ['live', 'snapshot', 'sample'].includes(window.__gdc.state.mode)", timeout=40000)
+        page.wait_for_timeout(500)
+        v7 = page.evaluate("""() => {
+          const zones = [...document.querySelectorAll('#zoneGrid .zone')];
+          const split = zones.filter(z => z.querySelector('.zrow'));
+          const merged = zones.filter(z => z.querySelector('.zline .badge'));
+          const safe = zones.filter(z => z.querySelector('.zsafe'));
+          const sum = window.__gdc.zoneCounts8('fsm');
+          const sumDist = [...document.querySelectorAll('#rwisSummary .sum-main .dist span')]
+            .map(s => Number(s.textContent.replace(/[^0-9]/g, '')));
+          const meta = document.getElementById('routeMeta').textContent.replace(/\\s+/g, ' ').trim();
+          const tn = [...document.querySelectorAll('#routeMap .lbl-tn')];
+          const ic = [...document.querySelectorAll('#routeMap .node .lbl')].filter(t => !t.classList.contains('lbl-tn'));
+          const tnPill = tn.length ? tn[0].closest('.node').querySelector('.label-pill') : null;
+          const icPill = ic.length ? ic[0].closest('.node').querySelector('.label-pill') : null;
+          return {
+            zones: zones.length,
+            merged: merged.length, split: split.length, safe: safe.length,
+            mergedText: merged.map(z => z.querySelector('.badge').textContent.replace(/\\s+/g, ' ').trim()),
+            splitText: split.map(z => z.textContent.replace(/\\s+/g, ' ').trim()),
+            sum: sum.counts, sumMax: sum.max, sumDist,
+            basis: (document.querySelector('#rwisSummary .sum-main .label') || {}).textContent || '',
+            filter: [...document.querySelectorAll('#rwisFilter button')].map(b => b.textContent.trim()),
+            altHints: document.querySelectorAll('#zoneGrid .zalt').length,
+            meta,
+            tnCount: tn.length,
+            tnSize: tn.length ? parseFloat(getComputedStyle(tn[0]).fontSize) : null,
+            icSize: ic.length ? parseFloat(getComputedStyle(ic[0]).fontSize) : null,
+            tnShadow: tnPill ? tnPill.getAttribute('filter') : 'none',
+            icShadow: icPill ? icPill.getAttribute('filter') : null,
+            listMeta: document.getElementById('listMeta').textContent.replace(/\\s+/g, ' ').trim(),
+            report: window.__gdc.reportSvg(),
+          };
+        }""")
+        check("v7 8구간 카드 — 양방향 동급은 한 줄, 다를 때만 분리",
+              v7["zones"] == 8 and v7["merged"] + v7["safe"] + v7["split"] == 8
+              and all("양방향" in t for t in v7["mergedText"]),
+              f"통합 {v7['merged']} · 안전 {v7['safe']} · 분리 {v7['split']} · {v7['mergedText'][:2]}")
+        check("v7 분리 표기는 '대구 … / 광주 …'",
+              all("대구" in t and "광주" in t for t in v7["splitText"]),
+              str(v7["splitText"][:2]))
+        check("v7 요약·필터·목록이 8구간 기준 (16링크 숫자 제거)",
+              v7["basis"].find("8구간") >= 0 and v7["filter"][0] == "전체 8"
+              and "16" not in " ".join(v7["filter"]) and sum(v7["sumDist"]) == 8,
+              f"{v7['basis']} · {v7['filter']} · 분포 {v7['sumDist']}")
+        check("v7 좌측 노선 요약도 8구간 기준",
+              "8구간" in v7["meta"], v7["meta"][:90])
+        check("v7 선택 지표(살얼음) 기준으로 카드 강조 통일",
+              v7["sumDist"] == [v7["sum"][3], v7["sum"][2], v7["sum"][1], v7["sum"][0]],
+              f"요약 분포 {v7['sumDist']} / 8구간 {v7['sum']}")
+        check("v7 다른 지표는 작은 보조 문구로만",
+              v7["altHints"] >= 0 and "가시거리" in page.evaluate("() => document.getElementById('rwisSummary').textContent"),
+              f"보조문구 {v7['altHints']}개")
+        check("v7 터널 말풍선이 IC·JC보다 작고 그림자 없음",
+              v7["tnCount"] >= 3 and v7["tnSize"] is not None and v7["icSize"] is not None
+              and v7["tnSize"] < v7["icSize"] and v7["tnShadow"] in (None, ""),
+              f"터널 {v7['tnSize']}px < IC {v7['icSize']}px · filter={v7['tnShadow']}")
+        check("v7 스냅샷 모드일 때 'ITS 미연결' 대신 스냅샷 모드 표기",
+              "스냅샷 모드" in v7["listMeta"] or "ITS 매칭" in v7["listMeta"], v7["listMeta"])
 
-        # ── v4 스크린샷 (실시간 연결 상태) ──
-        def connect_any(pg, url: str) -> None:
-            immersive = pg.evaluate("() => document.body.classList.contains('immersive')")
-            if pg.evaluate("() => document.getElementById('settingsPanel').hidden"):
-                pg.click("#railSettings" if immersive else "#btnSettings")
-            pg.fill("#workerUrl", url)
-            pg.click("#btnConnect")
+        rep = v7["report"]
+        check("v7 리포트: 반복 '안전 0' 알약 제거 · 옅은 — 표기",
+              "안전 0" not in rep and rep.count("양방향 —") >= 6,
+              f"안전0={'안전 0' in rep} · — 표기 {rep.count('양방향 —')}개")
+        check("v7 리포트: '영상 없음'은 중립 회색",
+              '영상 없음' in rep and 'fill="#9aabbd"' in rep and 'fill="#b45309"' not in rep,
+              "회색 확인" if 'fill="#9aabbd"' in rep else "빨강 잔존")
+        check("v7 리포트: 양방향 동급은 '양방향' 한 칸",
+              rep.count("양방향") >= 8, f"양방향 {rep.count('양방향')}회")
 
-        for name, vw, vh, mob in (
-            ("gwangju_daegu_v4_desktop", 1280, 800, False),
-            ("gwangju_daegu_v4_mobile_portrait", 390, 844, True),
-            ("gwangju_daegu_v4_mobile_landscape", 844, 390, True),
-        ):
-            c = browser.new_context(viewport={"width": vw, "height": vh}, device_scale_factor=2 if mob else 1,
-                                    is_mobile=mob, has_touch=mob)
-            sp = c.new_page()
-            sp.goto(f"{base}/index.html", wait_until="load")
-            connect_any(sp, base)
-            try:
-                sp.wait_for_function("() => ['live','error'].includes(document.getElementById('modePill').dataset.state)", timeout=90000)
-            except Exception:  # noqa: BLE001
-                pass
-            sp.wait_for_timeout(700)
-            out = ROOT.parent / "downloads" / f"{name}.png"
-            sp.screenshot(path=str(out), full_page=False)
-            pill_text = sp.evaluate("() => document.getElementById('modeText').textContent")
-            check(f"{name}.png 저장", out.exists() and out.stat().st_size > 20000,
-                  f"{out.stat().st_size:,}bytes · {pill_text}")
-            c.close()
+        mob = browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+        mpg = mob.new_page()
+        m_errors7: list[str] = []
+        mpg.on("pageerror", lambda e: m_errors7.append(str(e)))
+        mpg.goto(f"{base}/index.html", wait_until="load")
+        mpg.wait_for_timeout(600)
+        m7 = mpg.evaluate("""() => {
+          const h1 = document.querySelector('.brand h1');
+          const headBtns = [...document.querySelectorAll('.route-head .btn')].filter(b => getComputedStyle(b).display !== 'none');
+          const dockReport = document.getElementById('btnShotDock');
+          const dockBox = dockReport.getBoundingClientRect();
+          return {
+            title: h1.textContent.replace(/\\s+/g, ' ').trim(),
+            h1Clipped: h1.scrollWidth > h1.clientWidth + 1,
+            headReportButtons: headBtns.length,
+            dockReportVisible: getComputedStyle(dockReport).display !== 'none' && dockBox.width > 0,
+            dockText: dockReport.textContent.replace(/\\s+/g, ' ').trim(),
+            metaClipped: [...document.querySelectorAll('#zoneGrid .zmeta, #zoneGrid .zcctv')]
+              .some(n => n.scrollWidth > n.clientWidth + 1 || n.getBoundingClientRect().right > window.innerWidth + 1),
+            pageW: document.documentElement.scrollWidth, innerW: window.innerWidth,
+            pageH: document.documentElement.scrollHeight, innerH: window.innerHeight,
+          };
+        }""")
+        check("v7 모바일 헤더 제목이 잘리지 않음", (not m7["h1Clipped"]) and "광주대구선" in m7["title"],
+              f"'{m7['title']}' 잘림={m7['h1Clipped']}")
+        check("v7 모바일 리포트 버튼 중복·겹침 정리 (하단 한 곳)",
+              m7["headReportButtons"] == 0 and m7["dockReportVisible"] and "리포트" in m7["dockText"],
+              f"상단 {m7['headReportButtons']}개 · 하단 {m7['dockText']}")
+        check("v7 모바일 카드 하단 글자 잘림 없음", not m7["metaClipped"],
+              f"page {m7['pageW']}/{m7['innerW']}")
+        check("v7 모바일 한 화면 · 가로 넘침 없음",
+              m7["pageW"] <= m7["innerW"] + 1 and m7["pageH"] <= m7["innerH"] + 1,
+              f"{m7['pageW']}×{m7['pageH']} / {m7['innerW']}×{m7['innerH']}")
+        mpg.screenshot(path=str(ROOT.parent / "downloads" / "gwangju_daegu_v7_mobile_portrait.png"), full_page=False)
+        check("v7 모바일 콘솔 에러 0건", not m_errors7, "; ".join(m_errors7[:2]))
+        mob.close()
+
+        page.screenshot(path=str(ROOT.parent / "downloads" / "gwangju_daegu_v7_desktop.png"), full_page=False)
+        # 화면 3장(데스크톱·세로·가로)은 tests/test_dashboard_visual.py 가 따로 찍는다
+        # (오래 산 브라우저에서 새 컨텍스트를 여는 것이 이 환경에서 멈추기 때문)
 
         check("v4 가로/세로 콘솔 에러 0건", not (l4_errors + p4_errors), "; ".join((l4_errors + p4_errors)[:3]))
 

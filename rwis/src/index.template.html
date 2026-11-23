@@ -787,6 +787,228 @@
     .zone .zmeta { font-size: 9.5px; }
     .route-note { display: none; }
   }
+  /* ══════════════════════════════════════════════════════════════
+     v7 — 프로 관제 콘솔 톤
+     알약 배지·이중 박스·테두리를 덜고, 여백과 숫자(고정폭) 위계로 정돈
+     ══════════════════════════════════════════════════════════════ */
+  :root {
+    --edge-2: #16243a;
+    --ink-2: #c6d8ea;
+    --ink-3: #8ea6c0;
+    --ink-4: #62799a;
+  }
+
+  .km, .zkm, .dist, .route-meta, .list-meta, .auto-chip, .sum-box .big,
+  .zone .badge, .point .km, .tabbtn, .chip, .pg-lv, #listCount, .zmeta {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── 상단 헤더 ── */
+  .topbar { background: #0a101c; border-bottom: 1px solid var(--edge-2); }
+  .brand-mark {
+    width: 28px; height: 28px; border-radius: 8px; font-size: 11px;
+    background: #15233a; color: #9fc4e4;
+    box-shadow: inset 0 0 0 1px #23344e;
+  }
+  .brand h1 { font-size: 14.5px; font-weight: 750; letter-spacing: -.02em; }
+  .brand h1 .t-sub { color: #7d94af; font-weight: 600; }
+  .brand .range { font-size: 10.5px; color: #5f7794; letter-spacing: .01em; }
+  .pill {
+    font-size: 10.5px; font-weight: 700; padding: 3px 8px; letter-spacing: .01em;
+    background: rgba(56,189,248,.07); border-color: rgba(56,189,248,.2);
+  }
+  .auto-chip {
+    background: transparent; border-color: #1c2c44; color: #6f88a6; font-size: 10.5px;
+  }
+  .icon-btn { border-color: #1c2c44; background: #101b2c; }
+
+  /* ── 노선 카드 머리 ── */
+  .route-card { padding: 10px 12px 10px; }
+  .sec-head h2 { font-size: 13px; font-weight: 700; color: var(--ink-2); letter-spacing: -.01em; gap: 8px; }
+  .sec-head h2 .live { font-size: 10.5px; font-weight: 600; color: #62799a; }
+  .sec-head .count {
+    font-size: 10.5px; font-weight: 800; color: #6f8aa8;
+    background: none; border: 0; padding: 0;
+  }
+  .seg-filter, .tabs { background: #0b1626; border-color: var(--edge-2); }
+  .seg-filter button.on, .tabbtn.on, .chip.on {
+    background: #1d6d99; border-color: #2b8fc4; color: #f2f9ff; box-shadow: none;
+  }
+  .tabbtn, .chip { background: transparent; border-color: #1a2941; }
+  .btn { border-color: #1e2f47; background: #101b2c; }
+  .btn--primary { background: #1d6d99; border-color: #2b8fc4; color: #f2f9ff; }
+  .btn--primary:hover { background: #2280b1; }
+  .route-wrap { margin-top: 10px; }
+  .route-foot { margin-top: 9px; font-size: 10.5px; color: #5f7794; }
+
+  /* ── 구간 카드 (8개) ── */
+  .zone-band { gap: 8px; margin-top: 10px; }
+  .zone {
+    padding: 10px 12px 9px; gap: 0;
+    background: #0c1727; border: 1px solid var(--edge-2); border-radius: 10px;
+    box-shadow: none;
+  }
+  .zone:hover { background: #0e1a2c; border-color: #24405f; }
+  .zone .zh { margin: 0 0 6px; gap: 6px; align-items: baseline; }
+  .zone .zh strong { font-size: 11.5px; font-weight: 700; color: #9fb6cd; letter-spacing: -.01em; }
+  .zone[data-worst="0"] .zh strong, .zone[data-worst="none"] .zh strong { color: #7f97b3; }
+  .zone .ztags { display: flex; flex-direction: column; gap: 1px; }
+  .zone .zline { display: flex; align-items: center; gap: 6px; min-height: 20px; }
+  .zone .zsafe { font-size: 11.5px; font-weight: 600; color: #6f88a6; padding: 0; gap: 6px; }
+  .zone .zsafe .sdot { width: 5px; height: 5px; background: #3c628a; opacity: 1; }
+  .zone .zsafe.none { color: #5f7794; }
+  .zone .zsafe.none .sdot { background: #3a4f68; }
+  .zone .zrow { display: flex; align-items: center; gap: 5px; min-height: 20px; flex-wrap: wrap; }
+  .zone .zdir { font-size: 10px; color: var(--ink-4); font-weight: 600; width: auto; letter-spacing: .01em; }
+  .zone .zslash { color: #2c3f5a; font-size: 10px; }
+  .zone .zq { font-size: 11px; font-weight: 600; color: #7d94af; }
+  .zone .zalt {
+    margin-top: 3px; font-size: 10px; font-weight: 600; color: var(--ink-4);
+    display: flex; align-items: center; gap: 4px; letter-spacing: .01em;
+  }
+  .zone .zmeta {
+    margin-top: auto; padding-top: 8px; font-size: 10.5px; color: #5f7794;
+    display: flex; align-items: center; justify-content: space-between; gap: 4px 8px; flex-wrap: wrap;
+  }
+  .zone .zkm { font-size: 10.5px; color: #5f7794; letter-spacing: .01em; white-space: nowrap; }
+  .zone .zcctv {
+    display: inline-flex; align-items: center; gap: 4px; padding: 2px 0; white-space: nowrap;
+    font-size: 10px; font-weight: 700; color: #7ba8cf; letter-spacing: .01em;
+  }
+  .zone .zcctv:hover { color: #b8e2ff; }
+  .zone .zno { font-size: 10px; color: #7d94af; }
+
+  /* 선택 지표 하나로만 강조 — 다른 지표는 글자로만 알린다 */
+  .zone.hot { border-color: var(--edge-2); background: #0c1727; }
+  .zone[data-worst="1"] { border-color: rgba(242,194,27,.30); background: rgba(242,194,27,.035); box-shadow: inset 2px 0 0 0 #d9a916; }
+  .zone[data-worst="2"] { border-color: rgba(249,115,22,.50); background: rgba(249,115,22,.06); box-shadow: inset 2px 0 0 0 #f97316; }
+  .zone[data-worst="3"] { border-color: rgba(244,63,94,.60); background: rgba(244,63,94,.09); box-shadow: inset 2px 0 0 0 #f43f5e; animation: none; }
+  .zone[data-worst="2"] .zh strong, .zone[data-worst="3"] .zh strong { color: #e8f1fb; }
+  .zone.nocam { border-style: dashed; background: #0b1524; }
+  .zone.focus { box-shadow: inset 0 0 0 1.5px rgba(56,189,248,.55); background: rgba(56,189,248,.06); }
+
+  /* 구간 카드 안의 등급은 '점 + 글자' — 알약·테두리 없음 */
+  .zone .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 0; border: 0; border-radius: 0; background: transparent;
+    font-size: 12px; font-weight: 800; letter-spacing: -.01em;
+  }
+  .zone .badge .ico { display: none; }
+  .zone .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+  .zone .badge.lv1 { color: #f5c518; }
+  .zone .badge.lv2 { color: #fb923c; }
+  .zone .badge.lv3 { color: #f87171; }
+  .zone .zbadge { display: inline-flex; align-items: center; gap: 4px; }
+
+  /* ── 오른쪽 요약: 상자 대신 계기판 숫자 ── */
+  .side { padding: 12px 13px 10px; gap: 10px; }
+  .summary {
+    grid-template-columns: 1.3fr 1fr .92fr; gap: 0;
+    padding-bottom: 10px; border-bottom: 1px solid var(--edge-2);
+  }
+  .sum-box { background: none; border: 0; border-radius: 0; padding: 0 10px 0 0; }
+  .sum-box + .sum-box { border-left: 1px solid var(--edge-2); padding-left: 10px; }
+  .sum-box .label { font-size: 10.5px; font-weight: 600; color: #6b82a4; letter-spacing: .02em; }
+  .sum-box .label .note { font-size: 9px; color: #526785; font-weight: 600; }
+  .sum-box .big { margin-top: 4px; gap: 6px; }
+  .sum-box .big .badge {
+    padding: 0; border: 0; background: transparent; font-size: 19px; font-weight: 800; letter-spacing: -.02em;
+  }
+  .sum-box .big .badge .n, .sum-box .big .badge .ico { display: none; }
+  .sum-box .big .muted { font-size: 9.5px; color: #62799a; }
+  .sum-box .dist { margin-top: 5px; gap: 8px; font-size: 10px; color: #62799a; }
+  .sum-box .dist b { font-weight: 700; color: var(--ink-3); margin-right: 2px; }
+  .sum-box .dist .c3, .sum-box .dist .c3 b { color: #f87171; }
+  .sum-box .dist .c2, .sum-box .dist .c2 b { color: #fdba74; }
+  .sum-box .dist .c0, .sum-box .dist .c0 b { color: #6b82a4; }
+  .sum-box .alt-lv { font-size: 15px; font-weight: 800; color: #9fb6cd; letter-spacing: -.01em; }
+  .sum-box .alt-lv.lv1 { color: #f5c518; }
+  .sum-box .alt-lv.lv2 { color: #fb923c; }
+  .sum-box .alt-lv.lv3 { color: #f87171; }
+  .sum-box .alt-lv.lvnull { color: #62799a; }
+
+  /* ── 지점 목록: 구간 묶음 머리글 + 줄무늬 없는 행 ── */
+  .side-toolbar { gap: 7px; }
+  .side .chips { gap: 5px; }
+  .list-scroll { padding-right: 3px; }
+  .points { gap: 0; }
+  .pgroup {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 2px 4px; border-bottom: 1px solid var(--edge-2);
+  }
+  .pgroup:first-child { padding-top: 2px; }
+  .pgroup .pg-name { font-size: 10.5px; font-weight: 700; color: var(--ink-3); letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pgroup .pg-lv { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800; color: #7d94af; white-space: nowrap; }
+  .pgroup .pg-lv i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pgroup .pg-lv.lv1 { color: #f5c518; }
+  .pgroup .pg-lv.lv2 { color: #fb923c; }
+  .pgroup .pg-lv.lv3 { color: #f87171; }
+  .pgroup .pg-lv.none { color: #5f7794; }
+  .pgroup .pg-cctv { margin-left: auto; padding: 2px 4px; border-radius: 6px; font-size: 11px; color: #6f8aa8; }
+  .pgroup .pg-cctv:hover { color: #b8e2ff; background: rgba(56,189,248,.08); }
+
+  .point {
+    background: transparent; border: 0; border-bottom: 1px solid #101d2f;
+    border-radius: 0; padding: 7px 2px; gap: 1px 8px;
+  }
+  .point:hover { background: rgba(56,189,248,.045); border-color: #101d2f; }
+  .point .km { background: transparent; border: 0; padding: 0; min-width: 44px; flex: none; white-space: nowrap; color: #6f8aa8; font-size: 10px; }
+  .point h3 { font-size: 12.5px; font-weight: 650; letter-spacing: -.01em; }
+  .fac { background: transparent; border: 0; padding: 0; font-size: 9.5px; font-weight: 700; color: #6f88a8; }
+  .fac.ic, .fac.rest, .fac.tunnel, .fac.etc { background: transparent; border: 0; padding: 0; }
+  .fac.ic { color: #7ea9cd; }
+  .fac.rest { color: #c9a961; }
+  .fac.tunnel { color: #9d94c4; }
+  .point .pt-addr { font-size: 10.5px; color: #5f7794; }
+  .pr-dots { display: inline-flex; align-items: center; gap: 5px; }
+  .pr-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .pr-dot.lv1 { background: #f5c518; }
+  .pr-dot.lv2 { background: #fb923c; }
+  .pr-dot.lv3 { background: #f87171; }
+  .pr-dot.vir { box-shadow: 0 0 0 1.5px rgba(232,238,248,.22); }
+  .point .pt-safe { font-size: 10px; color: #44586f; font-weight: 700; }
+  .cam { background: transparent; border-color: #1e2f47; padding: 2px 6px; font-size: 10px; }
+  .cam:hover { background: #142439; border-color: #33507a; }
+  .side-foot { border-top-color: var(--edge-2); color: #526785; }
+  .side-foot b { color: #6f8aa6; }
+
+  /* ══ 모바일: 잘림·겹침·중복 없이 ══ */
+  @media (max-width: 1023px) {
+    /* 헤더 제목 — 말줄임으로 잘리지 않게 보조 문구를 접는다 */
+    .brand h1 { font-size: 14px; }
+    .brand h1 .t-sub { display: none; }
+    /* 리포트는 하단 독 한 곳에서만 (상단 버튼 잘림·중복 제거) */
+    .route-head .right .btn { display: none !important; }
+    .route-head .right { gap: 6px; }
+    .route-card { padding: 8px 9px 9px; }
+    .zone { padding: 8px 9px 8px; }
+    .zone .zh { margin-bottom: 4px; }
+    .zone .zh strong { font-size: 11.5px; }
+    .zone .badge { font-size: 11.5px; }
+    .zone .zmeta { padding-top: 5px; font-size: 10px; }
+    .zone .zcctv { font-size: 9.5px; }
+    .zone .zalt { font-size: 9.5px; }
+    .sum-box .big .badge { font-size: 16px; }
+    .pgroup { padding: 9px 1px 3px; }
+    .point { padding: 8px 1px; }
+    .dock-bar button { white-space: nowrap; }
+    .dock-bar button .ic { font-size: 14px; }
+    .settings { max-height: min(72dvh, 560px); }
+  }
+  @media (max-width: 1023px) and (orientation: portrait) and (max-height: 680px) {
+    .zone { padding: 6px 8px; }
+    .zone .zh strong { font-size: 11px; }
+    .zone .badge { font-size: 11px; }
+    .zone .zmeta { padding-top: 3px; }
+  }
+  @media (max-width: 1023px) and (orientation: portrait) and (max-height: 600px) {
+    .zone .zmeta { display: none; }
+  }
+
+  /* 사진·모달·시트는 기존 톤 유지하되 알약만 정리 */
+  .modal-title h2 { font-size: 16px; font-weight: 800; letter-spacing: -.01em; }
+  .sheet .badge { border-radius: 7px; }
+
 </style>
 </head>
 <body data-view="route">
@@ -796,7 +1018,7 @@
     <div class="brand">
       <span class="brand-mark" aria-hidden="true">12</span>
       <div class="brand-txt">
-        <h1>광주대구선 <span>CCTV · 도로기상</span></h1>
+        <h1><span class="t-route">광주대구선</span> <span class="t-sub">CCTV · 도로기상</span></h1>
         <p class="range">함양IC 95.0km → 옥포JC 176.0km · 62지점 123대</p>
       </div>
     </div>
@@ -843,7 +1065,7 @@
 <main class="board">
   <section class="card route-card" id="routeSection" aria-labelledby="routeTitle">
     <div class="sec-head route-head">
-      <h2 id="routeTitle">서→동 노선도 <span class="live" id="routeLive">구간별 위험 단계</span></h2>
+      <h2 id="routeTitle">구간 현황 <span class="live" id="routeLive">구간별 위험 단계</span></h2>
       <div class="right">
         <div class="seg-filter" id="routeMetric" role="group" aria-label="위험 종류">
           <button type="button" data-rm="fsm" class="on" aria-pressed="true">❄ 살얼음</button>
@@ -1139,6 +1361,46 @@ const ROUTE_GEO = __ROUTE_GEO__;
     const quiet = options.quiet && level === 0 ? ' quiet' : '';
     return `<span class="badge ${levelClass(level)}${quiet}" title="${esc(title)}" data-level="${level === null || level === undefined ? 'null' : level}">` +
       `${ico}${esc(options.label ? options.label + ' ' : '')}${esc(name)}${num}</span>`;
+  }
+
+  /* ── v7 — 지표 기준 통일 · 구간 표기 ────────── */
+
+  const METRIC_LABEL = { fsm: '도로살얼음', vir: '도로가시거리' };
+  const METRIC_SHORT = { fsm: '살얼음', vir: '가시거리' };
+  const METRIC_ICO = { fsm: '❄', vir: '👁' };
+
+  /** '함양JC–거창IC' → '함양JC ↔ 거창IC' — 읽기 좋은 구간 타이틀 */
+  function segLabel(name) {
+    return String(name || '').replace(/\s*[–—~]\s*/g, ' ↔ ');
+  }
+
+  /** 구간의 방향별 등급 (선택 지표) */
+  function metricLevels(index, suffix, metric) {
+    const pick = (dir) => {
+      const zone = index.get(dir + suffix);
+      if (!zone || !zone[metric] || zone[metric].level === undefined) return null;
+      return zone[metric].level;
+    };
+    return { E: pick('E'), S: pick('S') };
+  }
+
+  /** 8구간 기준 등급 — 구간 안 양방향 중 높은 쪽 */
+  function zoneLevel8(index, suffix, metric) {
+    const lv = metricLevels(index, suffix, metric);
+    return maxLevel([lv.E, lv.S]);
+  }
+
+  /** 8구간 분포 — 좌측 노선도·요약·우측 목록이 모두 이 숫자를 쓴다 */
+  function zoneCounts8(index, metric) {
+    const counts = [0, 0, 0, 0];
+    let unknown = 0;
+    for (const seg of MASTER.zones) {
+      const level = zoneLevel8(index, seg.suffix, metric);
+      if (level === null || level === undefined) unknown += 1;
+      else counts[level] += 1;
+    }
+    const max = maxLevel([counts[3] ? 3 : null, counts[2] ? 2 : null, counts[1] ? 1 : null, counts[0] ? 0 : null]);
+    return { counts, unknown, max };
   }
 
   function isMobile() {
@@ -1504,73 +1766,87 @@ const ROUTE_GEO = __ROUTE_GEO__;
     return out;
   }
 
+  /**
+   * 구간 카드 (8개) — v7
+   * · 강조(테두리·배경·등급)는 오직 현재 선택 지표 기준
+   * · 양방향 등급이 같으면 '● 양방향 주의' 한 줄, 다를 때만 '대구 주의 / 광주 안전'
+   * · 다른 지표는 작은 보조 문구로만 (색을 뺏지 않음) · CCTV 대수 대신 '인근 CCTV' 동선
+   */
   function renderZones(index, isSample) {
     const filter = state.rwisFilter;
+    const metric = state.routeMetric;
+    const other = metric === 'fsm' ? 'vir' : 'fsm';
     let shown = 0;
     const points = currentPoints();
+
+    const sideChip = (level, dirCode, suffix, zoneName) => {
+      const zone = index.get(dirCode + suffix);
+      const info = (zone && zone[metric]) || {};
+      const title = `${segLabel(zoneName)} ${dirCode === 'E' ? '대구방향' : '광주방향'} · ${info.levelDetail || '등급 정보 없음'}`;
+      if (level === null || level === undefined) return '<span class="zq">—</span>';
+      if (level === 0) return '<span class="zq lv0">안전</span>';
+      return badge(level, { title });
+    };
+
     const cards = MASTER.zones.map((segment) => {
-      const dZone = index.get('E' + segment.suffix);
-      const gZone = index.get('S' + segment.suffix);
-      const lv = (zone, metric) => (isSample || !zone || !zone[metric] ? null : zone[metric].level);
-      const levels = {
-        fsmE: lv(dZone, 'fsm'), virE: lv(dZone, 'vir'),
-        fsmS: lv(gZone, 'fsm'), virS: lv(gZone, 'vir'),
-      };
-      const hot = [levels.fsmE, levels.virE, levels.fsmS, levels.virS].some((v) => v !== null && v >= 2);
+      const lvFsm = isSample ? { E: null, S: null } : metricLevels(index, segment.suffix, 'fsm');
+      const lvVir = isSample ? { E: null, S: null } : metricLevels(index, segment.suffix, 'vir');
+      const lvMine = metric === 'fsm' ? lvFsm : lvVir;
+      const lvOther = metric === 'fsm' ? lvVir : lvFsm;
+      const worst = maxLevel([lvMine.E, lvMine.S]);
+      const altWorst = maxLevel([lvOther.E, lvOther.S]);
+      const hot = worst !== null && worst >= 2;
       if (filter === 'alert' && !hot) return '';
       shown += 1;
       const inZone = points.filter((p) => p.zone === segment.suffix);
       const camCount = inZone.reduce((n, p) => n + (p.cams || []).length, 0);
       const nocam = camCount === 0;
-      const worst = isSample ? null : maxLevel([levels.fsmE, levels.virE, levels.fsmS, levels.virS]);
       const worstKey = worst === null || worst === undefined ? 'none' : String(worst);
-      const rises = isSample ? [] : zoneRises(segment.suffix);
+      const rises = isSample ? [] : zoneRises(segment.suffix).filter((r) => r.metric === metric);
       const riseWorst = rises.reduce((m, r) => Math.max(m, r.to), -1);
-
-      const rowFor = (zone, dirLabel, dirCode) => {
-        if (!zone) return '';
-        const parts = [];
-        for (const metric of ['fsm', 'vir']) {
-          const level = lv(zone, metric);
-          if (level === null || level === undefined || level < 1) continue;
-          const info = zone[metric];
-          const counts = info.counts
-            ? ` (위험 ${info.counts[3]}·주의 ${info.counts[2]}·관심 ${info.counts[1]}·안전 ${info.counts[0]})`
-            : '';
-          const title = `${segment.name} ${zone.dirLabel} · ${info.levelDetail} · 링크 ${info.knownLinks}/${info.totalLinks}${counts}`;
-          const rise = riseFor(segment.suffix, dirCode, metric);
-          const riseChip = rise
-            ? `<em class="rup" title="직전 관측 ${LEVEL_NAME[rise.from]} → ${LEVEL_NAME[rise.to]}">▲</em>`
-            : '';
-          parts.push(`<span class="zbadge">${badge(level, { ico: metric === 'fsm' ? '❄' : '👁', title })}${riseChip}</span>`);
-        }
-        if (!parts.length) return '';
-        return `<div class="zrow"><span class="zdir">${dirLabel}</span>${parts.join('')}</div>`;
-      };
-
-      const rows = [rowFor(dZone, '대구', 'E'), rowFor(gZone, '광주', 'S')].filter(Boolean);
-      const body = rows.length
-        ? (rows.join('') + (rows.length === 1 ? '<div class="zrest">다른 방향은 안전</div>' : ''))
-        : '<div class="zsafe"><span class="sdot" aria-hidden="true"></span>양방향 안전</div>';
-
-      const kmRange = `${kmText(segment.startKm)}–${kmText(segment.endKm)}k`;
-      const meta = nocam
-        ? `${kmRange} · <b class="no-cam">CCTV 없음</b>`
-        : `${kmRange} · ${inZone.length}지점 ${camCount}대 CCTV<span class="go"> ›</span>`;
-
-      const riseTitle = rises.length
-        ? `직전 관측 대비 상향 — ` + rises.map((r) => `${r.dir === 'E' ? '대구' : '광주'} ${r.metric === 'fsm' ? '살얼음' : '가시거리'} ${LEVEL_NAME[r.from]}→${LEVEL_NAME[r.to]}`).join(' · ')
+      const title = segLabel(segment.name);
+      const riseChip = rises.length
+        ? `<em class="rup" title="직전 관측 ${LEVEL_NAME[Math.min(...rises.map((r) => r.from))]} → ${LEVEL_NAME[riseWorst]}">▲</em>`
         : '';
 
+      let body;
+      if (isSample || worst === null || worst === undefined) {
+        body = '<div class="zsafe none"><span class="sdot" aria-hidden="true"></span>등급 정보 없음</div>';
+      } else if (lvMine.E === lvMine.S) {
+        body = worst === 0
+          ? '<div class="zsafe"><span class="sdot" aria-hidden="true"></span>양방향 안전</div>'
+          : `<div class="zline"><span class="zbadge">${badge(worst, { label: '양방향', title: `${title} · 양방향 ${LEVEL_DETAIL[worst]}` })}${riseChip}</span></div>`;
+      } else {
+        body = `<div class="zrow">
+          <span class="zdir">대구</span>${sideChip(lvMine.E, 'E', segment.suffix, segment.name)}
+          <span class="zslash" aria-hidden="true">/</span>
+          <span class="zdir">광주</span>${sideChip(lvMine.S, 'S', segment.suffix, segment.name)}
+          ${riseChip}</div>`;
+      }
+
+      const altHint = altWorst !== null && altWorst >= 1
+        ? `<div class="zalt" title="${METRIC_LABEL[other]} ${LEVEL_DETAIL[altWorst]} · 참고">`
+          + `<span aria-hidden="true">${METRIC_ICO[other]}</span>${METRIC_SHORT[other]} ${LEVEL_NAME[altWorst]}</div>`
+        : '';
+
+      const kmRange = `${kmText(segment.startKm)}–${kmText(segment.endKm)}km`;
+      const meta = nocam
+        ? `<span class="zkm">${kmRange}</span><span class="zno">CCTV 없음</span>`
+        : `<span class="zkm">${kmRange}</span><button class="zcctv" type="button" data-zonecctv="${segment.suffix}"
+             aria-label="${esc(title)} 인근 CCTV 목록 보기"><span aria-hidden="true">📹</span> 인근 CCTV</button>`;
+
       return `<div class="zone${hot ? ' hot' : ''}${state.zoneFocus === segment.suffix ? ' focus' : ''}${nocam ? ' nocam' : ''}"
-          data-segment="${segment.suffix}" data-worst="${worstKey}" data-rise="${rises.length ? 1 : 0}"
+          data-segment="${segment.suffix}" data-metric="${metric}" data-worst="${worstKey}" data-alt="${altWorst === null || altWorst === undefined ? 'none' : altWorst}"
+          data-rise="${rises.length ? 1 : 0}"
           data-cams="${camCount}" data-points="${inZone.length}"
-          data-lv-e-fsm="${levels.fsmE === null ? '' : levels.fsmE}" data-lv-e-vir="${levels.virE === null ? '' : levels.virE}"
-          data-lv-s-fsm="${levels.fsmS === null ? '' : levels.fsmS}" data-lv-s-vir="${levels.virS === null ? '' : levels.virS}"
+          data-lv-e-fsm="${lvFsm.E === null || lvFsm.E === undefined ? '' : lvFsm.E}"
+          data-lv-e-vir="${lvVir.E === null || lvVir.E === undefined ? '' : lvVir.E}"
+          data-lv-s-fsm="${lvFsm.S === null || lvFsm.S === undefined ? '' : lvFsm.S}"
+          data-lv-s-vir="${lvVir.S === null || lvVir.S === undefined ? '' : lvVir.S}"
           role="button" tabindex="0" aria-pressed="${Boolean(state.zoneFocus === segment.suffix)}"
-          title="${esc(segment.name)} ${kmText(segment.startKm)}–${kmText(segment.endKm)}km · ${nocam ? 'CCTV 없는 구간 · ' : ''}${worst === null || worst === undefined ? '등급 없음' : '최고 ' + LEVEL_NAME[worst]}${riseTitle ? ' · ' + esc(riseTitle) : ''} · 눌러서 이 구간 보기">
-        <div class="zh"><strong>${esc(segment.name)}</strong>${rises.length ? `<span class="zrise" title="${esc(riseTitle)}" aria-label="직전 관측 대비 상향 ${LEVEL_NAME[riseWorst]}">▲</span>` : ''}</div>
-        <div class="ztags">${body}</div>
+          title="${esc(title)} ${kmText(segment.startKm)}–${kmText(segment.endKm)}km · ${nocam ? 'CCTV 없는 구간 · ' : ''}${worst === null || worst === undefined ? '등급 없음' : `최고 ${LEVEL_NAME[worst]} (${METRIC_SHORT[metric]})`} · 눌러서 이 구간 보기">
+        <div class="zh"><strong>${esc(title)}</strong>${rises.length ? `<span class="zrise" title="직전 관측 대비 상향" aria-label="직전 관측 대비 상향 ${LEVEL_NAME[riseWorst]}">▲</span>` : ''}</div>
+        <div class="ztags">${body}${altHint}</div>
         <div class="zmeta">${meta}</div>
       </div>`;
     }).filter(Boolean);
@@ -1582,24 +1858,21 @@ const ROUTE_GEO = __ROUTE_GEO__;
 
     const allCount = el.rwisFilter.querySelector('[data-f="all"]');
     const alertCount = el.rwisFilter.querySelector('[data-f="alert"]');
-    const total = (state.rwis && state.rwis.zones ? state.rwis.zones.length : 16);
-    if (allCount) allCount.textContent = `전체 ${total}`;
+    if (allCount) allCount.textContent = `전체 ${MASTER.zones.length}`;
     if (alertCount) {
-      const alerts = ((state.rwis && state.rwis.zones) || []).filter((z) => z.fsm.level !== null && z.fsm.level >= 2).length;
-      alertCount.textContent = `살얼음 주의 이상 ${isSample ? '' : alerts}`.trim();
+      const counts = zoneCounts8(index, metric).counts;
+      alertCount.textContent = `${METRIC_SHORT[metric]} 주의 이상 ${isSample ? '' : counts[2] + counts[3]}`.trim();
     }
 
-    // 모바일용 구간 선택 칩
+    // 모바일용 구간 선택 칩 — 같은 8구간·선택 지표 기준
     if (el.zoneChips) {
       const chips = [`<button type="button" class="chip ${state.zoneFocus ? '' : 'on'}" data-zonechip="" aria-pressed="${!state.zoneFocus}">전체</button>`];
       for (const segment of MASTER.zones) {
-        const dZone = index.get('E' + segment.suffix);
-        const gZone = index.get('S' + segment.suffix);
-        const lvl = isSample ? null : maxLevel([dZone && dZone.fsm.level, gZone && gZone.fsm.level]);
+        const lvl = isSample ? null : zoneLevel8(index, segment.suffix, metric);
         const dot = lvl === null || lvl === undefined ? '#5b7d99' : ['#38bdf8', '#fbbf24', '#fb923c', '#f87171'][lvl];
         const on = state.zoneFocus === segment.suffix;
         chips.push(`<button type="button" class="chip ${on ? 'on' : ''}" data-zonechip="${segment.suffix}" aria-pressed="${on}">
-          <span style="color:${on ? '#04121f' : dot}" aria-hidden="true">●</span> ${esc(segment.name.split('–')[0])}</button>`);
+          <span style="color:${on ? '#04121f' : dot}" aria-hidden="true">●</span> ${esc(segLabel(segment.name).split(' ↔ ')[0])}</button>`);
       }
       el.zoneChips.innerHTML = chips.join('');
     }
@@ -1618,36 +1891,40 @@ const ROUTE_GEO = __ROUTE_GEO__;
           : `관측 ${tmFull} · ${fresh.kind === 'live' ? '실시간' : '지연'}`;
     el.rwisTm.dataset.kind = fresh.kind;
 
-    const summary = rwis.summary || {};
-    const fsmMax = summary.fsmMax;
-    const virMax = summary.virMax;
-    const fsmCounts = summary.fsmZoneCounts || [0, 0, 0, 0];
-    const virCounts = summary.virZoneCounts || [0, 0, 0, 0];
-    const total = (rwis.zones || []).length;
+    const metric = state.routeMetric;
+    const other = metric === 'fsm' ? 'vir' : 'fsm';
+    const index = zoneIndex();
+    const mine = zoneCounts8(index, metric);
+    const alt = zoneCounts8(index, other);
     const tmLabel = isSample ? '—' : esc((rwis.tmLabel && rwis.tmLabel.FR) || '—');
+    const c = mine.counts;
+    const dist = [
+      `<span class="c3"><b>위험</b> ${c[3]}</span>`,
+      `<span class="c2"><b>주의</b> ${c[2]}</span>`,
+      `<span><b>관심</b> ${c[1]}</span>`,
+      `<span class="c0"><b>안전</b> ${c[0]}</span>`,
+    ].join('');
 
+    el.rwisSummary.dataset.metric = metric;
     el.rwisSummary.innerHTML = [
-      `<div class="sum-box">
-        <div class="label"><span aria-hidden="true">❄</span> 살얼음 최고</div>
-        <div class="big">${badge(isSample ? null : fsmMax)}<span class="muted">${isSample ? '데이터 없음' : '구간 최고'}</span></div>
-        <div class="dist"><span><b>위험</b> ${fsmCounts[3]}</span><span><b>주의</b> ${fsmCounts[2]}</span>
-          <span><b>관심</b> ${fsmCounts[1]}</span><span><b>안전</b> ${fsmCounts[0]}</span></div>
+      `<div class="sum-box sum-main" data-metric="${metric}">
+        <div class="label"><span aria-hidden="true">${METRIC_ICO[metric]}</span> ${METRIC_LABEL[metric]} · 8구간</div>
+        <div class="big">${badge(isSample ? null : mine.max, { quiet: true })}<span class="muted">구간 최고</span></div>
+        <div class="dist">${dist}</div>
       </div>`,
-      `<div class="sum-box">
-        <div class="label"><span aria-hidden="true">👁</span> 가시거리 최고</div>
-        <div class="big">${badge(isSample ? null : virMax)}<span class="muted">${isSample ? '데이터 없음' : '구간 최고'}</span></div>
-        <div class="dist"><span><b>위험</b> ${virCounts[3]}</span><span><b>주의</b> ${virCounts[2]}</span>
-          <span><b>관심</b> ${virCounts[1]}</span><span><b>안전</b> ${virCounts[0]}</span></div>
+      `<div class="sum-box sum-alt" data-metric="${other}">
+        <div class="label"><span aria-hidden="true">${METRIC_ICO[other]}</span> ${METRIC_SHORT[other]} <span class="note">참고</span></div>
+        <div class="big"><span class="alt-lv ${alt.max === null || alt.max === undefined ? 'lvnull' : 'lv' + alt.max}">${isSample || alt.max === null || alt.max === undefined ? '—' : LEVEL_NAME[alt.max]}</span></div>
+        <div class="dist"><span>주의 이상 ${isSample ? '—' : alt.counts[2] + alt.counts[3]}</span><span class="c0">안전 ${isSample ? '—' : alt.counts[0]}</span></div>
       </div>`,
-      `<div class="sum-box">
-        <div class="label">${fresh.kind === 'snapshot' ? '스냅샷 시각' : fresh.kind === 'preview' ? '모의 등급' : '관측시각'} · 구간</div>
+      `<div class="sum-box sum-time">
+        <div class="label">${fresh.kind === 'snapshot' ? '스냅샷 시각' : fresh.kind === 'preview' ? '모의 등급' : '관측시각'}</div>
         <div class="big"><strong title="살얼음 관측시각">${tmLabel}</strong></div>
-        <div class="dist"><span>가시거리 ${isSample ? '—' : esc(((rwis.tmLabel && rwis.tmLabel.VR) || '—').slice(11))}</span>
-          <span>${total}개 구간</span></div>
+        <div class="dist"><span>${MASTER.zones.length}구간 기준</span></div>
       </div>`,
     ].join('');
 
-    renderZones(zoneIndex(), isSample);
+    renderZones(index, isSample);
   }
 
   /* ── 렌더: 목록 ─────────────────────── */
@@ -1691,7 +1968,9 @@ const ROUTE_GEO = __ROUTE_GEO__;
 
     const itsHint = state.cctv && state.cctv.stats
       ? `ITS 매칭 ${state.cctv.stats.matchedPoints}/${state.cctv.stats.masterPoints}`
-      : 'ITS 미연결';
+      : state.mode === 'snapshot' ? '스냅샷 모드 · Worker 미연결'
+        : state.mode === 'sample' ? '샘플 모드 · 실시간 값 아님'
+          : 'ITS 미연결';
     el.listMeta.innerHTML = [
       `<span>이정 ${state.sortDesc ? '내림차순' : '오름차순'}</span>`,
       `<span>${esc(itsHint)}</span>`,
@@ -1709,24 +1988,43 @@ const ROUTE_GEO = __ROUTE_GEO__;
       el.zoneFocusChip2.classList.add('hidden');
     }
 
-    el.pointList.innerHTML = points.map((point) => {
+    const metric = state.routeMetric;
+    const isSampleList = !hasData();
+
+    /* v7 — 같은 구간의 등급이 줄줄이 반복되지 않도록 구간 묶음 머리글을 한 번만 */
+    const groupHead = (suffix) => {
+      const seg = MASTER.zones.find((z) => z.suffix === suffix);
+      if (!seg) return '';
+      const lv = isSampleList ? { E: null, S: null } : metricLevels(index, suffix, metric);
+      const worst = maxLevel([lv.E, lv.S]);
+      const cls = worst === null || worst === undefined ? 'none' : 'lv' + worst;
+      const name = (v) => (v === null || v === undefined ? '—' : LEVEL_NAME[v]);
+      const text = isSampleList || worst === null || worst === undefined
+        ? '등급 정보 없음'
+        : lv.E === lv.S ? `양방향 ${LEVEL_NAME[worst]}` : `대구 ${name(lv.E)} · 광주 ${name(lv.S)}`;
+      return `<div class="pgroup" data-pgroup="${suffix}">
+        <span class="pg-name">${esc(segLabel(seg.name))}</span>
+        <span class="pg-lv ${cls}"><i aria-hidden="true"></i>${text}</span>
+        <button class="pg-cctv" type="button" data-zonecctv="${suffix}" aria-label="${esc(segLabel(seg.name))} 인근 CCTV만 보기"><span aria-hidden="true">📹</span></button>
+      </div>`;
+    };
+
+    const pointCard = (point) => {
       const dRisk = zoneRiskFor(index, point.zone, 'E');
       const gRisk = zoneRiskFor(index, point.zone, 'S');
       const fsmWorst = isSample ? null : maxLevel([dRisk.fsm, gRisk.fsm]);
       const virWorst = isSample ? null : maxLevel([dRisk.vir, gRisk.vir]);
       const zone = MASTER.zones.find((z) => z.suffix === point.zone);
-      const dirDetail = (label, risk) => `${label} ${risk === null || risk === undefined ? '—' : LEVEL_NAME[risk]}`;
-      const fsmTitle = `${zone ? zone.name : ''} · ${dirDetail('대구', dRisk.fsm)} / ${dirDetail('광주', gRisk.fsm)}`;
-      const virTitle = `${zone ? zone.name : ''} · ${dirDetail('대구', dRisk.vir)} / ${dirDetail('광주', gRisk.vir)}`;
       const facClass = FACILITY_GROUP[point.facility] || 'etc';
-      const riskCell = () => {
-        const items = [];
-        if (fsmWorst !== null && fsmWorst !== undefined && fsmWorst >= 1) items.push(badge(fsmWorst, { ico: '❄', title: isSample ? '샘플 구조' : fsmTitle }));
-        if (virWorst !== null && virWorst !== undefined && virWorst >= 1) items.push(badge(virWorst, { ico: '👁', title: isSample ? '샘플 구조' : virTitle }));
-        if (items.length) return items.join('');
-        const safeTitle = `${zone ? zone.name : ''} · 살얼음 대구 ${dRisk.fsm === null || dRisk.fsm === undefined ? '—' : LEVEL_NAME[dRisk.fsm]} 광주 ${gRisk.fsm === null || gRisk.fsm === undefined ? '—' : LEVEL_NAME[gRisk.fsm]} · 가시거리 대구 ${dRisk.vir === null || dRisk.vir === undefined ? '—' : LEVEL_NAME[dRisk.vir]} 광주 ${gRisk.vir === null || gRisk.vir === undefined ? '—' : LEVEL_NAME[gRisk.vir]}`;
-        return `<span class="pt-safe" title="${esc(isSample ? '샘플 구조' : safeTitle)}">${isSample ? '—' : '안전'}</span>`;
-      };
+      const dotTitle = (kind, level) => `${zone ? segLabel(zone.name) : ''} · ${METRIC_LABEL[kind]} ${level === null || level === undefined ? '—' : LEVEL_NAME[level]}`;
+      const dots = [];
+      if (!isSample) {
+        if (fsmWorst !== null && fsmWorst !== undefined && fsmWorst >= 1) dots.push(`<span class="pr-dot lv${fsmWorst}" title="${esc(dotTitle('fsm', fsmWorst))}"></span>`);
+        if (virWorst !== null && virWorst !== undefined && virWorst >= 1) dots.push(`<span class="pr-dot vir lv${virWorst}" title="${esc(dotTitle('vir', virWorst))}"></span>`);
+      }
+      const riskText = dots.length
+        ? `<span class="pr-dots">${dots.join('')}</span>`
+        : '<span class="pt-safe" aria-label="안전"></span>';
 
       const cams = visibleCams(point).map((cam) => {
         const matched = (point.its || []).length > 0;
@@ -1749,12 +2047,23 @@ const ROUTE_GEO = __ROUTE_GEO__;
           <span class="fac ${facClass}">${esc(point.facility)}</span>
         </div>
         <div class="pt-risk" data-lv-fsm="${fsmWorst === null || fsmWorst === undefined ? '' : fsmWorst}" data-lv-vir="${virWorst === null || virWorst === undefined ? '' : virWorst}">
-          ${riskCell()}
+          ${riskText}
         </div>
         <p class="pt-addr" title="${esc(point.address)}">${esc(point.address)}</p>
         <div class="pt-cams">${cams}</div>
       </article>`;
-    }).join('');
+    };
+
+    let lastZone = null;
+    const blocks = [];
+    for (const point of points) {
+      if (point.zone !== lastZone) {
+        lastZone = point.zone;
+        blocks.push(groupHead(point.zone));
+      }
+      blocks.push(pointCard(point));
+    }
+    el.pointList.innerHTML = blocks.join('');
   }
 
   function renderFacilityChips() {
@@ -1794,7 +2103,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
       lbl: '#e9f3fc', lblSub: '#93aec8',
       icFill: '#e9f3ff', icStroke: '#0a1726',
       jcFill: '#34d399', jcStroke: '#06131f',
-      tnFill: '#c7dced', tnStroke: '#0a1726', tnLine: '#35597a',
+      tnFill: '#0d1a2b', tnStroke: '#2b4259', tnLine: '#4a6c8c',
       leader: '#3f6486',
       branch: '#2fbf8a', branchCase: '#081120',
       tickLine: '#40617f', tickLbl: '#5f7f9e',
@@ -1853,7 +2162,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
     fs: { eyebrow: 18, title: 43, sub: 19, label: 25, sublabel: 15.5, region: 29, legend: 20, foot: 15.5, tick: 14, chip: 21 },
     pill: { padX: 14, dx: 3 },
     stroke: { base: 19, lv3: 22, both: 12, case: 7, glow: 16, chevron: 7.2 },
-    glyph: { ic: 12, jc: 14, tnW: 34, tnH: 24 },
+    glyph: { ic: 12, jc: 14, tnW: 28, tnH: 19 },
     gapStep: 22, tick: true, shield: true, chipCards: true,
     regionSpacing: 9, leaderW: 1.6, branchFont: 14.5, branchLen: 78,
     branchCase: 13, branchStroke: 7.5, provStroke: 3, countyStroke: 1.3, countyDash: '',
@@ -1881,7 +2190,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
       },
       pill: { padX: 10.5 * K, dx: 2.6 },
       stroke: { base: 16.5 * K, lv3: 19.5 * K, both: 10.5 * K, case: 6.2, glow: 13, chevron: 6.4 * K },
-      glyph: { ic: 12 * K, jc: 14 * K, tnW: 30 * K, tnH: 21 * K },
+      glyph: { ic: 12 * K, jc: 14 * K, tnW: 25 * K, tnH: 18 * K },
       gapStep: 20 * K, tick: false, shield: false, chipCards: false,
       subs: Boolean(landscape),
       regionSpacing: 3, leaderW: 1.1, branchFont: 8 * K, branchLen: 56,
@@ -2105,8 +2414,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
     return `${p(now.getMonth() + 1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}`;
   }
 
-  function sceneData() {
-    const dir = state.routeDir;
+  function sceneData(dirOverride) {
+    const dir = dirOverride || state.routeDir;
     const metric = state.routeMetric;
     const rows = routeLevelRows(metric);
     const summary = routeSummary(rows, dir);
@@ -2187,13 +2496,19 @@ const ROUTE_GEO = __ROUTE_GEO__;
 
     for (const node of ROUTE_NODES) {
       const p = pointAtKm(node.km, tg);
+      // v7 — 터널 말풍선은 노선과 거리 숫자를 가리지 않게 한 급 작게
+      const tn = node.kind === 'tn';
+      const labelSize = tn ? fs.label * 0.8 : fs.label;
+      const padX = tn ? cfg.pill.padX * 0.62 : cfg.pill.padX;
+      const rowH = tn ? Math.round(fs.label * 1.34) : hSingle;
+      const rowH2 = tn ? rowH + Math.round(fs.sublabel * 1.4) : hDouble;
       // 휴대폰 캔버스는 좁으니 '분기' 같은 꾸밈말은 덜어 이름·시설만 남긴다
       let subText = node.sub && cfg.compact ? node.sub.replace(/\s*분기$/, '') : node.sub;
       if (cfg.subs === false) subText = null;
-      const nameW = measure(node.name, fs.label, 800);
+      const nameW = measure(node.name, labelSize, tn ? 700 : 800);
       const subW = subText ? measure(subText, fs.sublabel, 650) : 0;
-      const w = Math.max(nameW, subW) + cfg.pill.padX * 2;
-      const h = subText ? hDouble : hSingle;
+      const w = Math.max(nameW, subW) + padX * 2;
+      const h = subText ? rowH2 : rowH;
       const baseAng = p.tangent - (Math.PI / 2) * (node.side === -1 ? -1 : 1);
       let best = null;
       for (const deg of DELTAS) {
@@ -2202,7 +2517,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
         const uy = Math.sin(ang);
         const halfAlong = Math.abs(ux) * (w / 2) + Math.abs(uy) * (h / 2);
         for (const e of extras) {
-          const d = glyphR + 6 + halfAlong + e * cfg.gapStep;
+          const d = glyphR + 6 + halfAlong + e * cfg.gapStep + (tn ? cfg.gapStep * 0.9 : 0);
           const px = p.x + ux * d;
           const py = p.y + uy * d;
           const r = { x: px - w / 2, y: py - h / 2, w, h };
@@ -2230,7 +2545,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
             const t = tg[i];
             if (t.x > r.x - 5 && t.x < r.x + w + 5 && t.y > r.y - 5 && t.y < r.y + h + 5) hits += 1;
           }
-          cost += hits * wHit;
+          cost += hits * (tn ? wHit * 3.2 : wHit);
           if (!best || cost < best.cost) best = { r, cost, ang, d, ux, uy };
         }
       }
@@ -2369,7 +2684,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
   /** 노선도 마크업 생성 — 화면과 공유 PNG가 같은 함수를 씁니다. */
   function buildScene(mode, box) {
     const cfg = sceneFor(mode, box);
-    const D = sceneData();
+    // 리포트는 표와 같은 기준(양방향)으로 그린다 — 한 장 안에서 기준이 어긋나지 않도록
+    const D = sceneData(mode === 'report' ? 'both' : null);
     const S = SKIN[cfg.theme === 'report' ? 'report' : 'dark'];
     const lvC = (level) => lvColor(level, cfg.theme);
     const dir = D.dir;
@@ -2404,6 +2720,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
         @keyframes riseHalo { 0%, 100% { stroke-opacity: .22; } 50% { opacity: .55; stroke-opacity: .48; } }
         .lbl { font-family: ${RM_FONT}; font-size: ${fs.label}px; font-weight: 800; fill: ${S.lbl}; letter-spacing: -.02em; }
         .lbl-sub { font-family: ${RM_FONT}; font-size: ${fs.sublabel}px; font-weight: 650; fill: ${S.lblSub}; }
+        .lbl-tn { font-family: ${RM_FONT}; font-size: ${(fs.label * 0.8).toFixed(1)}px; font-weight: 600; fill: ${cfg.theme === 'report' ? '#7a8fa3' : '#8aa2bc'}; letter-spacing: 0; }
         .region { font-family: ${RM_FONT}; font-size: ${fs.region}px; font-weight: 800; fill: ${S.region}; letter-spacing: ${cfg.regionSpacing}px; }
         .node-hit { pointer-events: all; }
         .glyph { pointer-events: none; }
@@ -2669,9 +2986,9 @@ const ROUTE_GEO = __ROUTE_GEO__;
       out.push(glyphSvg(p, node.kind, cfg));
       out.push(`<path class="leader" d="M${n1(startX)} ${n1(startY)}L${n1(gx)} ${n1(gy)}"/>`);
       out.push(`<rect class="label-pill" x="${n1(r.x)}" y="${n1(r.y)}" width="${n1(r.w)}" height="${n1(r.h)}" rx="${n1(Math.min(9, r.h / 2.4))}"
-        fill="${S.pillFill}" fill-opacity=".97" stroke="${node.kind === 'jc' ? S.pillStrokeJc : node.kind === 'tn' ? S.pillStrokeTn : S.pillStroke}" stroke-width="${cfg.pillStroke}" filter="url(#rmPill)"/>`);
+        fill="${S.pillFill}" fill-opacity="${node.kind === 'tn' ? '.72' : '.97'}" stroke="${node.kind === 'jc' ? S.pillStrokeJc : node.kind === 'tn' ? S.pillStrokeTn : S.pillStroke}" stroke-width="${node.kind === 'tn' ? Math.max(0.7, cfg.pillStroke * 0.55).toFixed(2) : cfg.pillStroke}"${node.kind === 'tn' ? '' : ' filter="url(#rmPill)"'}/>`);
       const nameY = item.subText ? r.y + r.h * 0.42 : cy + fs.label * 0.34;
-      out.push(svgText(cx, nameY, node.name, ` class="lbl" text-anchor="middle"`));
+      out.push(svgText(cx, nameY, node.name, node.kind === 'tn' ? ' class="lbl lbl-tn" text-anchor="middle"' : ' class="lbl" text-anchor="middle"'));
       if (item.subText) {
         out.push(svgText(cx, r.y + r.h - cfg.subGap, item.subText, ' class="lbl-sub" text-anchor="middle"'));
       }
@@ -2849,7 +3166,9 @@ const ROUTE_GEO = __ROUTE_GEO__;
       const dirs = state.routeDir === 'both' ? ['E', 'S'] : [state.routeDir];
       const riseCount = Object.keys(state.rises).filter((k) => k.endsWith(D.metric) && dirs.includes(k[0])).length;
       el.routeMeta.dataset.kind = fresh.kind;
+      const dirTag = state.routeDir === 'both' ? '양방향' : state.routeDir === 'S' ? '광주방향' : '대구방향';
       el.routeMeta.innerHTML = [
+        `<span class="rm-basis">${dirTag} 8구간</span>`,
         `<span class="rm-src">${D.isSample ? '샘플 구조' : `${esc(D.stateText)} ${esc(D.tmText)}${esc(D.ageSuffix)}`}</span>`,
         `<span class="rm-lv lv3">위험 ${D.summary.counts[3]}</span>`,
         `<span class="rm-lv lv2">주의 ${D.summary.counts[2]}</span>`,
@@ -2900,33 +3219,48 @@ const ROUTE_GEO = __ROUTE_GEO__;
     return `gwangju-daegu-report-${metric}-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}.png`;
   }
 
-  /** 리포트 안에서 쓰는 등급 칩(라이트 배경) */
-  function reportChip(x, y, metric, level) {
-    const w = 152;
-    const h = 40;
-    const color = level === null || level === undefined ? '#93a7bb' : LV_COLOR[level];
-    const label = level === null || level === undefined ? '등급 없음' : `${LEVEL_NAME[level]} ${level}`;
-    const metricLabel = metric === 'fsm' ? '살얼음' : '가시';
+  /**
+   * 리포트 등급 칸 (라이트 배경) — v7
+   * · 안전(0)·결측은 옅은 회색 '—' 로 물러나고, 위험·주의만 시선을 잡는다
+   * · 양방향 등급이 같으면 '양방향 위험' 한 칸으로 묶는다
+   */
+  function reportGrade(x, y, label, level) {
+    if (level === null || level === undefined || level === 0) {
+      return svgText(x, y + 25, `${label} —`, ' font-size="16.5" font-weight="600" fill="#b3c4d4"');
+    }
+    const color = LV_COLOR[level];
+    const text = `${label} ${LEVEL_NAME[level]}`;
+    const w = measure(text, 16.5, 800) + 40;
+    const fillAlpha = level === 3 ? '26' : level === 2 ? '1f' : '0f';
+    const strokeAlpha = level === 3 ? '8c' : level === 2 ? '70' : '44';
     return `<g>
-      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="${color}14" stroke="${color}${level === null || level === undefined ? '55' : '66'}" stroke-width="1.4"/>
-      <circle cx="${x + 14}" cy="${y + h / 2}" r="4.6" fill="${color}"/>
-      ${svgText(x + 25, y + h / 2 + 6, `${metricLabel} ${label}`, ` font-size="16.5" font-weight="800" fill="#17324a"`)}
+      <rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="36" rx="8" fill="${color}${fillAlpha}" stroke="${color}${strokeAlpha}" stroke-width="1.2"/>
+      <circle cx="${n1(x + 15)}" cy="${n1(y + 18)}" r="4.4" fill="${color}"/>
+      ${svgText(x + 26, y + 24, text, ' font-size="16.5" font-weight="800" fill="#17324a"')}
     </g>`;
+  }
+
+  /** 한 구간·한 지표의 방향별 등급 → 표 한 칸 (같으면 양방향 한 칸) */
+  function reportGradeBoth(x, y, e, s) {
+    if (e === s) return reportGrade(x, y, '양방향', e);
+    // 방향이 다를 때만 대구/광주를 나눠 보여준다
+    return reportGrade(x, y, '대구', e) + reportGrade(x + 132, y, '광주', s);
   }
 
   /** 요약(시각·최고 단계) + 8개 구간 표 + 출처를 담은 한 장 리포트(라이트) */
   function buildReportOverlay() {
-    const D = sceneData();
+    const D = sceneData('both');
     const rwis = state.rwis || sampleRwis();
     const isSample = D.isSample;
+    const metric = state.routeMetric;
     const out = [];
     const now = new Date();
     const p2 = (v) => String(v).padStart(2, '0');
     const stamp = `${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())} ${p2(now.getHours())}:${p2(now.getMinutes())}`;
-    const summary = rwis.summary || {};
-    const fsmMax = isSample ? null : summary.fsmMax;
-    const virMax = isSample ? null : summary.virMax;
-    const fsmCounts = summary.fsmZoneCounts || [0, 0, 0, 0];
+    const index = zoneIndex();
+    const fsm8 = zoneCounts8(index, 'fsm');
+    const vir8 = zoneCounts8(index, 'vir');
+    const mine8 = metric === 'fsm' ? fsm8 : vir8;
 
     /* 배경은 캔버스가 이미 흰색 — 지도 이미지를 덮지 않도록 투명하게 둔다 */
     out.push(`<rect x="0" y="0" width="${REPORT_W}" height="7" fill="#0b3a66"/>`);
@@ -2935,7 +3269,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
     /* ── 헤더: 무엇을 언제 본 리포트인지 ── */
     out.push(svgText(64, 64, '기상청 RWIS 도로기상 · 한국도로공사 로드플러스 CCTV', ' font-size="18" font-weight="700" fill="#6b82a4" letter-spacing=".6"'));
     out.push(svgText(64, 118, '광주대구선 CCTV · 도로기상 리포트', ' font-size="41" font-weight="800" fill="#0b1f38" letter-spacing="-1.2"'));
-    out.push(svgText(64, 158, `${D.range.startName} ${D.range.startKm.toFixed(1)}km → ${D.range.endName} ${D.range.endKm.toFixed(1)}km · 8개 구간 81.0km · ${D.dirText} · ${D.metricName}(${D.metricCode})`, ' font-size="19" font-weight="600" fill="#5b7d99"'));
+    out.push(svgText(64, 158, `${D.range.startName} ${D.range.startKm.toFixed(1)}km → ${D.range.endName} ${D.range.endKm.toFixed(1)}km · 8개 구간 81.0km · 양방향 · ${D.metricName}(${D.metricCode}) 중심`, ' font-size="19" font-weight="600" fill="#5b7d99"'));
     const tmLine = isSample ? '관측시각 없음(샘플)' : `관측 ${D.tmText}${D.ageSuffix}`;
     const stateLabel = isSample ? '샘플' : D.stateText;
     const stateW = measure(`${stateLabel} · ${tmLine}`, 17, 800) + 40;
@@ -2945,43 +3279,45 @@ const ROUTE_GEO = __ROUTE_GEO__;
       ${svgText(98, 199, `${stateLabel} · ${tmLine}`, ' font-size="17" font-weight="800" fill="#2b4a64"')}
     </g>`);
 
-    /* 오른쪽: 두 지표 최고 단계 */
-    [[1150, '도로살얼음 최고', fsmMax], [1360, '도로가시거리 최고', virMax]].forEach(([x, label, level]) => {
+    /* 오른쪽: 두 지표 최고 단계 — 표와 같은 8구간(양방향 중 최고) 기준 */
+    [[1150, '도로살얼음 최고', fsm8.max, fsm8.counts], [1360, '도로가시거리 최고', vir8.max, vir8.counts]].forEach(([x, label, level, counts]) => {
       const color = level === null || level === undefined ? '#93a7bb' : LV_COLOR[level];
+      const hot = level !== null && level !== undefined && level >= 2;
       out.push(`<g>
-        <rect x="${x}" y="44" width="196" height="112" rx="14" fill="${color}0f" stroke="${color}59" stroke-width="1.6"/>
+        <rect x="${x}" y="44" width="196" height="112" rx="14" fill="${hot ? color + '12' : '#f5f8fc'}" stroke="${hot ? color + '6b' : '#dbe6f0'}" stroke-width="1.6"/>
         ${svgText(x + 20, 76, label, ' font-size="16" font-weight="700" fill="#5b7d99"')}
-        ${svgText(x + 20, 118, isSample ? '관측 없음' : LEVEL_NAME[level], ` font-size="32" font-weight="800" fill="${color}"`)}
-        ${svgText(x + 20, 142, isSample ? '샘플 구조' : `${level}단계 · 링크 최고`, ' font-size="15" font-weight="600" fill="#7a8fa3"')}
+        ${svgText(x + 20, 118, isSample ? '관측 없음' : (level === null || level === undefined ? '등급 없음' : LEVEL_NAME[level]), ` font-size="32" font-weight="800" fill="${color}"`)}
+        ${svgText(x + 20, 142, isSample ? '샘플 구조' : '8구간 · 양방향 중 최고', ' font-size="15" font-weight="600" fill="#7a8fa3"')}
       </g>`);
     });
-    /* 오른쪽 아래: 16구간 분포 */
+
+    /* 오른쪽 아래: 선택 지표 8구간 분포 (지도 헤더와 같은 숫자) */
+    out.push(svgText(REPORT_W - 64, 184, `8구간 분포 · ${METRIC_LABEL[metric]}`, ' text-anchor="end" font-size="15" font-weight="700" fill="#5b7d99"'));
     let cx = REPORT_W - 64;
-    [[3, '위험'], [2, '주의'], [1, '관심'], [0, '안전']].forEach(([lv, label]) => {
-      const text = `${label} ${fsmCounts[lv] || 0}`;
+    [[0, '안전'], [1, '관심'], [2, '주의'], [3, '위험']].forEach(([lv, label]) => {
+      const text = `${label} ${isSample ? '—' : mine8.counts[lv]}`;
       const w = measure(text, 17, 800);
       cx -= w;
-      out.push(`<g><circle cx="${n1(cx - 13)}" cy="178" r="5" fill="${LV_COLOR[lv]}"/>
-        ${svgText(cx, 184, text, ' font-size="17" font-weight="800" fill="#2b4a64"')}</g>`);
+      const dim = lv === 0;
+      out.push(`<g><circle cx="${n1(cx - 13)}" cy="204" r="5" fill="${dim ? '#c2d2e0' : LV_COLOR[lv]}"/>
+        ${svgText(cx, 210, text, ` font-size="17" font-weight="800" fill="${dim ? '#8ba0b6' : '#2b4a64'}"`)}</g>`);
       cx -= 34;
     });
-    out.push(svgText(REPORT_W - 64, 206, '위 분포는 살얼음 16구간 기준', ' text-anchor="end" font-size="14" font-weight="600" fill="#8ba0b6"'));
     out.push(`<line x1="64" y1="222" x2="${REPORT_W - 64}" y2="222" stroke="#dbe6f0" stroke-width="1.4"/>`);
 
     /* ── 8개 구간 요약표 ── */
     const tableTop = REPORT_MAP_Y + REPORT_MAP_H + 28;   // 1164
     out.push(svgText(64, tableTop + 12, '8개 구간 등급 요약', ' font-size="25" font-weight="800" fill="#0b1f38" letter-spacing="-.6"'));
-    out.push(svgText(REPORT_W - 64, tableTop + 10, '구간 등급 = 구간 내 링크 최고 등급 · FSM 도로살얼음 / VIR 도로가시거리', ' text-anchor="end" font-size="15" font-weight="600" fill="#7a8fa3"'));
+    out.push(svgText(REPORT_W - 64, tableTop + 10, '구간 등급 = 구간 내 링크 최고 · 양방향 같으면 한 칸 · FSM 도로살얼음 / VIR 도로가시거리', ' text-anchor="end" font-size="15" font-weight="600" fill="#7a8fa3"'));
     const headY = tableTop + 26;
     const headH = 40;
     out.push(`<rect x="64" y="${headY}" width="${REPORT_W - 128}" height="${headH}" rx="9" fill="#eef4fa"/>`);
     out.push(svgText(84, headY + 26, '구간', ' font-size="16" font-weight="800" fill="#5b7d99"'));
-    out.push(svgText(396, headY + 26, '이정', ' font-size="16" font-weight="800" fill="#5b7d99"'));
-    out.push(svgText(576, headY + 26, '대구방향(상행)', ' font-size="16" font-weight="800" fill="#5b7d99"'));
-    out.push(svgText(1046, headY + 26, '광주방향(하행)', ' font-size="16" font-weight="800" fill="#5b7d99"'));
+    out.push(svgText(470, headY + 26, '이정', ' font-size="16" font-weight="800" fill="#5b7d99"'));
+    out.push(svgText(700, headY + 26, '살얼음', ' font-size="16" font-weight="800" fill="#5b7d99"'));
+    out.push(svgText(1010, headY + 26, '가시거리', ' font-size="16" font-weight="800" fill="#5b7d99"'));
     out.push(svgText(REPORT_W - 84, headY + 26, 'CCTV', ' text-anchor="end" font-size="16" font-weight="800" fill="#5b7d99"'));
 
-    const index = zoneIndex();
     const points = currentPoints();
     const rises = state.rises || {};
     MASTER.zones.forEach((segment, i) => {
@@ -2993,15 +3329,15 @@ const ROUTE_GEO = __ROUTE_GEO__;
       const inZone = points.filter((p) => p.zone === segment.suffix);
       const cams = inZone.reduce((n, p) => n + (p.cams || []).length, 0);
       const rose = ['fsm', 'vir'].some((m) => rises['E' + segment.suffix + m] || rises['S' + segment.suffix + m]);
-      out.push(svgText(84, y + 34, segment.name, ' font-size="20" font-weight="800" fill="#0d2740"'));
-      if (rose) out.push(`<g><rect x="${84 + measure(segment.name, 20, 800) + 10}" y="${y + 15}" width="26" height="22" rx="6" fill="#f43f5e"/>
-        ${svgText(84 + measure(segment.name, 20, 800) + 20, y + 32, '▲', ' font-size="15" font-weight="900" fill="#fff1f2"')}</g>`);
-      out.push(svgText(396, y + 34, `${kmText(segment.startKm)}–${kmText(segment.endKm)}km`, ' font-size="16" font-weight="600" fill="#5b7d99"'));
-      out.push(reportChip(576, y + 18, 'fsm', lvF(d, 'fsm')));
-      out.push(reportChip(576 + 160, y + 18, 'vir', lvF(d, 'vir')));
-      out.push(reportChip(1046, y + 18, 'fsm', lvF(g, 'fsm')));
-      out.push(reportChip(1046 + 160, y + 18, 'vir', lvF(g, 'vir')));
-      out.push(svgText(REPORT_W - 84, y + 34, cams ? `${inZone.length}지점 · ${cams}대` : '영상 없음', ` text-anchor="end" font-size="17" font-weight="${cams ? 700 : 800}" fill="${cams ? '#2b4a64' : '#b45309'}"`));
+      const name = segLabel(segment.name);
+      out.push(svgText(84, y + 36, name, ' font-size="20" font-weight="800" fill="#0d2740"'));
+      if (rose) out.push(`<g><rect x="${84 + measure(name, 20, 800) + 10}" y="${y + 16}" width="26" height="22" rx="6" fill="#f43f5e"/>
+        ${svgText(84 + measure(name, 20, 800) + 20, y + 33, '▲', ' font-size="15" font-weight="900" fill="#fff1f2"')}</g>`);
+      out.push(svgText(470, y + 36, `${kmText(segment.startKm)}–${kmText(segment.endKm)}km`, ' font-size="17" font-weight="600" fill="#6b82a4"'));
+      out.push(reportGradeBoth(700, y + 18, lvF(d, 'fsm'), lvF(g, 'fsm')));
+      out.push(reportGradeBoth(1010, y + 18, lvF(d, 'vir'), lvF(g, 'vir')));
+      out.push(svgText(REPORT_W - 84, y + 36, cams ? `${inZone.length}지점` : '영상 없음',
+        ` text-anchor="end" font-size="16.5" font-weight="${cams ? 600 : 600}" fill="${cams ? '#7a8fa3' : '#9aabbd'}"`));
     });
     out.push(`<line x1="64" y1="${REPORT_ROW_Y + 8 * REPORT_ROW_H + 8}" x2="${REPORT_W - 64}" y2="${REPORT_ROW_Y + 8 * REPORT_ROW_H + 8}" stroke="#dbe6f0" stroke-width="1.4"/>`);
 
@@ -3488,6 +3824,12 @@ const ROUTE_GEO = __ROUTE_GEO__;
   });
 
   el.pointList.addEventListener('click', (event) => {
+    const zoneBtn = event.target.closest('button[data-zonecctv]');
+    if (zoneBtn) {
+      event.stopPropagation();
+      focusZone(zoneBtn.dataset.zonecctv, { showList: true });
+      return;
+    }
     const btn = event.target.closest('button[data-cctv]');
     if (btn) {
       openModal({
@@ -3592,6 +3934,13 @@ const ROUTE_GEO = __ROUTE_GEO__;
   });
 
   const zoneClick = (event) => {
+    const cctvBtn = event.target.closest('button[data-zonecctv]');
+    if (cctvBtn) {
+      event.stopPropagation();
+      if (isMobile()) closeZoneSheet();
+      focusZone(cctvBtn.dataset.zonecctv, { showList: true });
+      return;
+    }
     const cell = event.target.closest('[data-segment]');
     if (!cell) return;
     if (isMobile()) openZoneSheet(cell.dataset.segment);
@@ -3763,6 +4112,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
     reportSize: () => ({ w: REPORT_W, h: REPORT_H, mapY: REPORT_MAP_Y, mapH: REPORT_MAP_H }),
     palette: (theme) => (theme === 'report' ? LV_COLOR.slice() : LV_COLOR_DARK.slice()),
     levels: () => captureLevels(state.rwis),
+    zoneCounts8: (metric) => zoneCounts8(zoneIndex(), metric || state.routeMetric),
+    segLabel,
   };
 })();
 </script>
