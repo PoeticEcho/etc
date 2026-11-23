@@ -1,0 +1,83 @@
+{
+  "filters": [
+    { "key": "all", "label": "전체" },
+    { "key": "city", "label": "시티뷰" },
+    { "key": "sunset", "label": "노을" },
+    { "key": "night", "label": "야경" },
+    { "key": "forest", "label": "숲" }
+  ],
+  "items": [
+    {
+      "id": "sunset-1",
+      "src": "assets/photos/14-resident-sunset.jpg",
+      "alt": "단지 고층에서 바라본 서쪽 노을과 도심 스카이라인",
+      "label": "서쪽 노을, 도심 스카이라인",
+      "desc": "해질 무렵 거실 창을 채우는 서향 조망. 범어네거리에서 동대구역으로 이어지는 스카이라인이 겹겹이 쌓인다.",
+      "tag": "sunset",
+      "credit": "호갱노노 입주민 게시",
+      "creditUrl": "https://hogangnono.com/community/apts/apts-8273991",
+      "date": "2026-10-11",
+      "source_note": "입주민이 호갱노노 '입주민 이야기'에 올린 사진입니다. 원문 링크에서 확인할 수 있습니다."
+    },
+    {
+      "id": "city-1",
+      "src": "assets/photos/12-resident-cityview.jpg",
+      "alt": "102동 20층대 서향 거실 창밖 시티뷰",
+      "label": "102동 20층, 서향 거실 창밖",
+      "desc": "입주 전 빈 집에서 촬영된 서향 거실 창. 낮에는 도심 빌딩숲이, 밤에는 불빛이 창을 채운다.",
+      "tag": "city",
+      "credit": "호갱노노 입주민 게시",
+      "creditUrl": "https://hogangnono.com/community/apts/apts-7409999",
+      "date": "2026-01-12",
+      "source_note": "입주민이 호갱노노 '입주민 이야기'에 올린 사진입니다. 원문 링크에서 확인할 수 있습니다."
+    },
+    {
+      "id": "sunset-2",
+      "src": "assets/photos/15-resident-sunset2.jpg",
+      "alt": "노을 뷰 다른 각도",
+      "label": "같은 자리, 다른 각도",
+      "desc": "같은 세대에서 각도를 조금 틀어 담은 노을. 서향 창의 하루가 천천히 색을 바꾼다.",
+      "tag": "sunset",
+      "credit": "호갱노노 입주민 게시",
+      "creditUrl": "https://hogangnono.com/community/apts/apts-8273991",
+      "date": "2026-10-11",
+      "source_note": "입주민이 호갱노노 '입주민 이야기'에 올린 사진입니다. 원문 링크에서 확인할 수 있습니다."
+    },
+    {
+      "id": "city-2",
+      "src": "assets/photos/13-resident-cityview2.jpg",
+      "alt": "102동 20층대 서향 뷰 다른 각도",
+      "label": "서향 창의 낮 풍경",
+      "desc": "거실 창을 따라 길게 펼쳐지는 도심. 창폭이 넓은 판상형 설계의 장점이 드러나는 컷.",
+      "tag": "city",
+      "credit": "호갱노노 입주민 게시",
+      "creditUrl": "https://hogangnono.com/community/apts/apts-7409999",
+      "date": "2026-01-12",
+      "source_note": "입주민이 호갱노노 '입주민 이야기'에 올린 사진입니다. 원문 링크에서 확인할 수 있습니다."
+    },
+    {
+      "id": "forest-1",
+      "src": "assets/photos/22-park-trail.jpg",
+      "alt": "야시골공원 숲길에서 내려다본 도심과 아파트 단지",
+      "label": "야시골 숲길에서 본 단지",
+      "desc": "동쪽 창 너머의 숲이 실제로 어떤 결인지 보여주는 컷. 숲길 데크를 따라 단지가 내려다보인다.",
+      "tag": "forest",
+      "credit": "cklee88.tistory.com",
+      "creditUrl": "https://cklee88.tistory.com/537",
+      "date": "야시골공원 답사기",
+      "source_note": "야시골공원을 답사한 블로그의 사진입니다. 원문 링크에서 확인할 수 있습니다."
+    },
+    {
+      "id": "aerial-1",
+      "src": "assets/photos/11-aerial-forest.jpg",
+      "alt": "범어자이 단지 항공뷰, 동쪽으로 야시골 숲이 붙어 있다",
+      "label": "숲에 붙은 대지",
+      "desc": "단지 오른쪽(동쪽)으로 야시골공원의 숲이 그대로 이어진다. 지도가 아니라 사진으로 확인되는 입지.",
+      "tag": "forest",
+      "credit": "호갱노노 단지 사진",
+      "creditUrl": "https://hogangnono.com/apt/fnW3d",
+      "date": "2024-04-19",
+      "source_note": "호갱노노 단지 페이지에 게재된 항공뷰 이미지입니다."
+    }
+  ]
+}
