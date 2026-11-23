@@ -1,0 +1,14 @@
+# 이 파일을 .dev.vars 로 복사해 값을 채운 뒤 `wrangler dev` 로 실행하세요.
+# .dev.vars 는 절대 커밋하지 마세요(.gitignore 에 포함됨).
+
+# ITS 국가교통정보센터 Open API 키 (https://www.its.go.kr/opendata 에서 발급)
+ITS_API_KEY=
+
+# (선택) ITS 9443 포트가 막힐 때 — NAS/GitHub Actions/R2 에 올린 같은 형식 JSON 주소
+# CCTV_SOURCE_URL=https://example.com/cctv/its.json
+
+# (선택) 무료 플랜 CPU 한도 회피용 — tools/rwis_export.py 로 만든 사전 계산 JSON 주소
+# RWIS_SOURCE_URL=https://내계정.github.io/gwangju-daegu-rwis/rwis.json
+
+# (선택) RWIS 호스트 교체 (기본 https://rwis.kma.go.kr)
+# RWIS_BASE=https://rwis.kma.go.kr

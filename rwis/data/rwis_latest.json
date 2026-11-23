@@ -1,0 +1,695 @@
+{
+ "ok": true,
+ "kind": "rwis",
+ "generatedAt": "2026-11-23T09:51:27+09:00",
+ "source": "rwis.kma.go.kr 도로기상정보시스템",
+ "road": {
+  "no": "012",
+  "n2": "0120",
+  "name": "무안광주대구선",
+  "range": {
+   "startKm": 95.0,
+   "endKm": 176.0,
+   "startName": "함양IC",
+   "endName": "옥포JC"
+  }
+ },
+ "tm": {
+  "FR": "202611230940",
+  "VR": "202611230930"
+ },
+ "tmLabel": {
+  "FR": "2026-11-23 09:40",
+  "VR": "2026-11-23 09:30"
+ },
+ "tmLatest": {
+  "FR": "202611230940",
+  "VR": "202611230930"
+ },
+ "tmFallbackSteps": {
+  "FR": 0,
+  "VR": 0
+ },
+ "tmFallback": {
+  "FR": false,
+  "VR": false,
+  "note": null
+ },
+ "levelNames": [
+  "안전",
+  "관심",
+  "주의",
+  "경계"
+ ],
+ "levelDetails": [
+  "0단계 · 안전",
+  "1단계 · 관심",
+  "2단계 · 주의",
+  "3단계 · 경계(심각)"
+ ],
+ "summary": {
+  "fsmMax": 0,
+  "virMax": 0,
+  "fsmZoneCounts": [
+   16,
+   0,
+   0,
+   0
+  ],
+  "virZoneCounts": [
+   16,
+   0,
+   0,
+   0
+  ],
+  "missingZones": [],
+  "zonesWithoutData": []
+ },
+ "alerts": [],
+ "zones": [
+  {
+   "id": "0120CZE160",
+   "suffix": "160",
+   "name": "함양IC-함양JC",
+   "dir": "E",
+   "dirLabel": "대구방향",
+   "dirShort": "대구",
+   "startKm": 95.0,
+   "endKm": 97.3,
+   "lengthM": 1880,
+   "linkCount": 3,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     3,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 3,
+    "totalLinks": 3
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     3,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 3,
+    "totalLinks": 3
+   }
+  },
+  {
+   "id": "0120CZS160",
+   "suffix": "160",
+   "name": "함양JC-함양IC",
+   "dir": "S",
+   "dirLabel": "광주방향",
+   "dirShort": "광주",
+   "startKm": 95.0,
+   "endKm": 97.3,
+   "lengthM": 1880,
+   "linkCount": 3,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     3,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 3,
+    "totalLinks": 3
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     3,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 3,
+    "totalLinks": 3
+   }
+  },
+  {
+   "id": "0120CZE170",
+   "suffix": "170",
+   "name": "함양JC-거창IC",
+   "dir": "E",
+   "dirLabel": "대구방향",
+   "dirShort": "대구",
+   "startKm": 97.3,
+   "endKm": 121.1,
+   "lengthM": 24170,
+   "linkCount": 34,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     34,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 34,
+    "totalLinks": 34
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     34,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 34,
+    "totalLinks": 34
+   }
+  },
+  {
+   "id": "0120CZS170",
+   "suffix": "170",
+   "name": "거창IC-함양JC",
+   "dir": "S",
+   "dirLabel": "광주방향",
+   "dirShort": "광주",
+   "startKm": 97.3,
+   "endKm": 121.1,
+   "lengthM": 24170,
+   "linkCount": 34,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     34,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 34,
+    "totalLinks": 34
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     34,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 34,
+    "totalLinks": 34
+   }
+  },
+  {
+   "id": "0120CZE180",
+   "suffix": "180",
+   "name": "거창IC-가조IC",
+   "dir": "E",
+   "dirLabel": "대구방향",
+   "dirShort": "대구",
+   "startKm": 121.1,
+   "endKm": 131.1,
+   "lengthM": 10600,
+   "linkCount": 17,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     17,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 17,
+    "totalLinks": 17
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     17,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 17,
+    "totalLinks": 17
+   }
+  },
+  {
+   "id": "0120CZS180",
+   "suffix": "180",
+   "name": "가조IC-거창IC",
+   "dir": "S",
+   "dirLabel": "광주방향",
+   "dirShort": "광주",
+   "startKm": 121.1,
+   "endKm": 131.1,
+   "lengthM": 10600,
+   "linkCount": 17,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     17,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 17,
+    "totalLinks": 17
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     17,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 17,
+    "totalLinks": 17
+   }
+  },
+  {
+   "id": "0120CZE190",
+   "suffix": "190",
+   "name": "가조IC-해인사IC",
+   "dir": "E",
+   "dirLabel": "대구방향",
+   "dirShort": "대구",
+   "startKm": 131.1,
+   "endKm": 146.4,
+   "lengthM": 14800,
+   "linkCount": 24,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     24,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 24,
+    "totalLinks": 24
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     24,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 24,
+    "totalLinks": 24
+   }
+  },
+  {
+   "id": "0120CZS190",
+   "suffix": "190",
+   "name": "해인사IC-가조IC",
+   "dir": "S",
+   "dirLabel": "광주방향",
+   "dirShort": "광주",
+   "startKm": 131.1,
+   "endKm": 146.4,
+   "lengthM": 14800,
+   "linkCount": 24,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     24,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 24,
+    "totalLinks": 24
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     24,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 24,
+    "totalLinks": 24
+   }
+  },
+  {
+   "id": "0120CZE200",
+   "suffix": "200",
+   "name": "해인사IC-고령IC",
+   "dir": "E",
+   "dirLabel": "대구방향",
+   "dirShort": "대구",
+   "startKm": 146.4,
+   "endKm": 152.9,
+   "lengthM": 6400,
+   "linkCount": 11,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     11,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 11,
+    "totalLinks": 11
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     11,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 11,
+    "totalLinks": 11
+   }
+  },
+  {
+   "id": "0120CZS200",
+   "suffix": "200",
+   "name": "고령IC-해인사IC",
+   "dir": "S",
+   "dirLabel": "광주방향",
+   "dirShort": "광주",
+   "startKm": 146.4,
+   "endKm": 152.9,
+   "lengthM": 6400,
+   "linkCount": 12,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     12,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 12,
+    "totalLinks": 12
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     12,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 12,
+    "totalLinks": 12
+   }
+  },
+  {
+   "id": "0120CZE210",
+   "suffix": "210",
+   "name": "고령IC-동고령IC",
+   "dir": "E",
+   "dirLabel": "대구방향",
+   "dirShort": "대구",
+   "startKm": 152.9,
+   "endKm": 165.52,
+   "lengthM": 12620,
+   "linkCount": 21,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     21,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 21,
+    "totalLinks": 21
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     21,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 21,
+    "totalLinks": 21
+   }
+  },
+  {
+   "id": "0120CZS210",
+   "suffix": "210",
+   "name": "동고령IC-고령IC",
+   "dir": "S",
+   "dirLabel": "광주방향",
+   "dirShort": "광주",
+   "startKm": 152.9,
+   "endKm": 165.52,
+   "lengthM": 12620,
+   "linkCount": 22,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     22,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 22,
+    "totalLinks": 22
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     22,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 22,
+    "totalLinks": 22
+   }
+  },
+  {
+   "id": "0120CZE220",
+   "suffix": "220",
+   "name": "동고령IC-고령JC",
+   "dir": "E",
+   "dirLabel": "대구방향",
+   "dirShort": "대구",
+   "startKm": 165.52,
+   "endKm": 166.99,
+   "lengthM": 1980,
+   "linkCount": 6,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     6,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 6,
+    "totalLinks": 6
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     6,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 6,
+    "totalLinks": 6
+   }
+  },
+  {
+   "id": "0120CZS220",
+   "suffix": "220",
+   "name": "고령JC-동고령IC",
+   "dir": "S",
+   "dirLabel": "광주방향",
+   "dirShort": "광주",
+   "startKm": 165.52,
+   "endKm": 166.99,
+   "lengthM": 1980,
+   "linkCount": 5,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     5,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 5,
+    "totalLinks": 5
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     5,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 5,
+    "totalLinks": 5
+   }
+  },
+  {
+   "id": "0120CZE230",
+   "suffix": "230",
+   "name": "고령JC-옥포JC",
+   "dir": "E",
+   "dirLabel": "대구방향",
+   "dirShort": "대구",
+   "startKm": 166.99,
+   "endKm": 176.0,
+   "lengthM": 9600,
+   "linkCount": 9,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     9,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 9,
+    "totalLinks": 9
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     9,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 9,
+    "totalLinks": 9
+   }
+  },
+  {
+   "id": "0120CZS230",
+   "suffix": "230",
+   "name": "옥포JC-고령JC",
+   "dir": "S",
+   "dirLabel": "광주방향",
+   "dirShort": "광주",
+   "startKm": 166.99,
+   "endKm": 176.0,
+   "lengthM": 9600,
+   "linkCount": 10,
+   "missing": false,
+   "fsm": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     10,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 10,
+    "totalLinks": 10
+   },
+   "vir": {
+    "level": 0,
+    "levelName": "안전",
+    "levelDetail": "0단계 · 안전",
+    "counts": [
+     10,
+     0,
+     0,
+     0
+    ],
+    "knownLinks": 10,
+    "totalLinks": 10
+   }
+  }
+ ]
+}

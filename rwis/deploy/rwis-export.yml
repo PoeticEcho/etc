@@ -1,0 +1,53 @@
+# RWIS 사전 계산 JSON을 5분마다 만들어 GitHub Pages 로 배포합니다.
+# → Worker 환경변수 RWIS_SOURCE_URL 에 배포 주소를 넣으면 Worker CPU 사용이 거의 없습니다.
+#    (Cloudflare Workers 무료 플랜 CPU 10ms 제한 회피 — README 4장)
+#
+# 준비
+#   1) 이 파일을 저장소의 .github/workflows/rwis-export.yml 로 복사
+#      (이 폴더를 저장소 루트로 올린 경우 그대로, 하위 폴더라면 working-directory 수정)
+#   2) 저장소 Settings → Pages → Source 를 "GitHub Actions" 로 설정
+#   3) Actions 탭에서 이 워크플로를 한 번 수동 실행(workflow_dispatch)해 동작 확인
+#   4) 배포 주소 확인: https://<아이디>.github.io/<저장소>/rwis.json
+#      → wrangler secret put RWIS_SOURCE_URL
+
+name: rwis-export
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # 5분마다 (Actions 특성상 1~5분 지연될 수 있음)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: rwis-export
+  cancel-in-progress: true
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: RWIS 16개 구간 등급 계산
+        run: python3 tools/rwis_export.py --out public/rwis.json
+        # 표준 라이브러리만 사용합니다. 실패하면 이 실행은 건너뛰고 다음 5분을 기다립니다.
+
+      - name: Pages 아티팩트 업로드
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Pages 배포
+        id: deploy
+        uses: actions/deploy-pages@v4

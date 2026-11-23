@@ -1,0 +1,1607 @@
+{
+ "route": "광주대구선",
+ "routeNo": "012",
+ "range": {
+  "startKm": 95.0,
+  "endKm": 176.0,
+  "startName": "함양IC",
+  "endName": "옥포JC"
+ },
+ "zones": [
+  {
+   "suffix": "160",
+   "startKm": 95.0,
+   "endKm": 97.3,
+   "name": "함양IC–함양JC"
+  },
+  {
+   "suffix": "170",
+   "startKm": 97.3,
+   "endKm": 121.1,
+   "name": "함양JC–거창IC"
+  },
+  {
+   "suffix": "180",
+   "startKm": 121.1,
+   "endKm": 131.1,
+   "name": "거창IC–가조IC"
+  },
+  {
+   "suffix": "190",
+   "startKm": 131.1,
+   "endKm": 146.4,
+   "name": "가조IC–해인사IC"
+  },
+  {
+   "suffix": "200",
+   "startKm": 146.4,
+   "endKm": 152.9,
+   "name": "해인사IC–고령IC"
+  },
+  {
+   "suffix": "210",
+   "startKm": 152.9,
+   "endKm": 165.52,
+   "name": "고령IC–동고령IC"
+  },
+  {
+   "suffix": "220",
+   "startKm": 165.52,
+   "endKm": 166.99,
+   "name": "동고령IC–고령JC"
+  },
+  {
+   "suffix": "230",
+   "startKm": 166.99,
+   "endKm": 176.0,
+   "name": "고령JC–옥포JC"
+  }
+ ],
+ "points": [
+  {
+   "name": "두산",
+   "km": 95.0,
+   "kmSource": "산출",
+   "facility": "일반(마을)",
+   "address": "경남 함양군 함양읍 신관리 산 87-6",
+   "lat": 35.533423,
+   "lon": 127.748989,
+   "cctvId": "cctv00001457",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km) / 함양IC 인접(경계)",
+   "cams": [
+    {
+     "dir": "G",
+     "seq": 3,
+     "cctvId": "cctv00001457"
+    }
+   ],
+   "id": "p01",
+   "zone": "160"
+  },
+  {
+   "name": "함양",
+   "km": 95.0,
+   "kmSource": "공식",
+   "facility": "IC",
+   "address": "경남 함양군 함양읍 신관리 산 87-6",
+   "lat": 35.533199,
+   "lon": 127.748835,
+   "cctvId": "cctv00005751",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 1,
+     "cctvId": "cctv00005751"
+    },
+    {
+     "dir": "G",
+     "seq": 2,
+     "cctvId": "cctv00005751"
+    }
+   ],
+   "id": "p02",
+   "zone": "160"
+  },
+  {
+   "name": "지곡",
+   "km": 96.23,
+   "kmSource": "산출",
+   "facility": "IC",
+   "address": "경남 함양군 함양읍 백천리 산 56-1",
+   "lat": 35.532314,
+   "lon": 127.760938,
+   "cctvId": "cctv00005752",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 4,
+     "cctvId": "cctv00005752"
+    },
+    {
+     "dir": "G",
+     "seq": 5,
+     "cctvId": "cctv00005752"
+    }
+   ],
+   "id": "p03",
+   "zone": "160"
+  },
+  {
+   "name": "원평교",
+   "km": 98.19,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 함양군 지곡면 도촌리 241-1",
+   "lat": 35.538839,
+   "lon": 127.777535,
+   "cctvId": "cctv00005754",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 6,
+     "cctvId": "cctv00005754"
+    },
+    {
+     "dir": "G",
+     "seq": 7,
+     "cctvId": "cctv00005754"
+    }
+   ],
+   "id": "p04",
+   "zone": "170"
+  },
+  {
+   "name": "우명교",
+   "km": 99.93,
+   "kmSource": "산출",
+   "facility": "교량",
+   "address": "경남 함양군 수동면 우명리 산 97-1",
+   "lat": 35.548953,
+   "lon": 127.794978,
+   "cctvId": "cctv00005755",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 8,
+     "cctvId": "cctv00005755"
+    },
+    {
+     "dir": "G",
+     "seq": 9,
+     "cctvId": "cctv00005755"
+    }
+   ],
+   "id": "p05",
+   "zone": "170"
+  },
+  {
+   "name": "함양산삼골휴게소",
+   "km": 100.8,
+   "kmSource": "공식",
+   "facility": "휴게소",
+   "address": "경남 함양군 수동면 하교리 산 12-2",
+   "lat": 35.550969,
+   "lon": 127.808505,
+   "cctvId": "cctv00005756",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 10,
+     "cctvId": "cctv00005756"
+    },
+    {
+     "dir": "G",
+     "seq": 11,
+     "cctvId": "cctv00005756"
+    }
+   ],
+   "id": "p06",
+   "zone": "170"
+  },
+  {
+   "name": "죽산천교1",
+   "km": 102.68,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 함양군 수동면 죽산리 1282-15",
+   "lat": 35.548226,
+   "lon": 127.827499,
+   "cctvId": "cctv00005757",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 12,
+     "cctvId": "cctv00005757"
+    },
+    {
+     "dir": "G",
+     "seq": 13,
+     "cctvId": "cctv00005757"
+    }
+   ],
+   "id": "p07",
+   "zone": "170"
+  },
+  {
+   "name": "죽산교",
+   "km": 104.75,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 함양군 수동면 죽산리 403",
+   "lat": 35.554471,
+   "lon": 127.834004,
+   "cctvId": "cctv00005758",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 14,
+     "cctvId": "cctv00005758"
+    },
+    {
+     "dir": "G",
+     "seq": 15,
+     "cctvId": "cctv00005758"
+    }
+   ],
+   "id": "p08",
+   "zone": "170"
+  },
+  {
+   "name": "춘전리",
+   "km": 107.45,
+   "kmSource": "산출",
+   "facility": "일반(마을)",
+   "address": "경남 거창군 남상면 춘전리 381-1",
+   "lat": 35.57966,
+   "lon": 127.852194,
+   "cctvId": "cctv00005759",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 16,
+     "cctvId": "cctv00005759"
+    },
+    {
+     "dir": "G",
+     "seq": 17,
+     "cctvId": "cctv00005759"
+    }
+   ],
+   "id": "p09",
+   "zone": "170"
+  },
+  {
+   "name": "춘전1육교",
+   "km": 107.85,
+   "kmSource": "산출",
+   "facility": "교량",
+   "address": "경남 거창군 남상면 춘전리 293-3",
+   "lat": 35.582185,
+   "lon": 127.854997,
+   "cctvId": "cctv00005760",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 18,
+     "cctvId": "cctv00005760"
+    },
+    {
+     "dir": "G",
+     "seq": 19,
+     "cctvId": "cctv00005760"
+    }
+   ],
+   "id": "p10",
+   "zone": "170"
+  },
+  {
+   "name": "춘전재 토석류",
+   "km": 108.2,
+   "kmSource": "산출",
+   "facility": "일반(마을)",
+   "address": "경남 거창군 남상면 춘전리 산 89-3",
+   "lat": 35.586785,
+   "lon": 127.859683,
+   "cctvId": "cctv00000110",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 20,
+     "cctvId": "cctv00000110"
+    },
+    {
+     "dir": "G",
+     "seq": 21,
+     "cctvId": "cctv00000110"
+    }
+   ],
+   "id": "p11",
+   "zone": "170"
+  },
+  {
+   "name": "남상",
+   "km": 109.58,
+   "kmSource": "산출",
+   "facility": "일반(마을)",
+   "address": "경남 거창군 남상면 둔동리 산 50-1",
+   "lat": 35.593586,
+   "lon": 127.873424,
+   "cctvId": "cctv00001458",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 22,
+     "cctvId": "cctv00001458"
+    },
+    {
+     "dir": "G",
+     "seq": 23,
+     "cctvId": "cctv00001458"
+    }
+   ],
+   "id": "p12",
+   "zone": "170"
+  },
+  {
+   "name": "둔동리",
+   "km": 111.37,
+   "kmSource": "산출",
+   "facility": "일반(마을)",
+   "address": "경남 거창군 남상면 둔동리 산 120-1",
+   "lat": 35.605886,
+   "lon": 127.881771,
+   "cctvId": "cctv00005762",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 24,
+     "cctvId": "cctv00005762"
+    },
+    {
+     "dir": "G",
+     "seq": 25,
+     "cctvId": "cctv00005762"
+    }
+   ],
+   "id": "p13",
+   "zone": "170"
+  },
+  {
+   "name": "오계교",
+   "km": 113.38,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 거창군 남상면 무촌리 1162",
+   "lat": 35.631986,
+   "lon": 127.900542,
+   "cctvId": "cctv00005763",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 26,
+     "cctvId": "cctv00005763"
+    },
+    {
+     "dir": "G",
+     "seq": 27,
+     "cctvId": "cctv00005763"
+    }
+   ],
+   "id": "p14",
+   "zone": "170"
+  },
+  {
+   "name": "무촌1교",
+   "km": 114.76,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 거창군 남상면 오계리 279",
+   "lat": 35.62791,
+   "lon": 127.897323,
+   "cctvId": "cctv00005764",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 28,
+     "cctvId": "cctv00005764"
+    },
+    {
+     "dir": "G",
+     "seq": 29,
+     "cctvId": "cctv00005764"
+    }
+   ],
+   "id": "p15",
+   "zone": "170"
+  },
+  {
+   "name": "무촌2교",
+   "km": 116.02,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 거창군 남상면 무촌리 1855-114",
+   "lat": 35.641846,
+   "lon": 127.915623,
+   "cctvId": "cctv00005765",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 30,
+     "cctvId": "cctv00005765"
+    },
+    {
+     "dir": "G",
+     "seq": 31,
+     "cctvId": "cctv00005765"
+    }
+   ],
+   "id": "p16",
+   "zone": "170"
+  },
+  {
+   "name": "송변교",
+   "km": 117.1,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 거창군 남상면 대산리 984-5",
+   "lat": 35.648955,
+   "lon": 127.924449,
+   "cctvId": "cctv00005766",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 32,
+     "cctvId": "cctv00005766"
+    },
+    {
+     "dir": "G",
+     "seq": 33,
+     "cctvId": "cctv00005766"
+    }
+   ],
+   "id": "p17",
+   "zone": "170"
+  },
+  {
+   "name": "대산육교",
+   "km": 117.91,
+   "kmSource": "산출",
+   "facility": "교량",
+   "address": "경남 거창군 남상면 월평리 산 45-8",
+   "lat": 35.655854,
+   "lon": 127.925911,
+   "cctvId": "cctv00005767",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 34,
+     "cctvId": "cctv00005767"
+    },
+    {
+     "dir": "G",
+     "seq": 35,
+     "cctvId": "cctv00005767"
+    }
+   ],
+   "id": "p18",
+   "zone": "170"
+  },
+  {
+   "name": "정장교",
+   "km": 119.54,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 거창군 거창읍 정장리 266-9",
+   "lat": 35.674607,
+   "lon": 127.930313,
+   "cctvId": "cctv00005768",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 36,
+     "cctvId": "cctv00005768"
+    },
+    {
+     "dir": "G",
+     "seq": 37,
+     "cctvId": "cctv00005768"
+    }
+   ],
+   "id": "p19",
+   "zone": "170"
+  },
+  {
+   "name": "거창",
+   "km": 121.1,
+   "kmSource": "공식",
+   "facility": "IC",
+   "address": "경남 거창군 거창읍 대평리 120",
+   "lat": 35.679166,
+   "lon": 127.93523,
+   "cctvId": "cctv00005769",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 38,
+     "cctvId": "cctv00005769"
+    },
+    {
+     "dir": "G",
+     "seq": 39,
+     "cctvId": "cctv00005769"
+    }
+   ],
+   "id": "p20",
+   "zone": "180"
+  },
+  {
+   "name": "황강천교",
+   "km": 121.49,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 거창군 거창읍 대평리 1454-2",
+   "lat": 35.681873,
+   "lon": 127.938929,
+   "cctvId": "cctv00005770",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 40,
+     "cctvId": "cctv00005770"
+    },
+    {
+     "dir": "G",
+     "seq": 41,
+     "cctvId": "cctv00005770"
+    }
+   ],
+   "id": "p21",
+   "zone": "180"
+  },
+  {
+   "name": "둔마1교",
+   "km": 124.16,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 거창군 남하면 둔마리 산 83-13",
+   "lat": 35.699756,
+   "lon": 127.94605,
+   "cctvId": "cctv00005771",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 42,
+     "cctvId": "cctv00005771"
+    },
+    {
+     "dir": "G",
+     "seq": 43,
+     "cctvId": "cctv00005771"
+    }
+   ],
+   "id": "p22",
+   "zone": "180"
+  },
+  {
+   "name": "둔마2교",
+   "km": 125.34,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 거창군 남하면 둔마리 산 216-4",
+   "lat": 35.706707,
+   "lon": 127.959538,
+   "cctvId": "cctv00005772",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 44,
+     "cctvId": "cctv00005772"
+    },
+    {
+     "dir": "G",
+     "seq": 45,
+     "cctvId": "cctv00005772"
+    }
+   ],
+   "id": "p23",
+   "zone": "180"
+  },
+  {
+   "name": "살피재터널(외부광주)",
+   "km": 126.58,
+   "kmSource": "공식",
+   "facility": "터널",
+   "address": "경남 거창군 가조면 동례리 산 251-4",
+   "lat": 35.707317,
+   "lon": 127.988983,
+   "cctvId": "cctv00000509",
+   "note": "터널 등록 이정 기준(갱구 CCTV)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 48,
+     "cctvId": "cctv00000509"
+    },
+    {
+     "dir": "G",
+     "seq": 49,
+     "cctvId": "cctv00000509"
+    }
+   ],
+   "id": "p24",
+   "zone": "180"
+  },
+  {
+   "name": "살피재터널(외부대구)",
+   "km": 126.58,
+   "kmSource": "공식",
+   "facility": "터널",
+   "address": "경남 거창군 남하면 둔마리 산 131-5",
+   "lat": 35.70834,
+   "lon": 127.966184,
+   "cctvId": "cctv00000508",
+   "note": "터널 등록 이정 기준(갱구 CCTV)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 46,
+     "cctvId": "cctv00000508"
+    },
+    {
+     "dir": "G",
+     "seq": 47,
+     "cctvId": "cctv00000508"
+    }
+   ],
+   "id": "p25",
+   "zone": "180"
+  },
+  {
+   "name": "동례교",
+   "km": 129.51,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 거창군 가조면 동례리 1017-13",
+   "lat": 35.702633,
+   "lon": 128.000653,
+   "cctvId": "cctv00005773",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 50,
+     "cctvId": "cctv00005773"
+    },
+    {
+     "dir": "G",
+     "seq": 51,
+     "cctvId": "cctv00005773"
+    }
+   ],
+   "id": "p26",
+   "zone": "180"
+  },
+  {
+   "name": "가조",
+   "km": 131.1,
+   "kmSource": "공식",
+   "facility": "IC",
+   "address": "경남 거창군 가조면 일부리 1060-3",
+   "lat": 35.701972,
+   "lon": 128.021152,
+   "cctvId": "cctv00005774",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 52,
+     "cctvId": "cctv00005774"
+    },
+    {
+     "dir": "G",
+     "seq": 53,
+     "cctvId": "cctv00005774"
+    }
+   ],
+   "id": "p27",
+   "zone": "190"
+  },
+  {
+   "name": "일부육교",
+   "km": 132.58,
+   "kmSource": "산출",
+   "facility": "교량",
+   "address": "경남 거창군 가조면 일부리 259-2",
+   "lat": 35.706627,
+   "lon": 128.035333,
+   "cctvId": "cctv00005775",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 54,
+     "cctvId": "cctv00005775"
+    },
+    {
+     "dir": "G",
+     "seq": 55,
+     "cctvId": "cctv00005775"
+    }
+   ],
+   "id": "p28",
+   "zone": "190"
+  },
+  {
+   "name": "거창휴게소",
+   "km": 134.4,
+   "kmSource": "공식",
+   "facility": "휴게소",
+   "address": "경남 거창군 가조면 도리 444-7",
+   "lat": 35.70725,
+   "lon": 128.056167,
+   "cctvId": "cctv00005776",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 56,
+     "cctvId": "cctv00005776"
+    },
+    {
+     "dir": "G",
+     "seq": 57,
+     "cctvId": "cctv00005776"
+    }
+   ],
+   "id": "p29",
+   "zone": "190"
+  },
+  {
+   "name": "가조터널(외부대구)",
+   "km": 135.18,
+   "kmSource": "공식",
+   "facility": "터널",
+   "address": "경남 거창군 가조면 도리 1529-102",
+   "lat": 35.70675,
+   "lon": 128.06404,
+   "cctvId": "cctv00005810",
+   "note": "터널 등록 이정 기준(갱구 CCTV)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 58,
+     "cctvId": "cctv00005810"
+    },
+    {
+     "dir": "G",
+     "seq": 59,
+     "cctvId": "cctv00005810"
+    }
+   ],
+   "id": "p30",
+   "zone": "190"
+  },
+  {
+   "name": "가야1터널(외부광주)",
+   "km": 137.24,
+   "kmSource": "공식",
+   "facility": "터널",
+   "address": "경남 합천군 가야면 성기리 산 70-1",
+   "lat": 35.708827,
+   "lon": 128.095382,
+   "cctvId": "cctv00005812",
+   "note": "터널 등록 이정 기준(갱구 CCTV)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 62,
+     "cctvId": "cctv00005812"
+    },
+    {
+     "dir": "G",
+     "seq": 63,
+     "cctvId": "cctv00005812"
+    }
+   ],
+   "id": "p31",
+   "zone": "190"
+  },
+  {
+   "name": "가야1터널(외부대구)",
+   "km": 137.24,
+   "kmSource": "공식",
+   "facility": "터널",
+   "address": "경남 합천군 가야면 성기리 산 105-19",
+   "lat": 35.708448,
+   "lon": 128.088435,
+   "cctvId": "cctv00005811",
+   "note": "터널 등록 이정 기준(갱구 CCTV)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 60,
+     "cctvId": "cctv00005811"
+    },
+    {
+     "dir": "G",
+     "seq": 61,
+     "cctvId": "cctv00005811"
+    }
+   ],
+   "id": "p32",
+   "zone": "190"
+  },
+  {
+   "name": "가야2터널(외부대구)",
+   "km": 139.05,
+   "kmSource": "공식",
+   "facility": "터널",
+   "address": "경남 합천군 가야면 청현리 535",
+   "lat": 35.707825,
+   "lon": 128.11897,
+   "cctvId": "cctv00005813",
+   "note": "터널 등록 이정 기준(갱구 CCTV)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 64,
+     "cctvId": "cctv00005813"
+    },
+    {
+     "dir": "G",
+     "seq": 65,
+     "cctvId": "cctv00005813"
+    }
+   ],
+   "id": "p33",
+   "zone": "190"
+  },
+  {
+   "name": "가야3터널(외부대구)",
+   "km": 140.25,
+   "kmSource": "공식",
+   "facility": "터널",
+   "address": "경남 합천군 야로면 묵촌리 산 34-10",
+   "lat": 35.70028,
+   "lon": 128.13881,
+   "cctvId": "cctv00005814",
+   "note": "터널 등록 이정 기준(갱구 CCTV)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 66,
+     "cctvId": "cctv00005814"
+    },
+    {
+     "dir": "G",
+     "seq": 67,
+     "cctvId": "cctv00005814"
+    }
+   ],
+   "id": "p34",
+   "zone": "190"
+  },
+  {
+   "name": "야로2터널(외부광주)",
+   "km": 143.43,
+   "kmSource": "공식",
+   "facility": "터널",
+   "address": "경남 합천군 야로면 정대리 산 19-1",
+   "lat": 35.692768,
+   "lon": 128.15625,
+   "cctvId": "cctv00005815",
+   "note": "터널 등록 이정 기준(갱구 CCTV)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 68,
+     "cctvId": "cctv00005815"
+    },
+    {
+     "dir": "G",
+     "seq": 69,
+     "cctvId": "cctv00005815"
+    }
+   ],
+   "id": "p35",
+   "zone": "190"
+  },
+  {
+   "name": "야로대교1",
+   "km": 144.58,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 합천군 야로면 정대리 1048-1",
+   "lat": 35.692831,
+   "lon": 128.168477,
+   "cctvId": "cctv00005777",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 70,
+     "cctvId": "cctv00005777"
+    },
+    {
+     "dir": "G",
+     "seq": 72,
+     "cctvId": "cctv00005777"
+    }
+   ],
+   "id": "p36",
+   "zone": "190"
+  },
+  {
+   "name": "야로대교2",
+   "km": 144.58,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경남 합천군 야로면 정대리 1048-1",
+   "lat": 35.692831,
+   "lon": 128.168477,
+   "cctvId": "cctv00005778",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 71,
+     "cctvId": "cctv00005778"
+    },
+    {
+     "dir": "G",
+     "seq": 73,
+     "cctvId": "cctv00005778"
+    }
+   ],
+   "id": "p37",
+   "zone": "190"
+  },
+  {
+   "name": "해인사",
+   "km": 146.4,
+   "kmSource": "공식",
+   "facility": "IC",
+   "address": "경남 합천군 야로면 금평리 산 47-2",
+   "lat": 35.69651,
+   "lon": 128.184314,
+   "cctvId": "cctv00005779",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 74,
+     "cctvId": "cctv00005779"
+    },
+    {
+     "dir": "G",
+     "seq": 75,
+     "cctvId": "cctv00005779"
+    }
+   ],
+   "id": "p38",
+   "zone": "200"
+  },
+  {
+   "name": "야로3터널(외부대구)",
+   "km": 147.36,
+   "kmSource": "공식",
+   "facility": "터널",
+   "address": "경남 합천군 야로면 청계리 산 31",
+   "lat": 35.699323,
+   "lon": 128.200595,
+   "cctvId": "cctv00000515",
+   "note": "터널 등록 이정 기준(갱구 CCTV)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 76,
+     "cctvId": "cctv00000515"
+    },
+    {
+     "dir": "G",
+     "seq": 77,
+     "cctvId": "cctv00000515"
+    }
+   ],
+   "id": "p39",
+   "zone": "200"
+  },
+  {
+   "name": "쌍림터널(외부광주)",
+   "km": 148.34,
+   "kmSource": "공식",
+   "facility": "터널",
+   "address": "경북 고령군 쌍림면 월막리 산 42-9",
+   "lat": 35.705333,
+   "lon": 128.215363,
+   "cctvId": "cctv00000516",
+   "note": "터널 등록 이정 기준(갱구 CCTV)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 78,
+     "cctvId": "cctv00000516"
+    },
+    {
+     "dir": "G",
+     "seq": 79,
+     "cctvId": "cctv00000516"
+    }
+   ],
+   "id": "p40",
+   "zone": "200"
+  },
+  {
+   "name": "월막리",
+   "km": 150.21,
+   "kmSource": "산출",
+   "facility": "일반(마을)",
+   "address": "경북 고령군 쌍림면 월막리 633-2",
+   "lat": 35.704485,
+   "lon": 128.226124,
+   "cctvId": "cctv00005780",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 80,
+     "cctvId": "cctv00005780"
+    },
+    {
+     "dir": "G",
+     "seq": 81,
+     "cctvId": "cctv00005780"
+    }
+   ],
+   "id": "p41",
+   "zone": "200"
+  },
+  {
+   "name": "용동천1교",
+   "km": 151.6,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경북 고령군 쌍림면 고곡리 987-89",
+   "lat": 35.700241,
+   "lon": 128.238169,
+   "cctvId": "cctv00005781",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 82,
+     "cctvId": "cctv00005781"
+    },
+    {
+     "dir": "G",
+     "seq": 83,
+     "cctvId": "cctv00005781"
+    }
+   ],
+   "id": "p42",
+   "zone": "200"
+  },
+  {
+   "name": "고령",
+   "km": 152.9,
+   "kmSource": "공식",
+   "facility": "IC",
+   "address": "경북 고령군 쌍림면 고곡리 717-2",
+   "lat": 35.700934,
+   "lon": 128.244782,
+   "cctvId": "cctv00005782",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 84,
+     "cctvId": "cctv00005782"
+    },
+    {
+     "dir": "G",
+     "seq": 85,
+     "cctvId": "cctv00005782"
+    }
+   ],
+   "id": "p43",
+   "zone": "210"
+  },
+  {
+   "name": "안림천교",
+   "km": 153.35,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경북 고령군 대가야읍 외리 847-29",
+   "lat": 35.707473,
+   "lon": 128.264529,
+   "cctvId": "cctv00005783",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 86,
+     "cctvId": "cctv00005783"
+    },
+    {
+     "dir": "G",
+     "seq": 87,
+     "cctvId": "cctv00005783"
+    }
+   ],
+   "id": "p44",
+   "zone": "210"
+  },
+  {
+   "name": "회천대교",
+   "km": 156.29,
+   "kmSource": "산출",
+   "facility": "교량",
+   "address": "경북 고령군 대가야읍 외리 1178-68",
+   "lat": 35.71189,
+   "lon": 128.285993,
+   "cctvId": "cctv00005784",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 88,
+     "cctvId": "cctv00005784"
+    },
+    {
+     "dir": "G",
+     "seq": 89,
+     "cctvId": "cctv00005784"
+    }
+   ],
+   "id": "p45",
+   "zone": "210"
+  },
+  {
+   "name": "양전리1",
+   "km": 156.77,
+   "kmSource": "산출",
+   "facility": "일반(마을)",
+   "address": "경북 고령군 대가야읍 장기리 산 74",
+   "lat": 35.713581,
+   "lon": 128.291796,
+   "cctvId": "cctv00005785",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 90,
+     "cctvId": "cctv00005785"
+    },
+    {
+     "dir": "G",
+     "seq": 91,
+     "cctvId": "cctv00005785"
+    }
+   ],
+   "id": "p46",
+   "zone": "210"
+  },
+  {
+   "name": "양전리2",
+   "km": 157.28,
+   "kmSource": "산출",
+   "facility": "일반(마을)",
+   "address": "경북 고령군 개진면 양전리 419-3",
+   "lat": 35.719463,
+   "lon": 128.295286,
+   "cctvId": "cctv00005786",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 92,
+     "cctvId": "cctv00005786"
+    },
+    {
+     "dir": "G",
+     "seq": 93,
+     "cctvId": "cctv00005786"
+    }
+   ],
+   "id": "p47",
+   "zone": "210"
+  },
+  {
+   "name": "양전교",
+   "km": 158.58,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경북 고령군 개진면 양전리 860-3",
+   "lat": 35.724719,
+   "lon": 128.301446,
+   "cctvId": "cctv00005787",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 94,
+     "cctvId": "cctv00005787"
+    },
+    {
+     "dir": "G",
+     "seq": 95,
+     "cctvId": "cctv00005787"
+    }
+   ],
+   "id": "p48",
+   "zone": "210"
+  },
+  {
+   "name": "사부1교",
+   "km": 159.5,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경북 고령군 성산면 사부리 413-1",
+   "lat": 35.736026,
+   "lon": 128.306395,
+   "cctvId": "cctv00005788",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 96,
+     "cctvId": "cctv00005788"
+    },
+    {
+     "dir": "G",
+     "seq": 97,
+     "cctvId": "cctv00005788"
+    }
+   ],
+   "id": "p49",
+   "zone": "210"
+  },
+  {
+   "name": "기산2교",
+   "km": 163.0,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경북 고령군 성산면 기산리 378",
+   "lat": 35.745125,
+   "lon": 128.334454,
+   "cctvId": "cctv00005790",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 98,
+     "cctvId": "cctv00005790"
+    },
+    {
+     "dir": "G",
+     "seq": 99,
+     "cctvId": "cctv00005790"
+    }
+   ],
+   "id": "p50",
+   "zone": "210"
+  },
+  {
+   "name": "기족교",
+   "km": 163.54,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "경북 고령군 성산면 기족리 976",
+   "lat": 35.747618,
+   "lon": 128.346851,
+   "cctvId": "cctv00005791",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 100,
+     "cctvId": "cctv00005791"
+    },
+    {
+     "dir": "G",
+     "seq": 101,
+     "cctvId": "cctv00005791"
+    }
+   ],
+   "id": "p51",
+   "zone": "210"
+  },
+  {
+   "name": "고령분기점_광주대구",
+   "km": 166.99,
+   "kmSource": "산출",
+   "facility": "JC",
+   "address": "경북 고령군 성산면 박곡리 647",
+   "lat": 35.758949,
+   "lon": 128.379322,
+   "cctvId": "cctv00003535",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 102,
+     "cctvId": "cctv00003535"
+    },
+    {
+     "dir": "G",
+     "seq": 103,
+     "cctvId": "cctv00003535"
+    }
+   ],
+   "id": "p52",
+   "zone": "230"
+  },
+  {
+   "name": "논공휴게소",
+   "km": 169.2,
+   "kmSource": "공식",
+   "facility": "휴게소",
+   "address": "대구 달성군 논공읍 삼리리 458-4",
+   "lat": 35.766174,
+   "lon": 128.402933,
+   "cctvId": "cctv00003534",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 104,
+     "cctvId": "cctv00003534"
+    },
+    {
+     "dir": "G",
+     "seq": 105,
+     "cctvId": "cctv00003534"
+    }
+   ],
+   "id": "p53",
+   "zone": "230"
+  },
+  {
+   "name": "논공휴게소2",
+   "km": 169.4,
+   "kmSource": "산출",
+   "facility": "휴게소",
+   "address": "대구 달성군 논공읍 삼리리 458-4",
+   "lat": 35.766936,
+   "lon": 128.40415,
+   "cctvId": "cctv00000147",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 106,
+     "cctvId": "cctv00000147"
+    },
+    {
+     "dir": "G",
+     "seq": 107,
+     "cctvId": "cctv00000147"
+    }
+   ],
+   "id": "p54",
+   "zone": "230"
+  },
+  {
+   "name": "금포2교",
+   "km": 170.99,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "대구 달성군 논공읍 금포리 산 8-1",
+   "lat": 35.769926,
+   "lon": 128.417653,
+   "cctvId": "cctv00006019",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 108,
+     "cctvId": "cctv00006019"
+    },
+    {
+     "dir": "G",
+     "seq": 109,
+     "cctvId": "cctv00006019"
+    }
+   ],
+   "id": "p55",
+   "zone": "230"
+  },
+  {
+   "name": "논공교",
+   "km": 171.84,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "대구 달성군 논공읍 금포리 산 35-11",
+   "lat": 35.770323,
+   "lon": 128.43169,
+   "cctvId": "cctv00003533",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 114,
+     "cctvId": "cctv00003533"
+    },
+    {
+     "dir": "G",
+     "seq": 115,
+     "cctvId": "cctv00003533"
+    }
+   ],
+   "id": "p56",
+   "zone": "230"
+  },
+  {
+   "name": "논공교2",
+   "km": 171.84,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "대구 달성군 논공읍 금포리 1665-4",
+   "lat": 35.767748,
+   "lon": 128.426271,
+   "cctvId": "cctv00000191",
+   "note": "논공교 일대 개별 카메라(개별 이정은 미고시)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 110,
+     "cctvId": "cctv00000191"
+    },
+    {
+     "dir": "G",
+     "seq": 111,
+     "cctvId": "cctv00000191"
+    }
+   ],
+   "id": "p57",
+   "zone": "230"
+  },
+  {
+   "name": "논공교3",
+   "km": 171.84,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "대구 달성군 논공읍 금포리 1635-1",
+   "lat": 35.768671,
+   "lon": 128.428551,
+   "cctvId": "cctv00005595",
+   "note": "논공교 일대 개별 카메라(개별 이정은 미고시)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 112,
+     "cctvId": "cctv00005595"
+    },
+    {
+     "dir": "G",
+     "seq": 113,
+     "cctvId": "cctv00005595"
+    }
+   ],
+   "id": "p58",
+   "zone": "230"
+  },
+  {
+   "name": "논공교4",
+   "km": 171.84,
+   "kmSource": "공식",
+   "facility": "교량",
+   "address": "대구 달성군 옥포읍 강림리 1076-4",
+   "lat": 35.774703,
+   "lon": 128.437564,
+   "cctvId": "cctv00000192",
+   "note": "논공교 일대 개별 카메라(개별 이정은 미고시)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 116,
+     "cctvId": "cctv00000192"
+    },
+    {
+     "dir": "G",
+     "seq": 117,
+     "cctvId": "cctv00000192"
+    }
+   ],
+   "id": "p59",
+   "zone": "230"
+  },
+  {
+   "name": "금포리",
+   "km": 172.14,
+   "kmSource": "산출",
+   "facility": "일반(마을)",
+   "address": "대구 달성군 논공읍 금포리 산 39-5",
+   "lat": 35.774215,
+   "lon": 128.437093,
+   "cctvId": "cctv00000111",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 118,
+     "cctvId": "cctv00000111"
+    },
+    {
+     "dir": "G",
+     "seq": 119,
+     "cctvId": "cctv00000111"
+    }
+   ],
+   "id": "p60",
+   "zone": "230"
+  },
+  {
+   "name": "금포리2",
+   "km": 172.71,
+   "kmSource": "산출",
+   "facility": "일반(마을)",
+   "address": "대구 달성군 옥포읍 교항리 산 161-3",
+   "lat": 35.778109,
+   "lon": 128.444047,
+   "cctvId": "cctv00001459",
+   "note": "이정 산출(좌표→노선 투영, 오차 ±0.5km)",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 120,
+     "cctvId": "cctv00001459"
+    },
+    {
+     "dir": "G",
+     "seq": 121,
+     "cctvId": "cctv00001459"
+    }
+   ],
+   "id": "p61",
+   "zone": "230"
+  },
+  {
+   "name": "옥포분기점_광주대구",
+   "km": 176.0,
+   "kmSource": "공식",
+   "facility": "JC",
+   "address": "대구 달성군 옥포읍 교항리 산 139-1",
+   "lat": 35.781373,
+   "lon": 128.451706,
+   "cctvId": "cctv00003532",
+   "note": "",
+   "cams": [
+    {
+     "dir": "D",
+     "seq": 122,
+     "cctvId": "cctv00003532"
+    },
+    {
+     "dir": "G",
+     "seq": 123,
+     "cctvId": "cctv00003532"
+    }
+   ],
+   "id": "p62",
+   "zone": "230"
+  }
+ ]
+}

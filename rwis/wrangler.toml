@@ -1,0 +1,10 @@
+name = "gwangju-daegu-cctv"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+# Workers 무료 플랜 사용. 별도 바인딩(KV/R2) 없이 동작합니다.
+#
+# 선택: 같은 Worker에서 index.html 도 함께 서비스하려면 아래 주석을 풀고
+#       index.html 을 public/ 등에 두세요. (방법은 README 3-2)
+# [assets]
+# directory = "./public"
+# binding = "ASSETS"
