@@ -188,6 +188,21 @@
   /* -------------------------------------------------------------- articles */
   var ARTICLES = [];
 
+  // 모든 기사에는 사진이 붙습니다. 기사 JSON에 image가 없어도 기본 사진이 나옵니다.
+  var FALLBACK_IMG = 'assets/photos/01-hero.jpg';
+  var FALLBACK_CAP = '범어자이 주간 조감도 — GS건설 공식 자료';
+  var FALLBACK_ALT = '범어자이 네 개의 동과 상가동이 어우러진 단지 전경';
+
+  function articleImage(a) { return (a && a.image) ? a.image : FALLBACK_IMG; }
+  function articleCaption(a) {
+    if (a && a.image) return a.imageCaption || '';
+    return FALLBACK_CAP;
+  }
+  function articleAlt(a) {
+    if (a && a.image) return a.imageAlt || a.imageCaption || a.title || '기사 사진';
+    return FALLBACK_ALT;
+  }
+
   function articlesWrap() {
     var wrap = $('#article-modal');
     return wrap;
@@ -199,6 +214,23 @@
     $('#article-date').textContent = fmtDate(article.date);
     $('#article-title').textContent = article.title || '';
     $('#article-sub').textContent = article.subtitle || '';
+
+    // 기사 전문 상단의 사진 — 누르면 원본 크기로 열립니다.
+    var shot = $('#article-photo');
+    var shotImg = $('#article-photo-img');
+    var shotCap = $('#article-photo-cap');
+    if (shot && shotImg) {
+      shotImg.src = articleImage(article);
+      shotImg.alt = articleAlt(article);
+      shotImg.style.objectPosition = article.imagePosition || '50% 50%';
+      shot.dataset.zoom = articleImage(article);
+      shot.dataset.cap = [articleCaption(article), '범어자이'].filter(Boolean).join(' · ');
+      shot.setAttribute('aria-label', (articleAlt(article)) + ' 크게 보기');
+      if (shotCap) {
+        shotCap.textContent = articleCaption(article);
+        shotCap.hidden = !articleCaption(article);
+      }
+    }
 
     var body = $('#article-body');
     body.innerHTML = '';
@@ -228,6 +260,17 @@
     var card = document.createElement('button');
     card.type = 'button';
     card.className = 'news__card' + (isLead ? ' news__card--lead' : '');
+
+    // 기사 카드에도 사진을 항상 붙입니다(없으면 기본 사진).
+    var thumb = el('span', 'news__thumb');
+    var thumbImg = document.createElement('img');
+    thumbImg.src = articleImage(article);
+    thumbImg.alt = articleAlt(article);
+    thumbImg.loading = 'lazy';
+    thumbImg.decoding = 'async';
+    thumbImg.style.objectPosition = article.imagePosition || '50% 50%';
+    thumb.appendChild(thumbImg);
+    card.appendChild(thumb);
 
     if (isLead) {
       var kicker = el('p', 'news__lead-kicker', 'COVER STORY · 주간 범어자이');
@@ -303,7 +346,9 @@
 
       items.forEach(function (item) {
         var card = el('article', 'gallery__item reveal is-in');
-        card.dataset.tag = item.tag || '';
+        var tags = (item.tags && item.tags.length) ? item.tags.slice() : (item.tag ? [item.tag] : []);
+        card.dataset.tag = tags[0] || '';
+        card.dataset.tags = tags.join(' ');
 
         var btn = document.createElement('button');
         btn.type = 'button';
@@ -325,14 +370,18 @@
         cap.appendChild(el('b', null, item.label));
         if (item.desc) cap.appendChild(el('p', null, item.desc));
         if (item.credit) {
-          var credit = document.createElement('a');
-          credit.className = 'gallery__credit';
-          credit.href = item.creditUrl || '#';
-          credit.target = '_blank';
-          credit.rel = 'noopener';
-          credit.textContent = item.credit + ' 원문';
-          credit.setAttribute('aria-label', item.credit + ' 원문 게시글 열기');
-          cap.appendChild(credit);
+          if (item.creditUrl) {
+            var credit = document.createElement('a');
+            credit.className = 'gallery__credit';
+            credit.href = item.creditUrl;
+            credit.target = '_blank';
+            credit.rel = 'noopener';
+            credit.textContent = item.credit + ' 원문';
+            credit.setAttribute('aria-label', item.credit + ' 원문 게시글 열기');
+            cap.appendChild(credit);
+          } else {
+            cap.appendChild(el('span', 'gallery__credit gallery__credit--plain', item.credit));
+          }
         }
         card.appendChild(cap);
         wrap.appendChild(card);
@@ -348,7 +397,8 @@
           b.setAttribute('aria-selected', String(on));
         });
         $$('.gallery__item', wrap).forEach(function (item) {
-          item.classList.toggle('is-hidden', !(key === 'all' || item.dataset.tag === key));
+          var itemTags = (item.dataset.tags || '').split(' ');
+          item.classList.toggle('is-hidden', !(key === 'all' || itemTags.indexOf(key) !== -1));
         });
       });
     }).catch(function (err) {

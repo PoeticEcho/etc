@@ -1,12 +1,47 @@
 {
   "filters": [
     { "key": "all", "label": "전체" },
+    { "key": "live", "label": "현장 실사" },
     { "key": "city", "label": "시티뷰" },
     { "key": "sunset", "label": "노을" },
     { "key": "night", "label": "야경" },
     { "key": "forest", "label": "숲" }
   ],
   "items": [
+    {
+      "id": "live-gate2",
+      "src": "assets/photos/27-live-gate2.jpg",
+      "alt": "맑은 하늘 아래 범어자이 GATE 2 정문과 XI 사인, 뒤로 아파트 세 동",
+      "label": "GATE 2, 정문에서 올려다본 세 동",
+      "desc": "정문 GATE 2와 범어자이 사인. 좁은 진입로 위로 34층 스카이라인이 겹쳐 올라간다. 맑은 날 낮.",
+      "tag": "live",
+      "credit": "직접 촬영",
+      "date": "2026-11-06",
+      "source_note": "범어자이를 직접 찾아 촬영한 사진입니다."
+    },
+    {
+      "id": "live-night",
+      "src": "assets/photos/29-live-night.gif",
+      "alt": "밤에 파란 경관조명이 켜진 범어자이 두 동과 꼭대기의 XI 사인",
+      "label": "경관조명 켜진 밤, 움직이는 야경",
+      "desc": "해가 진 뒤 켜지는 파란 경관조명 라인과 꼭대기의 XI 사인. 조금씩 흔들리는 야경을 그대로 담은 움직이는 사진(GIF)입니다.",
+      "tag": "live",
+      "tags": ["live", "night"],
+      "credit": "직접 촬영",
+      "date": "2026-11-21",
+      "source_note": "범어자이를 직접 찾아 촬영한 야경 영상(GIF)입니다."
+    },
+    {
+      "id": "live-towers",
+      "src": "assets/photos/28-live-towers.jpg",
+      "alt": "낮은 주택가 골목과 은행나무 너머로 보이는 범어자이 고층 세 동",
+      "label": "주택가 골목에서 본 단지",
+      "desc": "범어동 낮은 주택가 사이로 올라간 단지. 골목의 은행나무와 기와집 지붕 너머로 고층 세 동이 솟는다.",
+      "tag": "live",
+      "credit": "직접 촬영",
+      "date": "2026-11-15",
+      "source_note": "범어자이를 직접 찾아 촬영한 사진입니다."
+    },
     {
       "id": "sunset-1",
       "src": "assets/photos/14-resident-sunset.jpg",

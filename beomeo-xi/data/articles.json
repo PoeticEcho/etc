@@ -1,6 +1,6 @@
 {
   "publication": "주간 범어자이",
-  "note": "새 기사를 이 배열 맨 앞에 추가하면 페이지의 '주간 범어자이' 목록과 발행일이 자동으로 갱신됩니다. 필수 항목: id, date, category, title, excerpt, body. body는 {\"type\":\"lead|p|h|quote\", \"text\":\"...\"} 블록의 배열입니다.",
+  "note": "새 기사를 이 배열 맨 앞에 추가하면 페이지의 '주간 범어자이' 목록과 발행일이 자동으로 갱신됩니다. 필수 항목: id, date, category, title, excerpt, image, imageCaption, body. image는 assets/photos/ 안의 사진 경로이고, 기사 카드와 전문(모달) 양쪽에 표시됩니다. 이미지가 없으면 기본 사진이 대신 나옵니다. body는 {\"type\":\"lead|p|h|quote\", \"text\":\"...\"} 블록의 배열입니다.",
   "articles": [
     {
       "id": "2026-11-23-view",
@@ -8,6 +8,10 @@
       "category": "단지 총평",
       "title": "범어자이, 동쪽엔 숲 서쪽엔 도심…한 단지에 두 개의 창을 얻다",
       "excerpt": "야시골숲을 등지고 도심을 마주한 네 개의 동. 방향마다 다른 풍경이 배달되는 단지의 뷰와 평면을 처음부터 살펴봤다.",
+      "image": "assets/photos/27-live-gate2.jpg",
+      "imageCaption": "맑은 하늘 아래 GATE 2 정문과 범어자이 사인, 그 뒤로 선 세 개의 동 — 직접 촬영 (2026-11-06)",
+      "imageAlt": "범어자이 GATE 2 정문과 XI 범어자이 사인, 뒤로 고층 아파트 세 동이 솟아 있다",
+      "imagePosition": "50% 58%",
       "source": "범어자이 홍보자료",
       "body": [
         {
@@ -56,6 +60,10 @@
       "category": "상가 · 생활",
       "title": "집 앞에서 수영하고, 필라테스하고…범어자이 상가가 여는 하루",
       "excerpt": "지하1층 320평, 지상1층 166평, 지하2층 판매시설 431평. 동네 상권 하나가 통째로 들어앉은 단지 안에서 하루가 시작되고 끝난다.",
+      "image": "assets/photos/28-live-towers.jpg",
+      "imageCaption": "범어동 주택가 골목에서 올려다본 범어자이 — 직접 촬영 (2026-11-15)",
+      "imageAlt": "낮은 주택가 골목과 은행나무 너머로 보이는 범어자이 고층 세 동",
+      "imagePosition": "50% 32%",
       "source": "범어자이 홍보자료",
       "body": [
         {
@@ -104,6 +112,10 @@
       "category": "입지 · 호재",
       "title": "숲을 안고 도시를 잇다…범어자이의 다음 10년",
       "excerpt": "700m 순환 산책로의 야시골공원, 11분이면 닿는 동대구역. 그리고 남쪽에서 시작된 자이르네와 법원 후적지 구상까지.",
+      "image": "assets/photos/29-live-night.gif",
+      "imageCaption": "밤에 켜진 경관조명 라인과 XI 사인 — 직접 촬영한 움직이는 야경 (2026-11-21)",
+      "imageAlt": "밤에 파란 경관조명이 켜진 범어자이 두 동과 꼭대기의 XI 사인",
+      "imagePosition": "50% 22%",
       "source": "범어자이 홍보자료",
       "body": [
         {
