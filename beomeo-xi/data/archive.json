@@ -1,0 +1,3694 @@
+{
+ "generatedAt": "2026-11-24",
+ "sources": [
+  {
+   "id": "dgb",
+   "label": "xi.co.kr/dgb — 범어자이 공식 분양 홈페이지",
+   "url": "https://xi.co.kr/dgb"
+  },
+  {
+   "id": "m",
+   "label": "m.xi.co.kr 단지정보(입주완료) — aptSeq=467",
+   "url": "https://m.xi.co.kr/AptComplex/apt_view?aptSeq=467"
+  },
+  {
+   "id": "emodel",
+   "label": "E-모델하우스 3D 가상투어 (별도 호스팅)",
+   "url": "https://xi.co.kr/fileUpload/beomeo/index.htm"
+  }
+ ],
+ "main": {
+  "slides": [
+   {
+    "pc": "assets/archive/main/20230104_102553_307001.jpg",
+    "mobile": "assets/archive/main/20230104_102554_359002.jpg"
+   }
+  ],
+  "banners": [
+   {
+    "text": "전세대 분양완료",
+    "url": ""
+   },
+   {
+    "text": "자이TV 바로가기",
+    "url": "https://www.youtube.com/channel/UCj8aOHC8KA8qlnT1wQKWaoA"
+   },
+   {
+    "text": "카카오톡 채널",
+    "url": "https://pf.kakao.com/_IgBkj"
+   },
+   {
+    "text": "우수중개멤버",
+    "url": "https://pf.kakao.com/_NKDTK"
+   },
+   {
+    "text": "자이 매거진",
+    "url": "https://beyondapartment.kr"
+   }
+  ],
+  "news": [
+   {
+    "text": "[뉴스1] GS건설, '대구 범어자이' 다음달 4일부터 청약 접수",
+    "url": "https://www.news1.kr/articles/?4724985"
+   },
+   {
+    "text": "[이데일리] '똘똘한 한채' 현상 심화…상급지와 평균 집값 격차 더 벌어져",
+    "url": "https://www.edaily.co.kr/news/read?newsId=01338246632365984&mediaCodeNo=257&OutLnkChk=Y"
+   },
+   {
+    "text": "[머니투데이] GS건설 '범어자이' 24일 견본주택 오픈…내달 4일 청약",
+    "url": "https://news.mt.co.kr/mtview.php?no=2022062411234375514"
+   },
+   {
+    "text": "[헤럴드경제] GS건설, '범어자이' 24일 견본주택 오픈",
+    "url": "http://news.heraldcorp.com/view.php?ud=20220624000174"
+   }
+  ],
+  "notices": [
+   "아파트 399세대 / 오피스텔 52실",
+   "전세대분양완료"
+  ],
+  "popups": [
+   {
+    "src": "assets/archive/popup/20260106_101338_325001.png",
+    "alt": "공지 팝업"
+   },
+   {
+    "src": "assets/archive/popup/20260212_124149_293001.jpg",
+    "alt": "공지 팝업"
+   }
+  ],
+  "popupLinks": [
+   "https://www.xi.co.kr/Files/airQuality/20260212_123818_446001.pdf"
+  ]
+ },
+ "menus": [
+  {
+   "name": "사업안내",
+   "url": "/dgb/view?cmsMenuSeq=2569",
+   "items": [
+    {
+     "name": "사업개요",
+     "url": "/dgb/view?cmsMenuSeq=2569",
+     "seq": "2569"
+    },
+    {
+     "name": "입지환경",
+     "url": "/dgb/view?cmsMenuSeq=2570",
+     "seq": "2570"
+    },
+    {
+     "name": "프리미엄",
+     "url": "/dgb/view?cmsMenuSeq=2580",
+     "seq": "2580"
+    },
+    {
+     "name": "브랜드소개",
+     "url": "/dgb/view?cmsMenuSeq=2568",
+     "seq": "2568"
+    },
+    {
+     "name": "오시는길",
+     "url": "/dgb/view?cmsMenuSeq=2608",
+     "seq": "2608"
+    }
+   ]
+  },
+  {
+   "name": "단지안내",
+   "url": "/dgb/view?cmsMenuSeq=3938",
+   "items": [
+    {
+     "name": "단지설계",
+     "url": "/dgb/view?cmsMenuSeq=3938",
+     "seq": "3938"
+    },
+    {
+     "name": "단지배치도",
+     "url": "/dgb/view?cmsMenuSeq=3956",
+     "seq": "3956"
+    },
+    {
+     "name": "동호수배치도",
+     "url": "/dgb/view?cmsMenuSeq=3957",
+     "seq": "3957"
+    },
+    {
+     "name": "커뮤니티센터",
+     "url": "/dgb/view?cmsMenuSeq=3958",
+     "seq": "3958"
+    },
+    {
+     "name": "CLUB XIAN",
+     "url": "/dgb/view?cmsMenuSeq=2612",
+     "seq": "2612"
+    },
+    {
+     "name": "Sys Clein",
+     "url": "/dgb/view?cmsMenuSeq=2573",
+     "seq": "2573"
+    },
+    {
+     "name": "SYSTEM",
+     "url": "/dgb/view?cmsMenuSeq=2574",
+     "seq": "2574"
+    },
+    {
+     "name": "이동통신설비설치 협의결과서",
+     "url": "/dgb/view?cmsMenuSeq=3951",
+     "seq": "3951"
+    }
+   ]
+  },
+  {
+   "name": "세대안내",
+   "url": "/dgb/view?cmsMenuSeq=3959",
+   "items": [
+    {
+     "name": "기본제공품목",
+     "url": "/dgb/view?cmsMenuSeq=3959",
+     "seq": "3959"
+    },
+    {
+     "name": "평형정보",
+     "url": "/dgb/view?cmsMenuSeq=3946",
+     "seq": "3946"
+    },
+    {
+     "name": "견본주택 안내영상",
+     "url": "/dgb/view?cmsMenuSeq=3947",
+     "seq": "3947"
+    },
+    {
+     "name": "E-모델하우스",
+     "url": "/dgb/view?cmsMenuSeq=3948",
+     "seq": "3948"
+    },
+    {
+     "name": "마감재리스트",
+     "url": "/dgb/view?cmsMenuSeq=3949",
+     "seq": "3949"
+    },
+    {
+     "name": "전시품목리스트",
+     "url": "/dgb/view?cmsMenuSeq=3950",
+     "seq": "3950"
+    }
+   ]
+  },
+  {
+   "name": "분양안내",
+   "url": "/dgb/view?cmsMenuSeq=13896",
+   "items": [
+    {
+     "name": "명의변경 안내문",
+     "url": "/dgb/view?cmsMenuSeq=13896",
+     "seq": "13896"
+    },
+    {
+     "name": "84㎡A 옵션안내문",
+     "url": "/dgb/view?cmsMenuSeq=24247",
+     "seq": "24247"
+    },
+    {
+     "name": "84㎡B 옵션안내문",
+     "url": "/dgb/view?cmsMenuSeq=24248",
+     "seq": "24248"
+    },
+    {
+     "name": "84㎡C 옵션안내문",
+     "url": "/dgb/view?cmsMenuSeq=24249",
+     "seq": "24249"
+    },
+    {
+     "name": "84㎡D 옵션안내문",
+     "url": "/dgb/view?cmsMenuSeq=24250",
+     "seq": "24250"
+    },
+    {
+     "name": "84㎡E 옵션안내문",
+     "url": "/dgb/view?cmsMenuSeq=24251",
+     "seq": "24251"
+    },
+    {
+     "name": "114㎡ 옵션안내문",
+     "url": "/dgb/view?cmsMenuSeq=24252",
+     "seq": "24252"
+    }
+   ]
+  },
+  {
+   "name": "홍보센터",
+   "url": "/dgb/view?cmsMenuSeq=2700",
+   "items": [
+    {
+     "name": "홍보영상",
+     "url": "/dgb/view?cmsMenuSeq=2700",
+     "seq": "2700"
+    },
+    {
+     "name": "자이TV",
+     "url": "/dgb/view?cmsMenuSeq=2572",
+     "seq": "2572"
+    },
+    {
+     "name": "언론보도",
+     "url": "/dgb/view?cmsMenuSeq=2571",
+     "seq": "2571"
+    }
+   ]
+  },
+  {
+   "name": "공사정보",
+   "url": "/dgb/aptconst?aptSeq=467&type=9",
+   "items": []
+  },
+  {
+   "name": "관심고객등록",
+   "url": "https://www.xi.co.kr/member/login_pop?aptseq=467",
+   "items": []
+  }
+ ],
+ "pages": [
+  {
+   "group": "사업안내",
+   "item": "사업개요",
+   "seq": "2569",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2569",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20220526_111058_260001.jpg",
+     "alt": "조감도 CG",
+     "w": 1100,
+     "h": 703,
+     "cap": "사업개요 · 조감도 CG"
+    },
+    {
+     "t": "table",
+     "cap": "사업지 관련내용으로 대지위치 대지면적 건축면적 건폐율/용적률 세대수 규모 주차대수 로구성",
+     "head": [],
+     "rows": [
+      {
+       "c": [
+        "대지위치",
+        "대구광역시 수성구 범어동 48-26번지 일원"
+       ]
+      },
+      {
+       "c": [
+        "대지면적",
+        "8,844.90㎡"
+       ]
+      },
+      {
+       "c": [
+        "건축면적",
+        "6,507.66㎡"
+       ]
+      },
+      {
+       "c": [
+        "건폐율/용적률",
+        "79.31% / 687.89%"
+       ]
+      },
+      {
+       "c": [
+        "세대수",
+        "아파트 399세대 / 오피스텔 52실"
+       ]
+      },
+      {
+       "c": [
+        "규모",
+        "지하 6층 / 지상 34층"
+       ]
+      },
+      {
+       "c": [
+        "주차대수",
+        "총 704대"
+       ]
+      }
+     ]
+    },
+    {
+     "t": "note",
+     "lines": [
+      "※ 본 홈페이지상의 이미지는 소비자의 이해를 돕기 위한 것으로 실제와 차이가 있을 수 있으며, 건축물의 외관 및 색채계획, 조경식재 및 시설물, 문주 등의 기타시설은 추후 변경될 수 있습니다. 또한 단지를 제외한 기타 사항(개발계획, 주변건물 현황, 산, 조명, 외부식재 등)은 소비자의 이해를 돕기 위한 것으로 실제와 차이가 있을 수 있으니, 견본주택 및 현장을 직접 방문하여 확인하시기 바랍니다. ※ 상기 이미지의 옥상구조물 및 외벽구조물의 형태와 크기, 위치, 색채, 디자인 등은 변경될 수 있습니다."
+     ]
+    }
+   ]
+  },
+  {
+   "group": "사업안내",
+   "item": "입지환경",
+   "seq": "2570",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2570",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20220502_103448_131001.jpg",
+     "alt": "상세",
+     "w": 1100,
+     "h": 1593,
+     "cap": "입지환경"
+    }
+   ]
+  },
+  {
+   "group": "사업안내",
+   "item": "프리미엄",
+   "seq": "2580",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2580",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20220607_140548_718001.jpg",
+     "alt": "상세",
+     "w": 1100,
+     "h": 3155,
+     "poster": true,
+     "cap": "프리미엄"
+    }
+   ]
+  },
+  {
+   "group": "사업안내",
+   "item": "브랜드소개",
+   "seq": "2568",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2568",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/brand/brand_identity_small_tit.png",
+     "alt": "브랜드소개",
+     "w": 554,
+     "h": 84,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/sec02_img01.png",
+     "alt": "브랜드소개",
+     "w": 791,
+     "h": 420,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/sec03_experience_tit.png",
+     "alt": "브랜드소개",
+     "w": 1278,
+     "h": 312,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/sec03_img01.png",
+     "alt": "브랜드소개",
+     "w": 862,
+     "h": 420,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/sec03_img02.png",
+     "alt": "브랜드소개",
+     "w": 862,
+     "h": 420,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/core_value_tit.png",
+     "alt": "브랜드소개",
+     "w": 948,
+     "h": 472,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/core_value_small_tit.png",
+     "alt": "브랜드소개",
+     "w": 463,
+     "h": 65,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/sec05_img01.png",
+     "alt": "브랜드소개",
+     "w": 790,
+     "h": 420,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/NEW_immersion_in_life_tit.png",
+     "alt": "브랜드소개",
+     "w": 1133,
+     "h": 149,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/sec06_img01.png",
+     "alt": "브랜드소개",
+     "w": 790,
+     "h": 370,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/NEW_attention_to_detail_tit.png",
+     "alt": "브랜드소개",
+     "w": 898,
+     "h": 149,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/sec06_img02.png",
+     "alt": "브랜드소개",
+     "w": 790,
+     "h": 370,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/NEW_the_xian_initiative_tit.png",
+     "alt": "브랜드소개",
+     "w": 1133,
+     "h": 149,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/sec06_img03.png",
+     "alt": "브랜드소개",
+     "w": 790,
+     "h": 370,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/NEW_extraordinary_experience_tit.png",
+     "alt": "브랜드소개",
+     "w": 1133,
+     "h": 149,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/sec06_img04.png",
+     "alt": "브랜드소개",
+     "w": 790,
+     "h": 370,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/brand_identity_title.png",
+     "alt": "브랜드소개",
+     "w": 1113,
+     "h": 557,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/symbol_logo_tit.png",
+     "alt": "브랜드소개",
+     "w": 308,
+     "h": 58,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/logo_xi.png",
+     "alt": "브랜드소개",
+     "w": 1060,
+     "h": 485,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/logo_type_en.png",
+     "alt": "브랜드소개",
+     "w": 875,
+     "h": 440,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/logo_type_ko.png",
+     "alt": "브랜드소개",
+     "w": 875,
+     "h": 440,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img01.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img02.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img03.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img2027_01.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img2027_02.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img2027_03.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img2027_04.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img2027_05.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img2027_06.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img2027_07.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img2026_02.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "img",
+     "src": "assets/archive/brand/film_img2026_03.jpg",
+     "alt": "브랜드소개",
+     "w": 352,
+     "h": 203,
+     "cap": "브랜드소개"
+    },
+    {
+     "t": "h",
+     "text": "자이 브랜드 영상 18편"
+    },
+    {
+     "t": "video",
+     "yt": "KM8-GozIE3E",
+     "src": "https://www.youtube.com/embed/KM8-GozIE3E?si=ExEJdeGRE7T1mOAT",
+     "title": "자이 브랜드 영상"
+    },
+    {
+     "t": "video",
+     "yt": "qQxcm17SLFk",
+     "src": "https://www.youtube.com/embed/qQxcm17SLFk?si=r4nGW0BqsomX0GsK",
+     "title": "자이 브랜드 영상"
+    },
+    {
+     "t": "video",
+     "yt": "-pOxo8AVxyo",
+     "src": "https://www.youtube.com/embed/-pOxo8AVxyo?si=qU25Mgn8EMzvc751",
+     "title": "자이 브랜드 영상"
+    },
+    {
+     "t": "video",
+     "yt": "YVuWgEKrE4g",
+     "src": "https://www.youtube.com/embed/YVuWgEKrE4g?si=bvEX3yaLfCdBOEkm",
+     "title": "8월의 자이"
+    },
+    {
+     "t": "video",
+     "yt": "nVutypiTYPk",
+     "src": "https://www.youtube.com/embed/nVutypiTYPk?si=t34oDCi09s6_25UW",
+     "title": "7월의 자이"
+    },
+    {
+     "t": "video",
+     "yt": "MSglnMNEqLY",
+     "src": "https://www.youtube.com/embed/MSglnMNEqLY?si=X_ovhqmfLQmlUwhe",
+     "title": "목동윤슬자이"
+    },
+    {
+     "t": "video",
+     "yt": "9AiSjvCVKUA",
+     "src": "https://www.youtube.com/embed/9AiSjvCVKUA?si=1rjTvEweVlqbINr8",
+     "title": "목동윤슬자이 썸네일 50초"
+    },
+    {
+     "t": "video",
+     "yt": "YAFekFEovx4",
+     "src": "https://www.youtube.com/embed/YAFekFEovx4?si=1YD64YFwPU2-Zkmc",
+     "title": "5월의 자이"
+    },
+    {
+     "t": "video",
+     "yt": "i37-H-Hi9iE",
+     "src": "https://www.youtube.com/embed/i37-H-Hi9iE?si=dQ6U0hQ3-tfbvpab",
+     "title": "리베니크성수 본편"
+    },
+    {
+     "t": "video",
+     "yt": "oSmibSA5yfA",
+     "src": "https://www.youtube.com/embed/oSmibSA5yfA?si=Q_qD65XN28RbEFf2",
+     "title": "리베니크자이 티저"
+    },
+    {
+     "t": "video",
+     "yt": "YeCKOup1UoQ",
+     "src": "https://www.youtube.com/embed/YeCKOup1UoQ?si=IXdH2CgQA-pRg9em",
+     "title": "자이 사운드스케이프 | PLAYLIST Landscape Promenade"
+    },
+    {
+     "t": "video",
+     "yt": "WTex2ep0Fps",
+     "src": "https://www.youtube.com/embed/WTex2ep0Fps?si=bNLi3MrL9WXmupGR",
+     "title": "자이 사운드스케이프 | PLAYLIST Welcome Entrance"
+    },
+    {
+     "t": "video",
+     "yt": "UAXEQs5ldFY",
+     "src": "https://www.youtube.com/embed/UAXEQs5ldFY?si=LmJVLIoIbCMB-o08",
+     "title": "자이 브랜드 영상"
+    },
+    {
+     "t": "video",
+     "yt": "v8qwXSSO37w",
+     "src": "https://www.youtube.com/embed/v8qwXSSO37w?si=JUfilypnmIUstA5l",
+     "title": "자이 브랜드 영상"
+    },
+    {
+     "t": "video",
+     "yt": "UpRdaWgw4EQ",
+     "src": "https://www.youtube.com/embed/UpRdaWgw4EQ?si=bGNqO26D0_Nkv41W",
+     "title": "자이 브랜드 영상"
+    },
+    {
+     "t": "video",
+     "yt": "BKzqkuxDgos",
+     "src": "https://www.youtube.com/embed/BKzqkuxDgos?si=_9Ow8GYLkiVxowpp",
+     "title": "자이 브랜드 영상"
+    },
+    {
+     "t": "video",
+     "yt": "O-MOXE3wSW4",
+     "src": "https://www.youtube.com/embed/O-MOXE3wSW4?si=ZRdu3SdJPNaEtU51",
+     "title": "자이 브랜드 영상"
+    },
+    {
+     "t": "video",
+     "yt": "Krr_zLNrKIE",
+     "src": "https://www.youtube.com/embed/Krr_zLNrKIE?si=jL6ONeQx0tp9Witx",
+     "title": "자이 브랜드 영상"
+    }
+   ]
+  },
+  {
+   "group": "사업안내",
+   "item": "오시는길",
+   "seq": "2608",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2608",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20240109_104715_396001.png",
+     "alt": "범어자이 오시는길 약도",
+     "w": 498,
+     "h": 553,
+     "cap": "오시는길 약도"
+    },
+    {
+     "t": "text",
+     "lines": [
+      "오시는길 현장위치 대구광역시 수성구 범어동 48-26번지 일원 네이버지도 보기"
+     ]
+    },
+    {
+     "t": "links",
+     "items": [
+      {
+       "label": "네이버지도 보기",
+       "url": "http://naver.me/585BCgDv"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "group": "단지안내",
+   "item": "단지설계",
+   "seq": "3938",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3938",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20220623_234559_452001.jpg",
+     "alt": "상세",
+     "w": 1100,
+     "h": 1972,
+     "cap": "단지설계"
+    }
+   ]
+  },
+  {
+   "group": "단지안내",
+   "item": "단지배치도",
+   "seq": "3956",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3956",
+   "blocks": [
+    {
+     "t": "tabs",
+     "items": [
+      {
+       "name": "아파트",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_102603_990001.jpg",
+         "alt": "아파트",
+         "w": 1100,
+         "h": 939,
+         "cap": "단지배치도 · 아파트"
+        }
+       ]
+      },
+      {
+       "name": "오피스텔",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_102604_115003.jpg",
+         "alt": "오피스텔",
+         "w": 1100,
+         "h": 818,
+         "cap": "단지배치도 · 오피스텔"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "group": "단지안내",
+   "item": "동호수배치도",
+   "seq": "3957",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3957",
+   "blocks": [
+    {
+     "t": "tabs",
+     "items": [
+      {
+       "name": "아파트",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_102755_160001.jpg",
+         "alt": "아파트",
+         "w": 1100,
+         "h": 3280,
+         "poster": true,
+         "cap": "동호수배치도 · 아파트"
+        }
+       ]
+      },
+      {
+       "name": "오피스텔",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_102755_398003.jpg",
+         "alt": "오피스텔",
+         "w": 1100,
+         "h": 3232,
+         "poster": true,
+         "cap": "동호수배치도 · 오피스텔"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "group": "단지안내",
+   "item": "커뮤니티센터",
+   "seq": "3958",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3958",
+   "blocks": [
+    {
+     "t": "tabs",
+     "items": [
+      {
+       "name": "아파트",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_105624_108001.jpg",
+         "alt": "아파트",
+         "w": 1100,
+         "h": 3071,
+         "poster": true,
+         "cap": "커뮤니티센터 · 아파트"
+        }
+       ]
+      },
+      {
+       "name": "오피스텔",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_105624_283003.jpg",
+         "alt": "오피스텔",
+         "w": 1100,
+         "h": 761,
+         "cap": "커뮤니티센터 · 오피스텔"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "group": "단지안내",
+   "item": "CLUB XIAN",
+   "seq": "2612",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2612",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20220405_145423_976001.jpg",
+     "alt": "상세",
+     "w": 1100,
+     "h": 1174,
+     "cap": "CLUB XIAN"
+    }
+   ]
+  },
+  {
+   "group": "단지안내",
+   "item": "Sys Clein",
+   "seq": "2573",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2573",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20220502_102124_392001.jpg",
+     "alt": "상세",
+     "w": 1100,
+     "h": 1300,
+     "cap": "Sys Clein"
+    }
+   ]
+  },
+  {
+   "group": "단지안내",
+   "item": "SYSTEM",
+   "seq": "2574",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2574",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20220527_164812_139001.jpg",
+     "alt": "상세",
+     "w": 1100,
+     "h": 6268,
+     "poster": true,
+     "cap": "SYSTEM"
+    }
+   ]
+  },
+  {
+   "group": "단지안내",
+   "item": "이동통신설비설치 협의결과서",
+   "seq": "3951",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3951",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20220623_234818_288001.jpg",
+     "alt": "상세",
+     "w": 1100,
+     "h": 750,
+     "cap": "이동통신설비설치 협의결과서"
+    }
+   ]
+  },
+  {
+   "group": "세대안내",
+   "item": "기본제공품목",
+   "seq": "3959",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3959",
+   "blocks": [
+    {
+     "t": "tabs",
+     "items": [
+      {
+       "name": "아파트",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_120717_093001.jpg",
+         "alt": "아파트",
+         "w": 1100,
+         "h": 1404,
+         "cap": "기본제공품목 · 아파트"
+        }
+       ]
+      },
+      {
+       "name": "오피스텔",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_120717_189003.jpg",
+         "alt": "오피스텔",
+         "w": 1100,
+         "h": 1444,
+         "cap": "기본제공품목 · 오피스텔"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "group": "세대안내",
+   "item": "평형정보",
+   "seq": "3946",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3946",
+   "blocks": [
+    {
+     "t": "tabs",
+     "items": [
+      {
+       "name": "84㎡A",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/floorplan/20220624_000125_183001.jpg",
+         "alt": "84㎡A 평형정보",
+         "w": 1100,
+         "h": 1674,
+         "cap": "평형정보 · 84㎡A"
+        }
+       ]
+      },
+      {
+       "name": "84㎡B",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/floorplan/20220624_000225_317001.jpg",
+         "alt": "84㎡B 평형정보",
+         "w": 1100,
+         "h": 1674,
+         "cap": "평형정보 · 84㎡B"
+        }
+       ]
+      },
+      {
+       "name": "84㎡C",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/floorplan/20220624_000239_437001.jpg",
+         "alt": "84㎡C 평형정보",
+         "w": 1100,
+         "h": 1674,
+         "cap": "평형정보 · 84㎡C"
+        }
+       ]
+      },
+      {
+       "name": "84㎡D",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/floorplan/20220624_000259_131001.jpg",
+         "alt": "84㎡D 평형정보",
+         "w": 1100,
+         "h": 1674,
+         "cap": "평형정보 · 84㎡D"
+        }
+       ]
+      },
+      {
+       "name": "84㎡E",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/floorplan/20220624_000313_697001.jpg",
+         "alt": "84㎡E 평형정보",
+         "w": 1100,
+         "h": 1674,
+         "cap": "평형정보 · 84㎡E"
+        }
+       ]
+      },
+      {
+       "name": "114㎡",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/floorplan/20220624_000325_095001.jpg",
+         "alt": "114㎡ 평형정보",
+         "w": 1100,
+         "h": 1674,
+         "cap": "평형정보 · 114㎡"
+        }
+       ]
+      },
+      {
+       "name": "84㎡OA",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/floorplan/20220624_000347_798001.jpg",
+         "alt": "84㎡OA 평형정보",
+         "w": 1100,
+         "h": 1039,
+         "cap": "평형정보 · 84㎡OA"
+        }
+       ]
+      },
+      {
+       "name": "84㎡OB",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/floorplan/20220701_104606_955001.jpg",
+         "alt": "84㎡OB 평형정보",
+         "w": 1100,
+         "h": 999,
+         "cap": "평형정보 · 84㎡OB"
+        },
+        {
+         "t": "img",
+         "src": "assets/archive/floorplan/20220701_104607_023002.jpg",
+         "alt": "평형정보 · 84㎡OB (추가 도면)",
+         "w": 1100,
+         "h": 999,
+         "cap": "평형정보 · 84㎡OB (추가 도면)"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "group": "세대안내",
+   "item": "견본주택 안내영상",
+   "seq": "3947",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3947",
+   "blocks": [
+    {
+     "t": "video",
+     "yt": "e4emOLbsPhM",
+     "src": "https://www.youtube.com/embed/e4emOLbsPhM?rel=0",
+     "title": "범어자이 84OA/84C 타입 전격 공개! 모델하우스(견본주택) 최초 공개"
+    }
+   ]
+  },
+  {
+   "group": "세대안내",
+   "item": "E-모델하우스",
+   "seq": "3948",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3948",
+   "blocks": [
+    {
+     "t": "emodel",
+     "url": "https://xi.co.kr/fileUpload/beomeo/index.htm"
+    }
+   ]
+  },
+  {
+   "group": "세대안내",
+   "item": "마감재리스트",
+   "seq": "3949",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3949",
+   "blocks": [
+    {
+     "t": "tabs",
+     "items": [
+      {
+       "name": "84㎡C",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_001105_998001.jpg",
+         "alt": "84㎡C",
+         "w": 1100,
+         "h": 16002,
+         "poster": true,
+         "cap": "마감재리스트 · 84㎡C"
+        }
+       ]
+      },
+      {
+       "name": "84㎡OA",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_001106_352003.jpg",
+         "alt": "84㎡OA",
+         "w": 1100,
+         "h": 9858,
+         "poster": true,
+         "cap": "마감재리스트 · 84㎡OA"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "group": "세대안내",
+   "item": "전시품목리스트",
+   "seq": "3950",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=3950",
+   "blocks": [
+    {
+     "t": "tabs",
+     "items": [
+      {
+       "name": "84㎡C",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_001458_565001.jpg",
+         "alt": "84㎡C",
+         "w": 1100,
+         "h": 11949,
+         "poster": true,
+         "cap": "전시품목리스트 · 84㎡C"
+        }
+       ]
+      },
+      {
+       "name": "84㎡OA",
+       "images": [
+        {
+         "t": "img",
+         "src": "assets/archive/page/20220624_001459_188003.jpg",
+         "alt": "84㎡OA",
+         "w": 1100,
+         "h": 11971,
+         "poster": true,
+         "cap": "전시품목리스트 · 84㎡OA"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "group": "분양안내",
+   "item": "명의변경 안내문",
+   "seq": "13896",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=13896",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20231218_155303_622001.jpg",
+     "alt": "상세",
+     "w": 2250,
+     "h": 3250,
+     "cap": "명의변경 안내문"
+    }
+   ]
+  },
+  {
+   "group": "분양안내",
+   "item": "84㎡A 옵션안내문",
+   "seq": "24247",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=24247",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20240814_142544_391001.png",
+     "alt": "상세",
+     "w": 1100,
+     "h": 4537,
+     "poster": true,
+     "cap": "84㎡A 옵션안내문"
+    }
+   ]
+  },
+  {
+   "group": "분양안내",
+   "item": "84㎡B 옵션안내문",
+   "seq": "24248",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=24248",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20240814_142646_050001.png",
+     "alt": "상세",
+     "w": 1100,
+     "h": 4540,
+     "poster": true,
+     "cap": "84㎡B 옵션안내문"
+    }
+   ]
+  },
+  {
+   "group": "분양안내",
+   "item": "84㎡C 옵션안내문",
+   "seq": "24249",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=24249",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20240814_142733_382001.png",
+     "alt": "상세",
+     "w": 1100,
+     "h": 4540,
+     "poster": true,
+     "cap": "84㎡C 옵션안내문"
+    }
+   ]
+  },
+  {
+   "group": "분양안내",
+   "item": "84㎡D 옵션안내문",
+   "seq": "24250",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=24250",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20240814_142810_323001.png",
+     "alt": "상세",
+     "w": 1100,
+     "h": 4540,
+     "poster": true,
+     "cap": "84㎡D 옵션안내문"
+    }
+   ]
+  },
+  {
+   "group": "분양안내",
+   "item": "84㎡E 옵션안내문",
+   "seq": "24251",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=24251",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20240814_142851_852001.png",
+     "alt": "상세",
+     "w": 1100,
+     "h": 4540,
+     "poster": true,
+     "cap": "84㎡E 옵션안내문"
+    }
+   ]
+  },
+  {
+   "group": "분양안내",
+   "item": "114㎡ 옵션안내문",
+   "seq": "24252",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=24252",
+   "blocks": [
+    {
+     "t": "img",
+     "src": "assets/archive/page/20240814_142921_639001.png",
+     "alt": "상세",
+     "w": 1100,
+     "h": 4618,
+     "poster": true,
+     "cap": "114㎡ 옵션안내문"
+    }
+   ]
+  },
+  {
+   "group": "홍보센터",
+   "item": "홍보영상",
+   "seq": "2700",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2700",
+   "blocks": [
+    {
+     "t": "video",
+     "yt": "UMGx0koN_Tk",
+     "src": "https://www.youtube.com/embed/UMGx0koN_Tk?rel=0",
+     "title": "범어자이 홍보영상"
+    },
+    {
+     "t": "video",
+     "yt": "-pOxo8AVxyo",
+     "src": "https://www.youtube.com/embed/-pOxo8AVxyo?rel=0",
+     "title": "Xi 브랜드 홍보 영상 - CLUB XIAN｜XIAN vie"
+    },
+    {
+     "t": "video",
+     "yt": "KM8-GozIE3E",
+     "src": "https://www.youtube.com/embed/KM8-GozIE3E?rel=0",
+     "title": "Xi 브랜드 홍보 영상 - IT'S Xi MOMENT"
+    }
+   ]
+  },
+  {
+   "group": "홍보센터",
+   "item": "자이TV",
+   "seq": "2572",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2572",
+   "blocks": [
+    {
+     "t": "video",
+     "yt": "scbF8gs9QT8",
+     "src": "https://www.youtube.com/embed/scbF8gs9QT8?rel=0&autoplay=1&mute=1;?rel=0",
+     "title": "하루종일 감탄만 하다 떠난 김구라X홍서범의 옆집 방문기 #랜선집들이 #인테리어"
+    },
+    {
+     "t": "video",
+     "yt": "R1YSRbvR7jA",
+     "src": "https://www.youtube.com/embed/R1YSRbvR7jA?rel=0",
+     "title": "규제지역 해제되면 뭐가 달라지냐고? 여기 싹 다 정리했습니다"
+    },
+    {
+     "t": "video",
+     "yt": "6xv4-MCIjnc",
+     "src": "https://www.youtube.com/embed/6xv4-MCIjnc?rel=0",
+     "title": "2023년 리모델링의 성지가 될 그곳은?! #리모델링 #행당한진 #이촌동 #행당대림"
+    },
+    {
+     "t": "video",
+     "yt": "i7AJBeliJYA",
+     "src": "https://www.youtube.com/embed/i7AJBeliJYA?rel=0",
+     "title": "먹고 즐기고 힐링한 특별한 하루~ 한국살이 12년차 크리스 가족의 여수 랜드마크 여행"
+    },
+    {
+     "t": "video",
+     "yt": "oOA-QZXEr6E",
+     "src": "https://www.youtube.com/embed/oOA-QZXEr6E?rel=0",
+     "title": "조정장에도 살아남는 투자 비법 전격 공개!"
+    },
+    {
+     "t": "video",
+     "yt": "XXnODuX-Lb4",
+     "src": "https://www.youtube.com/embed/XXnODuX-Lb4?rel=0",
+     "title": "700만원대 반전 집꾸미기 포켓몬 부자집(feat. 쿤타)"
+    },
+    {
+     "t": "video",
+     "yt": "Cos80jSyogI",
+     "src": "https://www.youtube.com/embed/Cos80jSyogI?rel=0",
+     "title": "100억 아파트 비과세 받는 법!"
+    },
+    {
+     "t": "video",
+     "yt": "CCkhujeL2B4",
+     "src": "https://www.youtube.com/embed/CCkhujeL2B4?rel=0",
+     "title": "#과천자이 #위례포레자이 역대급 줍줍! ★세대 내부, 분양가 독점공개! ★"
+    }
+   ]
+  },
+  {
+   "group": "홍보센터",
+   "item": "언론보도",
+   "seq": "2571",
+   "url": "https://xi.co.kr/dgb/view?cmsMenuSeq=2571",
+   "blocks": [
+    {
+     "t": "table",
+     "cap": "언론보도 게시물 (번호·제목·언론사·등록일)",
+     "head": [
+      "번호",
+      "제목",
+      "언론사",
+      "등록일"
+     ],
+     "rows": [
+      {
+       "c": [
+        "24",
+        "GS건설, '대구 범어자이' 다음달 4일부터 청약 접수",
+        "뉴스1",
+        "2022.06.28"
+       ],
+       "url": "https://www.news1.kr/articles/?4724985"
+      },
+      {
+       "c": [
+        "23",
+        "'똘똘한 한채' 현상 심화…상급지와 평균 집값 격차 더 벌어져",
+        "이데일리",
+        "2022.06.27"
+       ],
+       "url": "https://www.edaily.co.kr/news/read?newsId=01338246632365984&mediaCodeNo=257&OutLnkChk=Y"
+      },
+      {
+       "c": [
+        "22",
+        "GS건설 '범어자이' 24일 견본주택 오픈…내달 4일 청약",
+        "머니투데이",
+        "2022.06.24"
+       ],
+       "url": "https://news.mt.co.kr/mtview.php?no=2022062411234375514"
+      },
+      {
+       "c": [
+        "21",
+        "GS건설, '범어자이' 24일 견본주택 오픈",
+        "헤럴드경제",
+        "2022.06.24"
+       ],
+       "url": "http://news.heraldcorp.com/view.php?ud=20220624000174"
+      },
+      {
+       "c": [
+        "20",
+        "GS건설, 대구 ‘범어자이’ 견본주택 개관",
+        "조선비즈",
+        "2022.06.24"
+       ],
+       "url": "https://n.news.naver.com/mnews/article/366/0000823029?sid=101"
+      },
+      {
+       "c": [
+        "19",
+        "대구 범어동 일대 신흥 주거타운 개발로 가치 드높여",
+        "국토일보",
+        "2022.06.22"
+       ],
+       "url": "http://www.ikld.kr/news/articleView.html?idxno=256227"
+      },
+      {
+       "c": [
+        "18",
+        "분양시장 달구는 브랜드 아파트… 6~8월 2만여 가구 쏟아진다",
+        "서울신문",
+        "2022.06.19"
+       ],
+       "url": "https://www.seoul.co.kr/news/newsView.php?id=20220620020007&wlog_tag3=naver"
+      },
+      {
+       "c": [
+        "17",
+        "'브랜드 가치' 갈수록 높아져… 지역 최고경쟁률 경신하며 인기 고공행진",
+        "국토일보",
+        "2022.06.16"
+       ],
+       "url": "http://www.ikld.kr/news/articleView.html?idxno=255861"
+      },
+      {
+       "c": [
+        "16",
+        "분양가상한제 개편에 하반기 분양가 상승 불가피",
+        "데일리안",
+        "2022.06.14"
+       ],
+       "url": "https://www.dailian.co.kr/news/view/1122932/?sc=Naver"
+      },
+      {
+       "c": [
+        "15",
+        "'범어자이' 혁신 스마트설계로 입주민 편의성 극대화",
+        "서울경제",
+        "2022.06.14"
+       ],
+       "url": "https://www.sedaily.com/NewsView/2678Q0435G"
+      },
+      {
+       "c": [
+        "14",
+        "\"아파트는 높아야 제 맛\"…30층 이상 고층 아파트 매매비율 5년새 2배 껑충",
+        "매일경제",
+        "2022.06.10"
+       ],
+       "url": "https://www.mk.co.kr/news/realestate/view/2022/06/510262/"
+      },
+      {
+       "c": [
+        "13",
+        "편의성·쾌적성 갖춘 숲세권 주상복합 '범어자이' 주목",
+        "국토일보",
+        "2022.06.08"
+       ],
+       "url": "http://www.ikld.kr/news/articleView.html?idxno=255424"
+      },
+      {
+       "c": [
+        "12",
+        "‘믿청자’ 자이, 대구 수성구 첫 등장",
+        "리얼캐스트",
+        "2022.06.03"
+       ],
+       "url": "http://www.rcast.co.kr/sub02.php?BRD_ID=1654235995176"
+      },
+      {
+       "c": [
+        "11",
+        "톱5 브랜드 건설사, 6~8월 2만1000가구 분양",
+        "서울경제",
+        "2022.05.31"
+       ],
+       "url": "https://www.sedaily.com/NewsView/2666MQHGYI"
+      },
+      {
+       "c": [
+        "10",
+        "연일 고공행진 이어가는 ‘주상복합’, GS건설 범어자이 눈길",
+        "아시아경제",
+        "2022.05.31"
+       ],
+       "url": "https://view.asiae.co.kr/article/2022053016061277551"
+      },
+      {
+       "c": [
+        "9",
+        "‘명문학군 품은 부동산’ 인기 고공행진… 학부모 수요 몰려",
+        "국토일보",
+        "2022.05.27"
+       ],
+       "url": "http://www.ikld.kr/news/articleView.html?idxno=254832"
+      },
+      {
+       "c": [
+        "8",
+        "대구 수성구 첫 자이 브랜드…4베이 판상형 설계 주상복합",
+        "매일경제",
+        "2022.05.23"
+       ],
+       "url": "https://www.mk.co.kr/news/special-edition/view/2022/05/452160/"
+      },
+      {
+       "c": [
+        "7",
+        "주상복합 청약에 '세자릿수' 경쟁률…5~6월 5700가구 분양",
+        "서울경제",
+        "2022.05.20"
+       ],
+       "url": "https://www.sedaily.com/NewsView/2661KLIOHP"
+      },
+      {
+       "c": [
+        "6",
+        "대규모 주거개선 사업 나서는 ‘부촌’, 부동산시장 견인",
+        "로이슈",
+        "2022.05.17"
+       ],
+       "url": "https://ccnews.lawissue.co.kr/view.php?ud=20220517154730170367191f6c6e_12"
+      },
+      {
+       "c": [
+        "5",
+        "숲세권 주상복합 ‘범어자이’, 분양 예정",
+        "서울경제",
+        "2022.05.16"
+       ],
+       "url": "https://www.sedaily.com/NewsView/265ZPPL06T"
+      },
+      {
+       "c": [
+        "4",
+        "범어자이 아파트·오피스텔 내달 분양…대구 수성구 첫 자이 브랜드",
+        "연합뉴스",
+        "2022.05.12"
+       ],
+       "url": "https://www.yna.co.kr/view/AKR20220512079300003?input=1195m"
+      },
+      {
+       "c": [
+        "3",
+        "GS건설, 대구 수성구 ‘범어자이’ 다음 달 분양",
+        "조선비즈",
+        "2022.05.12"
+       ],
+       "url": "https://biz.chosun.com/real_estate/parcel_out/2022/05/12/ETSQBXUYKJBRRKWOCUVZOJBLFU/?utm_source=naver&utm_medium=original&utm_ca"
+      },
+      {
+       "c": [
+        "2",
+        "'대구역자이 더 스타' 5일 1순위 청약",
+        "아이뉴스24",
+        ""
+       ],
+       "url": "https://www.inews24.com/view/1467151"
+      },
+      {
+       "c": [
+        "1",
+        "\"GS건설, 재건축 활성화로 '자이' 브랜드 가치↑\"",
+        "서울경제",
+        ""
+       ],
+       "url": "https://www.sedaily.com/NewsView/264KQVNEIC"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "group": "공사정보",
+   "item": "공사정보",
+   "seq": "",
+   "url": "https://xi.co.kr/dgb/aptconst?aptSeq=467&type=9",
+   "blocks": [
+    {
+     "t": "construction"
+    }
+   ],
+   "construction": {
+    "summary": [
+     {
+      "k": "위치",
+      "v": "대구광역시 수성구 범어동 48-26번지 일원"
+     },
+     {
+      "k": "세대수",
+      "v": "아파트 399세대 / 오피스텔 52실"
+     },
+     {
+      "k": "면적",
+      "v": "84㎡A ~ 84㎡OB"
+     },
+     {
+      "k": "입주시기",
+      "v": "2026년 02월"
+     }
+    ],
+    "months": [
+     {
+      "label": "2025.10",
+      "seq": "37452",
+      "total": "92.96",
+      "detail": [
+       "45.39",
+       "18.92",
+       "6.42",
+       "4.19"
+      ]
+     },
+     {
+      "label": "2025.09",
+      "seq": "37430",
+      "total": "90.94",
+      "detail": [
+       "44.59",
+       "18.91",
+       "6.06",
+       "3.98"
+      ]
+     },
+     {
+      "label": "2025.08",
+      "seq": "37405",
+      "total": "89.02",
+      "detail": [
+       "43.46",
+       "18.90",
+       "5.70",
+       "3.87"
+      ]
+     },
+     {
+      "label": "2025.07",
+      "seq": "37360",
+      "total": "87.94",
+      "detail": [
+       "42.96",
+       "18.87",
+       "5.55",
+       "3.68"
+      ]
+     },
+     {
+      "label": "2025.06",
+      "seq": "37359",
+      "total": "84.84",
+      "detail": [
+       "41.38",
+       "18.86",
+       "5.19",
+       "2.80"
+      ]
+     },
+     {
+      "label": "2025.05",
+      "seq": "37288",
+      "total": "82.06",
+      "detail": [
+       "40.40",
+       "18.82",
+       "4.83",
+       "2.32"
+      ]
+     },
+     {
+      "label": "2025.04",
+      "seq": "37249",
+      "total": "78.61",
+      "detail": [
+       "38.61",
+       "18.82",
+       "4.47",
+       "1.91"
+      ]
+     },
+     {
+      "label": "2025.03",
+      "seq": "37199",
+      "total": "76.33",
+      "detail": [
+       "36.88",
+       "18.82",
+       "4.11",
+       "1.77"
+      ]
+     },
+     {
+      "label": "2025.02",
+      "seq": "37161",
+      "total": "73.18",
+      "detail": [
+       "35.53",
+       "18.82",
+       "3.75",
+       "1.63"
+      ]
+     },
+     {
+      "label": "2025.01",
+      "seq": "37124",
+      "total": "69.73",
+      "detail": [
+       "33.43",
+       "18.82",
+       "3.39",
+       "1.49"
+      ]
+     },
+     {
+      "label": "2024.12",
+      "seq": "37074",
+      "total": "65.91",
+      "detail": [
+       "30.89",
+       "18.82",
+       "2.96",
+       "1.31"
+      ]
+     },
+     {
+      "label": "2024.11",
+      "seq": "36029",
+      "total": "62.49",
+      "detail": [
+       "28.68",
+       "18.82",
+       "2.53",
+       "1.17"
+      ]
+     },
+     {
+      "label": "2024.10",
+      "seq": "35993",
+      "total": "58.62",
+      "detail": [
+       "25.77",
+       "18.82",
+       "2.10",
+       "1.12"
+      ]
+     },
+     {
+      "label": "2024.09",
+      "seq": "35955",
+      "total": "55.76",
+      "detail": [
+       "24.38",
+       "18.82",
+       "1.67",
+       "1.07"
+      ]
+     },
+     {
+      "label": "2024.08",
+      "seq": "33910",
+      "total": "52.90",
+      "detail": [
+       "22.80",
+       "18.82",
+       "1.24",
+       "1.02"
+      ]
+     },
+     {
+      "label": "2024.07",
+      "seq": "33812",
+      "total": "50.03",
+      "detail": [
+       "0.74",
+       "2.33",
+       "0.07",
+       "0.05"
+      ]
+     },
+     {
+      "label": "2024.06",
+      "seq": "33778",
+      "total": "46.77",
+      "detail": [
+       "19.38",
+       "16.49",
+       "1.10",
+       "0.92"
+      ]
+     },
+     {
+      "label": "2024.05",
+      "seq": "33727",
+      "total": "44.37",
+      "detail": [
+       "17.28",
+       "16.49",
+       "1.02",
+       "0.87"
+      ]
+     },
+     {
+      "label": "2024.04",
+      "seq": "32673",
+      "total": "41.58",
+      "detail": [
+       "15.43",
+       "16.09",
+       "0.94",
+       "0.82"
+      ]
+     },
+     {
+      "label": "2024.03",
+      "seq": "31631",
+      "total": "39.13",
+      "detail": [
+       "14.02",
+       "15.59",
+       "0.86",
+       "0.77"
+      ]
+     },
+     {
+      "label": "2024.02",
+      "seq": "30597",
+      "total": "36.18",
+      "detail": [
+       "11.68",
+       "15.58",
+       "0.72",
+       "0.72"
+      ]
+     },
+     {
+      "label": "2024.01",
+      "seq": "30550",
+      "total": "33.32",
+      "detail": [
+       "9.53",
+       "15.40",
+       "0.70",
+       "0.70"
+      ]
+     },
+     {
+      "label": "2023.12",
+      "seq": "30518",
+      "total": "30.50",
+      "detail": [
+       "7.69",
+       "14.82",
+       "0.68",
+       "0.68"
+      ]
+     },
+     {
+      "label": "2023.11",
+      "seq": "30451",
+      "total": "27.77",
+      "detail": [
+       "6.13",
+       "14.09",
+       "0.64",
+       "0.64"
+      ]
+     },
+     {
+      "label": "2023.10",
+      "seq": "30407",
+      "total": "25.08",
+      "detail": [
+       "4.91",
+       "13.08",
+       "0.59",
+       "0.59"
+      ]
+     },
+     {
+      "label": "2023.09",
+      "seq": "30369",
+      "total": "22.24",
+      "detail": [
+       "3.48",
+       "12.13",
+       "0.54",
+       "0.54"
+      ]
+     },
+     {
+      "label": "2023.08",
+      "seq": "30336",
+      "total": "19.54",
+      "detail": [
+       "2.08",
+       "11.44",
+       "0.44",
+       "0.44"
+      ]
+     },
+     {
+      "label": "2023.07",
+      "seq": "26278",
+      "total": "17.13",
+      "detail": [
+       "1.81",
+       "10.15",
+       "0.29",
+       "0.29"
+      ]
+     },
+     {
+      "label": "2023.06",
+      "seq": "26241",
+      "total": "14.81",
+      "detail": [
+       "0.48",
+       "1.05",
+       "0.6",
+       "0.6"
+      ]
+     },
+     {
+      "label": "2023.05",
+      "seq": "24196",
+      "total": "12.80",
+      "detail": [
+       "0.68",
+       "8.11",
+       "0.13",
+       "0.13"
+      ]
+     },
+     {
+      "label": "2023.04",
+      "seq": "24157",
+      "total": "10.72",
+      "detail": [
+       "0.21",
+       "7.06",
+       "0.03",
+       "0.03"
+      ]
+     },
+     {
+      "label": "2023.03",
+      "seq": "22094",
+      "total": "8.60",
+      "detail": [
+       "0.01",
+       "0.90",
+       "0.01",
+       "0.01"
+      ]
+     },
+     {
+      "label": "2023.02",
+      "seq": "22044",
+      "total": "7.44",
+      "detail": [
+       "0",
+       "4.64",
+       "0",
+       "0"
+      ]
+     },
+     {
+      "label": "2023.01",
+      "seq": "17979",
+      "total": "6.23",
+      "detail": [
+       "0",
+       "3.66",
+       "0",
+       "0"
+      ]
+     },
+     {
+      "label": "2022.12",
+      "seq": "13948",
+      "total": "5.32",
+      "detail": [
+       "0",
+       "2.98",
+       "0",
+       "0"
+      ]
+     }
+    ],
+    "photos": [
+     {
+      "src": "assets/archive/construction/20251105_080840_580001.JPG",
+      "date": "2025.11.05",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20251105_080840_580001.JPG",
+      "date": "2025.11.05",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20251105_080817_141001.JPG",
+      "date": "2025.11.05",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20251105_080817_141001.JPG",
+      "date": "2025.11.05",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250917_084852_602001.JPG",
+      "date": "2025.09.17",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250917_084852_602001.JPG",
+      "date": "2025.09.17",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250811_075922_131001.JPG",
+      "date": "2025.08.11",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250811_075922_131001.JPG",
+      "date": "2025.08.11",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250811_075851_766001.JPG",
+      "date": "2025.08.11",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250811_075851_766001.JPG",
+      "date": "2025.08.11",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250616_082003_151001.JPG",
+      "date": "2025.06.16",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250616_082003_151001.JPG",
+      "date": "2025.06.16",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250507_161727_453001.JPG",
+      "date": "2025.05.07",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250507_161727_453001.JPG",
+      "date": "2025.05.07",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250403_093231_697001.JPG",
+      "date": "2025.04.03",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250403_093231_697001.JPG",
+      "date": "2025.04.03",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250306_091312_754001.JPG",
+      "date": "2025.03.06",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250306_091312_754001.JPG",
+      "date": "2025.03.06",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250217_112352_730001.JPG",
+      "date": "2025.02.17",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250217_112352_730001.JPG",
+      "date": "2025.02.17",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250106_152824_955001.JPG",
+      "date": "2025.01.06",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20250106_152824_955001.JPG",
+      "date": "2025.01.06",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20241204_140420_113001.JPG",
+      "date": "2024.12.04",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20241204_140420_113001.JPG",
+      "date": "2024.12.04",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20241204_140229_007001.jpg",
+      "date": "2024.12.04",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20241204_140229_007001.jpg",
+      "date": "2024.12.04",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20241108_104552_831001.JPG",
+      "date": "2024.11.08",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20241108_104552_831001.JPG",
+      "date": "2024.11.08",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240911_100920_895001.JPG",
+      "date": "2024.09.11",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240911_100920_895001.JPG",
+      "date": "2024.09.11",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240802_143504_360001.JPG",
+      "date": "2024.08.02",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240802_143504_360001.JPG",
+      "date": "2024.08.02",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240705_091311_767001.JPG",
+      "date": "2024.07.05",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240705_091311_767001.JPG",
+      "date": "2024.07.05",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240604_163351_346001.JPG",
+      "date": "2024.06.04",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240604_163351_346001.JPG",
+      "date": "2024.06.04",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240502_151832_181001.JPG",
+      "date": "2024.05.02",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240502_151832_181001.JPG",
+      "date": "2024.05.02",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20240402_092108_611001.jpg",
+      "date": "2024.04.02",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20240402_092108_611001.jpg",
+      "date": "2024.04.02",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20240306_084455_030001.jpg",
+      "date": "2024.03.06",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20240306_084455_030001.jpg",
+      "date": "2024.03.06",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20240205_081638_490001.jpg",
+      "date": "2024.02.05",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20240205_081638_490001.jpg",
+      "date": "2024.02.05",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20240109_140739_803001.jpg",
+      "date": "2024.01.09",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20240109_140739_803001.jpg",
+      "date": "2024.01.09",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20231204_155036_457001.jpg",
+      "date": "2023.12.04",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20231204_155036_457001.jpg",
+      "date": "2023.12.04",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20231102_151907_741001.jpg",
+      "date": "2023.11.02",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20231102_151907_741001.jpg",
+      "date": "2023.11.02",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20231010_153120_228001.jpg",
+      "date": "2023.10.10",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20231010_153120_228001.jpg",
+      "date": "2023.10.10",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20230915_110542_199001.jpg",
+      "date": "2023.09.15",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20230915_110542_199001.jpg",
+      "date": "2023.09.15",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20230807_091927_346001.jpg",
+      "date": "2023.08.07",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20230807_091927_346001.jpg",
+      "date": "2023.08.07",
+      "w": 2048,
+      "h": 1152,
+      "orig": "2048x1152"
+     },
+     {
+      "src": "assets/archive/construction/20230712_083720_782001.jpg",
+      "date": "2023.07.12",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230712_083720_782001.jpg",
+      "date": "2023.07.12",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230531_090404_119001.jpg",
+      "date": "2023.05.31",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230531_090404_119001.jpg",
+      "date": "2023.05.31",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230531_090335_469001.jpg",
+      "date": "2023.05.31",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230531_090335_469001.jpg",
+      "date": "2023.05.31",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230410_141759_327001.jpg",
+      "date": "2023.04.10",
+      "w": 2000,
+      "h": 1125,
+      "orig": "2000x1125"
+     },
+     {
+      "src": "assets/archive/construction/20230410_141759_327001.jpg",
+      "date": "2023.04.10",
+      "w": 2000,
+      "h": 1125,
+      "orig": "2000x1125"
+     },
+     {
+      "src": "assets/archive/construction/20230324_111115_868001.jpg",
+      "date": "2023.03.24",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230324_111115_868001.jpg",
+      "date": "2023.03.24",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230203_164933_297001.jpg",
+      "date": "2023.02.03",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230203_164933_297001.jpg",
+      "date": "2023.02.03",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230109_111302_357001.jpg",
+      "date": "2023.01.09",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     },
+     {
+      "src": "assets/archive/construction/20230109_111302_357001.jpg",
+      "date": "2023.01.09",
+      "w": 2600,
+      "h": 1462,
+      "orig": "2600x1462"
+     }
+    ],
+    "image": "assets/archive/apartment/20240118_173645_674001.png",
+    "imageAlt": "범어자이 조감도",
+    "workNames": [
+     "2025.10",
+     "건축공사",
+     "전기공사",
+     "토목공사",
+     "설비공사"
+    ]
+   }
+  }
+ ],
+ "mobile": {
+  "specs": [
+   {
+    "k": "공급시기",
+    "v": "2022년 06월"
+   },
+   {
+    "k": "입주시기",
+    "v": "2026년 02월"
+   },
+   {
+    "k": "규모",
+    "v": "아파트 399세대 / 오피스텔 52실"
+   },
+   {
+    "k": "위치",
+    "v": "대구광역시 수성구 범어동 48-26번지 일원"
+   },
+   {
+    "k": "문의전화",
+    "v": "053-581-2813"
+   }
+  ],
+  "tabs": [
+   {
+    "name": "평형정보",
+    "items": [
+     {
+      "name": "84㎡A",
+      "images": [
+       {
+        "t": "img",
+        "src": "assets/archive/floorplan/20220624_000125_183001.jpg",
+        "alt": "84㎡A 평형정보",
+        "w": 1100,
+        "h": 1674
+       }
+      ]
+     },
+     {
+      "name": "84㎡B",
+      "images": [
+       {
+        "t": "img",
+        "src": "assets/archive/floorplan/20220624_000225_317001.jpg",
+        "alt": "84㎡B 평형정보",
+        "w": 1100,
+        "h": 1674
+       }
+      ]
+     },
+     {
+      "name": "84㎡C",
+      "images": [
+       {
+        "t": "img",
+        "src": "assets/archive/floorplan/20220624_000239_437001.jpg",
+        "alt": "84㎡C 평형정보",
+        "w": 1100,
+        "h": 1674
+       }
+      ]
+     },
+     {
+      "name": "84㎡D",
+      "images": [
+       {
+        "t": "img",
+        "src": "assets/archive/floorplan/20220624_000259_131001.jpg",
+        "alt": "84㎡D 평형정보",
+        "w": 1100,
+        "h": 1674
+       }
+      ]
+     },
+     {
+      "name": "84㎡E",
+      "images": [
+       {
+        "t": "img",
+        "src": "assets/archive/floorplan/20220624_000313_697001.jpg",
+        "alt": "84㎡E 평형정보",
+        "w": 1100,
+        "h": 1674
+       }
+      ]
+     },
+     {
+      "name": "114㎡",
+      "images": [
+       {
+        "t": "img",
+        "src": "assets/archive/floorplan/20220624_000325_095001.jpg",
+        "alt": "114㎡ 평형정보",
+        "w": 1100,
+        "h": 1674
+       }
+      ]
+     },
+     {
+      "name": "84㎡OA",
+      "images": [
+       {
+        "t": "img",
+        "src": "assets/archive/floorplan/20220624_000347_798001.jpg",
+        "alt": "84㎡OA 평형정보",
+        "w": 1100,
+        "h": 1039
+       }
+      ]
+     },
+     {
+      "name": "84㎡OB",
+      "images": [
+       {
+        "t": "img",
+        "src": "assets/archive/floorplan/20220701_104606_955001.jpg",
+        "alt": "84㎡OB 평형정보",
+        "w": 1100,
+        "h": 999
+       },
+       {
+        "t": "img",
+        "src": "assets/archive/floorplan/20220701_104607_023002.jpg",
+        "alt": "84㎡OB 평형정보",
+        "w": 1100,
+        "h": 999
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name": "특장점",
+    "items": [
+     {
+      "name": "특장점",
+      "images": [
+       {
+        "t": "img",
+        "src": "assets/archive/point/20220407_133527_481001.jpg",
+        "alt": "입지환경",
+        "w": 1100,
+        "h": 1592,
+        "cap": "입지환경"
+       },
+       {
+        "t": "img",
+        "src": "assets/archive/point/20220407_133607_172001.jpg",
+        "alt": "프리미엄",
+        "w": 1100,
+        "h": 3200,
+        "poster": true,
+        "cap": "프리미엄"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "image": "assets/archive/apartment/20240118_173645_674001.png",
+  "badge": "입주완료",
+  "address": "대구광역시 수성구 범어동 48-26번지 일원",
+  "phone": "053-581-2813"
+ },
+ "construction": {
+  "summary": [
+   {
+    "k": "위치",
+    "v": "대구광역시 수성구 범어동 48-26번지 일원"
+   },
+   {
+    "k": "세대수",
+    "v": "아파트 399세대 / 오피스텔 52실"
+   },
+   {
+    "k": "면적",
+    "v": "84㎡A ~ 84㎡OB"
+   },
+   {
+    "k": "입주시기",
+    "v": "2026년 02월"
+   }
+  ],
+  "months": [
+   {
+    "label": "2025.10",
+    "seq": "37452",
+    "total": "92.96",
+    "detail": [
+     "45.39",
+     "18.92",
+     "6.42",
+     "4.19"
+    ]
+   },
+   {
+    "label": "2025.09",
+    "seq": "37430",
+    "total": "90.94",
+    "detail": [
+     "44.59",
+     "18.91",
+     "6.06",
+     "3.98"
+    ]
+   },
+   {
+    "label": "2025.08",
+    "seq": "37405",
+    "total": "89.02",
+    "detail": [
+     "43.46",
+     "18.90",
+     "5.70",
+     "3.87"
+    ]
+   },
+   {
+    "label": "2025.07",
+    "seq": "37360",
+    "total": "87.94",
+    "detail": [
+     "42.96",
+     "18.87",
+     "5.55",
+     "3.68"
+    ]
+   },
+   {
+    "label": "2025.06",
+    "seq": "37359",
+    "total": "84.84",
+    "detail": [
+     "41.38",
+     "18.86",
+     "5.19",
+     "2.80"
+    ]
+   },
+   {
+    "label": "2025.05",
+    "seq": "37288",
+    "total": "82.06",
+    "detail": [
+     "40.40",
+     "18.82",
+     "4.83",
+     "2.32"
+    ]
+   },
+   {
+    "label": "2025.04",
+    "seq": "37249",
+    "total": "78.61",
+    "detail": [
+     "38.61",
+     "18.82",
+     "4.47",
+     "1.91"
+    ]
+   },
+   {
+    "label": "2025.03",
+    "seq": "37199",
+    "total": "76.33",
+    "detail": [
+     "36.88",
+     "18.82",
+     "4.11",
+     "1.77"
+    ]
+   },
+   {
+    "label": "2025.02",
+    "seq": "37161",
+    "total": "73.18",
+    "detail": [
+     "35.53",
+     "18.82",
+     "3.75",
+     "1.63"
+    ]
+   },
+   {
+    "label": "2025.01",
+    "seq": "37124",
+    "total": "69.73",
+    "detail": [
+     "33.43",
+     "18.82",
+     "3.39",
+     "1.49"
+    ]
+   },
+   {
+    "label": "2024.12",
+    "seq": "37074",
+    "total": "65.91",
+    "detail": [
+     "30.89",
+     "18.82",
+     "2.96",
+     "1.31"
+    ]
+   },
+   {
+    "label": "2024.11",
+    "seq": "36029",
+    "total": "62.49",
+    "detail": [
+     "28.68",
+     "18.82",
+     "2.53",
+     "1.17"
+    ]
+   },
+   {
+    "label": "2024.10",
+    "seq": "35993",
+    "total": "58.62",
+    "detail": [
+     "25.77",
+     "18.82",
+     "2.10",
+     "1.12"
+    ]
+   },
+   {
+    "label": "2024.09",
+    "seq": "35955",
+    "total": "55.76",
+    "detail": [
+     "24.38",
+     "18.82",
+     "1.67",
+     "1.07"
+    ]
+   },
+   {
+    "label": "2024.08",
+    "seq": "33910",
+    "total": "52.90",
+    "detail": [
+     "22.80",
+     "18.82",
+     "1.24",
+     "1.02"
+    ]
+   },
+   {
+    "label": "2024.07",
+    "seq": "33812",
+    "total": "50.03",
+    "detail": [
+     "0.74",
+     "2.33",
+     "0.07",
+     "0.05"
+    ]
+   },
+   {
+    "label": "2024.06",
+    "seq": "33778",
+    "total": "46.77",
+    "detail": [
+     "19.38",
+     "16.49",
+     "1.10",
+     "0.92"
+    ]
+   },
+   {
+    "label": "2024.05",
+    "seq": "33727",
+    "total": "44.37",
+    "detail": [
+     "17.28",
+     "16.49",
+     "1.02",
+     "0.87"
+    ]
+   },
+   {
+    "label": "2024.04",
+    "seq": "32673",
+    "total": "41.58",
+    "detail": [
+     "15.43",
+     "16.09",
+     "0.94",
+     "0.82"
+    ]
+   },
+   {
+    "label": "2024.03",
+    "seq": "31631",
+    "total": "39.13",
+    "detail": [
+     "14.02",
+     "15.59",
+     "0.86",
+     "0.77"
+    ]
+   },
+   {
+    "label": "2024.02",
+    "seq": "30597",
+    "total": "36.18",
+    "detail": [
+     "11.68",
+     "15.58",
+     "0.72",
+     "0.72"
+    ]
+   },
+   {
+    "label": "2024.01",
+    "seq": "30550",
+    "total": "33.32",
+    "detail": [
+     "9.53",
+     "15.40",
+     "0.70",
+     "0.70"
+    ]
+   },
+   {
+    "label": "2023.12",
+    "seq": "30518",
+    "total": "30.50",
+    "detail": [
+     "7.69",
+     "14.82",
+     "0.68",
+     "0.68"
+    ]
+   },
+   {
+    "label": "2023.11",
+    "seq": "30451",
+    "total": "27.77",
+    "detail": [
+     "6.13",
+     "14.09",
+     "0.64",
+     "0.64"
+    ]
+   },
+   {
+    "label": "2023.10",
+    "seq": "30407",
+    "total": "25.08",
+    "detail": [
+     "4.91",
+     "13.08",
+     "0.59",
+     "0.59"
+    ]
+   },
+   {
+    "label": "2023.09",
+    "seq": "30369",
+    "total": "22.24",
+    "detail": [
+     "3.48",
+     "12.13",
+     "0.54",
+     "0.54"
+    ]
+   },
+   {
+    "label": "2023.08",
+    "seq": "30336",
+    "total": "19.54",
+    "detail": [
+     "2.08",
+     "11.44",
+     "0.44",
+     "0.44"
+    ]
+   },
+   {
+    "label": "2023.07",
+    "seq": "26278",
+    "total": "17.13",
+    "detail": [
+     "1.81",
+     "10.15",
+     "0.29",
+     "0.29"
+    ]
+   },
+   {
+    "label": "2023.06",
+    "seq": "26241",
+    "total": "14.81",
+    "detail": [
+     "0.48",
+     "1.05",
+     "0.6",
+     "0.6"
+    ]
+   },
+   {
+    "label": "2023.05",
+    "seq": "24196",
+    "total": "12.80",
+    "detail": [
+     "0.68",
+     "8.11",
+     "0.13",
+     "0.13"
+    ]
+   },
+   {
+    "label": "2023.04",
+    "seq": "24157",
+    "total": "10.72",
+    "detail": [
+     "0.21",
+     "7.06",
+     "0.03",
+     "0.03"
+    ]
+   },
+   {
+    "label": "2023.03",
+    "seq": "22094",
+    "total": "8.60",
+    "detail": [
+     "0.01",
+     "0.90",
+     "0.01",
+     "0.01"
+    ]
+   },
+   {
+    "label": "2023.02",
+    "seq": "22044",
+    "total": "7.44",
+    "detail": [
+     "0",
+     "4.64",
+     "0",
+     "0"
+    ]
+   },
+   {
+    "label": "2023.01",
+    "seq": "17979",
+    "total": "6.23",
+    "detail": [
+     "0",
+     "3.66",
+     "0",
+     "0"
+    ]
+   },
+   {
+    "label": "2022.12",
+    "seq": "13948",
+    "total": "5.32",
+    "detail": [
+     "0",
+     "2.98",
+     "0",
+     "0"
+    ]
+   }
+  ],
+  "photos": [
+   {
+    "src": "assets/archive/construction/20251105_080840_580001.JPG",
+    "date": "2025.11.05",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20251105_080840_580001.JPG",
+    "date": "2025.11.05",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20251105_080817_141001.JPG",
+    "date": "2025.11.05",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20251105_080817_141001.JPG",
+    "date": "2025.11.05",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250917_084852_602001.JPG",
+    "date": "2025.09.17",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250917_084852_602001.JPG",
+    "date": "2025.09.17",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250811_075922_131001.JPG",
+    "date": "2025.08.11",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250811_075922_131001.JPG",
+    "date": "2025.08.11",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250811_075851_766001.JPG",
+    "date": "2025.08.11",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250811_075851_766001.JPG",
+    "date": "2025.08.11",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250616_082003_151001.JPG",
+    "date": "2025.06.16",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250616_082003_151001.JPG",
+    "date": "2025.06.16",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250507_161727_453001.JPG",
+    "date": "2025.05.07",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250507_161727_453001.JPG",
+    "date": "2025.05.07",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250403_093231_697001.JPG",
+    "date": "2025.04.03",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250403_093231_697001.JPG",
+    "date": "2025.04.03",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250306_091312_754001.JPG",
+    "date": "2025.03.06",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250306_091312_754001.JPG",
+    "date": "2025.03.06",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250217_112352_730001.JPG",
+    "date": "2025.02.17",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250217_112352_730001.JPG",
+    "date": "2025.02.17",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250106_152824_955001.JPG",
+    "date": "2025.01.06",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20250106_152824_955001.JPG",
+    "date": "2025.01.06",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20241204_140420_113001.JPG",
+    "date": "2024.12.04",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20241204_140420_113001.JPG",
+    "date": "2024.12.04",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20241204_140229_007001.jpg",
+    "date": "2024.12.04",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20241204_140229_007001.jpg",
+    "date": "2024.12.04",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20241108_104552_831001.JPG",
+    "date": "2024.11.08",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20241108_104552_831001.JPG",
+    "date": "2024.11.08",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240911_100920_895001.JPG",
+    "date": "2024.09.11",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240911_100920_895001.JPG",
+    "date": "2024.09.11",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240802_143504_360001.JPG",
+    "date": "2024.08.02",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240802_143504_360001.JPG",
+    "date": "2024.08.02",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240705_091311_767001.JPG",
+    "date": "2024.07.05",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240705_091311_767001.JPG",
+    "date": "2024.07.05",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240604_163351_346001.JPG",
+    "date": "2024.06.04",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240604_163351_346001.JPG",
+    "date": "2024.06.04",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240502_151832_181001.JPG",
+    "date": "2024.05.02",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240502_151832_181001.JPG",
+    "date": "2024.05.02",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20240402_092108_611001.jpg",
+    "date": "2024.04.02",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20240402_092108_611001.jpg",
+    "date": "2024.04.02",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20240306_084455_030001.jpg",
+    "date": "2024.03.06",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20240306_084455_030001.jpg",
+    "date": "2024.03.06",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20240205_081638_490001.jpg",
+    "date": "2024.02.05",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20240205_081638_490001.jpg",
+    "date": "2024.02.05",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20240109_140739_803001.jpg",
+    "date": "2024.01.09",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20240109_140739_803001.jpg",
+    "date": "2024.01.09",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20231204_155036_457001.jpg",
+    "date": "2023.12.04",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20231204_155036_457001.jpg",
+    "date": "2023.12.04",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20231102_151907_741001.jpg",
+    "date": "2023.11.02",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20231102_151907_741001.jpg",
+    "date": "2023.11.02",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20231010_153120_228001.jpg",
+    "date": "2023.10.10",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20231010_153120_228001.jpg",
+    "date": "2023.10.10",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20230915_110542_199001.jpg",
+    "date": "2023.09.15",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20230915_110542_199001.jpg",
+    "date": "2023.09.15",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20230807_091927_346001.jpg",
+    "date": "2023.08.07",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20230807_091927_346001.jpg",
+    "date": "2023.08.07",
+    "w": 2048,
+    "h": 1152,
+    "orig": "2048x1152"
+   },
+   {
+    "src": "assets/archive/construction/20230712_083720_782001.jpg",
+    "date": "2023.07.12",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230712_083720_782001.jpg",
+    "date": "2023.07.12",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230531_090404_119001.jpg",
+    "date": "2023.05.31",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230531_090404_119001.jpg",
+    "date": "2023.05.31",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230531_090335_469001.jpg",
+    "date": "2023.05.31",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230531_090335_469001.jpg",
+    "date": "2023.05.31",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230410_141759_327001.jpg",
+    "date": "2023.04.10",
+    "w": 2000,
+    "h": 1125,
+    "orig": "2000x1125"
+   },
+   {
+    "src": "assets/archive/construction/20230410_141759_327001.jpg",
+    "date": "2023.04.10",
+    "w": 2000,
+    "h": 1125,
+    "orig": "2000x1125"
+   },
+   {
+    "src": "assets/archive/construction/20230324_111115_868001.jpg",
+    "date": "2023.03.24",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230324_111115_868001.jpg",
+    "date": "2023.03.24",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230203_164933_297001.jpg",
+    "date": "2023.02.03",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230203_164933_297001.jpg",
+    "date": "2023.02.03",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230109_111302_357001.jpg",
+    "date": "2023.01.09",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   },
+   {
+    "src": "assets/archive/construction/20230109_111302_357001.jpg",
+    "date": "2023.01.09",
+    "w": 2600,
+    "h": 1462,
+    "orig": "2600x1462"
+   }
+  ],
+  "image": "assets/archive/apartment/20240118_173645_674001.png",
+  "imageAlt": "범어자이 조감도",
+  "workNames": [
+   "2025.10",
+   "건축공사",
+   "전기공사",
+   "토목공사",
+   "설비공사"
+  ]
+ }
+}
