@@ -278,7 +278,26 @@
   .sum-box .big strong { font-size: 12.5px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sum-box .big .muted { color: var(--muted-2); font-size: 9.5px; }
   .sum-box .dist { margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; font-size: 9.5px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+  .sum-box .dist > span { white-space: nowrap; }
+  /* v13 — 시각·기준은 넓은 화면은 긴 표기, 좁은 데스크톱은 짧은 표기(같은 값) */
+  .sum-time .big .tm-s, .sum-time .dist .dist-s { display: none; }
   .sum-box .dist b { font-weight: 800; color: var(--muted); }
+
+  /* v13 — 1024~1200px 좁은 데스크톱: 요약 3칸이 93~131px 로 좁아
+     '2026-11-24 12:45'·'양방향 참고'·'안전 8' 이 잘리거나 어색하게 꺾이던 것을 정리했다.
+     시각은 연도를 접고, 분포는 2×2 격자로 가지런히 놓고, 중복되는 보조값은 숨긴다. */
+  @media (min-width: 1024px) and (max-width: 1200px) {
+    .sum-box .label .note { display: none; }
+    .sum-box .big strong { font-size: 11.5px; }
+    .sum-box .big .badge { font-size: 17px; }
+    .sum-box .dist {
+      display: grid; grid-template-columns: repeat(2, auto); justify-content: start;
+      gap: 2px 10px; font-size: 9.5px;
+    }
+    .sum-alt > .dist .c0 { display: none; }
+    .sum-time .big .tm-l, .sum-time .dist .dist-l { display: none; }
+    .sum-time .big .tm-s, .sum-time .dist .dist-s { display: inline; }
+  }
 
   .side-toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .tabs { display: inline-flex; background: #0b1626; border: 1px solid var(--line); border-radius: 999px; padding: 2px; gap: 2px; flex: none; }
@@ -871,17 +890,22 @@
   .zone .zalt[data-lv="2"] { color: #ef9a4c; }
   .zone .zalt[data-lv="3"] { color: #f0908c; }
   .zone .zmeta {
-    margin-top: auto; padding-top: 8px; padding-right: 2px; font-size: 10.5px; color: #5f7794;
-    display: flex; align-items: center; justify-content: space-between; gap: 4px 7px; flex-wrap: nowrap;
+    margin-top: auto; padding-top: 8px; padding-right: 1px; font-size: 10.5px; color: #5f7794;
+    display: flex; align-items: center; justify-content: space-between; column-gap: 6px; row-gap: 4px;
+    flex-wrap: wrap; overflow: visible;
   }
-  /* v11 — 이정 범위가 길어도 '인근 CCTV ›' 버튼이 카드 밖으로 밀리지 않게:
-     범위는 줄어들며 말줄임(버튼은 flex:none), 단위 km는 카드에서 접는다(툴팁에는 남김) */
-  .zone .zkm { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 10.5px; color: #5f7794; letter-spacing: .01em; white-space: nowrap; }
+  /* v13 — 이정 범위는 어떤 폭·글꼴에서도 말줄임하지 않는다.
+     범위는 내용 폭 그대로(flex: 0 0 auto) 두고, 자리가 모자라면 '인근 CCTV ›' 버튼이
+     다음 줄로 내려간다(margin-left:auto 로 오른쪽 정렬). 잘린 글자보다 한 줄 늘어난 카드가 낫다. */
+  .zone .zkm {
+    flex: 0 0 auto; overflow: visible; text-overflow: clip; font-size: 10.5px; color: #6a83a0;
+    letter-spacing: 0; white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
   .zone .zkm .zk-u { display: none; }
   /* v9 — '인근 CCTV'를 누를 수 있는 버튼으로 보이게 (테두리·배경·hover/active·›) */
   .zone .zcctv {
-    flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; white-space: nowrap;
-    font-size: 10px; font-weight: 700; color: #9cc4e6; letter-spacing: .01em;
+    flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; white-space: nowrap;
+    font-size: 9.8px; font-weight: 700; color: #9cc4e6; letter-spacing: 0;
     border: 1px solid rgba(124,168,207,.36); border-radius: 999px;
     background: rgba(64,132,196,.14);
     transition: background .15s ease, border-color .15s ease, color .15s ease;
@@ -890,7 +914,7 @@
   .zone .zcctv:hover { color: #e2f2ff; border-color: rgba(124,190,240,.72); background: rgba(64,150,220,.28); }
   .zone .zcctv:active { background: rgba(64,150,220,.4); border-color: rgba(150,205,245,.9); }
   .zone .zcctv:focus-visible { outline: 2px solid rgba(56,189,248,.65); outline-offset: 1px; }
-  .zone .zno { flex: none; font-size: 10px; color: #7d94af; }
+  .zone .zno { flex: none; margin-left: auto; font-size: 10px; color: #7d94af; white-space: nowrap; }
   /* v11 — 1024~1200px의 좁은 데스크톱 카드: 버튼을 한 단계 조여 '인근 CCTV ›'가 온전히 들어가게 */
   @media (min-width: 1024px) and (max-width: 1200px) {
     .zone .zmeta { gap: 4px 6px; padding-right: 1px; }
@@ -1095,10 +1119,10 @@
     .zone .zalt { margin-top: 0; font-size: clamp(8.6px, 1.38dvh, 9.8px); gap: 3px; white-space: nowrap; }
     .zone .zmeta {
       margin-top: 1px; padding-top: 2px; min-height: 16px; flex: none;
-      display: flex; align-items: center; justify-content: space-between; gap: 3px;
-      white-space: nowrap; overflow: hidden;
+      display: flex; align-items: center; justify-content: space-between; column-gap: 4px; row-gap: 1px;
+      flex-wrap: wrap; white-space: nowrap; overflow: visible;
     }
-    .zone .zkm { font-size: clamp(8.4px, 1.34dvh, 9.6px); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .zone .zkm { font-size: clamp(8.4px, 1.34dvh, 9.6px); flex: 0 0 auto; overflow: visible; text-overflow: clip; }
     .zone .zcctv {
       flex: none; height: 16px; padding: 0 5px; gap: 2px;
       font-size: clamp(8.4px, 1.34dvh, 9.6px);
@@ -1961,6 +1985,17 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
   }
 
   /**
+   * v13 — ▲ 상향은 '구간' 단위.
+   * 카드 ▲ 는 구간마다 하나이고 요약줄의 앞 항목(위험 4 · 관심 3 · 안전 1)도 8구간 기준이므로,
+   * 상향만 방향 수(최대 16)로 세면 카드 ▲ 개수와 어긋난다. 선택 지표·방향에서 오른 '구간 수'를 센다.
+   */
+  function riseZoneCount(metric, dir) {
+    const dirs = dir === 'both' ? ['E', 'S'] : [dir];
+    return MASTER.zones.filter((segment) => zoneRises(segment.suffix)
+      .some((r) => r.metric === metric && dirs.includes(r.dir))).length;
+  }
+
+  /**
    * 구간 카드 (8개) — v8
    * · 강조(테두리·배경·등급)는 오직 현재 선택 지표·선택 방향 기준
    * · 방향 '양방향': 두 방향 등급이 같으면 '● 양방향 주의' 한 줄, 다를 때만 '대구 주의 / 광주 안전'
@@ -2101,6 +2136,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     const mine = dirCounts8(index, metric, dir);
     const alt = dirCounts8(index, other, dir);
     const tmLabel = isSample ? '—' : esc((rwis.tmLabel && rwis.tmLabel.FR) || '—');
+    const tmShort = isSample ? '—' : esc(String((rwis.tmLabel && rwis.tmLabel.FR) || '—').replace(/^\d{4}-/, ''));
     const c = mine.counts;
     const dist = [
       `<span class="c3"><b>위험</b> ${c[3]}</span>`,
@@ -2123,8 +2159,8 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       </div>`,
       `<div class="sum-box sum-time">
         <div class="label">${fresh.kind === 'snapshot' ? '스냅샷 시각' : fresh.kind === 'preview' ? '모의 등급' : '관측시각'}</div>
-        <div class="big"><strong title="살얼음 관측시각">${tmLabel}</strong></div>
-        <div class="dist"><span>${MASTER.zones.length}구간 기준 · ${dirTag}</span></div>
+        <div class="big"><strong title="살얼음 관측시각"><span class="tm-l">${tmLabel}</span><span class="tm-s">${tmShort}</span></strong></div>
+        <div class="dist"><span class="dist-l">${MASTER.zones.length}구간 기준 · ${dirTag}</span><span class="dist-s">${MASTER.zones.length}구간 · ${dirTag}</span></div>
       </div>`,
     ].join('');
 
@@ -3677,8 +3713,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
 
     if (el.routeMeta) {
       const fresh = freshness();
-      const dirs = state.routeDir === 'both' ? ['E', 'S'] : [state.routeDir];
-      const riseCount = Object.keys(state.rises).filter((k) => k.endsWith(D.metric) && dirs.includes(k[0])).length;
+      const riseCount = riseZoneCount(D.metric, state.routeDir);
       el.routeMeta.dataset.kind = fresh.kind;
       const dirTag = state.routeDir === 'both' ? '양방향' : state.routeDir === 'S' ? '광주방향' : '대구방향';
       /* v10 — 좁은 세로 화면에서 한 줄에 담기도록 짧은 출처 표기와 0건 숨김을 함께 둔다 */
@@ -3694,14 +3729,13 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
         `<span class="rm-lv lv2"${zeroFlag(2)}>주의 ${counts[2]}</span>`,
         `<span class="rm-lv lv1"${zeroFlag(1)}>관심 ${counts[1]}</span>`,
         `<span class="rm-lv lv0"${zeroFlag(0)}>안전 ${counts[0]}</span>`,
-        riseCount ? `<span class="rm-rise">▲ 상향 ${riseCount}</span>` : '',
+        riseCount ? `<span class="rm-rise" title="직전 관측 대비 등급이 오른 구간 ${riseCount}곳 (8구간 기준)">▲ 상향 ${riseCount}</span>` : '',
       ].filter(Boolean).join('');
     }
     if (el.riseNote) {
-      const dirs = state.routeDir === 'both' ? ['E', 'S'] : [state.routeDir];
-      const riseCount = Object.keys(state.rises).filter((k) => k.endsWith(D.metric) && dirs.includes(k[0])).length;
+      const riseCount = riseZoneCount(D.metric, state.routeDir);
       el.riseNote.classList.toggle('hidden', !riseCount);
-      el.riseNote.textContent = riseCount ? `▲ 직전 관측 대비 상향 ${riseCount}` : '';
+      el.riseNote.textContent = riseCount ? `▲ 직전 관측 대비 상향 ${riseCount}구간` : '';
     }
     if (el.routeHint) {
       el.routeHint.innerHTML = state.zoneFocus

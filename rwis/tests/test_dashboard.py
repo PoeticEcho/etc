@@ -1118,19 +1118,31 @@ def main() -> int:
         pp.click("#sheetClose")
         pp.wait_for_timeout(200)
 
+        # 그날 관측에 0단계 구간이 없을 수 있으므로(11-24 13:20은 위험·관심뿐), 등급을 0으로 고정해 규칙을 직접 검증한다.
         safe_style = pp.evaluate("""() => {
+          const st = window.__gdc.state;
+          const zones = (st.rwis && st.rwis.zones) || [];
+          const bak = zones.map((z) => [z.fsm && z.fsm.level, z.vir && z.vir.level]);
+          for (const z of zones) { if (z.fsm) z.fsm.level = 0; }
+          const tab = (v) => document.querySelector(`#routeDir button[data-rd="${v}"]`);
+          tab('E').click(); tab('both').click();
           const tile = document.querySelector('#zoneGrid .zone[data-worst="0"]');
           const safe = tile ? tile.querySelector('.zsafe') : null;
-          return {
+          const out = {
+            zones: zones.length,
             hasSafe: !!safe,
             safeText: safe ? safe.textContent.trim() : null,
             badges: tile ? tile.querySelectorAll('.badge').length : -1,
             border: tile ? getComputedStyle(tile).borderTopColor : null,
             bg: tile ? getComputedStyle(tile).backgroundColor : null,
           };
+          zones.forEach((z, i) => { if (z.fsm && bak[i][0] !== null) z.fsm.level = bak[i][0]; });
+          tab('E').click(); tab('both').click();
+          return out;
         }""")
         check("0단계(안전) 구간은 배지 없이 1줄로 축약",
-              safe_style["hasSafe"] and safe_style["badges"] == 0 and "안전" in (safe_style["safeText"] or ""),
+              safe_style["zones"] == 16 and safe_style["hasSafe"] and safe_style["badges"] == 0
+              and "안전" in (safe_style["safeText"] or ""),
               json.dumps(safe_style, ensure_ascii=False))
 
         porder = pp.evaluate("""() => {
@@ -1362,9 +1374,12 @@ def main() -> int:
               "스냅샷 모드" in v7["listMeta"] or "ITS 매칭" in v7["listMeta"], v7["listMeta"])
 
         rep = v7["report"]
+        # 0단계 구간이 없는 날(2026-11-24 13:20 관측: 위험 4·관심 4)에도 검사가 성립하도록,
+        # '안전 0' 반복 알약은 표 영역에서만 보고(상단 분포의 0건 숫자는 사실 그대로 둔다).
+        rep_table = rep.split("8개 구간 등급 요약")[-1]
         check("v7 리포트: 반복 '안전 0' 알약 제거 · 옅은 — 표기",
-              "안전 0" not in rep and rep.count("양방향 —") >= 6,
-              f"안전0={'안전 0' in rep} · — 표기 {rep.count('양방향 —')}개")
+              "안전 0" not in rep_table and rep_table.count("양방향 —") >= 6,
+              f"표 안전0={'안전 0' in rep_table} · — 표기 {rep_table.count('양방향 —')}개")
         check("v9 리포트: CCTV 없는 구간은 중립 회색 'CCTV 없음'",
               'CCTV 없음' in rep and 'fill="#9aabbd"' in rep and 'fill="#b45309"' not in rep,
               "회색 확인" if 'fill="#9aabbd"' in rep else "빨강 잔존")
@@ -1624,6 +1639,96 @@ def main() -> int:
             check(f"v11 {vw}px 카드에서는 이정 단위 km를 접고 툴팁에는 남김",
                   all(r["unitHidden"] for r in v11) and all(r["titleHasKm"] for r in v11),
                   f"단위 숨김 {sum(bool(r['unitHidden']) for r in v11)}/{len(v11)}")
+
+        print("\n[18] v13 — 데스크톱 4열 카드 이정 말줄임 0 · 요약 '▲ 상향' 구간 단위")
+        for vw, vh in ((1024, 768), (1280, 800), (1440, 900)):
+            page.set_viewport_size({"width": vw, "height": vh})
+            page.wait_for_timeout(340)
+            v13 = page.evaluate("""() => {
+              const rows = [...document.querySelectorAll('#zoneGrid .zone')].map(c => {
+                const km = c.querySelector('.zkm'), btn = c.querySelector('.zcctv'), meta = c.querySelector('.zmeta');
+                const st = getComputedStyle(c), cr = c.getBoundingClientRect();
+                const innerR = cr.right - parseFloat(st.paddingRight) - parseFloat(st.borderRightWidth);
+                const b = btn && btn.getBoundingClientRect(), k = km && km.getBoundingClientRect();
+                return {
+                  name: (c.querySelector('.zh strong') || {}).textContent || '',
+                  kmText: km ? km.textContent : '',
+                  kmScroll: km ? km.scrollWidth : null,
+                  kmClient: km ? km.clientWidth : null,
+                  cardOvf: c.scrollWidth - c.clientWidth,
+                  metaOvf: meta ? meta.scrollWidth - meta.clientWidth : 0,
+                  btnRight: b ? +(innerR - b.right).toFixed(1) : null,
+                  btnShown: b ? (getComputedStyle(btn).display !== 'none' && b.width > 24) : null,
+                  sameLine: (b && k) ? Math.abs(b.top - k.top) < 6 : null,
+                  label: btn ? btn.textContent.trim() : '',
+                };
+              });
+              return { rows, scroll: document.documentElement.scrollHeight - innerHeight };
+            }""")
+            rows13 = v13["rows"]
+            noKm = [r for r in rows13 if r["kmScroll"] is None]
+            check(f"v13 {vw}×{vh} 8개 카드 이정이 한 글자도 안 잘림 (scrollWidth ≤ clientWidth)",
+                  len(rows13) == 8 and not noKm
+                  and all(r["kmScroll"] <= r["kmClient"] for r in rows13),
+                  ", ".join(f"{r['name']} {r['kmScroll']}/{r['kmClient']}" for r in rows13[:3]) + " …")
+            long13 = {r["name"]: r for r in rows13 if r["name"] in ("고령IC ↔ 동고령IC", "고령JC ↔ 옥포JC")}
+            check(f"v13 {vw}×{vh} 끝자리가 길던 두 카드가 152.9–165.52 / 166.99–176.0 그대로 표시",
+                  len(long13) == 2
+                  and long13.get("고령IC ↔ 동고령IC", {}).get("kmText", "").startswith("152.9–165.52")
+                  and long13.get("고령JC ↔ 옥포JC", {}).get("kmText", "").startswith("166.99–176.0")
+                  and all(r["kmScroll"] <= r["kmClient"] for r in long13.values()),
+                  " · ".join(f"{k} {v['kmText']}" for k, v in long13.items()))
+            btns13 = [r for r in rows13 if r["btnRight"] is not None]
+            check(f"v13 {vw}×{vh} '인근 CCTV ›' 버튼이 카드 안·이정과 같은 줄에 온전히",
+                  len(btns13) == 7 and all(r["btnShown"] and r["btnRight"] >= 1 and r["sameLine"] for r in btns13)
+                  and not [r for r in rows13 if r["metaOvf"] > 0 or r["cardOvf"] > 0],
+                  f"최소 우측 여백 {min([r['btnRight'] for r in btns13] or [0])}px · 한 줄 "
+                  f"{sum(1 for r in btns13 if r['sameLine'])}/{len(btns13)}")
+            check(f"v13 {vw}×{vh} 카드·요약 넘침 0 · 페이지 스크롤 0",
+                  v13["scroll"] <= 0 and not [r for r in rows13 if r["metaOvf"] > 0 or r["cardOvf"] > 0],
+                  f"스크롤 {v13['scroll']}px")
+
+        # ── 요약 '▲ 상향' 단위 통일: 양방향·단방향 모두 카드 ▲ 개수(구간 수)와 같아야 한다 ──
+        page.set_viewport_size({"width": 1280, "height": 800})
+        page.evaluate("() => localStorage.removeItem('gdc.workerBase')")
+        page.goto(f"{base}/index.html?preview=alert", wait_until="load")
+        page.wait_for_function("() => !!window.__gdc", timeout=40000)
+        page.wait_for_timeout(500)
+        page.evaluate("(m) => window.__gdc.setPrev(m, '202611240900|202611240850')", zero)
+        page.wait_for_timeout(400)
+        unit = {}
+        for dir_key, dir_label in (("both", "양방향"), ("E", "대구방향"), ("S", "광주방향")):
+            page.click(f"#routeDir button[data-rd=\"{dir_key}\"]")
+            page.wait_for_timeout(320)
+            unit[dir_key] = page.evaluate("""() => {
+              const meta = document.getElementById('routeMeta');
+              const txt = meta.textContent;
+              const m = txt.match(/▲\s*상향\s*(\d+)/);
+              const cards = [...document.querySelectorAll('#zoneGrid .zone')];
+              return {
+                text: txt, rise: m ? Number(m[1]) : null,
+                cards: cards.length,
+                cardsRise: cards.filter(c => c.querySelector('.zrise')).length,
+                keys: Object.keys(window.__gdc.rises()).length,
+                lineCount: (meta.querySelector('.rm-rise') || {}).textContent || '',
+              };
+            }""")
+        for dir_key, dir_label in (("both", "양방향"), ("E", "대구방향"), ("S", "광주방향")):
+            u = unit[dir_key]
+            check(f"v13 요약 '▲ 상향'이 {dir_label} 카드 ▲ 개수와 일치(구간 기준)",
+                  u["rise"] is not None and u["rise"] == u["cardsRise"] > 0
+                  and u["rise"] <= u["cards"],
+                  f"▲ 상향 {u['rise']} · 카드 ▲ {u['cardsRise']} · 방향키 {u['keys']} · {u['lineCount']}")
+        check("v13 양방향에서 요약 상향은 방향 수(최대 16)가 아닌 구간 수로 표기",
+              unit["both"]["rise"] is not None and unit["both"]["keys"] > unit["both"]["rise"],
+              f"상향 {unit['both']['rise']} vs 방향별 키 {unit['both']['keys']}")
+        check("v13 요약줄 앞 항목(등급 분포)과 상향이 같은 8구간 기준",
+              all("8구간" in unit[k]["text"] for k in unit)
+              and all(len(re.findall(r"(?:위험|주의|관심|안전) \d+", unit[k]["text"])) == 4 for k in unit),
+              unit["both"]["text"][:80])
+        page.click("#routeDir button[data-rd=\"both\"]")
+        page.wait_for_timeout(250)
+        page.evaluate("() => localStorage.removeItem('gdc.prevLevels')")
         page.set_viewport_size({"width": 1280, "height": 900})
         page.wait_for_timeout(250)
 

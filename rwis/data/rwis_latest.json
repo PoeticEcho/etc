@@ -1,7 +1,7 @@
 {
  "ok": true,
  "kind": "rwis",
- "generatedAt": "2026-11-24T12:56:18+09:00",
+ "generatedAt": "2026-11-24T13:31:34+09:00",
  "source": "rwis.kma.go.kr 도로기상정보시스템",
  "road": {
   "no": "012",
@@ -15,16 +15,16 @@
   }
  },
  "tm": {
-  "FR": "202611241245",
-  "VR": "202611241230"
+  "FR": "202611241320",
+  "VR": "202611241305"
  },
  "tmLabel": {
-  "FR": "2026-11-24 12:45",
-  "VR": "2026-11-24 12:30"
+  "FR": "2026-11-24 13:20",
+  "VR": "2026-11-24 13:05"
  },
  "tmLatest": {
-  "FR": "202611241245",
-  "VR": "202611241230"
+  "FR": "202611241320",
+  "VR": "202611241305"
  },
  "tmFallbackSteps": {
   "FR": 0,
@@ -51,10 +51,10 @@
   "fsmMax": 3,
   "virMax": 0,
   "fsmZoneCounts": [
-   2,
+   0,
    6,
    0,
-   8
+   10
   ],
   "virZoneCounts": [
    16,
@@ -113,6 +113,22 @@
    "fsm": 3,
    "vir": 0,
    "text": "해인사IC-가조IC(광주방향) 도로살얼음 위험"
+  },
+  {
+   "id": "0120CZE200",
+   "name": "해인사IC-고령IC",
+   "dirLabel": "대구방향",
+   "fsm": 3,
+   "vir": 0,
+   "text": "해인사IC-고령IC(대구방향) 도로살얼음 위험"
+  },
+  {
+   "id": "0120CZS200",
+   "name": "고령IC-해인사IC",
+   "dirLabel": "광주방향",
+   "fsm": 3,
+   "vir": 0,
+   "text": "고령IC-해인사IC(광주방향) 도로살얼음 위험"
   },
   {
    "id": "0120CZE230",
@@ -228,9 +244,9 @@
     "levelDetail": "3단계 · 위험",
     "counts": [
      0,
-     17,
+     10,
      2,
-     15
+     22
     ],
     "knownLinks": 34,
     "totalLinks": 34
@@ -267,9 +283,9 @@
     "levelDetail": "3단계 · 위험",
     "counts": [
      0,
-     16,
-     3,
-     15
+     9,
+     2,
+     23
     ],
     "knownLinks": 34,
     "totalLinks": 34
@@ -306,9 +322,9 @@
     "levelDetail": "3단계 · 위험",
     "counts": [
      0,
-     5,
-     6,
-     6
+     2,
+     0,
+     15
     ],
     "knownLinks": 17,
     "totalLinks": 17
@@ -345,9 +361,9 @@
     "levelDetail": "3단계 · 위험",
     "counts": [
      0,
-     5,
-     6,
-     6
+     2,
+     0,
+     15
     ],
     "knownLinks": 17,
     "totalLinks": 17
@@ -383,10 +399,10 @@
     "levelName": "위험",
     "levelDetail": "3단계 · 위험",
     "counts": [
-     19,
      0,
-     0,
-     5
+     2,
+     1,
+     21
     ],
     "knownLinks": 24,
     "totalLinks": 24
@@ -422,10 +438,10 @@
     "levelName": "위험",
     "levelDetail": "3단계 · 위험",
     "counts": [
-     19,
      0,
-     0,
-     5
+     2,
+     1,
+     21
     ],
     "knownLinks": 24,
     "totalLinks": 24
@@ -457,14 +473,14 @@
    "linkCount": 11,
    "missing": false,
    "fsm": {
-    "level": 0,
-    "levelName": "안전",
-    "levelDetail": "0단계 · 안전",
+    "level": 3,
+    "levelName": "위험",
+    "levelDetail": "3단계 · 위험",
     "counts": [
-     11,
      0,
+     6,
      0,
-     0
+     5
     ],
     "knownLinks": 11,
     "totalLinks": 11
@@ -496,14 +512,14 @@
    "linkCount": 12,
    "missing": false,
    "fsm": {
-    "level": 0,
-    "levelName": "안전",
-    "levelDetail": "0단계 · 안전",
+    "level": 3,
+    "levelName": "위험",
+    "levelDetail": "3단계 · 위험",
     "counts": [
-     12,
      0,
+     7,
      0,
-     0
+     5
     ],
     "knownLinks": 12,
     "totalLinks": 12
@@ -539,8 +555,8 @@
     "levelName": "관심",
     "levelDetail": "1단계 · 관심",
     "counts": [
-     13,
-     8,
+     2,
+     19,
      0,
      0
     ],
@@ -578,8 +594,8 @@
     "levelName": "관심",
     "levelDetail": "1단계 · 관심",
     "counts": [
-     14,
-     8,
+     4,
+     18,
      0,
      0
     ],

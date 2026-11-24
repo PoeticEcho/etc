@@ -220,6 +220,56 @@ V12_BADGE = """() => {
 }"""
 
 
+V13_SWEEP = """() => {
+  const roots = ['#zoneGrid', '#routeMeta', '#topbar', '#rwisSummary', '#routeSection .sec-head',
+                 '.route-foot', '#rail', '#dockBar', '#captureBar', '#listSection .sec-head'];
+  const trunc = [];
+  for (const sel of roots) {
+    const root = document.querySelector(sel);
+    if (!root) continue;
+    for (const e of root.querySelectorAll('*')) {
+      if (e.children.length || e.offsetParent === null) continue;
+      const txt = (e.textContent || '').trim();
+      if (!txt) continue;
+      const st = getComputedStyle(e);
+      if (st.visibility === 'hidden' || st.display === 'none') continue;
+      if (e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 1) {
+        trunc.push({ root: sel, cls: String(e.className || e.tagName), txt: txt.slice(0, 24), ovf: e.scrollWidth - e.clientWidth });
+      }
+    }
+  }
+  // 카드 안 요소끼리 겹침 / 카드 밖으로 나감
+  const ov = [];
+  for (const card of document.querySelectorAll('#zoneGrid .zone')) {
+    const cr = card.getBoundingClientRect();
+    const parts = [...card.querySelectorAll('.zh', '.ztags > div', '.zmeta, .badge, .zcctv, .zno')]
+      .filter(e => e.offsetParent !== null)
+      .map(e => [e, e.getBoundingClientRect(), String(e.className || '') + '|' + e.textContent.trim().slice(0, 14)]);
+    for (let i = 0; i < parts.length; i += 1) {
+      const [ea, a, na] = parts[i];
+      if (parts[i][1].left < cr.left - 0.5 || a.right > cr.right + 0.5 || a.top < cr.top - 0.5 || a.bottom > cr.bottom + 0.5) {
+        ov.push({ card: card.dataset.segment, a: na, b: 'OUT', dx: +(a.right - cr.right).toFixed(1), dy: +(a.bottom - cr.bottom).toFixed(1) });
+      }
+      for (let j = i + 1; j < parts.length; j += 1) {
+        const [eb, b, nb] = parts[j];
+        if (ea.contains(eb) || eb.contains(ea)) continue;
+        const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (x > 2 && y > 2) ov.push({ card: card.dataset.segment, a: na, b: nb, dx: +x.toFixed(1), dy: +y.toFixed(1) });
+      }
+    }
+  }
+  return {
+    trunc, ov,
+    kmOvf: [...document.querySelectorAll('#zoneGrid .zkm')].filter(e => e.offsetParent).map(e => e.scrollWidth - e.clientWidth),
+    pageH: document.documentElement.scrollHeight, innerH: window.innerHeight,
+    pageW: document.documentElement.scrollWidth, innerW: window.innerWidth,
+    cards: document.querySelectorAll('#zoneGrid .zone').length,
+    rail: [...document.querySelectorAll('#rail button')].map(b => [(b.textContent || '').trim(), Math.round(b.getBoundingClientRect().height)]),
+  };
+}"""
+
+
 def check(name: str, ok: bool, detail: str = "") -> None:
     RESULTS.append((name, bool(ok), detail))
     print(("  ✔ " if ok else "  ✘ ") + name + (f"  — {detail}" if detail else ""))
@@ -396,6 +446,62 @@ def main() -> int:
             page.evaluate("() => localStorage.removeItem('gdc.prevLevels')")
             page.screenshot(path=str(dl / f"{shot}.png"), full_page=False)
             check(f"v12 {shot}.png 저장", (dl / f"{shot}.png").exists(), str(dl / f"{shot}.png"))
+            ctx.close()
+            browser.close()
+
+        print("\n[V6] v13 — 전 화면 글자 잘림 0 · 배지/요소 겹침 0 · 데스크톱 4열 이정 온전")
+        for vw, vh, shot, live in ((1280, 800, "v13_smoke_desktop", True),
+                                   (390, 680, "v13_live_390x680", True),
+                                   (1024, 768, "v13_live_1024x768", False),
+                                   (360, 640, "v13_live_360x640", False),
+                                   (844, 390, "v13_live_844x390", False)):
+            is_mob = vw < 1024
+            browser = pw.chromium.launch()
+            ctx = browser.new_context(viewport={"width": vw, "height": vh},
+                                      device_scale_factor=2, is_mobile=is_mob, has_touch=is_mob)
+            page = ctx.new_page()
+            errors: list[str] = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            page.goto(f"{base}/index.html", wait_until="load", timeout=40000)
+            if live:
+                connect_any(page, base)
+                try:
+                    page.wait_for_function("() => ['live','error'].includes(document.getElementById('modePill').dataset.state)", timeout=90000)
+                except Exception:  # noqa: BLE001
+                    pass
+            page.wait_for_function("() => ['snapshot', 'live', 'error'].includes(window.__gdc.state.mode)", timeout=40000)
+            page.wait_for_timeout(900)
+            info = page.evaluate(V13_SWEEP) or {}
+            label = f"{vw}×{vh}"
+            badge = page.evaluate("() => document.getElementById('modeText').textContent.trim()")
+            check(f"v13 {label} 글자 잘림 0건(카드·요약·상단바·노선 요약)",
+                  not info.get("trunc"),
+                  f"모드 '{badge}' · 말줄임 " + ", ".join(f"{t['cls']}:{t['txt']}(+{t['ovf']})" for t in (info.get("trunc") or []))[:160])
+            check(f"v13 {label} 구간 카드 안 요소 겹침·밖으로 남 0건",
+                  not info.get("ov"),
+                  ", ".join(f"{o['card']}:{o['a']}/{o['b']}" for o in (info.get("ov") or []))[:160])
+            if vw >= 1024:
+                check(f"v13 {label} 8개 카드 이정 끝자리까지 온전(말줄임 0)",
+                      info.get("cards") == 8 and info.get("kmOvf") and max(info["kmOvf"]) <= 0,
+                      f"카드 {info.get('cards')}개 · 최대 말줄임 {max(info.get('kmOvf') or [0])}px")
+            else:
+                check(f"v13 {label} 8구간 카드 이정 끝자리까지 온전(말줄임 0)",
+                      info.get("cards") in (0, 8) and (not info.get("kmOvf") or max(info["kmOvf"]) <= 0),
+                      f"카드 {info.get('cards')}개 · 말줄임 {info.get('kmOvf')}")
+            check(f"v13 {label} 한 화면 · 가로 스크롤 없음",
+                  info.get("pageH", 10 ** 6) <= info.get("innerH", 0) + 1
+                  and info.get("pageW", 10 ** 6) <= info.get("innerW", 0) + 1,
+                  f"{info.get('pageW')}×{info.get('pageH')} / {info.get('innerW')}×{info.get('innerH')}")
+            if vw == 844:
+                rail = info.get("rail") or []
+                check("v13 844×390 가로 레일 9버튼이 2줄 라벨로 온전",
+                      len(rail) == 9 and all(txt for txt, _ in rail) and all(h <= 62 for _, h in rail),
+                      f"{rail}")
+            check(f"v13 {label} 콘솔 예외 0건", not errors, "; ".join(errors[:2]))
+            out = dl / f"{shot}.png"
+            page.screenshot(path=str(out), full_page=False)
+            check(f"v13 {shot}.png 저장", out.exists() and out.stat().st_size > 20000,
+                  f"{out.stat().st_size:,}bytes")
             ctx.close()
             browser.close()
 
