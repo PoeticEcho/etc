@@ -363,6 +363,7 @@
         img.src = item.src;
         img.alt = item.alt || item.label || '';
         img.loading = 'lazy';
+        if (item.position) img.style.objectPosition = item.position;
         btn.appendChild(img);
         card.appendChild(btn);
 

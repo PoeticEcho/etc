@@ -44,6 +44,30 @@
       "source_note": "범어자이를 직접 찾아 촬영한 사진입니다."
     },
     {
+      "id": "live-entrance-night",
+      "src": "assets/photos/36-live-entrance-night.jpg",
+      "alt": "밤에 라인 조명이 켜진 범어자이 주출입구와 화강석 벽의 '40 동대구로 80길' 표기, 비에 젖은 보도",
+      "label": "동대구로80길 40, 주출입구의 밤",
+      "desc": "화강석 벽에 새겨진 주소 '40 동대구로 80길'. 처마를 따라 길게 이어지는 라인 조명이 비 온 뒤의 보도블록을 비춘다. 단지 주출입구에서 본 밤 풍경.",
+      "tags": ["live", "night"],
+      "credit": "입주민 직접 촬영",
+      "date": "2026-11-24",
+      "position": "52% 58%",
+      "source_note": "입주민이 직접 촬영한 사진입니다."
+    },
+    {
+      "id": "live-courtyard-pine",
+      "src": "assets/photos/37-live-courtyard-pine-night.jpg",
+      "alt": "단지 안쪽 마당에 지지대를 세운 소나무 두 그루와 화분 조경, 붉은 조명이 켜진 어린이 안전 차단기",
+      "label": "안쪽 마당의 소나무와 안전 차단기",
+      "desc": "안쪽 마당에 옮겨 심어 지지대를 세운 소나무 두 그루와 화분 조경. 붉은 라인 조명이 켜진 '아이들이 놀고 있어요' 차단기 너머로 103동·104동 안내판이 보인다.",
+      "tags": ["live", "garden", "night"],
+      "credit": "입주민 직접 촬영",
+      "date": "2026-11-24",
+      "position": "50% 44%",
+      "source_note": "입주민이 직접 촬영한 사진입니다."
+    },
+    {
       "id": "live-day-square",
       "src": "assets/photos/30-beomeo-day.jpg",
       "alt": "맑은 하늘 아래 범어자이 102동과 '범어자이 Square' 상가동",
