@@ -1288,9 +1288,11 @@ def main() -> int:
         check("직전 관측 대비 등급 상향 구간 자동 감지",
               rise["zones"] > 0 and rise["rises"] >= rise["zones"],
               f"상향 {rise['rises']}건 · 카드 {rise['zones']}구간")
+        # v12 — 펄스는 오르는 차로마다, ▲ 표식은 구간마다 하나(양방향이 함께 올라도 ▲ 는 한 곳)
         check("상향 구간 노선도 펄스 하이라이트 + ▲ 표식",
-              rise["halos"] > 0 and rise["halos"] == rise["marks"] and rise["halos"] <= rise["zones"] * 2,
-              f"펄스 {rise['halos']} · 표식 {rise['marks']} · 카드 {rise['zones']}구간(양방향 2선까지)")
+              rise["halos"] > 0 and rise["marks"] == rise["zones"] and rise["halos"] >= rise["marks"]
+              and rise["halos"] <= rise["zones"] * 2,
+              f"펄스 {rise['halos']} · 표식 {rise['marks']} · 카드 {rise['zones']}구간")
         check("구간 카드 ▲ 배지 + 요약 '▲ 상향'",
               rise["chips"] == rise["zones"] and "▲ 상향" in rise["meta"],
               f"배지 {rise['chips']} · {rise['meta'][-24:]}")
@@ -1431,9 +1433,11 @@ def main() -> int:
             })(),
           };
         }""")
+        # 방향이 실제로 갈리는 날에는 카드가 '대구 … / 광주 …'로 나뉜다 — 둘 다 양방향 표기로 인정한다
         check("v8 기본 방향 탭 = 양방향", v8["dirBoth"] == "true" and v8["dirE"] == "false"
-              and set(v8["segs"]) == {"E", "S"} and all("양방향" in c for c in v8["cards"]),
-              f"both={v8['dirBoth']} · 카드 {v8['cards'][:1]}")
+              and set(v8["segs"]) == {"E", "S"}
+              and all(("양방향" in c) or ("대구" in c and "광주" in c) for c in v8["cards"]),
+              f"both={v8['dirBoth']} · 카드 {v8['cards'][:2]}")
         check("v8 지도 헤더가 패널 헤더와 중복되지 않음 (큰 제목 제거)",
               len(v8["hdr"]) == 2 and not any("현황" in h for h in v8["hdr"]), str(v8["hdr"]))
 
@@ -1472,10 +1476,20 @@ def main() -> int:
         page.click('#routeDir [data-rd="both"]')
         page.wait_for_timeout(400)
 
+        # 보조 지표 시인성 — 실관측에 가시거리 주의가 없는 날이 많아, 고정 모의 등급으로 확인한다
+        page.goto(f"{base}/index.html?preview=alert", wait_until="load")
+        page.wait_for_timeout(600)
+        alt8 = page.evaluate("""() => {
+          const el = document.querySelector('#zoneGrid .zalt');
+          if (!el) return null;
+          const cs = getComputedStyle(el);
+          const m = cs.color.match(/\\d+/g).map(Number);
+          return { text: el.textContent.trim(), color: m, dot: !!el.querySelector('.adot'), fs: parseFloat(cs.fontSize) };
+        }""")
         check("v8 보조 지표(가시거리 주의) 앰버 톤 + 점",
-              v8["alt"] is not None and v8["alt"]["color"][0] > 190 and v8["alt"]["color"][2] < 140
-              and v8["alt"]["dot"] and v8["alt"]["fs"] >= 10,
-              str(v8["alt"]))
+              alt8 is not None and alt8["color"][0] > 190 and alt8["color"][2] < 140
+              and alt8["dot"] and alt8["fs"] >= 10,
+              str(alt8))
 
         # 리포트 — CCTV 열이 주요 거점 + 영상 상태, 분포 문구 확대
         rep8 = page.evaluate("() => window.__gdc.reportSvg()")

@@ -131,6 +131,95 @@ V11_MOBILE = """() => {
 }"""
 
 
+# v12 — 상향 시나리오: 지금 스냅샷의 1단계 이상 구간을 한 단계씩 낮춘 값을 '직전 관측'으로 심는다.
+# 그래야 관측값이 어떻게 바뀌든(배포마다 5분 단위로 갱신) 상향 ▲ 표식이 최소 1개는 생긴다.
+SEED_PREV = """() => {
+  const levels = window.__gdc.levels();
+  const prev = {};
+  for (const k of Object.keys(levels)) prev[k] = Math.max(0, levels[k] - 1);
+  return prev;
+}"""
+
+# v12 — ▲ 표식이 도로선·아이콘·말풍선·서로와 얼마나 떨어져 앉았는지 화면 픽셀로 잰다.
+V12_RISE = """() => {
+  const svg = document.querySelector('#routeMap');
+  const cm = svg.getScreenCTM();
+  const toScreen = (p) => ({ x: p.x * cm.a + p.y * cm.c + cm.e, y: p.x * cm.b + p.y * cm.d + cm.f });
+  const marks = [...document.querySelectorAll('#routeMap .rise-mark rect')].map((r) => {
+    const b = r.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height };
+  });
+  const roads = [];
+  for (const p of document.querySelectorAll('#routeMap .route-lines path')) {
+    const L = p.getTotalLength(); const sw = +p.getAttribute('stroke-width');
+    for (let i = 0; i <= 120; i += 1) { const q = p.getPointAtLength(L * i / 120); roads.push({ ...toScreen(q), r: sw / 2 }); }
+  }
+  const glyphs = [...document.querySelectorAll('#routeMap .node .glyph')].map((g) => {
+    const b = g.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height };
+  });
+  const pills = [...document.querySelectorAll('#routeMap .label-pill')].map((g) => {
+    const b = g.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height };
+  });
+  const dist = (b, p) => Math.hypot(Math.max(b.x - p.x, 0, p.x - (b.x + b.w)), Math.max(b.y - p.y, 0, p.y - (b.y + b.h)));
+  const inter = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const interY = (a, b) => Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  let roadGap = 1e9, pillHits = 0, glyphHits = 0, pairGap = 1e9;
+  for (let i = 0; i < marks.length; i += 1) {
+    const m = marks[i];
+    for (const p of roads) roadGap = Math.min(roadGap, dist(m, p) - p.r);
+    for (const g of pills) if (inter(m, g) > 0 && interY(m, g) > 0) pillHits += 1;
+    /* 아이콘은 다이아몬드·터널 모양이라 모서리 1~2px 스침은 눈에 띄지 않는다 — 3px 넘는 겹침만 센다 */
+    for (const g of glyphs) if (inter(m, g) > 3 && interY(m, g) > 3) glyphHits += 1;
+    for (let j = i + 1; j < marks.length; j += 1) {
+      const n = marks[j];
+      pairGap = Math.min(pairGap, Math.hypot(Math.max(m.x - (n.x + n.w), 0, n.x - (m.x + m.w)),
+                                             Math.max(m.y - (n.y + n.h), 0, n.y - (m.y + m.h))));
+    }
+  }
+  const rising = [...document.querySelectorAll('#zoneGrid .zone[data-rise="1"]')];
+  const t = document.getElementById('modeText');
+  const pill = document.getElementById('modePill');
+  const st = window.__gdc.state;
+  const when = new Date(Date.now() - 11 * 60000);
+  const pad = (v) => String(v).padStart(2, '0');
+  const tm = `${when.getFullYear()}${pad(when.getMonth() + 1)}${pad(when.getDate())}${pad(when.getHours())}${pad(when.getMinutes())}`;
+  const liveShort = (() => {
+    const keep = st.rwis; const mode = st.mode;
+    st.rwis = Object.assign({}, keep, { preview: false, sample: false, tm: { FR: tm, VR: tm }, tmLabel: { FR: keep.tmLabel ? keep.tmLabel.FR : '', VR: '' } });
+    st.mode = 'live';
+    const out = window.__gdc.freshness();
+    st.rwis = keep; st.mode = mode;
+    return out.short;
+  })();
+  return {
+    marks: marks.length, rising: rising.length,
+    perCard: rising.map((z) => (z.querySelectorAll('.zh .zrise').length) + ':' + (z.querySelectorAll('.ztags em.rup').length)),
+    zrise: document.querySelectorAll('#zoneGrid .zrise').length,
+    rup: document.querySelectorAll('#zoneGrid .rup').length,
+    roadGap: +roadGap.toFixed(1), pillHits, glyphHits, pairGap: +pairGap.toFixed(1),
+    badge: t.textContent.trim(), liveShort,
+    pageH: document.documentElement.scrollHeight, innerH: window.innerHeight,
+    textOvf: t.scrollWidth - t.clientWidth, pillOvf: pill.scrollWidth - pill.clientWidth,
+  };
+}"""
+
+# v12 — 최상단 배지 문구('● 실시간 11분 전')를 그 폭에서 그대로 넣어 넘침·스크롤을 잰다
+V12_BADGE = """() => {
+  const t = document.getElementById('modeText');
+  const pill = document.getElementById('modePill');
+  const keep = t.textContent;
+  t.textContent = '실시간 11분 전';
+  const out = {
+    textOvf: t.scrollWidth - t.clientWidth,
+    pillOvf: pill.scrollWidth - pill.clientWidth,
+    headerOvf: document.getElementById('topbar').scrollWidth - document.getElementById('topbar').clientWidth,
+    pageH: document.documentElement.scrollHeight, innerH: window.innerHeight,
+    pageW: document.documentElement.scrollWidth, innerW: window.innerWidth,
+  };
+  t.textContent = keep;
+  return out;
+}"""
+
+
 def check(name: str, ok: bool, detail: str = "") -> None:
     RESULTS.append((name, bool(ok), detail))
     print(("  ✔ " if ok else "  ✘ ") + name + (f"  — {detail}" if detail else ""))
@@ -257,6 +346,56 @@ def main() -> int:
                   info.get("pairs", 0) >= 8 and info.get("minArcRatio", 0) >= 2.5 and info.get("minPx", 0) >= 3.0,
                   f"쌍 {info.get('pairs')} · 최소 호 간격 {info.get('minArc')}(화살 크기의 "
                   f"{info.get('minArcRatio')}배) · 최소 화면 거리 {info.get('minPx')}px · {info.get('worst')}")
+            ctx.close()
+            browser.close()
+
+        print("\n[V5] v12 — 카드 ▲ 한 곳 · 지도 ▲ 여백 · 최상단 '… 전' 배지")
+        for vw, vh, shot in ((390, 680, "v12_live_390x680"), (360, 640, "v12_live_360x640"),
+                             (1280, 800, "v12_smoke_desktop")):
+            is_mob = vw < 1024
+            browser = pw.chromium.launch()
+            ctx = browser.new_context(viewport={"width": vw, "height": vh},
+                                      device_scale_factor=2 if is_mob else 1,
+                                      is_mobile=is_mob, has_touch=is_mob)
+            page = ctx.new_page()
+            page.goto(f"{base}/index.html", wait_until="load", timeout=40000)
+            page.wait_for_function("() => ['snapshot', 'live'].includes(window.__gdc.state.mode)", timeout=40000)
+            prev = page.evaluate(SEED_PREV)
+            page.evaluate("(p) => localStorage.setItem('gdc.prevLevels', JSON.stringify({ tm: 'seed', levels: p }))", prev)
+            page.reload(wait_until="load")
+            page.wait_for_function("() => ['snapshot', 'live'].includes(window.__gdc.state.mode)", timeout=40000)
+            page.wait_for_timeout(900)
+            info = page.evaluate(V12_RISE) or {}
+            label = f"{vw}×{vh}"
+            check(f"v12 {label} 상향 시나리오 성립(구간마다 ▲ 표식 하나)",
+                  info.get("rising", 0) > 0 and info.get("marks", 0) == info.get("rising", 0),
+                  f"상향 카드 {info.get('rising')} · 지도 표식 {info.get('marks')}")
+            check(f"v12 {label} 구간 카드 ▲ 는 카드당 제목 줄 한 곳뿐",
+                  all(p == "1:0" for p in info.get("perCard") or ["x"])
+                  and info.get("zrise") == info.get("rising") and info.get("rup") == 0,
+                  f"카드별 '제목:등급줄' {info.get('perCard')} · zrise {info.get('zrise')} · 등급줄 사본 {info.get('rup')}")
+            check(f"v12 {label} 지도 ▲ 가 말풍선·아이콘과 겹치지 않음",
+                  info.get("pillHits") == 0 and info.get("glyphHits") == 0,
+                  f"말풍선 겹침 {info.get('pillHits')} · 아이콘 겹침 {info.get('glyphHits')}")
+            check(f"v12 {label} 지도 ▲ 가 도로선 위에 얹히지 않고 ▲ 끼리 떨어짐",
+                  info.get("roadGap", -99) >= -2 and info.get("pairGap", 0) >= 2,
+                  f"도로선 여백 {info.get('roadGap')}px · ▲ 사이 {info.get('pairGap')}px")
+            import re
+            short = info.get("liveShort") or ""
+            mins = re.fullmatch(r"실시간 (\d+)분 전", short)
+            check(f"v12 {label} 최상단 배지가 '실시간 … 전'으로 표기",
+                  bool(mins) and 10 <= int(mins.group(1)) <= 12,
+                  f"short '{short}' · 화면 '{info.get('badge')}'")
+            badge = page.evaluate(V12_BADGE) or {}
+            check(f"v12 {label} '실시간 11분 전' 배지·제목 넘침 0 · 노스크롤",
+                  badge.get("textOvf", 1) <= 0 and badge.get("pillOvf", 1) <= 0 and badge.get("headerOvf", 1) <= 0
+                  and badge.get("pageH", 10 ** 6) <= badge.get("innerH", 0) + 1
+                  and badge.get("pageW", 10 ** 6) <= badge.get("innerW", 0) + 1,
+                  f"텍스트 {badge.get('textOvf')} · 배지 {badge.get('pillOvf')} · 헤더 {badge.get('headerOvf')}px · "
+                  f"{badge.get('pageW')}×{badge.get('pageH')} / {badge.get('innerW')}×{badge.get('innerH')}")
+            page.evaluate("() => localStorage.removeItem('gdc.prevLevels')")
+            page.screenshot(path=str(dl / f"{shot}.png"), full_page=False)
+            check(f"v12 {shot}.png 저장", (dl / f"{shot}.png").exists(), str(dl / f"{shot}.png"))
             ctx.close()
             browser.close()
 

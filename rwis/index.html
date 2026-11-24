@@ -730,11 +730,6 @@
   .zone .badge .ico { font-size: 10px; }
   .zone .badge .n { display: none; }
   .zone .zbadge { display: inline-flex; align-items: center; gap: 2px; }
-  .zone .rup {
-    font-style: normal; font-size: 9.5px; font-weight: 900; color: #fff1f2;
-    background: #e11d48; border-radius: 999px; padding: 1px 3px; line-height: 1.1;
-    animation: riseSoft 2.2s ease-in-out infinite;
-  }
   .zone .zcov { font-size: 9.5px; font-weight: 800; color: #647c9c; }
   .route-meta .rm-rise { color: #fda4af; font-weight: 800; }
   .point .pt-safe { font-size: 10.5px; font-weight: 800; color: #6f88a6; letter-spacing: -.01em; }
@@ -1618,13 +1613,15 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       };
     }
     if (minutes !== null && minutes > FRESH_STALE_MIN) {
-      return { kind: 'stale', label: `지연 · ${ageText(minutes)}`, short: `지연 · ${minutes < 60 ? minutes + '분' : Math.floor(minutes / 60) + '시간'}`, minutes, tm };
+      /* v12 — 짧은 표기도 '… 전'으로 통일(스냅샷·요약줄과 같은 표현) */
+      return { kind: 'stale', label: `지연 · ${ageText(minutes)}`, short: `지연 · ${shortAge(minutes)}`, minutes, tm };
     }
     const kind = minutes !== null && minutes > FRESH_LIVE_MIN ? 'stale' : 'live';
     return {
       kind,
       label: `${kind === 'live' ? '실시간' : '지연'}${minutes !== null ? ' · ' + ageText(minutes) : ' · 관측시각 미상'}`,
-      short: `${kind === 'live' ? '실시간' : '지연'}${minutes !== null ? ' ' + (minutes < 60 ? minutes + '분' : Math.floor(minutes / 60) + '시간') : ''}`,
+      /* v12 — 최상단 배지도 '● 실시간 11분 전'으로 경과 표기를 통일 */
+      short: `${kind === 'live' ? '실시간' : '지연'}${minutes !== null ? ' ' + shortAge(minutes) : ''}`,
       minutes, tm,
     };
   }
@@ -1771,6 +1768,16 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       zone[metric].levelName = LEVEL_NAME[level];
       zone[metric].levelDetail = LEVEL_DETAIL[level];
     };
+    /* v12 — 모의 등급은 그날 실관측 위에 덧그리지 않고 매번 같은 장면으로 만든다.
+       (관측이 높은 날은 안전 구간이 사라져 '모의' 장면이 매일 달라졌다) */
+    for (const zone of zones) {
+      for (const metric of ['fsm', 'vir']) {
+        if (!zone[metric]) continue;
+        zone[metric].level = 0;
+        zone[metric].levelName = LEVEL_NAME[0];
+        zone[metric].levelDetail = LEVEL_DETAIL[0];
+      }
+    }
     setLevel('160', 'E', 'fsm', 3);
     setLevel('160', 'S', 'fsm', 3);
     setLevel('170', 'E', 'fsm', 2);
@@ -1996,9 +2003,8 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
         .filter((r) => r.metric === metric && (dir === 'both' || r.dir === dir));
       const riseWorst = rises.reduce((m, r) => Math.max(m, r.to), -1);
       const title = segLabel(segment.name);
-      const riseChip = rises.length
-        ? `<em class="rup" title="직전 관측 ${LEVEL_NAME[Math.min(...rises.map((r) => r.from))]} → ${LEVEL_NAME[riseWorst]}">▲</em>`
-        : '';
+      /* v12 — ▲ 은 카드 제목 줄(.zrise) 한 곳에만 둔다. 등급 줄에도 붙던 사본을 걷어
+         '양방향 위험 ▲'처럼 같은 강조가 두 번 겹쳐 보이지 않게 했다. */
       const describe = (code) => `${segLabel(segment.name)} ${code === 'E' ? '대구방향' : '광주방향'} · ${LEVEL_DETAIL[worst]}`;
 
       let body;
@@ -2007,17 +2013,16 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       } else if (dir === 'both' && lvMine.E === lvMine.S) {
         body = worst === 0
           ? '<div class="zsafe"><span class="sdot" aria-hidden="true"></span>양방향 안전</div>'
-          : `<div class="zline"><span class="zbadge">${badge(worst, { label: '양방향', title: `${title} · 양방향 ${LEVEL_DETAIL[worst]}` })}${riseChip}</span></div>`;
+          : `<div class="zline"><span class="zbadge">${badge(worst, { label: '양방향', title: `${title} · 양방향 ${LEVEL_DETAIL[worst]}` })}</span></div>`;
       } else if (dir === 'both') {
         body = `<div class="zrow">
           <span class="zdir">대구</span>${sideChip(lvMine.E, 'E', segment.suffix, segment.name)}
           <span class="zslash" aria-hidden="true">/</span>
-          <span class="zdir">광주</span>${sideChip(lvMine.S, 'S', segment.suffix, segment.name)}
-          ${riseChip}</div>`;
+          <span class="zdir">광주</span>${sideChip(lvMine.S, 'S', segment.suffix, segment.name)}</div>`;
       } else if (worst === 0) {
         body = `<div class="zsafe"><span class="sdot" aria-hidden="true"></span>${dirShortOf(dir)} 안전</div>`;
       } else {
-        body = `<div class="zline"><span class="zbadge">${badge(worst, { label: dirShortOf(dir), title: describe(dir === 'E' ? 'E' : 'S') })}${riseChip}</span></div>`;
+        body = `<div class="zline"><span class="zbadge">${badge(worst, { label: dirShortOf(dir), title: describe(dir === 'E' ? 'E' : 'S') })}</span></div>`;
       }
 
       const altHint = altWorst !== null && altWorst !== undefined && altWorst >= 1
@@ -2940,7 +2945,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       const r = node.kind === 'tn' ? cfg.glyph.tnW / 2 + 4 : node.kind === 'jc' ? cfg.glyph.jc + 7 : cfg.glyph.ic + 6;
       return { name: node.name, x: q.x - r, y: q.y - r, w: r * 2, h: r * 2 };
     });
-    const step = cfg.compact ? 16 : 14;
+    const step = cfg.compact ? 14 : 14;
     for (let pass = 0; pass < 60; pass += 1) {
       let moved = false;
       for (const item of items) {
@@ -2948,7 +2953,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
         if (!others.some((g) => boxesOverlap(item.rect, g, 2))) continue;
         const base = { x: item.rect.x, y: item.rect.y };
         const cands = [];
-        for (let k = 1; k <= 7; k += 1) {
+        for (let k = 1; k <= 10; k += 1) {
           cands.push([0, -step * k], [0, step * k], [-step * k, 0], [step * k, 0]);
         }
         let best = null;
@@ -3309,6 +3314,12 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       out.push('</g>');
     }
 
+    /* ── 노드 + 라벨 ── (v12: ▲ 표식이 말풍선을 피할 수 있도록 배치는 표식보다 먼저 계산한다) */
+    const obstacles = [];
+    for (const box of regionLayout) obstacles.push({ x: box.x, y: box.y, w: box.w, h: box.h });
+    for (const box of branchBoxes) obstacles.push(box);
+    const layout = layoutNodes(tg, cfg, rect, obstacles);
+
     /* 직전 관측 대비 상향 구간 — 붉은 점선 펄스 + ▲ 표식 */
     const riseSegs = [];
     for (const seg of segs) {
@@ -3317,19 +3328,118 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       riseSegs.push({ seg, key, rise: state.rises[key] });
     }
     if (riseSegs.length) {
+      /* v12 — ▲ 표식이 마커·도로선과 바짝 붙던 문제
+         이전에는 구간 중앙에서 '위로 26' 고정 오프셋으로 찍어, 노선이 비스듬하거나 휘는 곳
+         (동고령IC·옥포JC 부근)에서는 도로선·아이콘 위에 얹혔다. 이제 노선 법선 방향으로 띄우고,
+         아이콘·말풍선·다른 표식·다른 차로와 가장 덜 부딪히는 호 위 자리를 골라 앉힌다. */
+      const riseRoad = segs.map((s) => {
+        const t = arcTable(densePath(s.pts));
+        const pts = [];
+        for (let i = 0; i <= 40; i += 1) pts.push(arcAt(t, (t.total * i) / 40));
+        return { pts, r: (s.width + cfg.stroke.case) / 2 };
+      });
+      const riseNodes = ROUTE_NODES.map((n) => {
+        const p = pointAtKm(n.km, tg);
+        /* 터널 아이콘은 휴대폰에서 위·아래로 번갈아 놓이므로 그만큼 반지름을 넓혀 잡는다 */
+        const r = n.kind === 'jc' ? cfg.glyph.jc * 1.45
+          : n.kind === 'tn' ? cfg.glyph.tnH * 0.84 + 3
+            : cfg.glyph.ic + 5;
+        return { x: p.x, y: p.y, r };
+      });
+      const boxHit = (a, b, pad) => a.x < b.x + b.w + pad && a.x + a.w > b.x - pad
+        && a.y < b.y + b.h + pad && a.y + a.h > b.y - pad;
+      const risePlaced = [];
+      /* 노선 점 둘레 8방향 — 위·아래를 기본으로 하고(도로를 가로질러 앉지 않게),
+         빽빽한 곳에서만 대각선으로 비켜 앉는다. a=0 이 노선 위쪽. */
+      const riseDirs = [0, 22, -22, 45, -45, 180, 158, -158, 135, -135].map((a) => {
+        const rad = (a * Math.PI) / 180;
+        return { ux: Math.sin(rad), uy: -Math.cos(rad), a };
+      });
       out.push('<g class="route-rises" aria-hidden="true">');
+      /* 펄스는 오르는 차로마다 긋고, ▲ 표식은 구간마다 하나만 — 양방향이 함께 오를 때
+         같은 구간에 ▲ 가 두 개 붙어 겹쳐 보이던 문제를 없앤다(휴대폰 지도). */
+      const markSegs = [];
+      const markZones = {};
       for (const item of riseSegs) {
+        const suffix = item.seg.zone.suffix;
+        const w = item.seg.width + Math.max(6, cfg.stroke.case + 2);
+        out.push(`<path d="${item.seg.d}" class="seg rise-halo" data-rise-seg="${suffix}" stroke="#f43f5e" stroke-width="${w}" stroke-dasharray="${cfg.compact ? '5 6' : '8 10'}" stroke-linecap="round" fill="none"/>`);
+        if (!markZones[suffix]) { markZones[suffix] = true; markSegs.push(item); }
+      }
+      for (const item of markSegs) {
         const seg = item.seg;
-        const w = seg.width + Math.max(6, cfg.stroke.case + 2);
-        out.push(`<path d="${seg.d}" class="seg rise-halo" data-rise-seg="${seg.zone.suffix}" stroke="#f43f5e" stroke-width="${w}" stroke-dasharray="${cfg.compact ? '5 6' : '8 10'}" stroke-linecap="round" fill="none"/>`);
-        const mid = seg.pts[Math.max(1, Math.floor(seg.pts.length / 2))] || seg.pts[0];
-        if (mid) {
-          const tw = Math.max(cfg.compact ? 14 : 20, fs.tick * 1.5);
-          out.push(`<g class="rise-mark" transform="translate(${n1(mid.x)} ${n1(mid.y - (dir === 'both' ? 26 : 24))})">
-            <rect x="${n1(-tw / 2 - 3)}" y="${n1(-tw * 0.62)}" width="${n1(tw + 6)}" height="${n1(tw * 0.92)}" rx="${n1(tw * 0.34)}" fill="#f43f5e" stroke="#4c0519" stroke-width="1"/>
-            ${svgText(0, n1(tw * 0.14), '▲', ` text-anchor="middle" font-size="${n1(tw * 0.62)}" font-weight="900" fill="#fff1f2"`)}
-          </g>`);
+        const tab = arcTable(densePath(seg.pts));
+        if (!tab.total) continue;
+        /* v12 — 양방향일 때 자기 차로 바깥으로 앉혀, 반대 차로를 가로지르지 않게 한다.
+           같은 구간의 반대 차로와의 위치 차이를 중간 법선에 투영해 바깥쪽 부호를 얻는다. */
+        const twin = dir === 'both'
+          ? segs.find((s2) => s2 !== seg && s2.zone.suffix === seg.zone.suffix && s2.dirCode !== seg.dirCode)
+          : null;
+        let outSign = 0;
+        if (twin && twin.pts.length === seg.pts.length) {
+          const half = Math.floor(seg.pts.length / 2);
+          const midTan = tangentAt(tab, tab.total * 0.5);
+          const dx = seg.pts[half].x - twin.pts[half].x;
+          const dy = seg.pts[half].y - twin.pts[half].y;
+          outSign = (dx * midTan.nx + dy * midTan.ny) >= 0 ? 1 : -1;
+        } else if (twin) {
+          outSign = 1;
         }
+        const tw = Math.max(cfg.compact ? 14 : 20, fs.tick * 1.5);
+        const bw = tw + 6;
+        const bh = tw * 0.92;
+        /* 노선 한가운데(굵은 획)에서 표식 절반 + 숨 쉴 틈(6~7px)만큼 떼어 놓는다 */
+        const clear = (seg.width + cfg.stroke.case) / 2 + bh / 2 + (cfg.compact ? 17 : 16);
+        let best = null;
+        for (const dirv of riseDirs) {
+          for (const extra of (cfg.compact ? [0, 6, 12] : [0, 8])) {
+            for (let k = 0; k <= 16; k += 1) {
+              const f = 0.18 + (0.64 * k) / 16;
+              const s = tab.total * f;
+              const at = arcAt(tab, s);
+              const tan = tangentAt(tab, s);
+              const d0 = clear + extra;
+              const cx = at.x + dirv.ux * d0;
+              const cy = at.y + dirv.uy * d0;
+              const box = { x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh };
+              /* 기본은 구간 가운데·노선 위쪽, 법선에서 벗어날수록·더 멀수록 조금 불리하게 */
+              const align = Math.abs(dirv.ux * tan.nx + dirv.uy * tan.ny);
+              let cost = Math.abs(f - 0.5) * 26 + extra * 22 + (1 - align) * 240
+                + Math.abs(dirv.a) * 0.9;
+              if (outSign) {
+                /* 반대 차로 쪽으로 앉는 방향은 크게 미룬다 */
+                if ((dirv.ux * tan.nx + dirv.uy * tan.ny) * outSign < 0.3) cost += 420;
+              } else if (dirv.uy > 0) cost += 40;
+              if (box.x < rect.x + 2 || box.x + box.w > rect.x + rect.w - 2) cost += 8000;
+              if (box.y < rect.y + 2 || box.y + box.h > rect.y + rect.h - 2) cost += 8000;
+              /* IC·JC·터널 아이콘과는 표식 절반 + 아이콘 반지름 + 6 만큼 띄운다 */
+              const keepN = Math.max(bw, bh) / 2 + 6;
+              for (const n of riseNodes) {
+                const d = Math.hypot(cx - n.x, cy - n.y);
+                if (d < n.r + keepN) cost += (n.r + keepN - d) * 200;
+              }
+              /* 말풍선(라벨)과는 조금이라도 겹치면 크게 물러난다 */
+              for (const it of layout) if (boxHit(box, it.rect, 4)) cost += 9000;
+              /* 도로선(자기 차로·반대 차로·이웃 구간)과는 5px 이상 띄운다 */
+              for (const road of riseRoad) {
+                for (const p of road.pts) {
+                  const d = Math.hypot(cx - p.x, cy - p.y);
+                  const need = road.r + bh / 2 + 5;
+                  if (d < need) cost += (need - d) * 260;
+                }
+              }
+              /* 이미 앉힌 ▲ 와는 최소 8px 간격 */
+              for (const pb of risePlaced) if (boxHit(box, pb, 8)) cost += 12000;
+              if (!best || cost < best.cost) best = { cost, cx, cy };
+            }
+          }
+        }
+        if (!best) continue;
+        risePlaced.push({ x: best.cx - bw / 2, y: best.cy - bh / 2, w: bw, h: bh });
+        out.push(`<g class="rise-mark" transform="translate(${n1(best.cx)} ${n1(best.cy)})">
+          <rect x="${n1(-bw / 2)}" y="${n1(-bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.42)}" fill="#f43f5e" stroke="#4c0519" stroke-width="1"/>
+          ${svgText(0, n1(tw * 0.2), '▲', ` text-anchor="middle" font-size="${n1(tw * 0.62)}" font-weight="900" fill="#fff1f2"`)}
+        </g>`);
       }
       out.push('</g>');
     }
@@ -3339,12 +3449,6 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       out.push(`<path d="${seg.d}" class="seg-hit" data-seg="${seg.zone.suffix}" stroke-width="${cfg.hitWidth}"><title>${esc(`${segLabel(seg.zone.name)} · ${LEVEL_FULL[seg.level] || '등급 없음'} · 눌러서 이 구간 보기`)}</title></path>`);
     }
     out.push('</g>');
-
-    /* ── 노드 + 라벨 ── */
-    const obstacles = [];
-    for (const box of regionLayout) obstacles.push({ x: box.x, y: box.y, w: box.w, h: box.h });
-    for (const box of branchBoxes) obstacles.push(box);
-    const layout = layoutNodes(tg, cfg, rect, obstacles);
 
     /* km 눈금 (라벨·노드와 겹치면 생략) */
     if (cfg.tick) {
@@ -4597,6 +4701,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     reportSize: () => ({ w: REPORT_W, h: REPORT_H, mapY: REPORT_MAP_Y, mapH: REPORT_MAP_H }),
     palette: (theme) => (theme === 'report' ? LV_COLOR.slice() : LV_COLOR_DARK.slice()),
     levels: () => captureLevels(state.rwis),
+    freshness: () => freshness(),
     zoneCounts8: (metric) => zoneCounts8(zoneIndex(), metric || state.routeMetric),
     segLabel,
   };
