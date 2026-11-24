@@ -240,7 +240,8 @@
     }
     var months = cons.months || [];
     if (months.length) {
-      var names = cons.workNames && cons.workNames.length ? cons.workNames : ['건축공사', '토목공사', '전기공사', '설비공사'];
+      // 원문 공정 구분 — AJAX detailBox 순서와 같습니다 (건축·토목·전기·설비)
+      var names = ['건축공사', '토목공사', '전기공사', '설비공사'];
       html += '<table class="arc-table arc-table--compact arc-table--scroll"><caption class="sr-only">월별 공정률</caption>' +
         '<thead><tr><th scope="col" class="num">기준월</th><th scope="col" class="num">전체</th>' +
         names.map(function (n) { return '<th scope="col" class="num">' + esc(n) + '</th>'; }).join('') +
