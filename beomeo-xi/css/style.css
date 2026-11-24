@@ -1017,7 +1017,15 @@ body.is-locked{overflow:hidden}
   .hero__kicker{row-gap:4px}
   .hero__ko{font-size:clamp(52px,15vw,72px)}
   .hero__btn{flex:1 1 0;min-width:0;padding:0 14px;height:48px;font-size:13.5px}
-  .gallery,.docs__grid,.park__grid{grid-template-columns:1fr}
+  .gallery,.park__grid{grid-template-columns:1fr}
+  /* 단지 자료: 모바일에서는 3열 그리드로 묶어 세로 호흡을 줄이고, 탭하면 라이트박스로 크게 봅니다 */
+  .docs__grid{grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+  .docs__title{font-size:17px;padding-bottom:11px}
+  .docs__title span{font-size:10px;letter-spacing:0}
+  .doc__img{aspect-ratio:1/1}
+  .doc__meta{padding:7px 7px 8px;gap:0}
+  .doc__meta b{font-size:11.5px;line-height:1.35;letter-spacing:-.03em}
+  .doc__meta em{display:none}
   .features{grid-template-columns:1fr}
   .specs > div{grid-template-columns:104px 1fr;gap:10px}
   .dist__head,.dist li{grid-template-columns:1fr 74px;gap:10px}
