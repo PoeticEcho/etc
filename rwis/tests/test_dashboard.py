@@ -37,6 +37,31 @@ def check(name: str, ok: bool, detail: str = "") -> None:
     print(("  ✔ " if ok else "  ✘ ") + name + (f"  — {detail}" if detail else ""))
 
 
+def map_label_center(page, name: str) -> list[float]:
+    """v14 — 지도 위 한글 라벨(말풍선)의 클릭 지점을 찾는다."""
+    return page.evaluate("""(n) => {
+      const g = [...document.querySelectorAll('#routeWrap g.node')].find((el) => el.querySelector('text.lbl').textContent === n);
+      if (!g) return null;
+      const hit = g.querySelector('rect.label-hit');
+      if (!hit) return null;
+      const r = hit.getBoundingClientRect();
+      return [r.x + r.width / 2, r.y + r.height / 2];
+    }""", name)
+
+
+def map_state(page) -> dict:
+    return page.evaluate("""() => ({
+      modal: !document.getElementById('modal').hidden,
+      title: document.getElementById('modalTitle').textContent,
+      eyebrow: document.getElementById('modalEyebrow').textContent.trim(),
+      nodeSheet: !document.getElementById('nodeSheet').hidden,
+      sheetTitle: document.getElementById('nodeSheetTitle').textContent,
+      zoneFocus: (document.querySelector('#zoneGrid .zone.focus') || { dataset: {} }).dataset.segment || null,
+      listCount: document.getElementById('listCount').textContent,
+      rows: [...document.querySelectorAll('#pointList .point h3')].map((h) => h.textContent.trim()),
+    })""")
+
+
 def main() -> int:
     httpd, port = serve.serve(0)
     base = f"http://127.0.0.1:{port}"
@@ -1093,28 +1118,40 @@ def main() -> int:
         tile = pp.evaluate("""() => {
           const z = document.querySelector('#zoneGrid .zone[data-segment="220"]');
           const meta = z.querySelector('.zmeta');
+          const btn = z.querySelector('.zcctv');
           return {
             cams: z.dataset.cams,
+            own: z.dataset.ownCams,
+            near: z.dataset.nearCams,
+            nearPoints: z.dataset.nearPoints,
             cls: z.className,
             meta: meta.textContent.replace(/\\s+/g, ' ').trim(),
             hasArrow: meta.textContent.includes('›'),
+            btnLabel: btn ? btn.getAttribute('aria-label') : null,
             dashes: getComputedStyle(z).borderTopStyle,
             worst: z.dataset.worst,
           };
         }""")
-        check("CCTV 0대 구간은 '영상 없음'으로 구분", tile["cams"] == "0" and "nocam" in tile["cls"]
-              and "CCTV 없음" in tile["meta"] and not tile["hasArrow"],
-              f"{tile['meta']} · {tile['cls']}")
-        check("CCTV 0대 구간은 점선 테두리로 비활성 표시", tile["dashes"] == "dashed", tile["dashes"])
+        check("v14 구간 안 CCTV 0대 → 인접 지점으로 '인근 CCTV' 버튼 유지",
+              tile["own"] == "0" and int(tile["near"]) > 0 and int(tile["nearPoints"]) == 3
+              and tile["cams"] == tile["near"] and "nearonly" in tile["cls"]
+              and tile["hasArrow"] and "CCTV 없음" not in tile["meta"]
+              and "인접 3지점" in (tile["btnLabel"] or ""),
+              f"{tile['meta']} · 구간 안 {tile['own']}대 · 인접 {tile['near']}대 · {tile['cls']}")
+        check("v14 인접 전용 구간은 점선 테두리로 구분", tile["dashes"] == "dashed", tile["dashes"])
         pp.click('#zoneGrid .zone[data-segment="220"]')
         pp.wait_for_timeout(300)
         zero_sheet = pp.evaluate("""() => ({
           open: !document.getElementById('zoneSheet').hidden,
           body: document.getElementById('sheetBody').textContent.replace(/\\s+/g, ' ').trim(),
           listHidden: document.getElementById('sheetList').classList.contains('hidden'),
+          listText: document.getElementById('sheetList').textContent.trim(),
         })""")
-        check("0대 구간 시트: 빈 CCTV 목록 대신 안내", zero_sheet["open"] and "영상 없음" in zero_sheet["body"] and zero_sheet["listHidden"],
-              zero_sheet["body"][-40:])
+        check("v14 인접 구간 시트: 구간 안 없음 + 인접 지점 안내",
+              zero_sheet["open"] and "구간 안 CCTV 없음" in zero_sheet["body"]
+              and "인접 3지점" in zero_sheet["body"] and not zero_sheet["listHidden"]
+              and "인접 3지점" in zero_sheet["listText"],
+              zero_sheet["body"][-45:] + " / " + zero_sheet["listText"])
         pp.click("#sheetClose")
         pp.wait_for_timeout(200)
 
@@ -1380,9 +1417,10 @@ def main() -> int:
         check("v7 리포트: 반복 '안전 0' 알약 제거 · 옅은 — 표기",
               "안전 0" not in rep_table and rep_table.count("양방향 —") >= 6,
               f"표 안전0={'안전 0' in rep_table} · — 표기 {rep_table.count('양방향 —')}개")
-        check("v9 리포트: CCTV 없는 구간은 중립 회색 'CCTV 없음'",
-              'CCTV 없음' in rep and 'fill="#9aabbd"' in rep and 'fill="#b45309"' not in rep,
-              "회색 확인" if 'fill="#9aabbd"' in rep else "빨강 잔존")
+        check("v14 리포트: 구간 안 CCTV 0대는 '인접 3지점'으로 안내(등록 대수는 안 늘림)",
+              '인접 3지점' in rep and '구간 안 없음' in rep and '등록 CCTV · 6대' not in rep
+              and 'fill="#b45309"' not in rep,
+              "인접 표기 확인" if '인접 3지점' in rep else "인접 표기 없음")
         check("v7 리포트: 양방향 동급은 '양방향' 한 칸",
               rep.count("양방향") >= 8, f"양방향 {rep.count('양방향')}회")
 
@@ -1679,8 +1717,8 @@ def main() -> int:
                   and all(r["kmScroll"] <= r["kmClient"] for r in long13.values()),
                   " · ".join(f"{k} {v['kmText']}" for k, v in long13.items()))
             btns13 = [r for r in rows13 if r["btnRight"] is not None]
-            check(f"v13 {vw}×{vh} '인근 CCTV ›' 버튼이 카드 안·이정과 같은 줄에 온전히",
-                  len(btns13) == 7 and all(r["btnShown"] and r["btnRight"] >= 1 and r["sameLine"] for r in btns13)
+            check(f"v14 {vw}×{vh} '인근 CCTV ›' 버튼이 8개 카드 모두 안·이정과 같은 줄에 온전히",
+                  len(btns13) == 8 and all(r["btnShown"] and r["btnRight"] >= 1 and r["sameLine"] for r in btns13)
                   and not [r for r in rows13 if r["metaOvf"] > 0 or r["cardOvf"] > 0],
                   f"최소 우측 여백 {min([r['btnRight'] for r in btns13] or [0])}px · 한 줄 "
                   f"{sum(1 for r in btns13 if r['sameLine'])}/{len(btns13)}")
@@ -1737,6 +1775,184 @@ def main() -> int:
         # (오래 산 브라우저에서 새 컨텍스트를 여는 것이 이 환경에서 멈추기 때문)
 
         check("v4 가로/세로 콘솔 에러 0건", not (l4_errors + p4_errors), "; ".join((l4_errors + p4_errors)[:3]))
+
+        # ═════════════════════════════════════════════════════════════════
+        print("\n[19] v14 — 동고령IC–고령JC 인접 CCTV · 지도 한글 라벨 직접 클릭 · 목록 'CCTV 없음'")
+        page.set_viewport_size({"width": 1280, "height": 900})
+        page.evaluate("() => { localStorage.removeItem('gdc.workerBase'); localStorage.removeItem('gdc.prevLevels'); }")
+        page.goto(f"{base}/index.html", wait_until="load", timeout=40000)
+        page.wait_for_function("() => !!window.__gdc", timeout=40000)
+        page.wait_for_timeout(650)
+
+        # ── 1) 220 구간 CCTV 연결 (중복 카운트 없이) ──
+        v14data = page.evaluate("""() => {
+          const zones = ['160', '170', '180', '190', '200', '210', '220', '230'];
+          const own = zones.map((s) => window.__gdc.camCountOf(window.__gdc.zoneOwnPoints(s)));
+          const near = zones.map((s) => ({
+            names: window.__gdc.zoneNearPoints(s).map((p) => p.name),
+            cams: window.__gdc.camCountOf(window.__gdc.zoneNearPoints(s)),
+          }));
+          const bridged = window.__gdc.zonePoints('220').map((p) => ({ name: p.name, km: p.km, zone: p.zone, cams: (p.cams || []).length }));
+          const card = document.querySelector('#zoneGrid .zone[data-segment="220"]');
+          const master = window.__gdc.state.cctv ? window.__gdc.state.cctv.points : null;
+          return {
+            own, near, bridged,
+            sumOwn: own.reduce((a, b) => a + b, 0),
+            listPoints: document.querySelectorAll('#pointList .point').length,
+            listCams: document.querySelectorAll('#pointList .cam').length,
+            listCount: document.getElementById('listCount').textContent,
+            masterPoints: master ? master.length : null,
+            card: {
+              cls: card.className,
+              ownCams: card.dataset.ownCams, nearCams: card.dataset.nearCams, nearPoints: card.dataset.nearPoints,
+              cams: card.dataset.cams, meta: card.querySelector('.zmeta').textContent.replace(/\s+/g, ' ').trim(),
+              label: card.querySelector('.zcctv') ? card.querySelector('.zcctv').getAttribute('aria-label') : null,
+              title: card.getAttribute('title') || '',
+            },
+          };
+        }""")
+        br = v14data["bridged"]
+        check("v14 220 구간(동고령IC–고령JC) CCTV ≥ 1대",
+              len(br) >= 1 and v14data["near"][6]["cams"] >= 1,
+              f"인접 {len(br)}지점 {v14data['near'][6]['cams']}대: " + ", ".join(f"{p['name']}({p['km']}km)" for p in br))
+        check("v14 220 인접은 163~167km(기산2교·기족교·고령분기점)",
+              [p["name"] for p in br] == ["기산2교", "기족교", "고령분기점_광주대구"]
+              and all(163.0 <= p["km"] <= 167.0 for p in br),
+              ", ".join(f"{p['name']} {p['km']}" for p in br))
+        check("v14 210·230 구간은 그대로 비지 않음",
+              v14data["own"][5] >= 1 and v14data["own"][7] >= 1,
+              f"210 {v14data['own'][5]}대 · 230 {v14data['own'][7]}대")
+        check("v14 인접을 붙여도 등록 총계 62지점·123대 그대로(중복 0)",
+              v14data["sumOwn"] == 123 and v14data["listCams"] == 123
+              and v14data["listPoints"] == 62 and v14data["listCount"].startswith("62지점 123대"),
+              f"구간 합 {v14data['sumOwn']} · 목록 {v14data['listCount']}")
+        check("v14 카드 220은 '구간 안 0대 + 인접 6대'로 표시(버튼 유지)",
+              v14data["card"]["ownCams"] == "0" and v14data["card"]["nearCams"] == "6"
+              and v14data["card"]["nearPoints"] == "3" and "nearonly" in v14data["card"]["cls"]
+              and "CCTV 없음" not in v14data["card"]["meta"]
+              and "인접 3지점" in (v14data["card"]["label"] or "")
+              and "인접 3지점" in v14data["card"]["title"],
+              f"{v14data['card']['meta']} · {v14data['card']['label']}")
+
+        # ── 2) 220 '인근 CCTV' → 목록이 인접 3지점으로 ──
+        page.click('#zoneGrid .zone[data-segment="220"] .zcctv')
+        page.wait_for_timeout(380)
+        f220 = page.evaluate("""() => ({
+          focus: (document.querySelector('#zoneGrid .zone.focus') || { dataset: {} }).dataset.segment || null,
+          rows: [...document.querySelectorAll('#pointList .point')].map((r) => ({
+            name: r.querySelector('h3').textContent.trim(),
+            near: r.dataset.near || '',
+            tag: r.querySelector('.pt-near') ? r.querySelector('.pt-near').textContent.trim() : '',
+          })),
+          count: document.getElementById('listCount').textContent,
+          meta: document.getElementById('listMeta').innerText.replace(/\s+/g, ' '),
+        })""")
+        check("v14 220 '인근 CCTV' → 목록 3지점·6대",
+              f220["focus"] == "220" and len(f220["rows"]) == 3 and f220["count"] == "3지점 6대",
+              f"{f220['count']} · {[r['name'] for r in f220['rows']]}")
+        check("v14 인접 지점은 목록에서 '인접' 배지",
+              all(r["tag"] == "인접" and r["near"] == "220" for r in f220["rows"]),
+              str([(r["name"], r["tag"]) for r in f220["rows"]]))
+        check("v14 목록 상단에 '구간 안 CCTV 없음 · 인접 지점' 안내",
+              "구간 안 CCTV 없음" in f220["meta"], f220["meta"][:80])
+        page.click("#zoneFocusChip")
+        page.wait_for_timeout(300)
+
+        # ── 3) 지도 한글 라벨 직접 클릭 ──
+        xy = map_label_center(page, "함양IC")
+        check("v14 지도 라벨에 클릭 히트 영역(label-hit) 존재", bool(xy), str(xy))
+        page.mouse.click(xy[0], xy[1])
+        page.wait_for_timeout(450)
+        lab_ic = map_state(page)
+        check("v14 '함양IC' 라벨 클릭 → 그 지점 CCTV 모달(선택 시트 아님)",
+              lab_ic["modal"] and not lab_ic["nodeSheet"] and lab_ic["title"] == "함양" and "95.0km" in lab_ic["eyebrow"],
+              f"{lab_ic['title']} · {lab_ic['eyebrow']} · picker={lab_ic['nodeSheet']}")
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(300)
+
+        xy = map_label_center(page, "함양JC")
+        page.mouse.click(xy[0], xy[1])
+        page.wait_for_timeout(450)
+        lab_jc = map_state(page)
+        check("v14 '함양JC' 라벨 클릭 → 자기 구간만 바로 필터(선택 시트 아님)",
+              not lab_jc["nodeSheet"] and lab_jc["zoneFocus"] == "170" and not lab_jc["modal"],
+              f"구간 {lab_jc['zoneFocus']} · 목록 {lab_jc['listCount']} · picker={lab_jc['nodeSheet']}")
+        page.click("#zoneFocusChip")
+        page.wait_for_timeout(300)
+
+        xy = map_label_center(page, "동고령IC")
+        page.mouse.click(xy[0], xy[1])
+        page.wait_for_timeout(450)
+        lab_dg = map_state(page)
+        check("v14 '동고령IC' 라벨 클릭 → 220 구간 인접 CCTV 필터",
+              lab_dg["zoneFocus"] == "220" and lab_dg["listCount"] == "3지점 6대",
+              f"구간 {lab_dg['zoneFocus']} · {lab_dg['listCount']}")
+        page.click("#zoneFocusChip")
+        page.wait_for_timeout(300)
+
+        page.evaluate("""() => {
+          const hit = document.querySelector('#routeWrap .node[data-km="97.3"] .node-hit');
+          const r = hit.getBoundingClientRect();
+          window.__markerAt = [r.x + r.width / 2, r.y + r.height / 2];
+        }""")
+        marker = page.evaluate("() => window.__markerAt")
+        page.mouse.click(marker[0], marker[1])
+        page.wait_for_timeout(400)
+        mk = map_state(page)
+        check("v14 기존 마커(.node-hit) 클릭은 그대로 '인접 노드 선택' 시트",
+              mk["nodeSheet"] and "함양" in mk["sheetTitle"] and not mk["modal"],
+              f"{mk['sheetTitle']} · picker={mk['nodeSheet']}")
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(250)
+
+        page.evaluate("""() => {
+          const g = [...document.querySelectorAll('#routeWrap g.node')].find((el) => el.querySelector('text.lbl').textContent === '거창IC');
+          g.querySelector('rect.label-hit').focus();
+        }""")
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(450)
+        kb = map_state(page)
+        check("v14 라벨 키보드(Enter) 선택 — 초점 이동 후 바로 열림",
+              kb["modal"] and kb["title"] == "거창" and not kb["nodeSheet"],
+              f"{kb['title']} · {kb['eyebrow']}")
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(300)
+
+        # ── 4) 지점 목록 'CCTV 없음' 표기 (그 방향 CCTV가 없는 지점) ──
+        page.click('#dirTabs button[data-dir="D"]')
+        page.wait_for_timeout(300)
+        nolist = page.evaluate("""() => ({
+          count: document.getElementById('listCount').textContent,
+          rows: document.querySelectorAll('#pointList .point').length,
+          cams: document.querySelectorAll('#pointList .cam').length,
+          nocam: [...document.querySelectorAll('#pointList .point')].filter((r) => r.dataset.nocam === '1').map((r) => ({
+            km: r.querySelector('.km').textContent.trim(),
+            name: r.querySelector('h3').textContent.trim(),
+            badge: r.querySelector('.pt-nocam') ? r.querySelector('.pt-nocam').textContent.trim() : null,
+            cams: r.querySelectorAll('.cam').length,
+            open: r.dataset.open,
+          })),
+        })""")
+        check("v14 대구방향에서 CCTV 없는 지점도 사라지지 않고 남음",
+              nolist["rows"] == 62 and nolist["cams"] == 61 and len(nolist["nocam"]) == 1,
+              f"{nolist['count']} · CCTV 없는 행 {[r['name'] for r in nolist['nocam']]}")
+        check("v14 CCTV 없는 지점에 'CCTV 없음' 배지(두산)",
+              len(nolist["nocam"]) == 1 and nolist["nocam"][0]["name"] == "두산"
+              and nolist["nocam"][0]["badge"] == "CCTV 없음" and nolist["nocam"][0]["cams"] == 0
+              and not nolist["nocam"][0]["open"],
+              str(nolist["nocam"][:1]))
+        page.click('#dirTabs button[data-dir="all"]')
+        page.wait_for_timeout(250)
+        after = page.evaluate("""() => ({
+          count: document.getElementById('listCount').textContent,
+          badges: document.querySelectorAll('#pointList .pt-nocam').length,
+        })""")
+        check("v14 양방향으로 돌리면 다시 62지점 123대 · 배지 0개",
+              after["count"].startswith("62지점 123대") and after["badges"] == 0, str(after))
+
+        page.screenshot(path=str(ROOT.parent / "downloads" / "v14_smoke_desktop.png"), full_page=False)
+        check("v14 데스크톱 스크린샷 저장",
+              (ROOT.parent / "downloads" / "v14_smoke_desktop.png").exists(), "downloads/v14_smoke_desktop.png")
 
         desktop_errors = [e for e in console_errors if "Failed to load resource" not in e]
         check("데스크톱 콘솔 에러 0건", not desktop_errors, "; ".join(desktop_errors[:3]))

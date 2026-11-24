@@ -12,49 +12,73 @@
    "suffix": "160",
    "startKm": 95.0,
    "endKm": 97.3,
-   "name": "함양IC–함양JC"
+   "name": "함양IC–함양JC",
+   "nearIds": [],
+   "nearNames": []
   },
   {
    "suffix": "170",
    "startKm": 97.3,
    "endKm": 121.1,
-   "name": "함양JC–거창IC"
+   "name": "함양JC–거창IC",
+   "nearIds": [],
+   "nearNames": []
   },
   {
    "suffix": "180",
    "startKm": 121.1,
    "endKm": 131.1,
-   "name": "거창IC–가조IC"
+   "name": "거창IC–가조IC",
+   "nearIds": [],
+   "nearNames": []
   },
   {
    "suffix": "190",
    "startKm": 131.1,
    "endKm": 146.4,
-   "name": "가조IC–해인사IC"
+   "name": "가조IC–해인사IC",
+   "nearIds": [],
+   "nearNames": []
   },
   {
    "suffix": "200",
    "startKm": 146.4,
    "endKm": 152.9,
-   "name": "해인사IC–고령IC"
+   "name": "해인사IC–고령IC",
+   "nearIds": [],
+   "nearNames": []
   },
   {
    "suffix": "210",
    "startKm": 152.9,
    "endKm": 165.52,
-   "name": "고령IC–동고령IC"
+   "name": "고령IC–동고령IC",
+   "nearIds": [],
+   "nearNames": []
   },
   {
    "suffix": "220",
    "startKm": 165.52,
    "endKm": 166.99,
-   "name": "동고령IC–고령JC"
+   "name": "동고령IC–고령JC",
+   "nearIds": [
+    "p50",
+    "p51",
+    "p52"
+   ],
+   "nearNames": [
+    "기산2교",
+    "기족교",
+    "고령분기점_광주대구"
+   ]
   },
   {
    "suffix": "230",
    "startKm": 166.99,
    "endKm": 176.0,
-   "name": "고령JC–옥포JC"
+   "name": "고령JC–옥포JC",
+   "nearIds": [],
+   "nearNames": []
   }
  ],
  "points": [
@@ -1301,7 +1325,10 @@
     }
    ],
    "id": "p50",
-   "zone": "210"
+   "zone": "210",
+   "nearZones": [
+    "220"
+   ]
   },
   {
    "name": "기족교",
@@ -1326,7 +1353,10 @@
     }
    ],
    "id": "p51",
-   "zone": "210"
+   "zone": "210",
+   "nearZones": [
+    "220"
+   ]
   },
   {
    "name": "고령분기점_광주대구",
@@ -1351,7 +1381,10 @@
     }
    ],
    "id": "p52",
-   "zone": "230"
+   "zone": "230",
+   "nearZones": [
+    "220"
+   ]
   },
   {
    "name": "논공휴게소",
@@ -1603,5 +1636,6 @@
    "id": "p62",
    "zone": "230"
   }
- ]
+ ],
+ "bridgeKm": 4.0
 }

@@ -21,7 +21,7 @@
  * .m3u8/영상 조각은 브라우저의 hls.js가 *.hscdn.com에서 직접 받습니다.
  */
 
-const VERSION = '2.2.0';
+const VERSION = '2.3.0';
 
 const CACHE_TTL = {
   cctv: 900,      // 15분 — ITS 원본 갱신 주기

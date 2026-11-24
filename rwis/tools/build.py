@@ -49,6 +49,32 @@ def zone_of(km: float) -> str:
     return ZONES[-1][0] if km >= ZONES[-1][2] else ZONES[0][0]
 
 
+# v14 — 구간 안에 CCTV가 한 대도 없을 때(동고령IC–고령JC 1.47km) 붙일 '인접' 지점의 범위.
+# 구간에 들어서기 전 BRIDGE_KM 만큼의 접근 구간과, 구간 끝 경계(도달 km)에 붙은 지점까지만 본다.
+BRIDGE_KM = 4.0
+BRIDGE_MAX = 3
+
+
+def attach_near_points(ordered: list[dict]) -> dict[str, list[dict]]:
+    """CCTV가 0대인 구간에 접근 구간의 가까운 지점을 '인접(near)'으로 붙인다.
+
+    지점의 원래 구간(zone)은 건드리지 않는다. 그래서 210·230 구간 목록도 그대로이고,
+    등록 CCTV 총계(62지점·123대)도 늘지 않는다. 붙은 지점만 nearZones 에 구간 접미사가 남는다.
+    """
+    bridged: dict[str, list[dict]] = {}
+    for suffix, start, end, _ in ZONES:
+        if any(p["zone"] == suffix for p in ordered):
+            continue
+        window = [p for p in ordered if start - BRIDGE_KM <= p["km"] <= end + 1e-6]
+        near = window[-BRIDGE_MAX:]
+        for point in near:
+            point.setdefault("nearZones", [])
+            if suffix not in point["nearZones"]:
+                point["nearZones"].append(suffix)
+        bridged[suffix] = near
+    return bridged
+
+
 def build_master() -> dict:
     with CSV_PATH.open(encoding="utf-8-sig", newline="") as fh:
         rows = list(csv.DictReader(fh))
@@ -78,12 +104,24 @@ def build_master() -> dict:
         point["zone"] = zone_of(point["km"])
         point["cams"].sort(key=lambda c: c["dir"])
 
+    bridged = attach_near_points(ordered)
+
+    zones = []
+    for suffix, start, end, name in ZONES:
+        near = bridged.get(suffix, [])
+        zones.append({
+            "suffix": suffix, "startKm": start, "endKm": end, "name": name,
+            "nearIds": [p["id"] for p in near],
+            "nearNames": [p["name"] for p in near],
+        })
+
     return {
         "route": "광주대구선",
         "routeNo": "012",
         "range": {"startKm": 95.0, "endKm": 176.0, "startName": "함양IC", "endName": "옥포JC"},
-        "zones": [{"suffix": s, "startKm": a, "endKm": b, "name": n} for s, a, b, n in ZONES],
+        "zones": zones,
         "points": ordered,
+        "bridgeKm": BRIDGE_KM,
     }
 
 
@@ -104,6 +142,20 @@ def main() -> None:
     cameras = sum(len(p["cams"]) for p in master["points"])
     if len(master["points"]) != 62 or cameras != 123:
         sys.exit(f"예상과 다른 데이터입니다: {len(master['points'])}지점 / {cameras}대")
+
+    # v14 — 인접 지점을 붙여도 원래 구간 기준 합계는 그대로여야 한다(중복 카운트 금지).
+    own_total = sum(
+        sum(len(p["cams"]) for p in master["points"] if p["zone"] == z["suffix"])
+        for z in master["zones"]
+    )
+    if own_total != cameras:
+        sys.exit(f"구간별 CCTV 합계가 전체와 다릅니다: {own_total} != {cameras}")
+    for zone in master["zones"]:
+        own = [p for p in master["points"] if p["zone"] == zone["suffix"]]
+        if not own and not zone["nearIds"]:
+            print(f"경고: {zone['name']}({zone['suffix']}) 구간에 CCTV도 인접 지점도 없습니다.")
+        elif not own:
+            print(f"인접 연결: {zone['name']}({zone['suffix']}) ← {'·'.join(zone['nearNames'])}")
 
     DATA_JSON.parent.mkdir(parents=True, exist_ok=True)
     DATA_JSON.write_text(json.dumps(master, ensure_ascii=False, indent=1), encoding="utf-8")

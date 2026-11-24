@@ -505,6 +505,100 @@ def main() -> int:
             ctx.close()
             browser.close()
 
+        print("\n[V7] v14 — 390×680·360×640 인접 구간 카드 · 'CCTV 없음' 배지 (스크롤 0·잘림 0)")
+        for vw, vh, shot in ((390, 680, "v14_live_390x680"), (360, 640, "v14_live_360x640")):
+            browser = pw.chromium.launch()
+            ctx = browser.new_context(viewport={"width": vw, "height": vh},
+                                      device_scale_factor=2, is_mobile=True, has_touch=True)
+            page = ctx.new_page()
+            errors: list[str] = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            page.goto(f"{base}/index.html", wait_until="load", timeout=40000)
+            page.wait_for_function("() => !!window.__gdc", timeout=40000)
+            page.wait_for_timeout(800)
+            label = f"{vw}×{vh}"
+
+            sweep = page.evaluate(V13_SWEEP) or {}
+            tile = page.evaluate("""() => {
+              const z = document.querySelector('#zoneGrid .zone[data-segment="220"]');
+              if (!z) return null;
+              const btn = z.querySelector('.zcctv');
+              const meta = z.querySelector('.zmeta');
+              const zb = z.getBoundingClientRect();
+              const bb = btn ? btn.getBoundingClientRect() : null;
+              return {
+                nearonly: z.classList.contains('nearonly'),
+                own: z.dataset.ownCams, near: z.dataset.nearCams, cams: z.dataset.cams,
+                label: btn ? btn.textContent.trim() : null,
+                btnInCard: bb ? (bb.left >= zb.left - 0.5 && bb.right <= zb.right + 0.5
+                  && bb.top >= zb.top - 0.5 && bb.bottom <= zb.bottom + 0.5) : false,
+                btnH: bb ? Math.round(bb.height) : 0,
+                metaOvf: meta ? meta.scrollWidth - meta.clientWidth : 0,
+              };
+            }""")
+            check(f"v14 {label} 220 카드에 '인근 CCTV' 버튼이 카드 안에 온전히",
+                  bool(tile) and tile["nearonly"] and tile["own"] == "0" and tile["near"] == "6"
+                  and tile["btnInCard"] and tile["btnH"] >= 16 and tile["metaOvf"] <= 0,
+                  f"{tile}")
+            check(f"v14 {label} 카드 글자 잘림·겹침·밖으로 남 0건",
+                  not sweep.get("trunc") and not sweep.get("ov"),
+                  f"말줄임 {len(sweep.get('trunc') or [])} · 겹침 {len(sweep.get('ov') or [])}")
+            check(f"v14 {label} 노선도 화면 한 화면·가로 스크롤 없음",
+                  sweep.get("pageH", 10 ** 6) <= sweep.get("innerH", 0) + 1
+                  and sweep.get("pageW", 10 ** 6) <= sweep.get("innerW", 0) + 1,
+                  f"{sweep.get('pageW')}×{sweep.get('pageH')} / {sweep.get('innerW')}×{sweep.get('innerH')}")
+
+            page.click('#dockBar button[data-view="list"]')
+            page.wait_for_timeout(350)
+            page.click('#dirTabs button[data-dir="D"]')
+            page.wait_for_timeout(350)
+            rows = page.evaluate("""() => {
+              const bad = [];
+              let badgeOut = 0;
+              for (const r of document.querySelectorAll('#pointList .point')) {
+                const rb = r.getBoundingClientRect();
+                for (const e of r.querySelectorAll('.pt-cams, .pt-nocam, .cam, .pt-near')) {
+                  if (e.offsetParent === null) continue;
+                  const b = e.getBoundingClientRect();
+                  if (b.left < rb.left - 0.5 || b.right > rb.right + 0.5 || b.top < rb.top - 0.5 || b.bottom > rb.bottom + 0.5) {
+                    bad.push((r.querySelector('h3') || {}).textContent + ':' + String(e.className));
+                  }
+                  if (e.classList.contains('pt-nocam') && e.scrollWidth > e.clientWidth + 1) badgeOut += 1;
+                }
+              }
+              const noCam = [...document.querySelectorAll('#pointList .point')].filter((r) => r.dataset.nocam === '1');
+              return {
+                count: document.getElementById('listCount').textContent,
+                rows: document.querySelectorAll('#pointList .point').length,
+                cams: document.querySelectorAll('#pointList .cam').length,
+                badges: document.querySelectorAll('#pointList .pt-nocam').length,
+                noCamNames: noCam.map((r) => r.querySelector('h3').textContent.trim()),
+                badgeText: noCam.length && noCam[0].querySelector('.pt-nocam') ? noCam[0].querySelector('.pt-nocam').textContent.trim() : null,
+                bad, badgeOut,
+                pageH: document.documentElement.scrollHeight, innerH: window.innerHeight,
+                pageW: document.documentElement.scrollWidth, innerW: window.innerWidth,
+                listScrolls: (() => { const s = document.querySelector('.list-scroll'); return s ? s.scrollHeight > s.clientHeight + 1 : null; })(),
+              };
+            }""")
+            check(f"v14 {label} 대구방향 목록에 'CCTV 없음' 배지(두산)",
+                  rows["badges"] == 1 and rows["noCamNames"] == ["두산"] and rows["badgeText"] == "CCTV 없음"
+                  and not rows["badgeOut"],
+                  f"{rows['count']} · 배지 {rows['badgeText']} · {rows['noCamNames']}")
+            check(f"v14 {label} 목록 행 안 배지·버튼이 잘리지 않음",
+                  not rows["bad"], ", ".join(rows["bad"][:3]))
+            check(f"v14 {label} 지점 목록 화면 한 화면·가로 스크롤 없음",
+                  rows["pageH"] <= rows["innerH"] + 1 and rows["pageW"] <= rows["innerW"] + 1
+                  and rows["listScrolls"] in (True, False),
+                  f"{rows['pageW']}×{rows['pageH']} / {rows['innerW']}×{rows['innerH']} · 목록 내부 스크롤 {rows['listScrolls']}")
+            check(f"v14 {label} 콘솔 예외 0건", not errors, "; ".join(errors[:2]))
+            page.click('#dockBar button[data-view="route"]')
+            page.wait_for_timeout(400)
+            page.screenshot(path=str(dl / f"{shot}.png"), full_page=False)
+            check(f"v14 {shot}.png 저장", (dl / f"{shot}.png").exists() and (dl / f"{shot}.png").stat().st_size > 20000,
+                  f"downloads/{shot}.png")
+            ctx.close()
+            browser.close()
+
     httpd.shutdown()
     passed = sum(1 for _, ok, _ in RESULTS if ok)
     print(f"\n결과: {passed}/{len(RESULTS)} 통과")

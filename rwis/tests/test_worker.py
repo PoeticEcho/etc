@@ -341,6 +341,15 @@ def main() -> int:
         check("ITS 없는 지점 목록", len(cbody["stats"]["pointsWithoutIts"]) == 59,
               f"{len(cbody['stats']['pointsWithoutIts'])}지점 / 매칭: " +
               ", ".join(p["name"] for p in cbody["points"] if p.get("its")))
+        # v14 — 220 구간 인접 지점이 Worker 응답에도 그대로 실린다(대시보드가 같은 규칙으로 그린다)
+        near220 = [p for p in cbody["points"] if "220" in (p.get("nearZones") or [])]
+        check("v14 Worker 응답: 220 인접 지점 3곳(기산2교·기족교·고령분기점)",
+              [p["name"] for p in near220] == ["기산2교", "기족교", "고령분기점_광주대구"],
+              ", ".join(p["name"] for p in near220))
+        check("v14 Worker 응답: 인접 지점은 원래 구간 유지 · 등록 123대 그대로",
+              {p["name"]: p["zone"] for p in near220} == {"기산2교": "210", "기족교": "210", "고령분기점_광주대구": "230"}
+              and cbody["stats"]["masterCameras"] == 123,
+              f"{[(p['name'], p['zone']) for p in near220]} · {cbody['stats']['masterCameras']}대")
 
         its_error = page.evaluate("""async () => {
           window.__itsMode = 'error';
@@ -361,6 +370,11 @@ def main() -> int:
         sbody = status["body"]
         check("/api/status 200 + CCTV·RWIS 동시", status["status"] == 200 and sbody["cctv"] and sbody["rwis"],
               f"cctv={bool(sbody['cctv'])}, rwis={bool(sbody['rwis'])}, errors={list(sbody['errors'])}")
+        zone220 = next((z for z in sbody["master"]["zones"] if z["suffix"] == "220"), None)
+        check("v14 /api/status master.zones[220].nearIds 3곳",
+              bool(zone220) and len(zone220.get("nearIds") or []) == 3
+              and zone220.get("nearNames") == ["기산2교", "기족교", "고령분기점_광주대구"],
+              f"{zone220.get('nearIds') if zone220 else None}")
 
         partial = page.evaluate("""async () => {
           const res = await window.__worker.fetch(new Request('http://localhost/api/status?refresh=1'), {});

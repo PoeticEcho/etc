@@ -239,6 +239,8 @@
   .zone.nocam .zmeta { color: #9fb2c7; }
   .zone.nocam .zmeta .no-cam { color: #fcd34d; font-weight: 800; }
   .zone.nocam .zmeta .go { display: none; }
+  /* v14 — 구간 안 CCTV가 0대이고 인접 지점만 있는 구간(동고령IC–고령JC): 점선 테두리로 구분하되 버튼은 살린다 */
+  .zone.nearonly { border-style: dashed; }
   .zone.focus { border-color: #38bdf8; box-shadow: 0 0 0 1.5px rgba(56,189,248,.45) inset; background: rgba(56,189,248,.08); }
   .zone .zh { display: flex; align-items: baseline; gap: 5px; margin-bottom: 3px; min-width: 0; }
   .zone .zh strong { font-size: 10.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -344,7 +346,11 @@
   .point .pt-head { grid-column: 1; grid-row: 1; }
   .point .pt-risk { grid-column: 2; grid-row: 1; display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; }
   .point .pt-addr { grid-column: 1; grid-row: 2; font-size: 9.5px; color: var(--muted-2); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .point .pt-cams { grid-column: 2; grid-row: 2; display: flex; gap: 4px; justify-self: end; }
+  .point .pt-cams { grid-column: 2; grid-row: 2; display: flex; gap: 4px; justify-self: end; align-items: center; }
+  /* v14 — 방향 탭·인접 구간에서 CCTV가 없는 지점: 빈 자리 대신 'CCTV 없음' */
+  .point .pt-nocam { font-size: 10px; font-weight: 700; color: #93a7bd; white-space: nowrap; letter-spacing: -.01em; }
+  .point .pt-near { font-size: 9.5px; font-weight: 800; color: #7dd3fc; border: 1px solid rgba(56,189,248,.4); background: rgba(56,189,248,.1); border-radius: 6px; padding: 1px 5px; white-space: nowrap; }
+  .point[data-nocam="1"] { cursor: default; }
   .cam {
     display: inline-flex; align-items: center; gap: 4px;
     background: #16233a; color: var(--text); border: 1px solid var(--line);
@@ -1911,6 +1917,35 @@ const ROUTE_GEO = __ROUTE_GEO__;
     return samplePoints();
   }
 
+  /* ── v14 — 구간 안 CCTV와 '인접' 지점 ───────────
+   * 동고령IC–고령JC(165.52–166.99km)처럼 구간 길이(1.47km) 안에 CCTV가 없는 곳은
+   * 마스터가 접근 구간(구간 시작 4km 전 ~ 구간 끝)의 가까운 지점을 nearZones 로 붙여 둔다.
+   * 지점은 원래 구간에 그대로 남으므로 등록 총계(62지점·123대)는 늘지 않고,
+   * 210·230 구간 목록도 비지 않는다. 화면에서는 그런 지점을 '인접'으로 구분해 보여 준다. */
+  function nearZonesOf(point) {
+    return Array.isArray(point && point.nearZones) ? point.nearZones : [];
+  }
+
+  function pointInZone(point, suffix) {
+    return point.zone === suffix || nearZonesOf(point).indexOf(suffix) >= 0;
+  }
+
+  function zoneOwnPoints(points, suffix) {
+    return points.filter((p) => p.zone === suffix);
+  }
+
+  function zoneNearPoints(points, suffix) {
+    return points.filter((p) => p.zone !== suffix && nearZonesOf(p).indexOf(suffix) >= 0);
+  }
+
+  function zonePoints(points, suffix) {
+    return points.filter((p) => pointInZone(p, suffix));
+  }
+
+  function camCountOf(points) {
+    return points.reduce((n, p) => n + (p.cams || []).length, 0);
+  }
+
   function zoneIndex() {
     const index = new Map();
     const zones = state.rwis && Array.isArray(state.rwis.zones) ? state.rwis.zones : sampleRwis().zones;
@@ -2030,9 +2065,16 @@ const ROUTE_GEO = __ROUTE_GEO__;
       const hot = worst !== null && worst >= 2;
       if (filter === 'alert' && !hot) return '';
       shown += 1;
-      const inZone = points.filter((p) => p.zone === segment.suffix);
-      const camCount = inZone.reduce((n, p) => n + (p.cams || []).length, 0);
-      const nocam = camCount === 0;
+      const inZone = zoneOwnPoints(points, segment.suffix);
+      const nearZone = zoneNearPoints(points, segment.suffix);
+      const camCount = camCountOf(inZone);
+      const nearCams = camCountOf(nearZone);
+      /* v14 — 구간 안에 CCTV가 없으면 가까운 '인접' 지점으로 버튼을 살린다(동고령IC–고령JC) */
+      const nearOnly = camCount === 0 && nearCams > 0;
+      const nocam = camCount === 0 && nearCams === 0;
+      const cctvScope = nearOnly
+        ? `구간 안 없음 · 인접 ${nearZone.length}지점 ${nearCams}대`
+        : `${inZone.length}지점 ${camCount}대`;
       const worstKey = worst === null || worst === undefined ? 'none' : String(worst);
       const rises = isSample ? [] : zoneRises(segment.suffix)
         .filter((r) => r.metric === metric && (dir === 'both' || r.dir === dir));
@@ -2070,18 +2112,19 @@ const ROUTE_GEO = __ROUTE_GEO__;
       const meta = nocam
         ? `<span class="zkm">${kmRange}</span><span class="zno">CCTV 없음</span>`
         : `<span class="zkm">${kmRange}</span><button class="zcctv" type="button" data-zonecctv="${segment.suffix}"
-             aria-label="${esc(title)} 인근 CCTV 목록 보기"><span aria-hidden="true">📹</span> 인근 CCTV<span class="zchev" aria-hidden="true">›</span></button>`;
+             aria-label="${esc(title)} 인근 CCTV 목록 보기 (${esc(cctvScope)})"><span aria-hidden="true">${nearOnly ? '📍' : '📹'}</span> 인근 CCTV<span class="zchev" aria-hidden="true">›</span></button>`;
 
-      return `<div class="zone${hot ? ' hot' : ''}${state.zoneFocus === segment.suffix ? ' focus' : ''}${nocam ? ' nocam' : ''}"
+      return `<div class="zone${hot ? ' hot' : ''}${state.zoneFocus === segment.suffix ? ' focus' : ''}${nocam ? ' nocam' : ''}${nearOnly ? ' nearonly' : ''}"
           data-segment="${segment.suffix}" data-metric="${metric}" data-worst="${worstKey}" data-alt="${altWorst === null || altWorst === undefined ? 'none' : altWorst}"
           data-rise="${rises.length ? 1 : 0}"
-          data-cams="${camCount}" data-points="${inZone.length}"
+          data-cams="${camCount + nearCams}" data-own-cams="${camCount}" data-near-cams="${nearCams}" data-near-points="${nearZone.length}"
+          data-points="${inZone.length}"
           data-lv-e-fsm="${lvFsm.E === null || lvFsm.E === undefined ? '' : lvFsm.E}"
           data-lv-e-vir="${lvVir.E === null || lvVir.E === undefined ? '' : lvVir.E}"
           data-lv-s-fsm="${lvFsm.S === null || lvFsm.S === undefined ? '' : lvFsm.S}"
           data-lv-s-vir="${lvVir.S === null || lvVir.S === undefined ? '' : lvVir.S}"
           role="button" tabindex="0" aria-pressed="${Boolean(state.zoneFocus === segment.suffix)}"
-          title="${esc(title)} ${kmText(segment.startKm)}–${kmText(segment.endKm)}km · ${nocam ? 'CCTV 없는 구간 · ' : ''}${worst === null || worst === undefined ? '등급 없음' : `${dirTag} 최고 ${LEVEL_NAME[worst]} (${METRIC_SHORT[metric]})`} · 눌러서 이 구간 보기">
+          title="${esc(title)} ${kmText(segment.startKm)}–${kmText(segment.endKm)}km · ${nocam ? 'CCTV 없는 구간 · ' : nearOnly ? `구간 안 CCTV 없음 · 인접 ${nearZone.length}지점 · ` : ''}${worst === null || worst === undefined ? '등급 없음' : `${dirTag} 최고 ${LEVEL_NAME[worst]} (${METRIC_SHORT[metric]})`} · 눌러서 이 구간 보기">
         <div class="zh"><strong>${esc(title)}</strong>${rises.length ? `<span class="zrise" title="직전 관측 대비 상향" aria-label="직전 관측 대비 상향 ${LEVEL_NAME[riseWorst]}">▲</span>` : ''}</div>
         <div class="ztags">${body}${altHint}</div>
         <div class="zmeta">${meta}</div>
@@ -2192,11 +2235,12 @@ const ROUTE_GEO = __ROUTE_GEO__;
   function renderList() {
     const index = zoneIndex();
     const isSample = !hasData();
+    /* v14 — 방향 탭에서 그 방향 CCTV가 없는 지점도 지우지 않고 'CCTV 없음'으로 남긴다.
+       (빈 버튼 자리가 로딩 누락처럼 보이던 문제 · 두산은 광주방향만 있다) */
     const points = currentPoints()
       .filter((p) => matchesQuery(p, state.query))
       .filter((p) => matchesFacility(p, state.facility))
-      .filter((p) => !state.zoneFocus || p.zone === state.zoneFocus)
-      .filter((p) => (state.direction === 'all' ? true : visibleCams(p).length > 0))
+      .filter((p) => !state.zoneFocus || pointInZone(p, state.zoneFocus))
       .slice()
       .sort((a, b) => (state.sortDesc ? b.km - a.km : a.km - b.km));
 
@@ -2206,6 +2250,10 @@ const ROUTE_GEO = __ROUTE_GEO__;
     if (el.dockCount) el.dockCount.textContent = String(points.length);
     if (el.railCount) el.railCount.textContent = String(points.length);
 
+    /* v14 — 인접 구간만 보는 중이면 그 사실을 목록 상단에 적는다(구간 안 CCTV 0대) */
+    const nearFocusNote = state.zoneFocus && !zoneOwnPoints(currentPoints(), state.zoneFocus).length
+      ? '구간 안 CCTV 없음 · 인접 지점' : '';
+
     const itsHint = state.cctv && state.cctv.stats
       ? `ITS 매칭 ${state.cctv.stats.matchedPoints}/${state.cctv.stats.masterPoints}`
       : state.mode === 'snapshot' ? '스냅샷 모드 · Worker 미연결'
@@ -2214,6 +2262,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
     el.listMeta.innerHTML = [
       `<span>이정 ${state.sortDesc ? '내림차순' : '오름차순'}</span>`,
       `<span>${esc(itsHint)}</span>`,
+      nearFocusNote ? `<span>${nearFocusNote}</span>` : '',
       state.query ? `<span>검색 “${esc(state.query)}”</span>` : '',
     ].filter(Boolean).join('<span class="sep">·</span>');
 
@@ -2270,7 +2319,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
         ? `<span class="pr-dots">${dots.join('')}</span>`
         : '<span class="pt-safe" aria-label="안전"></span>';
 
-      const cams = visibleCams(point).map((cam) => {
+      const camList = visibleCams(point);
+      const cams = camList.map((cam) => {
         const matched = (point.its || []).length > 0;
         return `<button class="cam ${cam.dir === 'G' ? 'g' : ''}" type="button"
             data-cctv="${esc(cam.cctvId)}" data-name="${esc(point.name)}" data-dir="${cam.dir}"
@@ -2281,20 +2331,26 @@ const ROUTE_GEO = __ROUTE_GEO__;
             ${matched ? '<span class="its-dot" title="ITS 목록에 있음"></span>' : ''}
           </button>`;
       }).join('');
+      /* v14 — 방향 탭에서 그 방향 CCTV가 없는 지점은 빈 자리 대신 'CCTV 없음' */
+      const camCell = camList.length ? cams : '<span class="pt-nocam">CCTV 없음</span>';
+      /* v14 — 인접 구간(예: 동고령IC–고령JC)을 보는 중이면 이 지점이 구간 밖임을 밝힌다 */
+      const nearHere = state.zoneFocus && point.zone !== state.zoneFocus && pointInZone(point, state.zoneFocus);
 
       return `<article class="point" data-point="${esc(point.id)}" data-zone="${esc(point.zone)}" role="button" tabindex="0"
-          data-open="${esc((visibleCams(point)[0] || {}).cctvId || '')}" data-open-dir="${esc((visibleCams(point)[0] || {}).dir || '')}"
-          aria-label="${esc(point.name)} ${kmText(point.km)}km · 눌러서 영상 보기">
+          data-nocam="${camList.length ? '0' : '1'}"${nearHere ? ` data-near="${esc(state.zoneFocus)}"` : ''}
+          data-open="${esc((camList[0] || {}).cctvId || '')}" data-open-dir="${esc((camList[0] || {}).dir || '')}"
+          aria-label="${esc(point.name)} ${kmText(point.km)}km · ${camList.length ? '눌러서 영상 보기' : 'CCTV 없음'}">
         <div class="pt-head">
           <span class="km">${kmText(point.km)}k</span>
           <h3>${esc(point.name)}</h3>
           <span class="fac ${facClass}">${esc(point.facility)}</span>
+          ${nearHere ? '<span class="pt-near" title="이 구간 안이 아니라 바로 옆 지점">인접</span>' : ''}
         </div>
         <div class="pt-risk" data-lv-fsm="${fsmWorst === null || fsmWorst === undefined ? '' : fsmWorst}" data-lv-vir="${virWorst === null || virWorst === undefined ? '' : virWorst}">
           ${riskText}
         </div>
         <p class="pt-addr" title="${esc(point.address)}">${esc(point.address)}</p>
-        <div class="pt-cams">${cams}</div>
+        <div class="pt-cams">${camCell}</div>
       </article>`;
     };
 
@@ -3117,6 +3173,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
         .lbl-tn { font-family: ${RM_FONT}; font-size: ${(fs.label * 0.8).toFixed(1)}px; font-weight: 600; fill: ${cfg.theme === 'report' ? '#7a8fa3' : '#8aa2bc'}; letter-spacing: 0; }
         .region { font-family: ${RM_FONT}; font-size: ${fs.region}px; font-weight: 800; fill: ${S.region}; letter-spacing: ${cfg.regionSpacing}px; }
         .node-hit { pointer-events: all; }
+        .label-hit { pointer-events: all; cursor: pointer; }
+        .label-hit:focus-visible { stroke: #38bdf8; stroke-width: 2; fill: rgba(56,189,248,.16); }
         .glyph { pointer-events: none; }
         .leader { stroke: ${S.leader}; stroke-width: ${cfg.leaderW}; fill: none; }
         .branch-lbl { font-family: ${RM_FONT}; font-size: ${cfg.branchFont}px; font-weight: 700; fill: ${S.branch}; letter-spacing: -.01em;
@@ -3547,6 +3605,12 @@ const ROUTE_GEO = __ROUTE_GEO__;
         out.push(svgText(cx, r.y + r.h - cfg.subGap, item.subText, ' class="lbl-sub" text-anchor="middle"'));
       }
       out.push(`<rect class="node-focus" x="${n1(r.x - 4)}" y="${n1(r.y - 4)}" width="${n1(r.w + 8)}" height="${n1(r.h + 8)}" rx="8" fill="none" stroke="transparent" stroke-width="1.5"/>`);
+      /* v14 — 한글 라벨(말풍선) 자체를 눌러도 그 지점이 바로 열린다.
+         마커(.node-hit)는 지금처럼 '바투 붙은 지점 고르기' 시트를 열고, 라벨은 그 지점 하나만 연다. */
+      const labelPad = cfg.compact ? 7 : 4;
+      out.push(`<rect class="label-hit" x="${n1(r.x - labelPad)}" y="${n1(r.y - labelPad)}" width="${n1(r.w + labelPad * 2)}" height="${n1(r.h + labelPad * 2)}" rx="${n1(Math.min(11, (r.h + labelPad * 2) / 2.4))}"
+        data-direct="1" data-node="${esc(node.point || '')}" data-km="${node.km}" data-zone="${zone.suffix}"
+        role="button" tabindex="0" aria-label="${esc(node.name)} ${node.point ? '지점 CCTV 바로 보기' : '구간 바로 보기'}" fill="transparent"/>`);
       out.push('</g>');
     }
     out.push('</g>');
@@ -3828,8 +3892,14 @@ const ROUTE_GEO = __ROUTE_GEO__;
   }
 
   /** 리포트 CCTV 칸 — 요약 문구와 보조 문구 (v9: '영상 연결'은 실시간 송출로 읽히므로 '등록 CCTV') */
-  function reportCctvCell(inZone) {
-    if (!inZone.length) return { main: 'CCTV 없음', sub: '' };
+  function reportCctvCell(inZone, nearZone) {
+    if (!inZone.length) {
+      /* v14 — 구간 안에 CCTV가 없으면 인접 지점으로 안내(등록 대수 총계는 늘리지 않는다) */
+      const near = nearZone || [];
+      const nearCams = near.reduce((n, p) => n + (p.cams || []).length, 0);
+      if (!near.length) return { main: 'CCTV 없음', sub: '' };
+      return { main: `인접 ${near.length}지점`, sub: `구간 안 없음 · 인근 CCTV ${nearCams}대` };
+    }
     const cams = inZone.reduce((n, p) => n + (p.cams || []).length, 0);
     const linked = inZone.filter((p) => (p.cams || []).length > 0).length;
     const anchors = zoneAnchors(inZone);
@@ -3919,7 +3989,8 @@ const ROUTE_GEO = __ROUTE_GEO__;
       const d = index.get('E' + segment.suffix);
       const g = index.get('S' + segment.suffix);
       const lvF = (z, m) => (isSample || !z || !z[m] ? null : z[m].level);
-      const inZone = points.filter((p) => p.zone === segment.suffix);
+      const inZone = zoneOwnPoints(points, segment.suffix);
+      const nearZone = zoneNearPoints(points, segment.suffix);
       const cams = inZone.reduce((n, p) => n + (p.cams || []).length, 0);
       const rose = ['fsm', 'vir'].some((m) => rises['E' + segment.suffix + m] || rises['S' + segment.suffix + m]);
       const name = segLabel(segment.name);
@@ -3929,9 +4000,9 @@ const ROUTE_GEO = __ROUTE_GEO__;
       out.push(svgText(470, y + 36, `${kmText(segment.startKm)}–${kmText(segment.endKm)}km`, ' font-size="17" font-weight="600" fill="#6b82a4"'));
       out.push(reportGradeBoth(700, y + 18, lvF(d, 'fsm'), lvF(g, 'fsm')));
       out.push(reportGradeBoth(1010, y + 18, lvF(d, 'vir'), lvF(g, 'vir')));
-      const cell = reportCctvCell(inZone);
+      const cell = reportCctvCell(inZone, nearZone);
       out.push(svgText(REPORT_W - 84, y + 32, cell.main,
-        ` text-anchor="end" font-size="16.5" font-weight="700" fill="${inZone.length ? '#3a5a76' : '#9aabbd'}"`));
+        ` text-anchor="end" font-size="16.5" font-weight="700" fill="${inZone.length || nearZone.length ? '#3a5a76' : '#9aabbd'}"`));
       if (cell.sub) {
         out.push(svgText(REPORT_W - 84, y + 55, cell.sub, ' text-anchor="end" font-size="13.5" font-weight="600" fill="#8ba0b6"'));
       }
@@ -4291,21 +4362,28 @@ const ROUTE_GEO = __ROUTE_GEO__;
     const isSample = !hasData();
     const d = index.get('E' + suffix);
     const g = index.get('S' + suffix);
-    const pts = currentPoints().filter((p) => p.zone === suffix);
-    const cams = pts.reduce((n, p) => n + (p.cams || []).length, 0);
+    const ownPts = zoneOwnPoints(currentPoints(), suffix);
+    const nearPts = zoneNearPoints(currentPoints(), suffix);
+    const pts = ownPts.concat(nearPts);
+    const cams = camCountOf(ownPts);
+    const nearCams = camCountOf(nearPts);
     const b = (zone2, kind) => (zone2
       ? badge(isSample ? null : zone2[kind].level, { ico: kind === 'fsm' ? '❄' : '👁', quiet: true, title: isSample ? '샘플 구조' : zone2[kind].levelDetail })
       : badge(null, {}));
+    const cctvText = cams > 0
+      ? `${pts.length}지점 ${cams}대`
+      : nearCams > 0
+        ? `<b style="color:#7dd3fc">구간 안 CCTV 없음</b> · 바로 옆 인접 ${nearPts.length}지점 ${nearCams}대`
+        : '<b style="color:#fcd34d">영상 없음</b> · 이 구간은 도로기상 관측만 제공합니다';
     el.sheetTitle.textContent = zone.name;
     el.sheetBody.innerHTML = `
       <div class="sheet-row"><span class="k">이정</span>${kmText(zone.startKm)}–${kmText(zone.endKm)}km · ${(zone.endKm - zone.startKm).toFixed(1)}km</div>
       <div class="sheet-row"><span class="k">대구방향</span>${b(d, 'fsm')}${b(d, 'vir')}</div>
       <div class="sheet-row"><span class="k">광주방향</span>${b(g, 'fsm')}${b(g, 'vir')}</div>
-      <div class="sheet-row"><span class="k">CCTV</span>${cams === 0
-        ? '<b style="color:#fcd34d">영상 없음</b> · 이 구간은 도로기상 관측만 제공합니다'
-        : `${pts.length}지점 ${cams}대 ${state.zoneFocus === suffix ? '· <b style="color:#7dd3fc">지금 이 구간만 보는 중</b>' : ''}`}</div>`;
-    el.sheetList.classList.toggle('hidden', cams === 0);
-    el.sheetList.textContent = cams === 0 ? '이 구간 CCTV 없음' : '이 구간 CCTV 보기';
+      <div class="sheet-row"><span class="k">CCTV</span>${cctvText}${state.zoneFocus === suffix ? ' · <b style="color:#7dd3fc">지금 이 구간만 보는 중</b>' : ''}</div>`;
+    el.sheetList.classList.toggle('hidden', cams + nearCams === 0);
+    el.sheetList.textContent = cams + nearCams === 0 ? '이 구간 CCTV 없음'
+      : cams === 0 ? `인접 ${nearPts.length}지점 CCTV 보기` : '이 구간 CCTV 보기';
     sheetZone = suffix;
     el.zoneSheet.hidden = false;
   }
@@ -4518,7 +4596,18 @@ const ROUTE_GEO = __ROUTE_GEO__;
     else focusZone(node.dataset.zone);
   }
 
+  /** v14 — 한글 라벨을 짚었을 때 — 바투 붙었어도 그 라벨의 지점 하나만 골라 연다. */
+  function activateLabel(hit) {
+    if (hit.dataset.node) { focusNode(hit.dataset.node); return; }
+    const zone = hit.dataset.zone;
+    if (!zone) return;
+    if (isMobile()) openZoneSheet(zone);
+    else focusZone(zone);
+  }
+
   el.routeWrap.addEventListener('click', (event) => {
+    const label = event.target.closest('[data-direct]');
+    if (label) { activateLabel(label); return; }
     const node = event.target.closest('[data-node]');
     if (node) { activateNode(node); return; }
     const seg = event.target.closest('[data-seg]');
@@ -4530,6 +4619,12 @@ const ROUTE_GEO = __ROUTE_GEO__;
 
   el.routeWrap.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
+    const label = event.target.closest('[data-direct]');
+    if (label) {
+      event.preventDefault();
+      activateLabel(label);
+      return;
+    }
     const node = event.target.closest('[data-node]');
     if (!node) return;
     event.preventDefault();
@@ -4738,6 +4833,11 @@ const ROUTE_GEO = __ROUTE_GEO__;
     freshness: () => freshness(),
     zoneCounts8: (metric) => zoneCounts8(zoneIndex(), metric || state.routeMetric),
     segLabel,
+    /* v14 — 인접 지점 연결 검증용 */
+    zonePoints: (suffix) => zonePoints(currentPoints(), suffix),
+    zoneOwnPoints: (suffix) => zoneOwnPoints(currentPoints(), suffix),
+    zoneNearPoints: (suffix) => zoneNearPoints(currentPoints(), suffix),
+    camCountOf,
   };
 })();
 </script>
