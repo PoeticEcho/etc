@@ -1286,7 +1286,7 @@
   /* 범례 — 한 줄 칩(색 견본 + 이름) */
   .wx-note {
     flex: none; display: flex; align-items: center; gap: 0 6px; margin: 0;
-    font-size: 8.7px; line-height: 1.25; color: #5f7794; white-space: nowrap; overflow: hidden;
+    font-size: 8.7px; line-height: 1.25; color: #8098b2; white-space: nowrap; overflow: hidden;
   }
   .wx-note .lg { display: inline-flex; align-items: center; gap: 3px; flex: none; }
   .wx-note .sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
@@ -1295,7 +1295,7 @@
   .wx-note .sw.wet { background: #10b981; }
   .wx-note .sw.chill { background: #fbbf24; }
   .wx-note .sw.ice { background: #ef4444; }
-  .wx-note .src { margin-left: auto; color: #4d637f; }
+  .wx-note .src { margin-left: auto; color: #5b708c; }
   .wx-note b { color: #8ea6c0; font-weight: 800; }
   .wx-empty { margin: 0; padding: 18px 10px; text-align: center; font-size: 11.5px; line-height: 1.6; color: #6b82a4; }
   .wx-empty .retry { margin-top: 8px; }
@@ -1319,8 +1319,6 @@
     .wx-cell .wx-p { font-size: 8.6px; }
     .wx-note { font-size: 9px; gap: 0 8px; }
     .wx-note .sw { width: 9px; height: 9px; }
-    #wxTableWrap { height: auto; }
-    #wxTableWrap > .wx-table { flex: 0 0 auto; }
   }
 
   /* ── 모바일: 엄지 탭 크기만 남기고 위아래 여백은 걷어낸다 ── */
@@ -1370,7 +1368,20 @@
   /* 넉넉한 데스크톱은 KPI 에 첫 시각까지 (좁은 화면은 숨김) */
   @media (min-width: 1024px) and (min-height: 800px) {
     .wx-kpi .k { height: 36px; flex-wrap: wrap; align-content: center; row-gap: 0; }
-    .wx-kpi .s { display: block; flex: 1 0 100%; margin-top: 1px; font-size: 8.6px; color: #5f7794; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wx-kpi .s { display: block; flex: 1 0 100%; margin-top: 1px; font-size: 8.6px; color: #6b82a4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wx-table tbody td, .wx-table tbody th { height: 28px; }
+  }
+  /* 큰 모니터 — 남는 높이를 행과 글자로 나눠 쓴다(스크롤은 그대로 0) */
+  @media (min-width: 1024px) and (min-height: 860px) {
+    .wx-table thead th { height: 22px; font-size: 9.8px; }
+    .wx-table tbody td, .wx-table tbody th { height: 34px; }
+    .wx-reg .rn { font-size: 11.4px; }
+    .wx-reg .rg { font-size: 8.8px; }
+    .wx-cell .wx-ic { font-size: 10.8px; }
+    .wx-cell .wx-t { font-size: 11.6px; }
+    .wx-cell .wx-p { font-size: 9.2px; }
+    .wx-kpi .l { font-size: 9.6px; }
+    .wx-kpi b { font-size: 14.4px; }
   }
 
 </style>
