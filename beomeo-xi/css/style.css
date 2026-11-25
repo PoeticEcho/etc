@@ -338,15 +338,20 @@ figcaption a:hover{color:var(--forest);border-color:var(--forest)}
 }
 .specs dt{font-size:11.5px;color:var(--muted);letter-spacing:.04em}
 .specs dd{font-size:14px;line-height:1.65;color:var(--ink)}
-.specs > .specs__archive{grid-column:1/-1;padding:15px 0;align-items:baseline}
+/* 아카이브 행 — 위 스펙 행과 똑같은 표 한 줄. 평상시엔 본문 색·서체 그대로 두고
+   마우스를 올리거나 포커스·터치할 때만 딥 포레스트 그린으로 바뀝니다. */
 .specs__archive dd a{
-  display:inline-flex;align-items:baseline;gap:7px;
-  font-family:var(--sans);font-size:14px;font-weight:400;line-height:1.65;color:var(--forest);letter-spacing:-.01em;
-  transition:gap .25s,color .25s;
+  font:inherit;color:var(--ink);letter-spacing:inherit;
+  text-decoration:none;border-bottom:0;
+  transition:color .25s var(--ease);
 }
-.specs__archive dd a:hover{gap:10px;color:var(--forest-2)}
-.specs__arw{font-family:var(--sans);font-size:12px;line-height:1.65;color:var(--forest-2);transition:transform .25s var(--ease)}
-.specs__archive dd a:hover .specs__arw{transform:translate(2px,-2px)}
+.specs__archive dd a:hover,
+.specs__archive dd a:focus-visible,
+.specs__archive dd a:active{color:var(--forest)}
+.specs__arw{display:inline-block;font:inherit;color:inherit;transition:transform .25s var(--ease)}
+.specs__archive dd a:hover .specs__arw,
+.specs__archive dd a:focus-visible .specs__arw,
+.specs__archive dd a:active .specs__arw{transform:translate(2px,-2px)}
 
 .features{
   display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
