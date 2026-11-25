@@ -10,18 +10,18 @@ export const LEVEL_DETAIL = ['0단계 · 안전', '1단계 · 관심', '2단계 
 
 // 100% 실제 경계 폴리곤 내부(Point-in-Polygon) 검증 완료 광역 지명 좌표 (base map 좌표계)
 export const PROVINCE_LABELS_FIXED = {
-  전북: { x: 75, y: 300 },
-  경남: { x: 665, y: 578 },
-  경북: { x: 1020, y: 175 },
-  대구: { x: 1510, y: 270 }
+  전북: { x: 75, y: 315 },
+  경남: { x: 675, y: 608 },
+  경북: { x: 1168, y: 175 },
+  대구: { x: 1535, y: 255 }
 };
 
 // 첨부 참고 지도 기준 5개 핵심 시·군 지명 (100% 각 시·군 폴리곤 내부 검증 좌표)
 export const COUNTY_LABELS = [
-  { name: '함양군', prov: '경남', x: 250, y: 565 },
-  { name: '거창군', prov: '경남', x: 485, y: 335 },
-  { name: '합천군', prov: '경남', x: 855, y: 585 },
-  { name: '고령군', prov: '경북', x: 1055, y: 260 },
+  { name: '함양군', prov: '경남', x: 225, y: 565 },
+  { name: '거창군', prov: '경남', x: 458, y: 330 },
+  { name: '합천군', prov: '경남', x: 855, y: 565 },
+  { name: '고령군', prov: '경북', x: 1030, y: 242 },
   { name: '달성군', prov: '대구', x: 1395, y: 435 }
 ];
 
@@ -42,32 +42,32 @@ export const ROUTE_NODES = [
   { km: 176.0, name: '옥포JC', kind: 'jc', side: -1, point: '옥포분기점_광주대구', sub: '중부내륙선지선 분기', branch: { a: [244, 62], label: '중부내륙선지선' } }
 ];
 
-// 광주대구선 관내 핵심 도로기상관측소 (95.0k ~ 171.3k 지도 위 상·하단 콜아웃 카드 도킹 좌표 포함)
+// 광주대구선 관내 핵심 도로기상관측소 (노선 대각선 균형 배치: 상단좌측 2 · 하단중앙 2 · 상단 1 · 하단우측 2)
 export const CORRIDOR_MAP_STATIONS = [
-  { stnId: '14206', label: '함양(도)', shortName: '함양', km: 95.0, lat: 35.5327, lon: 127.7495, type: '기본', dock: { cx: 132, cy: 644, row: 'bottom' } },
-  { stnId: '14409', label: '죽산천교', shortName: '죽산천교', km: 102.9, lat: 35.5486, lon: 127.8289, type: '결빙', dock: { cx: 280, cy: 108, row: 'top' } },
-  { stnId: '14207', label: '남상졸음', shortName: '남상졸음', km: 115.3, lat: 35.6366, lon: 127.9066, type: '기본', dock: { cx: 635, cy: 644, row: 'bottom' } },
-  { stnId: '14208', label: '거창휴', shortName: '거창휴', km: 134.1, lat: 35.7074, lon: 128.0541, type: '기본', dock: { cx: 690, cy: 108, row: 'top' } },
-  { stnId: '14209', label: '양전교', shortName: '양전교', km: 158.2, lat: 35.7247, lon: 128.2979, type: '기본', dock: { cx: 1055, cy: 644, row: 'bottom' } },
-  { stnId: '14103', label: '논공휴', shortName: '논공휴', km: 169.2, lat: 35.7653, lon: 128.4015, type: '거점', dock: { cx: 1215, cy: 108, row: 'top' } },
-  { stnId: '14410', label: '논공교', shortName: '논공교', km: 171.3, lat: 35.7681, lon: 128.4230, type: '결빙', dock: { cx: 1405, cy: 644, row: 'bottom' } }
+  { stnId: '14206', label: '함양(도)', shortName: '함양', km: 95.0, lat: 35.5327, lon: 127.7495, type: '기본', dock: { cx: 148, cy: 110, row: 'top' } },
+  { stnId: '14409', label: '죽산천교', shortName: '죽산천교', km: 102.9, lat: 35.5486, lon: 127.8289, type: '결빙', dock: { cx: 390, cy: 110, row: 'top' } },
+  { stnId: '14207', label: '남상졸음', shortName: '남상졸음', km: 115.3, lat: 35.6366, lon: 127.9066, type: '기본', dock: { cx: 596, cy: 638, row: 'bottom' } },
+  { stnId: '14208', label: '거창휴', shortName: '거창휴', km: 134.1, lat: 35.7074, lon: 128.0541, type: '기본', dock: { cx: 838, cy: 638, row: 'bottom' } },
+  { stnId: '14209', label: '양전교', shortName: '양전교', km: 158.2, lat: 35.7247, lon: 128.2979, type: '기본', dock: { cx: 960, cy: 110, row: 'top' } },
+  { stnId: '14103', label: '논공휴', shortName: '논공휴', km: 169.2, lat: 35.7653, lon: 128.4015, type: '거점', dock: { cx: 1204, cy: 638, row: 'bottom' } },
+  { stnId: '14410', label: '논공교', shortName: '논공교', km: 171.3, lat: 35.7681, lon: 128.4230, type: '결빙', dock: { cx: 1446, cy: 638, row: 'bottom' } }
 ];
 
-// 13개 단기예보 읍·면·동 실제 지리 좌표 및 지도 위 무충돌 오프셋 (42개 지도 요소 간 겹침 0건 검증 완료)
+// 13개 단기예보 읍·면·동 실제 지리 좌표 및 TV 대형 '아이콘+온도' 캡슐 무충돌 오프셋 (48개 전 요소 12px 여유 검증 완료)
 export const SHORT13_MAP_LOCATIONS = [
-  { id: 'hamyang',  name: '함양읍', county: '함양군', lat: 35.5166,   lon: 127.7288,   dx: -135, dy: -136 },
-  { id: 'jigok',    name: '지곡면', county: '함양군', lat: 35.5632,   lon: 127.7764,   dx: -120, dy: -115 },
-  { id: 'sudong',   name: '수동면', county: '함양군', lat: 35.5191,   lon: 127.7899,   dx: 136,  dy: -72 },
-  { id: 'geochang', name: '거창읍', county: '거창군', lat: 35.6849,   lon: 127.9060,   dx: -216, dy: -46 },
-  { id: 'namsang',  name: '남상면', county: '거창군', lat: 35.6402,   lon: 127.9122,   dx: 118,  dy: 38 },
-  { id: 'namha',    name: '남하면', county: '거창군', lat: 35.6647,   lon: 127.9458,   dx: 118,  dy: 22 },
-  { id: 'gajo',     name: '가조면', county: '거창군', lat: 35.7080,   lon: 128.0169,   dx: -72,  dy: -108 },
-  { id: 'gaya',     name: '가야면', county: '합천군', lat: 35.762683, lon: 128.139463, dx: -62,  dy: -28 },
-  { id: 'yaro',     name: '야로면', county: '합천군', lat: 35.7022,   lon: 128.1699,   dx: -95,  dy: 118 },
-  { id: 'ssangnim', name: '쌍림면', county: '고령군', lat: 35.6768,   lon: 128.2441,   dx: 45,   dy: 76 },
-  { id: 'daegaya',  name: '대가야읍', county: '고령군', lat: 35.7305, lon: 128.2679,   dx: -84,  dy: -62 },
-  { id: 'seongsan', name: '성산면', county: '고령군', lat: 35.7469,   lon: 128.3621,   dx: 64,   dy: 84 },
-  { id: 'okpo',     name: '옥포읍', county: '달성군', lat: 35.7866,   lon: 128.4660,   dx: 132,  dy: 96 }
+  { id: 'hamyang',  name: '함양읍', county: '함양군', lat: 35.5166,   lon: 127.7288,   dx: -124, dy: -20 },
+  { id: 'jigok',    name: '지곡면', county: '함양군', lat: 35.5632,   lon: 127.7764,   dx: -145, dy: -145 },
+  { id: 'sudong',   name: '수동면', county: '함양군', lat: 35.5191,   lon: 127.7899,   dx: 176,  dy: -82 },
+  { id: 'geochang', name: '거창읍', county: '거창군', lat: 35.6849,   lon: 127.9060,   dx: -145, dy: -6 },
+  { id: 'namsang',  name: '남상면', county: '거창군', lat: 35.6402,   lon: 127.9122,   dx: 84,   dy: 56 },
+  { id: 'namha',    name: '남하면', county: '거창군', lat: 35.6647,   lon: 127.9458,   dx: 112,  dy: 28 },
+  { id: 'gajo',     name: '가조면', county: '거창군', lat: 35.7080,   lon: 128.0169,   dx: -8,   dy: -104 },
+  { id: 'gaya',     name: '가야면', county: '합천군', lat: 35.762683, lon: 128.139463, dx: -56,  dy: -14 },
+  { id: 'yaro',     name: '야로면', county: '합천군', lat: 35.7022,   lon: 128.1699,   dx: -84,  dy: 124 },
+  { id: 'ssangnim', name: '쌍림면', county: '고령군', lat: 35.6768,   lon: 128.2441,   dx: 36,   dy: 84 },
+  { id: 'daegaya',  name: '대가야읍', county: '고령군', lat: 35.7305, lon: 128.2679,   dx: -132, dy: -36 },
+  { id: 'seongsan', name: '성산면', county: '고령군', lat: 35.7469,   lon: 128.3621,   dx: 46,   dy: 94 },
+  { id: 'okpo',     name: '옥포읍', county: '달성군', lat: 35.7866,   lon: 128.4660,   dx: 96,   dy: 124 }
 ];
 
 /**

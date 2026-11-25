@@ -322,11 +322,19 @@ function renderCorridorMap(enriched) {
       <stop offset="0%" stop-color="#0b1829"/><stop offset="100%" stop-color="#081322"/>
     </linearGradient>
     <linearGradient id="rwSea" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0a1626"/><stop offset="100%" stop-color="#0e1e33"/>
+      <stop offset="0%" stop-color="#081424"/><stop offset="55%" stop-color="#0c1d33"/><stop offset="100%" stop-color="#091628"/>
     </linearGradient>
+    <radialGradient id="rwAmbient" cx="52%" cy="46%" r="58%">
+      <stop offset="0%" stop-color="#1d446e" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#081424" stop-opacity="0"/>
+    </radialGradient>
     <linearGradient id="rwCalloutBg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0e3038" stop-opacity="0.96"/>
-      <stop offset="100%" stop-color="#071c24" stop-opacity="0.98"/>
+      <stop offset="0%" stop-color="#0f333d" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#071b24" stop-opacity="0.99"/>
+    </linearGradient>
+    <linearGradient id="rwWeatherPillBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f2540" stop-opacity="0.96"/>
+      <stop offset="100%" stop-color="#081628" stop-opacity="0.98"/>
     </linearGradient>
     <clipPath id="rwClip"><rect x="0" y="${G.rect.y}" width="${G.rect.w}" height="${G.rect.h}"/></clipPath>
     <filter id="rwGlow" x="-20%" y="-20%" width="140%" height="140%">
@@ -334,7 +342,7 @@ function renderCorridorMap(enriched) {
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
     <filter id="rwShadow" x="-15%" y="-15%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#020813" flood-opacity="0.85"/>
+      <feDropShadow dx="0" dy="2.5" stdDeviation="3" flood-color="#020813" flood-opacity="0.88"/>
     </filter>
   </defs>`);
 
@@ -369,9 +377,127 @@ function renderCorridorMap(enriched) {
     cx -= 9;
   }
 
+  // ── Precompute Overlay Items (지시선 하위 레이어 분리 렌더링을 위한 좌표 선계산) ──
+  const LABEL_OFFSET = {
+    '함양IC':   { dx: -82, dy: -48 },
+    '함양JC':   { dx: 82,  dy: 28 },
+    '거창IC':   { dx: -76, dy: -16 },
+    '살피재TN': { dx: -8,  dy: 46 },
+    '가조IC':   { dx: -24, dy: -46 },
+    '가조TN':   { dx: 6,   dy: 48 },
+    '가야1TN':  { dx: -12, dy: -50 },
+    '가야3TN':  { dx: 44,  dy: -44 },
+    '해인사IC': { dx: -16, dy: 52 },
+    '고령IC':   { dx: 26,  dy: 54 },
+    '동고령IC': { dx: -52, dy: -46 },
+    '고령JC':   { dx: 92,  dy: 30 },
+    '옥포JC':   { dx: 82,  dy: -34 }
+  };
+
+  const nodeRenderList = ROUTE_NODES.map(node => {
+    const pb = pointAtKm(node.km, G.base);
+    const q = G.map(pb.x, pb.y);
+    const off = LABEL_OFFSET[node.name] || { dx: 0, dy: node.side > 0 ? -42 : 44 };
+    const lx = Math.max(76, Math.min(G.w - 76, q.x + off.dx));
+    const ly = Math.max(G.rect.y + 30, Math.min(G.rect.y + G.rect.h - 32, q.y + off.dy));
+    const isTn = node.kind === 'tn';
+    const isJc = node.kind === 'jc';
+    const fontSize = isTn ? 17 : 22;
+    const pillW = Math.max(84, node.name.length * (isTn ? 14.5 : 19) + 26);
+    const pillH = node.sub ? 48 : (isTn ? 28 : 34);
+    return { node, q, lx, ly, isTn, isJc, fontSize, pillW, pillH };
+  });
+
+  const short13RenderList = [];
+  if (state.showShort13Map && Array.isArray(state.shortTerm13?.regions) && state.shortTerm13.regions.length) {
+    const regMap = new Map(state.shortTerm13.regions.map(r => [String(r.id), r]));
+    const curHourMs = Math.floor(Date.now() / 3600000) * 3600000;
+    const pickCurHour = (hours = []) => {
+      if (!hours.length) return null;
+      let best = hours[0];
+      let bestDiff = Infinity;
+      for (const h of hours) {
+        const ms = Date.parse(h?.time || '');
+        if (Number.isFinite(ms)) {
+          const diff = Math.abs(ms - curHourMs);
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            best = h;
+          }
+        }
+      }
+      return best;
+    };
+
+    for (const loc of SHORT13_MAP_LOCATIONS) {
+      const reg = regMap.get(loc.id);
+      const curH = reg ? pickCurHour(reg.hours) : null;
+      if (!curH || !Number.isFinite(Number(curH.temp))) continue;
+
+      const tVal = Math.round(Number(curH.temp));
+      const iconInfo = getKmaIconInfo(curH);
+      const q = G.map(mapX(loc.lon), mapY(loc.lat));
+      const px = Math.max(54, Math.min(G.w - 54, q.x + (loc.dx || 0)));
+      const py = Math.max(G.rect.y + 24, Math.min(G.rect.y + G.rect.h - 24, q.y + (loc.dy || 0)));
+
+      const isWet = Boolean(curH.wet || Number(curH.rainMm) > 0 || Number(curH.snowCm) > 0);
+      const isSnow = Number(curH.snowCm) > 0 || String(curH.pty) === '3' || String(curH.pty) === '2';
+      const strokeCol = isSnow ? '#818cf8' : isWet ? '#38dbf8' : tVal < 0 ? '#fb7185' : tVal === 0 ? '#60a5fa' : '#4674a3';
+      const tempCol = tVal < 0 ? '#fda4af' : tVal === 0 ? '#93c5fd' : isWet ? '#7ee8ff' : '#ffffff';
+      const tempTxt = `${tVal}°`;
+      const pillW = tempTxt.length >= 4 ? 92 : 86;
+      const pillH = 38;
+      const popVal = Number(curH.chance ?? curH.pop ?? 0);
+
+      short13RenderList.push({ loc, q, px, py, tVal, iconInfo, strokeCol, tempCol, tempTxt, pillW, pillH, popVal });
+    }
+  }
+
+  const CARD_W = 224;
+  const CARD_H = 58;
+  const rwisRenderList = [];
+  if (state.showRoadTemps && state.roadStations.length) {
+    const stnMap = new Map(state.roadStations.map(s => [String(s.stnId), s]));
+    const stnRisks = state.roadRisk?.stationRisks || {};
+    for (const stn of CORRIDOR_MAP_STATIONS) {
+      const obs = stnMap.get(stn.stnId);
+      if (!obs || (!Number.isFinite(obs.roadTemp) && !Number.isFinite(obs.temp))) continue;
+
+      const q = G.map(mapX(stn.lon), mapY(stn.lat));
+      const dock = stn.dock || { cx: q.x, cy: q.y - 60, row: 'top' };
+      const dcx = dock.cx;
+      const dcy = dock.cy;
+      const anchorY = dock.row === 'top' ? dcy + CARD_H / 2 : dcy - CARD_H / 2;
+
+      const tr = obs.roadTemp;
+      const iceLv = Number(stnRisks[stn.stnId]?.iceLevel) || 0;
+      const surfCode = Number(obs.surfaceCode) || 0;
+      let barCol = '#38dbf8';
+      let subCol = '#a7e8dc';
+      let strokeCol = 'rgba(56, 219, 248, 0.42)';
+      if (iceLv >= 3 || surfCode >= 4 || (tr !== null && tr <= 0.5)) {
+        barCol = '#f43f5e';
+        subCol = '#fecaca';
+        strokeCol = '#f43f5e';
+      } else if (iceLv === 2 || surfCode === 3 || (tr !== null && tr <= 2.5)) {
+        barCol = '#fb923c';
+        subCol = '#fed7aa';
+        strokeCol = '#fb923c';
+      } else if (iceLv === 1 || surfCode === 2 || (tr !== null && tr <= 4.0)) {
+        barCol = '#facc15';
+        subCol = '#fde68a';
+        strokeCol = 'rgba(250, 204, 21, 0.58)';
+      }
+
+      const lines = formatRwisCalloutLines(stn, obs);
+      rwisRenderList.push({ stn, q, dcx, dcy, anchorY, barCol, subCol, strokeCol, lines });
+    }
+  }
+
   // Clipped Map Area
   out.push(`<g clip-path="url(#rwClip)">`);
   out.push(`<rect x="0" y="${G.rect.y}" width="${G.rect.w}" height="${G.rect.h}" fill="url(#rwSea)"/>`);
+  out.push(`<rect x="0" y="${G.rect.y}" width="${G.rect.w}" height="${G.rect.h}" fill="url(#rwAmbient)"/>`);
 
   // 1. KOSTAT Province & County Polygons
   out.push(`<g transform="${G.matrix}">`);
@@ -387,25 +513,26 @@ function renderCorridorMap(enriched) {
   out.push('</g>');
   out.push('</g>');
 
-  // 2. Verified 4 Province Labels (전북 · 경남 · 경북 · 대구 — 100% Point-in-Polygon!)
+  // 2. Verified 4 Province Watermarks (전북 · 경남 · 경북 · 대구 — 100% Point-in-Polygon!)
   out.push('<g class="province-labels" aria-hidden="true">');
   for (const [name, pos] of Object.entries(PROVINCE_LABELS_FIXED)) {
     const q = G.map(pos.x, pos.y);
     const px = Math.max(58, Math.min(G.w - 58, q.x));
     const py = Math.max(G.rect.y + 42, Math.min(G.rect.y + G.rect.h - 22, q.y));
-    out.push(`<text x="${n1(px)}" y="${n1(py)}" text-anchor="middle" fill="#6390bc" fill-opacity="0.52" font-size="34" font-weight="900" letter-spacing="10">${esc(name)}</text>`);
+    out.push(`<text x="${n1(px)}" y="${n1(py)}" text-anchor="middle" fill="#6390bc" fill-opacity="0.48" font-size="34" font-weight="900" letter-spacing="10">${esc(name)}</text>`);
   }
   out.push('</g>');
 
-  // 3. Verified 5 Core County Labels (함양군 · 거창군 · 합천군 · 고령군 · 달성군 — 100% Point-in-Polygon!)
-  out.push('<g class="county-labels" aria-hidden="true">');
-  for (const c of COUNTY_LABELS) {
-    const q = G.map(c.x, c.y);
-    const px = Math.max(54, Math.min(G.w - 54, q.x));
-    const py = Math.max(G.rect.y + 28, Math.min(G.rect.y + G.rect.h - 18, q.y));
-    const w = c.name.length * 16 + 22;
-    out.push(`<rect x="${n1(px - w / 2)}" y="${n1(py - 20)}" width="${w}" height="28" rx="8" fill="#081525" fill-opacity="0.62" stroke="#3c628a" stroke-opacity="0.55" stroke-width="1"/>`);
-    out.push(`<text x="${n1(px)}" y="${n1(py)}" text-anchor="middle" fill="#9bc2e6" font-size="16.5" font-weight="800" letter-spacing="1">${esc(c.name)}</text>`);
+  // 3. Background Leader-Line Underlay (모든 지시선을 고속도로·이정·시군·13개지역·IC·RWIS 카드 아래 최하위 레이어로 배치!)
+  out.push('<g class="map-leader-underlay" aria-hidden="true">');
+  for (const item of rwisRenderList) {
+    out.push(`<line x1="${n1(item.q.x)}" y1="${n1(item.q.y)}" x2="${n1(item.dcx)}" y2="${n1(item.anchorY)}" stroke="${item.barCol}" stroke-width="1.35" opacity="0.44"/>`);
+  }
+  for (const s13 of short13RenderList) {
+    out.push(`<line x1="${n1(s13.q.x)}" y1="${n1(s13.q.y)}" x2="${n1(s13.px)}" y2="${n1(s13.py)}" stroke="${s13.strokeCol}" stroke-width="1.15" stroke-dasharray="2.5 3" opacity="0.42"/>`);
+  }
+  for (const nd of nodeRenderList) {
+    out.push(`<line x1="${n1(nd.q.x)}" y1="${n1(nd.q.y)}" x2="${n1(nd.lx)}" y2="${n1(nd.ly)}" stroke="#6e98c2" stroke-width="1.4" opacity="0.56"/>`);
   }
   out.push('</g>');
 
@@ -466,98 +593,53 @@ function renderCorridorMap(enriched) {
   for (const km of [100, 110, 130, 140, 150, 160, 170]) {
     const p = pointAtKm(km, G.base);
     const q = G.map(p.x, p.y);
-    out.push(`<text x="${n1(q.x)}" y="${n1(q.y - 20)}" text-anchor="middle" fill="#6d92b8" font-size="13.5" font-weight="700">${km}k</text>`);
+    out.push(`<text x="${n1(q.x)}" y="${n1(q.y - 20)}" text-anchor="middle" fill="#7da3c8" font-size="13.5" font-weight="750">${km}k</text>`);
   }
   out.push('</g>');
 
-  // 7-A. 13개 단기예보 읍·면·동 지점별 현재 날씨·기온 캡슐 ([🌤️ 13개지역] 토글)
-  if (state.showShort13Map && Array.isArray(state.shortTerm13?.regions) && state.shortTerm13.regions.length) {
-    const regMap = new Map(state.shortTerm13.regions.map(r => [String(r.id), r]));
-    const curHourMs = Math.floor(Date.now() / 3600000) * 3600000;
-    const pickCurHour = (hours = []) => {
-      if (!hours.length) return null;
-      let best = hours[0];
-      let bestDiff = Infinity;
-      for (const h of hours) {
-        const ms = Date.parse(h?.time || '');
-        if (Number.isFinite(ms)) {
-          const diff = Math.abs(ms - curHourMs);
-          if (diff < bestDiff) {
-            bestDiff = diff;
-            best = h;
-          }
-        }
-      }
-      return best;
-    };
+  // 7. On-Map Origin Anchors (13개 읍·면·동 원점 도트 & 7개 RWIS 관측소 노선 위 센서 비콘)
+  out.push('<g class="corridor-anchors" aria-hidden="true">');
+  for (const s13 of short13RenderList) {
+    out.push(`<circle cx="${n1(s13.q.x)}" cy="${n1(s13.q.y)}" r="3.2" fill="${s13.strokeCol}" stroke="#071322" stroke-width="1.3"/>`);
+  }
+  for (const item of rwisRenderList) {
+    out.push(`<circle cx="${n1(item.q.x)}" cy="${n1(item.q.y)}" r="9.5" fill="${item.barCol}" fill-opacity="0.22"/>`);
+    out.push(`<circle cx="${n1(item.q.x)}" cy="${n1(item.q.y)}" r="5" fill="${item.barCol}" stroke="#f8fafc" stroke-width="1.7"/>`);
+  }
+  out.push('</g>');
 
+  // 8. Verified 5 Core County Labels (함양군 · 거창군 · 합천군 · 고령군 · 달성군 — 지시선 위 불투명 마스킹)
+  out.push('<g class="county-labels" aria-hidden="true">');
+  for (const c of COUNTY_LABELS) {
+    const q = G.map(c.x, c.y);
+    const px = Math.max(54, Math.min(G.w - 54, q.x));
+    const py = Math.max(G.rect.y + 28, Math.min(G.rect.y + G.rect.h - 18, q.y));
+    const w = c.name.length * 16 + 22;
+    out.push(`<rect x="${n1(px - w / 2)}" y="${n1(py - 20)}" width="${w}" height="28" rx="8" fill="#091729" fill-opacity="0.90" stroke="#3c628a" stroke-opacity="0.62" stroke-width="1.1"/>`);
+    out.push(`<text x="${n1(px)}" y="${n1(py)}" text-anchor="middle" fill="#a5cbf0" font-size="16.5" font-weight="800" letter-spacing="1">${esc(c.name)}</text>`);
+  }
+  out.push('</g>');
+
+  // 9. 13개 단기예보 TV 고시인성 '날씨 아이콘 + 기온' 대형 캡슐 ([🌤️ 13개지역] 토글)
+  if (short13RenderList.length) {
     out.push('<g class="short13-map-pins">');
-    for (const loc of SHORT13_MAP_LOCATIONS) {
-      const reg = regMap.get(loc.id);
-      const curH = reg ? pickCurHour(reg.hours) : null;
-      if (!curH || !Number.isFinite(Number(curH.temp))) continue;
-
-      const tVal = Math.round(Number(curH.temp));
-      const iconInfo = getKmaIconInfo(curH);
-      const q = G.map(mapX(loc.lon), mapY(loc.lat));
-      const px = Math.max(66, Math.min(G.w - 66, q.x + (loc.dx || 0)));
-      const py = Math.max(G.rect.y + 20, Math.min(G.rect.y + G.rect.h - 20, q.y + (loc.dy || 0)));
-
-      const isWet = Boolean(curH.wet || Number(curH.rainMm) > 0 || Number(curH.snowCm) > 0);
-      const isSnow = Number(curH.snowCm) > 0 || String(curH.pty) === '3' || String(curH.pty) === '2';
-      const strokeCol = isSnow ? '#818cf8' : isWet ? '#38dbf8' : tVal < 0 ? '#fb7185' : tVal === 0 ? '#60a5fa' : '#3a6591';
-      const tempCol = tVal < 0 ? '#fda4af' : tVal === 0 ? '#93c5fd' : isWet ? '#7dd3fc' : '#ffffff';
-      const labelTxt = `${loc.name}`;
-      const tempTxt = `${tVal}°`;
-      const pillW = Math.max(108, labelTxt.length * 14 + tempTxt.length * 9 + 42);
-      const pillH = 28;
-      const popVal = Number(curH.chance ?? curH.pop ?? 0);
-
+    for (const s13 of short13RenderList) {
+      const { loc, px, py, tVal, iconInfo, strokeCol, tempCol, tempTxt, pillW, pillH, popVal } = s13;
       out.push(`<g class="short13-hit" data-region="${esc(loc.id)}" style="cursor:pointer">`);
-      out.push(`<title>[${esc(loc.county)} ${esc(loc.name)} 현재 단기예보] ${esc(iconInfo.label)} · 기온 ${tVal}°C · 강수확률 ${popVal}%</title>`);
-      out.push(`<line x1="${n1(q.x)}" y1="${n1(q.y)}" x2="${n1(px)}" y2="${n1(py)}" stroke="${strokeCol}" stroke-width="1.15" stroke-dasharray="2.5 2.5" opacity="0.68"/>`);
-      out.push(`<circle cx="${n1(q.x)}" cy="${n1(q.y)}" r="3.2" fill="${strokeCol}" stroke="#071322" stroke-width="1.2"/>`);
-      out.push(`<rect x="${n1(px - pillW / 2)}" y="${n1(py - pillH / 2)}" width="${n1(pillW)}" height="${pillH}" rx="14" fill="#08182b" fill-opacity="0.93" stroke="${strokeCol}" stroke-width="1.35" filter="url(#rwShadow)"/>`);
-      out.push(`<g transform="translate(${n1(px - pillW / 2 + 8)}, ${n1(py - 9)})">${renderKmaIconSvg(iconInfo, 18)}</g>`);
-      out.push(`<text x="${n1(px - pillW / 2 + 30)}" y="${n1(py + 5)}" fill="#dcebfb" font-size="13.5" font-weight="800" letter-spacing="-0.2">${esc(labelTxt)}</text>`);
-      out.push(`<text x="${n1(px + pillW / 2 - 10)}" y="${n1(py + 5.5)}" text-anchor="end" fill="${tempCol}" font-size="14.5" font-weight="900">${esc(tempTxt)}</text>`);
+      out.push(`<title>[${esc(loc.county)} ${esc(loc.name)} 현재 단기예보] ${esc(iconInfo.label)} · 기온 ${tVal}°C · 강수확률 ${popVal}% (클릭 시 우측 6H 단기예보 탭)</title>`);
+      out.push(`<rect x="${n1(px - pillW / 2)}" y="${n1(py - pillH / 2)}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" fill="url(#rwWeatherPillBg)" stroke="${strokeCol}" stroke-width="1.5" filter="url(#rwShadow)"/>`);
+      out.push(`<g transform="translate(${n1(px - pillW / 2 + 10)}, ${n1(py - 13)})">${renderKmaIconSvg(iconInfo, 26)}</g>`);
+      out.push(`<text x="${n1(px + pillW / 2 - 12)}" y="${n1(py + 7)}" text-anchor="end" fill="${tempCol}" font-size="20" font-weight="900" letter-spacing="-0.4">${esc(tempTxt)}</text>`);
       out.push('</g>');
     }
     out.push('</g>');
   }
 
-  // 8. IC / JC / TN Nodes & High-Contrast TV Labels (무충돌 보정 오프셋)
-  const LABEL_OFFSET = {
-    '함양IC':   { dx: -82, dy: -42 },
-    '함양JC':   { dx: 82,  dy: 32 },
-    '거창IC':   { dx: -76, dy: -16 },
-    '살피재TN': { dx: -16, dy: -66 },
-    '가조IC':   { dx: 10,  dy: -38 },
-    '가조TN':   { dx: 12,  dy: 48 },
-    '가야1TN':  { dx: 24,  dy: -50 },
-    '가야3TN':  { dx: 66,  dy: -44 },
-    '해인사IC': { dx: -16, dy: 52 },
-    '고령IC':   { dx: 26,  dy: 54 },
-    '동고령IC': { dx: -52, dy: -44 },
-    '고령JC':   { dx: 92,  dy: 30 },
-    '옥포JC':   { dx: 82,  dy: -34 }
-  };
-
+  // 10. IC / JC / TN Nodes & High-Contrast TV Labels (지시선 위 상위 레이어)
   out.push('<g class="route-nodes">');
-  for (const node of ROUTE_NODES) {
-    const pb = pointAtKm(node.km, G.base);
-    const q = G.map(pb.x, pb.y);
-    const off = LABEL_OFFSET[node.name] || { dx: 0, dy: node.side > 0 ? -42 : 44 };
-    const lx = Math.max(76, Math.min(G.w - 76, q.x + off.dx));
-    const ly = Math.max(G.rect.y + 30, Math.min(G.rect.y + G.rect.h - 32, q.y + off.dy));
-    const isTn = node.kind === 'tn';
-    const isJc = node.kind === 'jc';
-    const fontSize = isTn ? 17 : 22;
-    const pillW = Math.max(84, node.name.length * (isTn ? 14.5 : 19) + 26);
-    const pillH = node.sub ? 48 : (isTn ? 28 : 34);
-
+  for (const nd of nodeRenderList) {
+    const { node, q, lx, ly, isTn, isJc, fontSize, pillW, pillH } = nd;
     out.push(`<g class="node-hit" data-point="${esc(node.point || '')}" data-nodename="${esc(node.name)}" data-km="${node.km}">`);
-    out.push(`<line x1="${n1(q.x)}" y1="${n1(q.y)}" x2="${n1(lx)}" y2="${n1(ly)}" stroke="#6e98c2" stroke-width="1.5" opacity="0.72"/>`);
     if (isTn) {
       out.push(`<rect x="${n1(q.x - 10)}" y="${n1(q.y - 7)}" width="20" height="14" rx="5" fill="#0b1a2d" stroke="#cbd5e1" stroke-width="2.2"/>`);
     } else if (isJc) {
@@ -566,7 +648,7 @@ function renderCorridorMap(enriched) {
       out.push(`<circle cx="${n1(q.x)}" cy="${n1(q.y)}" r="9.5" fill="#f8fbff" stroke="#091525" stroke-width="3.2"/>`);
     }
 
-    out.push(`<rect x="${n1(lx - pillW / 2)}" y="${n1(ly - pillH / 2)}" width="${n1(pillW)}" height="${pillH}" rx="8" fill="#0b192c" fill-opacity="0.94" stroke="${isJc ? '#34d399' : isTn ? '#47688a' : '#7ba6d1'}" stroke-width="${isTn ? '1.3' : '1.9'}" filter="url(#rwShadow)"/>`);
+    out.push(`<rect x="${n1(lx - pillW / 2)}" y="${n1(ly - pillH / 2)}" width="${n1(pillW)}" height="${pillH}" rx="8" fill="#0b192c" fill-opacity="0.96" stroke="${isJc ? '#34d399' : isTn ? '#47688a' : '#7ba6d1'}" stroke-width="${isTn ? '1.35' : '1.9'}" filter="url(#rwShadow)"/>`);
     if (node.sub) {
       out.push(`<text x="${n1(lx)}" y="${n1(ly - 3)}" text-anchor="middle" fill="#f8fbff" font-size="${fontSize}" font-weight="850">${esc(node.name)}</text>`);
       out.push(`<text x="${n1(lx)}" y="${n1(ly + 16)}" text-anchor="middle" fill="#8fb5d9" font-size="13.5" font-weight="700">${esc(node.sub)}</text>`);
@@ -577,62 +659,25 @@ function renderCorridorMap(enriched) {
   }
   out.push('</g>');
 
-  // 9. 상·하단 깔끔 도킹형 7개 도로기상관측소(RWIS) 콜아웃 카드 ([🌡️ 노면온도] 토글 · 도로기상 상황판 미니맵 카드 스타일)
-  if (state.showRoadTemps && state.roadStations.length) {
-    const stnMap = new Map(state.roadStations.map(s => [String(s.stnId), s]));
-    const stnRisks = state.roadRisk?.stationRisks || {};
-    const CARD_W = 218;
-    const CARD_H = 54;
-
+  // 11. 최상위 레이어: 7개 도로기상관측소(RWIS) 플래그십 콜아웃 카드 (상단좌측 2 · 하단중앙 2 · 상단 1 · 하단우측 2)
+  if (rwisRenderList.length) {
     out.push('<g class="road-temp-pins">');
-    for (const stn of CORRIDOR_MAP_STATIONS) {
-      const obs = stnMap.get(stn.stnId);
-      if (!obs || (!Number.isFinite(obs.roadTemp) && !Number.isFinite(obs.temp))) continue;
-
-      const q = G.map(mapX(stn.lon), mapY(stn.lat));
-      const dock = stn.dock || { cx: q.x, cy: q.y - 60, row: 'top' };
-      const cx = dock.cx;
-      const cy = dock.cy;
-      const anchorY = dock.row === 'top' ? cy + CARD_H / 2 : cy - CARD_H / 2;
-
-      const tr = obs.roadTemp;
-      const iceLv = Number(stnRisks[stn.stnId]?.iceLevel) || 0;
-      const surfCode = Number(obs.surfaceCode) || 0;
-      let barCol = '#38dbf8';
-      let subCol = '#9edbd0';
-      let strokeCol = 'rgba(148, 226, 213, 0.34)';
-      if (iceLv >= 3 || surfCode >= 4 || (tr !== null && tr <= 0.5)) {
-        barCol = '#f43f5e';
-        subCol = '#fecaca';
-        strokeCol = '#f43f5e';
-      } else if (iceLv === 2 || surfCode === 3 || (tr !== null && tr <= 2.5)) {
-        barCol = '#fb923c';
-        subCol = '#fed7aa';
-        strokeCol = '#fb923c';
-      } else if (iceLv === 1 || surfCode === 2 || (tr !== null && tr <= 4.0)) {
-        barCol = '#facc15';
-        subCol = '#fde68a';
-        strokeCol = 'rgba(250, 204, 21, 0.55)';
-      }
-
-      const lines = formatRwisCalloutLines(stn, obs);
-
+    for (const item of rwisRenderList) {
+      const { stn, dcx, dcy, anchorY, barCol, subCol, strokeCol, lines } = item;
       out.push(`<g class="rwis-stn-hit" data-km="${stn.km}" data-name="${esc(stn.shortName || stn.label)}" style="cursor:pointer">`);
       out.push(`<title>[도로기상관측 ${stn.km.toFixed(1)}km · ${esc(stn.label)}] ${esc(lines.titleLeft)} ${esc(lines.titleRight)} · ${esc(lines.subLine)} (클릭 시 인근 실시간 CCTV 재생)</title>`);
-      out.push(`<line x1="${n1(q.x)}" y1="${n1(q.y)}" x2="${n1(cx)}" y2="${n1(anchorY)}" stroke="${barCol}" stroke-width="1.45" opacity="0.78"/>`);
-      out.push(`<circle cx="${n1(cx)}" cy="${n1(anchorY)}" r="2.8" fill="${barCol}" opacity="0.92"/>`);
-      out.push(`<circle cx="${n1(q.x)}" cy="${n1(q.y)}" r="9.5" fill="${barCol}" fill-opacity="0.2"/>`);
-      out.push(`<circle cx="${n1(q.x)}" cy="${n1(q.y)}" r="5" fill="${barCol}" stroke="#f8fafc" stroke-width="1.6"/>`);
-      out.push(`<g transform="translate(${n1(cx)}, ${n1(cy)})" filter="url(#rwShadow)">`);
-      out.push(`<rect x="${-CARD_W / 2}" y="${-CARD_H / 2}" width="${CARD_W}" height="${CARD_H}" rx="10" fill="url(#rwCalloutBg)" stroke="${strokeCol}" stroke-width="1.35"/>`);
-      out.push(`<rect x="${-CARD_W / 2 + 6}" y="${-CARD_H / 2 + 7}" width="4.2" height="${CARD_H - 14}" rx="2.1" fill="${barCol}"/>`);
-      out.push(`<text x="${-CARD_W / 2 + 16}" y="-4.5" fill="#e8f8f5" font-size="15" font-weight="850" letter-spacing="-0.3">${esc(lines.titleLeft)}</text>`);
+      out.push(`<circle cx="${n1(dcx)}" cy="${n1(anchorY)}" r="2.6" fill="${barCol}" opacity="0.88"/>`);
+      out.push(`<g transform="translate(${n1(dcx)}, ${n1(dcy)})" filter="url(#rwShadow)">`);
+      out.push(`<rect x="${-CARD_W / 2}" y="${-CARD_H / 2}" width="${CARD_W}" height="${CARD_H}" rx="11" fill="url(#rwCalloutBg)" stroke="${strokeCol}" stroke-width="1.45"/>`);
+      out.push(`<line x1="${-CARD_W / 2 + 12}" y1="${-CARD_H / 2 + 1}" x2="${CARD_W / 2 - 12}" y2="${-CARD_H / 2 + 1}" stroke="#ffffff" stroke-opacity="0.09" stroke-width="1"/>`);
+      out.push(`<rect x="${-CARD_W / 2 + 7}" y="${-CARD_H / 2 + 8}" width="4.5" height="${CARD_H - 16}" rx="2.25" fill="${barCol}"/>`);
+      out.push(`<text x="${-CARD_W / 2 + 18}" y="-4.5" fill="#eefcf9" font-size="15.5" font-weight="850" letter-spacing="-0.3">${esc(lines.titleLeft)}</text>`);
       if (lines.hasAir) {
-        out.push(`<text x="${CARD_W / 2 - 11}" y="-3.5" text-anchor="end" fill="#ffffff" font-size="17" font-weight="900">${esc(lines.titleRight)}</text>`);
+        out.push(`<text x="${CARD_W / 2 - 12}" y="-3" text-anchor="end" fill="#ffffff" font-size="18.5" font-weight="900">${esc(lines.titleRight)}</text>`);
       } else {
-        out.push(`<text x="${CARD_W / 2 - 11}" y="-5" text-anchor="end" fill="#84a9cc" font-size="12.5" font-weight="750">${esc(lines.titleRight)}</text>`);
+        out.push(`<text x="${CARD_W / 2 - 12}" y="-5" text-anchor="end" fill="#8db4d9" font-size="12.5" font-weight="750">${esc(lines.titleRight)}</text>`);
       }
-      out.push(`<text x="${-CARD_W / 2 + 16}" y="16.5" fill="${subCol}" font-size="13" font-weight="700" letter-spacing="-0.2">${esc(lines.subLine)}</text>`);
+      out.push(`<text x="${-CARD_W / 2 + 18}" y="17.5" fill="${subCol}" font-size="13.5" font-weight="750" letter-spacing="-0.2">${esc(lines.subLine)}</text>`);
       out.push('</g>');
       out.push('</g>');
     }
