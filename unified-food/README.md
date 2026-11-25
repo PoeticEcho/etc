@@ -17,7 +17,7 @@
 
 | 파일 | 크기 | 내용 |
 |---|---|---|
-| `README.md` | 13 KB | 이 문서 |
+| `README.md` | 14 KB | 이 문서 |
 | `geo_cache.json` | 710 KB | 통합 전체 좌표 3,642건 `[{id,lat,lng,address,provider,precision,source}]` |
 | `unified_restaurants.csv` | 6.8 MB | 전체 3,642건, 엑셀 호환(UTF-8 BOM). 기본 39열 + 러비즈 추가정보 41열 = 80열 |
 | `unified_restaurants.db` | 12.7 MB | SQLite(UTF-8). 테이블 6종 + 뷰 11종 |
@@ -162,7 +162,7 @@
 | 2TV생생정보 | 방송/유튜브 맛집 | 39 | 0 | 39 |
 | 육식맨·잡식맨 | 방송/유튜브 맛집 | 36 | 36 | 0 |
 
-벨루가의 지역 테마(성수·홍대·제주 등)는 대표 테마가 아니라 `curated_theme_ids`에 함께 들어 있어 위 표에는 안 잡힙니다. `v_restaurants_by_curated_theme`로 보면: 맛있겠다 Yummy 373, 할랄 식당 363, 비건 식당 345, 성시경의 먹을텐데 283, 전현무계획 278, 츄릅켠 189, 정육왕 184, 쯔양 170, 회사랑 168, 비밀이야 155, 더들리 136, 섬마을훈태 135
+벨루가의 지역 테마(성수·홍대·제주 등)는 대표 테마가 아니라 `curated_theme_ids`에 함께 들어 있어 위 표에는 안 잡힙니다. `v_restaurants_by_curated_theme` 기준 지역 테마 맛집 수: 압구정 · 청담 86, 제주 82, 부산 82, 명동 · 을지로 73, 종로 · 북촌 · 서촌 · 익선동 · 가회동 69, 이태원 · 한남 67, 홍대 · 연남 · 합정 45, 삼각지 · 용산 44, 성수 27, 잠실 · 방이 21
 
 **등록 경로(kind)**
 
@@ -246,5 +246,5 @@ print(data['restaurants'][0]['extra']['business_hours'])
 - 평점은 카카오·네이버 지도 표기값이며 리뷰수가 적은 곳은 흔들립니다.
 - 좌표는 건물 단위이지만, `place_search`로 채운 4곳과 벨루가 지역 테마 항목은 건물 대표점 수준입니다.
 - 원문 권리: 벨루가(velooga.com/map), 유튜브 맛집도감(food.lovizu.com)의 공개 정보를 개인 참고용으로 정리한 것입니다. 재배포 시 출처를 밝혀 주세요.
-- 원본 소스 DB: `downloads/velooga_restaurants.db`(1,699) · `downloads/lovizu-food/lovizu_restaurants.db`(1,943). 원본을 다시 수집하면 이 폴더의 빌드 스크립트로 재생성할 수 있습니다(스크립트는 저장소에 올리지 않음).
+- 원본 소스 DB: `downloads/velooga_restaurants.db`(1,699) · `downloads/lovizu-food/lovizu_restaurants.db`(1,943). 원본을 다시 수집하면 같은 규칙으로 이 폴더를 다시 만들 수 있습니다(빌드 스크립트는 저장소에 올리지 않았습니다).
 
