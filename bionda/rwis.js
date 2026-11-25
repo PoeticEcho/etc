@@ -27,6 +27,7 @@ import {
 
 const RWIS_CACHE_KEY = 'weather-watch:cache:rwis:v1';
 const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v3';
+const OVERVIEW_CACHE_KEY = 'weather-watch:cache:overview:v2';
 const rwisCacheScope = () => getApiBase() || '__same_origin__';
 
 const $ = id => document.getElementById(id);
@@ -956,6 +957,34 @@ function renderAll() {
   updateStampUI(false);
 }
 
+function seedSharedCrossTabCaches(scope) {
+  let seeded = false;
+  if (!state.shortTerm13) {
+    const hourlyHit = readPageCache(HOURLY_CACHE_KEY, { expectedScope: scope });
+    if (hourlyHit?.entry?.data?.regions) {
+      state.shortTerm13 = hourlyHit.entry.data;
+      seeded = true;
+    }
+  }
+  if (!state.roadStations.length || !state.roadRisk) {
+    // overview 캐시는 scope가 `${apiBase}|coords...` 형식이므로 prefix 일치 시 안전하게 재사용
+    const ovHit = readPageCache(OVERVIEW_CACHE_KEY, { expectedScope: null });
+    const ovScope = String(ovHit?.entry?.scope || '');
+    const ovData = ovHit?.entry?.data;
+    if (ovData && (ovScope === scope || ovScope.startsWith(`${scope}|`))) {
+      if (!state.roadStations.length && Array.isArray(ovData.roadStations) && ovData.roadStations.length) {
+        state.roadStations = ovData.roadStations;
+        seeded = true;
+      }
+      if (!state.roadRisk && ovData.roadRiskData?.ok) {
+        state.roadRisk = ovData.roadRiskData;
+        seeded = true;
+      }
+    }
+  }
+  return seeded;
+}
+
 function hydrateFromCache() {
   const scope = rwisCacheScope();
   const rwisHit = readPageCache(RWIS_CACHE_KEY, { expectedScope: scope });
@@ -965,17 +994,21 @@ function hydrateFromCache() {
     state.roadStations = Array.isArray(d.roadStations) ? d.roadStations : [];
     state.roadRisk = d.roadRisk || null;
     state.shortTerm13 = d.shortTerm13 || null;
+    seedSharedCrossTabCaches(scope);
     state.fromCache = true;
     state.lastSyncedAt = rwisHit.entry.savedAt || 0;
     state.lastSyncHourKey = rwisHit.entry.hourKey || null;
     renderAll();
-    return evaluateCachePolicy({ cacheHit: rwisHit, freshMs: DEFAULT_FRESH_MS, dwellMs: DEFAULT_DWELL_MS });
+    const policy = evaluateCachePolicy({ cacheHit: rwisHit, freshMs: DEFAULT_FRESH_MS, dwellMs: DEFAULT_DWELL_MS });
+    // 도로관측 또는 13개소 예보 중 누락된 소스가 있으면 백그라운드 즉시 보완
+    if (!state.roadStations.length || !state.shortTerm13?.regions?.length) {
+      return { ...policy, shouldFetchNow: true };
+    }
+    return policy;
   }
 
-  // Fallback: seed 13-region forecast instantly from hourly.html's shared 5-min cache!
-  const hourlyHit = readPageCache(HOURLY_CACHE_KEY, { expectedScope: scope });
-  if (hourlyHit?.entry?.data?.regions) {
-    state.shortTerm13 = hourlyHit.entry.data;
+  // Fallback: seed 13-region forecast & road-obs instantly from hourly/overview shared 5-min caches!
+  if (seedSharedCrossTabCaches(scope)) {
     renderAll();
   }
   return { shouldFetchNow: true, backgroundDwellDelayMs: null };
@@ -993,10 +1026,29 @@ function persistCache() {
   });
 }
 
-async function fetchJsonSafe(path, timeoutMs = 11000) {
-  const r = await fetch(apiUrl(path), { signal: AbortSignal.timeout(timeoutMs), cache: 'no-store' });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+async function fetchJsonSafe(path, timeoutMs = 11000, retries = 1) {
+  let lastErr = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const r = await fetch(apiUrl(path), { signal: AbortSignal.timeout(timeoutMs), cache: 'no-store' });
+      if (r.ok) return r.json();
+      lastErr = new Error(`HTTP ${r.status}`);
+      // 502/503/504 일시적 상류 오류는 1회 재시도
+      if (attempt < retries && (r.status === 502 || r.status === 503 || r.status === 504)) {
+        await new Promise(res => setTimeout(res, 1200));
+        continue;
+      }
+      throw lastErr;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < retries) {
+        await new Promise(res => setTimeout(res, 1200));
+        continue;
+      }
+      throw lastErr;
+    }
+  }
+  throw lastErr || new Error('API fetch failed');
 }
 
 async function loadAllData({ force = false, silent = false } = {}) {
