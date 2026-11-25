@@ -27,6 +27,7 @@ import {
   OVERVIEW_REFRESH_MS
 } from './page-cache.js';
 import { mountNetHealthMonitor, reportApiSuccess, reportApiFailure } from './net-health.js';
+import { mountTvGuard } from './tv-guard.js';
 
 const $ = id => document.getElementById(id);
 const el = (tag, txt = '', cls = '') => {
@@ -3204,6 +3205,7 @@ $('locate').onclick = () => {
 
 // 초기화 (캐시 선복원 0ms 표출 → 필요 시 백그라운드 SWR · 5분 자동갱신)
 mountNetHealthMonitor({ onRetry: () => refresh(true) });
+mountTvGuard();
 bindSplitterDrag();
 syncSettingsUI();
 syncWakeLock();

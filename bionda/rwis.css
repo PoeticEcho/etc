@@ -25,12 +25,42 @@ body.rwis-page .top-header {
   gap: 6px;
   padding: 5px 11px;
   border-radius: 999px;
-  background: rgba(15, 34, 54, 0.85);
-  border: 1px solid rgba(120, 190, 220, 0.3);
+  background: rgba(15, 34, 54, 0.88);
+  border: 1px solid rgba(120, 190, 220, 0.34);
   color: #cfe7f8;
   font-size: 12.5px;
   font-weight: 700;
   white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.rwis-stamp-pill:hover {
+  background: rgba(24, 54, 84, 0.96);
+  border-color: rgba(56, 189, 248, 0.65);
+  color: #f0f9ff;
+}
+.rwis-stamp-pill .stamp-refresh-ico {
+  display: inline-block;
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #7dd3fc;
+  line-height: 1;
+  margin-left: 1px;
+}
+.rwis-stamp-pill.loading .stamp-refresh-ico {
+  animation: rwisSpin 0.9s linear infinite;
+}
+@keyframes rwisSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.rwis-guard-btn[aria-pressed="true"] {
+  background: rgba(16, 86, 78, 0.72);
+  border-color: rgba(45, 212, 191, 0.55);
+  color: #ccfbf1;
+}
+.rwis-guard-btn[aria-pressed="false"] {
+  opacity: 0.72;
 }
 .rwis-stamp-pill .dot-live {
   width: 8px;
@@ -990,6 +1020,8 @@ body.rwis-map-big .rwis-map-stage {
   .rwis-kpi-strip { grid-template-columns: 1fr; }
   .rwis-short13-grid { grid-template-columns: 1fr; }
   .rwis-map-stage { aspect-ratio: 16 / 10.5; }
-  .rwis-stamp-pill { display: none; }
-  #rwisTvBtn, #rwisPngBtn { display: none; }
+  .rwis-stamp-pill { padding: 6px 10px; }
+  .rwis-stamp-pill .dot-live,
+  #rwisStampText { display: none; }
+  #rwisBurnInBtn, #rwisTvBtn, #rwisPngBtn { display: none; }
 }

@@ -35,12 +35,13 @@
         </a>
       </nav>
       <div class="header-actions">
-        <span id="rwisStampPill" class="rwis-stamp-pill" aria-live="polite">
+        <button id="rwisReloadBtn" type="button" class="rwis-stamp-pill" aria-live="polite" title="클릭 시 기상청 도로정보·RWIS·13개소 단기예보 강제 새로고침">
           <span class="dot-live" aria-hidden="true"></span>
           <span id="rwisStampText">수신 중…</span>
-        </span>
-        <button id="rwisReloadBtn" type="button" class="hdr-btn" title="기상청 도로정보·RWIS·13개소 단기예보 강제 새로고침">
-          <span class="icon-spin">↻</span> <span class="hdr-lbl-pc">새로고침</span>
+          <span class="stamp-refresh-ico icon-spin" aria-hidden="true">↻</span>
+        </button>
+        <button id="rwisBurnInBtn" type="button" class="hdr-btn rwis-guard-btn" aria-pressed="true" title="TV 잔상방지 (3분마다 1px 미세이동 · 45분 부드러운 스캔 · 평시 휘도 92%)">
+          🛡️ <span class="hdr-lbl-pc" id="rwisBurnInLabel">잔상방지 ON</span>
         </button>
         <button id="rwisPngBtn" type="button" class="hdr-btn hdr-btn-share" title="현재 도로살얼음 노선도 PNG 저장">
           📷 <span class="hdr-lbl-pc">리포트</span>

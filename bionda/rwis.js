@@ -17,6 +17,7 @@ import {
   reportApiSuccess,
   reportApiFailure
 } from './net-health.js';
+import { mountTvGuard } from './tv-guard.js';
 import {
   RWIS_MASTER,
   RWIS_ROUTE_GEO,
@@ -1144,8 +1145,21 @@ function exportMapPng() {
 }
 
 /* ───────────────────── 데이터 로딩 & 5분 탭 캐싱 ───────────────────── */
+let tvGuard = null;
+
+function updateBurnInBtnUI(status) {
+  const btn = $('rwisBurnInBtn');
+  const lbl = $('rwisBurnInLabel');
+  if (!btn || !status) return;
+  btn.setAttribute('aria-pressed', String(Boolean(status.enabled)));
+  if (lbl) lbl.textContent = status.enabled ? '잔상방지 ON' : '잔상방지 OFF';
+  btn.title = status.enabled
+    ? `TV 잔상방지 ON (3분마다 1px 미세이동 · 45분 스캔 · 현재 휘도 ${Math.round((status.brightness || 1) * 100)}%)`
+    : 'TV 잔상방지 OFF (클릭 시 3종 보호 켜기)';
+}
+
 function updateStampUI(isError = false) {
-  const pill = $('rwisStampPill');
+  const pill = $('rwisReloadBtn');
   const txt = $('rwisStampText');
   if (!pill || !txt) return;
   pill.classList.toggle('is-cached', state.fromCache && !isError);
@@ -1166,6 +1180,19 @@ function renderAll() {
   renderZoneCards(enriched);
   renderSidePanel(enriched);
   updateStampUI(false);
+
+  // 주의(2)·위험(3) 또는 기상특보·6h 결빙겹침 시 잔상방지 휘도를 즉시 100%로 복귀
+  if (tvGuard) {
+    const maxLv = enriched.zones.reduce((m, z) => Math.max(m, getZoneLevel(z)), 0);
+    const cards = buildSpecialBulletinCards({
+      shortTerm13: state.shortTerm13,
+      warningsPayload: state.warningsPayload,
+      warningHistory: state.warningHistory,
+      nowMs: Date.now()
+    });
+    const hasUrgent = maxLv >= 2 || cards.some(c => c.tone === 'crit' || c.category === 'warning-issued');
+    tvGuard.setAlertActive(hasUrgent);
+  }
 }
 
 function seedSharedCrossTabCaches(scope) {
@@ -1494,6 +1521,13 @@ document.addEventListener('keydown', e => {
 /* ───────────────────── 초기화 ───────────────────── */
 mountNetHealthMonitor({
   onRetry: () => loadAllData({ force: true, silent: false })
+});
+
+tvGuard = mountTvGuard({
+  onStateChange: updateBurnInBtnUI
+});
+$('rwisBurnInBtn')?.addEventListener('click', () => {
+  tvGuard?.toggle();
 });
 
 const policy = hydrateFromCache();

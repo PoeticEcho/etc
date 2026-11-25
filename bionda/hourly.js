@@ -14,6 +14,7 @@ import {
   HOURLY_REFRESH_MS
 } from './page-cache.js';
 import { mountNetHealthMonitor, reportApiSuccess, reportApiFailure } from './net-health.js';
+import { mountTvGuard } from './tv-guard.js';
 
 const SETTINGS_KEY = 'weather-watch:settings:v2';
 const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v3';
@@ -960,5 +961,6 @@ function restoreHourlyCacheAndBoot() {
 if (typeof document !== 'undefined') {
   bindEvents();
   mountNetHealthMonitor({ onRetry: () => triggerSmartManualRefresh() });
+  mountTvGuard();
   restoreHourlyCacheAndBoot();
 }
