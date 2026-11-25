@@ -281,6 +281,7 @@ def main() -> int:
                 check(f"{label} 노선도 화면도 한 화면", route["pageH"] <= route["innerH"] + 1 and route["pageW"] <= route["innerW"] + 1,
                       f"{route['pageW']}×{route['pageH']} / {route['innerW']}×{route['innerH']}")
             check(f"{label} 콘솔 예외 0건", not errs, "; ".join(errs[:2]))
+            p.screenshot(path=str(ROOT / "tests" / "shots" / f"wx_{vw}x{vh}.png"))
             c.close()
 
         # ── [4] 실호출 (bionda.pages.dev, CORS) ─────────────────
