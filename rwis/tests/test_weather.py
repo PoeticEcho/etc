@@ -59,7 +59,21 @@ def measure(page) -> dict:
         cols: document.querySelectorAll('#wxTableWrap thead th.wx-h').length,
         orders: [...document.querySelectorAll('#wxTableWrap tbody tr')].map((tr) => Number(tr.dataset.order)),
         names: [...document.querySelectorAll('#wxTableWrap tbody tr')].map((tr) => (tr.querySelector('.rn') || {}).textContent),
-        table: { sw: s.scrollWidth, cw: s.clientWidth, sh: s.scrollHeight, ch: s.clientHeight, bottom: Math.round(sb.bottom) },
+        table: {
+          sw: s.scrollWidth, cw: s.clientWidth, sh: s.scrollHeight, ch: s.clientHeight,
+          top: Math.round(sb.top), bottom: Math.round(sb.bottom),
+                },
+        rowsBox: (() => {
+          const tr = document.querySelectorAll('#wxTableWrap tbody tr');
+          if (!tr.length) return null;
+          const first = tr[0].getBoundingClientRect();
+          const last = tr[tr.length - 1].getBoundingClientRect();
+          return { firstTop: Math.round(first.top), lastBottom: Math.round(last.bottom), lastTop: Math.round(last.top) };
+        })(),
+        note: (() => {
+          const n = document.getElementById('wxNote').getBoundingClientRect();
+          return { h: Math.round(n.height), bottom: Math.round(n.bottom) };
+        })(),
         tabs, kpi, cut,
         meta: document.getElementById('wxMeta').innerText.replace(/\\s+/g, ' ').trim(),
         stateText: document.getElementById('wxState').innerText.trim(),
@@ -218,6 +232,97 @@ def main() -> int:
         check("강수·영하 동시 셀은 wet+ice 로 강조", "wet" in wet["cls"] and "ice" in wet["cls"] and "fr" in wet["cls"],
               f"{wet['cls']} · {wet['text']}")
 
+        # ── v16 — 4°C 이하·0°C 미만·강수·강수×저온·결빙 색 구분 ──
+        page2.evaluate("(fix) => window.__gdc.wx.setData(JSON.parse(JSON.stringify(fix)))", FIXTURE)
+        page2.evaluate("() => window.__gdc.wx.setWindow('h6')")
+        page2.wait_for_timeout(150)
+        cold4 = page2.evaluate("""() => {
+          const cells = [...document.querySelectorAll('#wxTableWrap td.cold4')];
+          return {
+            n: cells.length,
+            sample: cells[0] ? {
+              t: cells[0].innerText.replace(/\\n/g, ' '),
+              col: getComputedStyle(cells[0].querySelector('.wx-t')).color,
+              bg: getComputedStyle(cells[0]).backgroundColor,
+              title: cells[0].title,
+            } : null,
+          };
+        }""")
+        check("4°C 이하(0~4°) 셀을 cold4 클래스·시안으로 강조",
+              cold4["n"] > 0 and cold4["sample"]["col"] == "rgb(103, 232, 249)"
+              and cold4["sample"]["bg"] == "rgba(34, 211, 238, 0.1)" and "4°C 이하" in cold4["sample"]["title"],
+              f"{cold4['n']}칸 · {cold4['sample']}")
+
+        palette = page2.evaluate("""(fix) => {
+          const d = JSON.parse(JSON.stringify(fix));
+          const set = (order, arr) => {
+            const r = d.regions.find((x) => x.routeOrder === order);
+            arr.forEach(([t, w], k) => {
+              const h = r.hours[k];
+              h.temp = t; h.wet = w; h.pty = w ? '1' : '0'; h.pop = w ? 70 : 0; h.rainMm = w ? 1 : 0;
+            });
+          };
+          set(1, [[-3, true], [-1, false], [0, false], [2, true], [3, false], [4, false]]);
+          set(2, [[1, true], [6, false], [6, true], [8, false], [10, false], [12, false]]);
+          window.__gdc.wx.setData(d);
+          window.__gdc.wx.setWindow('h6');
+          const pick = (order, i) => {
+            const tr = [...document.querySelectorAll('#wxTableWrap tbody tr')].find((t) => t.dataset.order === String(order));
+            const td = tr.querySelectorAll('td')[i];
+            return {
+              cls: td.className, text: td.innerText.replace(/\\n/g, ' '),
+              col: getComputedStyle(td.querySelector('.wx-t')).color,
+              bg: getComputedStyle(td).backgroundColor,
+              title: td.title,
+            };
+          };
+          return { normal: pick(4, 0), cold4: pick(1, 2), fr: pick(1, 1), wet: pick(2, 2), chill: pick(1, 3), ice: pick(1, 0) };
+        }""", FIXTURE)
+        check("5가지 강조가 클래스로 구분된다(일반·4° 이하·영하·강수·강수×저온·결빙)",
+              "cold4" in palette["cold4"]["cls"] and palette["cold4"]["cls"].strip() == "wx-cell cold4"
+              and "fr" in palette["fr"]["cls"] and "wet" not in palette["fr"]["cls"]
+              and "wet" in palette["wet"]["cls"] and "chill" not in palette["wet"]["cls"]
+              and "chill" in palette["chill"]["cls"] and "ice" not in palette["chill"]["cls"]
+              and "ice" in palette["ice"]["cls"] and "chill" not in palette["ice"]["cls"]
+              and palette["normal"]["cls"].strip() == "wx-cell",
+              json.dumps({k: v["cls"] for k, v in palette.items()}, ensure_ascii=False))
+        cols = {k: v["col"] for k, v in palette.items()}
+        check("색이 서로 다르다 — 4° 이하 시안 · 영하 블루 · 강수 에메랄드 · 강수×저온 앰버 · 결빙 레드",
+              cols["cold4"] == "rgb(103, 232, 249)" and cols["fr"] == "rgb(147, 197, 253)"
+              and cols["wet"] == "rgb(110, 231, 183)" and cols["chill"] == "rgb(252, 211, 77)"
+              and cols["ice"] == "rgb(254, 202, 202)" and len(set(cols.values())) == 6,
+              json.dumps(cols, ensure_ascii=False))
+        check("색 배경도 서로 다르고 비어 있지 않다",
+              len({palette[k]["bg"] for k in ("cold4", "fr", "wet", "chill", "ice")}) == 5
+              and palette["normal"]["bg"] == "rgba(0, 0, 0, 0)",
+              json.dumps({k: v["bg"] for k, v in palette.items()}, ensure_ascii=False))
+        check("셀 title 에 4°C 이하·결빙 문구가 함께 남는다",
+              "4°C 이하" in palette["cold4"]["title"] and "결빙 위험" in palette["ice"]["title"]
+              and "결빙 주의" in palette["chill"]["title"] and "강수" in palette["wet"]["title"],
+              f"{palette['cold4']['title']} / {palette['ice']['title']}")
+
+        legend = page2.evaluate("""() => {
+          const n = document.getElementById('wxNote');
+          const chips = [...n.querySelectorAll('.lg')].map((x) => ({
+            text: x.textContent.trim(),
+            sw: getComputedStyle(x.querySelector('.sw')).backgroundColor,
+          }));
+          return {
+            chips, h: Math.round(n.getBoundingClientRect().height),
+            sh: n.scrollHeight, ch: n.clientHeight, sw: n.scrollWidth, cw: n.clientWidth,
+          };
+        }""")
+        check("범례에 4° 이하·0° 미만·강수·강수×저온·결빙 색 견본 5개",
+              [c["text"] for c in legend["chips"]] == ["4° 이하", "0° 미만", "강수", "강수×저온", "결빙"]
+              and len({c["sw"] for c in legend["chips"]}) == 5,
+              json.dumps(legend["chips"], ensure_ascii=False))
+        check("범례는 한 줄(넘침·잘림 0)", legend["sh"] <= legend["ch"] + 1 and legend["sw"] <= legend["cw"] + 1
+              and legend["h"] <= 20, f"{legend['h']}px · {legend['sw']}×{legend['sh']} in {legend['cw']}×{legend['ch']}")
+
+        page2.evaluate("(fix) => window.__gdc.wx.setData(JSON.parse(JSON.stringify(fix)))", FIXTURE)
+        page2.evaluate("() => window.__gdc.wx.setWindow('h6')")
+        page2.wait_for_timeout(150)
+
         click_tab_back = page2.evaluate("""() => {
           document.getElementById('tabRwis').click();
           const a = { tab: document.getElementById('sidePanel').dataset.tab, wxHidden: document.getElementById('wxSection').hidden,
@@ -269,6 +374,15 @@ def main() -> int:
                   f"{m['rows']}행 {m['cols']}열 · 잘림 {len(m['cut'])}")
             check(f"{label} 표 스크롤은 카드 안에서만", m["table"]["bottom"] <= m["innerH"] + 1,
                   f"표 하단 {m['table']['bottom']} / {m['innerH']} · 표 {m['table']['sw']}×{m['table']['sh']} in {m['table']['cw']}×{m['table']['ch']}")
+            # v16 — 절대 기준: .wx-scroll 안에 세로·가로 스크롤 0px
+            check(f"{label} .wx-scroll 세로 스크롤 0px", m["table"]["sh"] <= m["table"]["ch"],
+                  f"scrollHeight {m['table']['sh']} / clientHeight {m['table']['ch']}")
+            check(f"{label} .wx-scroll 가로 스크롤 0px", m["table"]["sw"] <= m["table"]["cw"],
+                  f"scrollWidth {m['table']['sw']} / clientWidth {m['table']['cw']}")
+            rb = m["rowsBox"] or {}
+            check(f"{label} 1번 함양읍과 13번 옥포읍이 카드 안에",
+                  bool(rb) and rb["firstTop"] >= m["table"]["top"] - 1 and rb["lastBottom"] <= m["table"]["bottom"] + 1,
+                  f"첫 행 {rb.get('firstTop')} ≥ {m['table']['top']} · 끝 행 {rb.get('lastBottom')} ≤ {m['table']['bottom']}")
             check(f"{label} 기간 버튼·새로고침·안내가 보임",
                   all(t["w"] > 0 for t in m["tabs"]) and m["tabW"] > 0 and m["stateText"] != "" and m["meta"] != "",
                   f"탭 {m['tabs']} · 상태 '{m['stateText']}'")

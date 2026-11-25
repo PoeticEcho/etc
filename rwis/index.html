@@ -1205,120 +1205,172 @@
   #sidePanel[data-tab="weather"] .side-ctx,
   #sidePanel[data-tab="weather"] .rwis-only { display: none !important; }
 
-  /* ── 노선 날씨 패널 ── */
-  .wx { display: flex; flex-direction: column; gap: 7px; flex: 1 1 auto; min-height: 0; }
+  /* ── 노선 날씨 패널 (v16 — 13개소 한 화면 압축 · 4°C 이하/강수 색 구분) ── */
+  .wx { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-height: 0; }
   #wxSection[hidden] { display: none !important; }
-  .wx-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: none; }
-  .wx-win { flex: none; }
-  .wx-win button { padding: 4px 9px; font-size: 10.8px; }
-  .wx-state { flex: 1 1 auto; min-width: 0; font-size: 10px; font-weight: 600; color: #5f7794; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wx-top { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; flex: none; }
+  .wx-win { flex: none; padding: 2px; }
+  .wx-win button { padding: 3px 8px; font-size: 10.6px; min-height: 21px; line-height: 1.05; }
+  .wx-state { flex: 1 1 auto; min-width: 0; font-size: 9.5px; font-weight: 600; color: #5f7794; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .wx-state.err { color: #fca5a5; }
   .wx-state.busy { color: #7dd3fc; }
-  .wx-reload { width: 30px; height: 30px; flex: none; font-size: 14px; }
+  .wx-reload { width: 26px; height: 26px; flex: none; font-size: 12px; border-radius: 8px; }
   .wx-reload[aria-busy="true"] { animation: spin .9s linear infinite; color: #7dd3fc; }
-  .wx-meta { display: flex; gap: 3px 10px; flex-wrap: wrap; flex: none; font-size: 9.8px; color: #6b82a4; font-variant-numeric: tabular-nums; }
+  .wx-meta { display: flex; gap: 0 8px; flex-wrap: nowrap; flex: none; font-size: 9.2px; line-height: 1.15; color: #6b82a4; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
+  .wx-meta > span { flex: none; }
   .wx-meta b { color: #a9bfd6; font-weight: 800; }
+  .wx-meta .nx { margin-left: auto; }
   .wx-meta .nx b { color: #7dd3fc; }
-  .wx-kpi { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 5px; flex: none; }
-  .wx-kpi .k { background: #0d1929; border: 1px solid var(--edge-2); border-radius: 9px; padding: 5px 7px; min-width: 0; }
-  .wx-kpi .l { display: block; font-size: 9.3px; font-weight: 600; color: #6b82a4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .wx-kpi b { display: block; margin-top: 1px; font-size: 16px; line-height: 1.12; font-weight: 800; letter-spacing: -.02em; color: #e8eef8; font-variant-numeric: tabular-nums; }
-  .wx-kpi .s { display: block; font-size: 8.8px; color: #5f7794; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .wx-kpi .k.cold b { color: #7dd3fc; }
+  .wx-kpi { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 4px; flex: none; }
+  .wx-kpi .k {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 2px;
+    height: 22px; padding: 2px 5px; min-width: 0;
+    background: #0d1929; border: 1px solid var(--edge-2); border-radius: 7px;
+  }
+  .wx-kpi .l { font-size: 8.7px; font-weight: 600; color: #6b82a4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wx-kpi b { flex: none; font-size: 12.4px; line-height: 1; font-weight: 800; letter-spacing: -.02em; color: #e8eef8; font-variant-numeric: tabular-nums; }
+  .wx-kpi .s { display: none; }
+  .wx-kpi .k.cold b { color: #6ee7b7; }
+  .wx-kpi .k.cold4 b { color: #67e8f9; }
   .wx-kpi .k.ice { border-color: rgba(248,113,113,.42); background: rgba(248,113,113,.07); }
   .wx-kpi .k.ice b { color: #fca5a5; }
+  .wx-kpi .k.frz { border-color: rgba(96,165,250,.34); background: rgba(59,130,246,.09); }
   .wx-kpi .k.frz b { color: #93c5fd; }
   .wx-scroll {
     flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain;
-    border: 1px solid var(--edge-2); border-radius: 10px; background: #0b1524; scrollbar-width: thin;
+    border: 1px solid var(--edge-2); border-radius: 9px; background: #0b1524; scrollbar-width: thin;
   }
-  .wx-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+  .wx-scroll::-webkit-scrollbar { width: 7px; height: 7px; }
   .wx-scroll::-webkit-scrollbar-thumb { background: #24354f; border-radius: 8px; }
+  /* 표는 카드 높이를 채워 스크롤 대신 행 높이로 남는 공간을 쓴다(데스크톱은 내용 높이대로 위에 붙임) */
+  #wxTableWrap { display: flex; flex-direction: column; justify-content: flex-start; height: 100%; }
+  #wxTableWrap > .wx-table { flex: 1 1 auto; }
   .wx-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: max-content; font-variant-numeric: tabular-nums; }
-  .wx-table th, .wx-table td { padding: 2px 3px; font-size: 10px; text-align: center; white-space: nowrap; }
+  .wx-table th, .wx-table td { padding: 0 2px; font-size: 10px; text-align: center; white-space: nowrap; }
   .wx-table thead th {
-    position: sticky; top: 0; z-index: 2; height: 24px;
-    background: #0f1d31; color: #8ea6c0; font-size: 9.3px; font-weight: 700; letter-spacing: 0;
+    position: sticky; top: 0; z-index: 2; height: 17px;
+    background: #0f1d31; color: #8ea6c0; font-size: 8.8px; font-weight: 700; letter-spacing: 0;
   }
   .wx-table th.wx-reg, .wx-table td.wx-reg {
     position: sticky; left: 0; z-index: 1; text-align: left;
-    background: #0c1728; min-width: 76px; max-width: 96px;
+    background: #0c1728; min-width: 62px; max-width: 76px;
   }
   .wx-table thead th.wx-reg { z-index: 3; }
-  .wx-table tbody td, .wx-table tbody th { border-top: 1px solid #101d2f; height: 26px; line-height: 1.1; }
+  .wx-table tbody td, .wx-table tbody th { border-top: 1px solid #101d2f; height: 20px; line-height: 1.05; }
   .wx-table tbody tr:first-child td, .wx-table tbody tr:first-child th { border-top: 0; }
-  .wx-table .wx-tcol { min-width: 40px; }
-  .wx-reg .ord { display: inline-block; min-width: 13px; margin-right: 2px; font-size: 8.6px; font-weight: 700; color: #5f7794; }
-  .wx-reg .rn { font-size: 10.3px; font-weight: 700; color: #dbe7f5; letter-spacing: -.02em; line-height: 1.15; }
-  .wx-reg .rg { display: block; font-size: 8.4px; font-weight: 600; color: #5f7794; letter-spacing: -.01em; line-height: 1; }
-  .wx-cell .wx-ic { font-size: 10px; line-height: 1; margin-right: 1px; }
-  .wx-cell .wx-t { font-size: 10.4px; line-height: 1.08; font-weight: 800; color: #cfe2f5; }
-  .wx-cell .wx-p { display: block; margin-top: 1px; font-size: 8.4px; line-height: 1; color: #5f7794; }
-  .wx-cell.fr { background: rgba(56,189,248,.10); }
-  .wx-cell.fr .wx-t { color: #7dd3fc; }
-  .wx-cell.wet { background: rgba(56,189,248,.17); }
-  .wx-cell.wet .wx-p { color: #7dd3fc; font-weight: 700; }
-  .wx-cell.ice { background: rgba(248,113,113,.22); box-shadow: inset 0 0 0 1px rgba(248,113,113,.34); }
+  .wx-table .wx-tcol { min-width: 38px; }
+  .wx-reg .ord { display: inline-block; min-width: 10px; margin-right: 1px; font-size: 7.9px; font-weight: 700; color: #5f7794; }
+  .wx-reg .rn { font-size: 10.2px; font-weight: 700; color: #dbe7f5; letter-spacing: -.02em; line-height: 1.1; }
+  .wx-reg .rg { display: none; font-size: 8.4px; font-weight: 600; color: #5f7794; letter-spacing: -.01em; line-height: 1; }
+  .wx-cell .wx-ic { font-size: 9.2px; line-height: 1; margin-right: 1px; }
+  .wx-cell .wx-t { font-size: 10px; line-height: 1.02; font-weight: 800; color: #cfe2f5; }
+  .wx-cell .wx-p { display: block; margin-top: 0; font-size: 7.8px; line-height: 1.02; color: #5f7794; }
+
+  /* 색 규칙 — 아래로 갈수록 우선(4° 이하 → 0° 미만 → 강수 → 강수×저온 → 결빙) */
+  .wx-cell.cold4 { background: rgba(34,211,238,.10); }
+  .wx-cell.cold4 .wx-t { color: #67e8f9; }
+  .wx-cell.cold4 .wx-p { color: #7cc8dd; }
+  .wx-cell.fr { background: rgba(59,130,246,.20); box-shadow: inset 0 0 0 1px rgba(96,165,250,.30); }
+  .wx-cell.fr .wx-t { color: #93c5fd; }
+  .wx-cell.fr .wx-p { color: #a8c4e8; }
+  .wx-cell.wet { background: rgba(16,185,129,.15); box-shadow: inset 0 0 0 1px rgba(52,211,153,.24); }
+  .wx-cell.wet .wx-t { color: #6ee7b7; }
+  .wx-cell.wet .wx-p { color: #34d399; font-weight: 800; }
+  .wx-cell.chill { background: rgba(251,191,36,.16); box-shadow: inset 0 0 0 1px rgba(251,191,36,.34); }
+  .wx-cell.chill .wx-t, .wx-cell.chill .wx-p { color: #fcd34d; }
+  .wx-cell.ice { background: rgba(248,113,113,.24); box-shadow: inset 0 0 0 1px rgba(248,113,113,.45); }
   .wx-cell.ice .wx-t, .wx-cell.ice .wx-p { color: #fecaca; }
   .wx-cell.daystart, .wx-h.daystart { border-left: 1px solid #24405f; }
   .wx-cell.na { color: #3d5271; }
-  .wx-note { flex: none; margin: 0; font-size: 9.3px; line-height: 1.45; color: #5f7794; word-break: keep-all; }
+
+  /* 범례 — 한 줄 칩(색 견본 + 이름) */
+  .wx-note {
+    flex: none; display: flex; align-items: center; gap: 0 6px; margin: 0;
+    font-size: 8.7px; line-height: 1.25; color: #5f7794; white-space: nowrap; overflow: hidden;
+  }
+  .wx-note .lg { display: inline-flex; align-items: center; gap: 3px; flex: none; }
+  .wx-note .sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+  .wx-note .sw.cold4 { background: #22d3ee; }
+  .wx-note .sw.fr { background: #3b82f6; }
+  .wx-note .sw.wet { background: #10b981; }
+  .wx-note .sw.chill { background: #fbbf24; }
+  .wx-note .sw.ice { background: #ef4444; }
+  .wx-note .src { margin-left: auto; color: #4d637f; }
   .wx-note b { color: #8ea6c0; font-weight: 800; }
-  .wx-empty { margin: 0; padding: 20px 10px; text-align: center; font-size: 11.5px; line-height: 1.6; color: #6b82a4; }
+  .wx-empty { margin: 0; padding: 18px 10px; text-align: center; font-size: 11.5px; line-height: 1.6; color: #6b82a4; }
   .wx-empty .retry { margin-top: 8px; }
 
+  /* ── 데스크톱: 손가락 대신 마우스 — 조금 더 크게, 그래도 한 화면 ── */
+  @media (min-width: 1024px) {
+    .wx { gap: 5px; }
+    .wx-meta { font-size: 9.6px; }
+    .wx-kpi .k { height: 24px; padding: 2px 6px; }
+    .wx-kpi .l { font-size: 9.2px; }
+    .wx-kpi b { font-size: 13.4px; }
+    .wx-table thead th { height: 20px; font-size: 9.3px; }
+    .wx-table tbody td, .wx-table tbody th { height: 24px; }
+    .wx-table .wx-tcol { min-width: 39px; }
+    .wx-table th.wx-reg, .wx-table td.wx-reg { min-width: 70px; max-width: 92px; }
+    .wx-reg .ord { font-size: 8.6px; min-width: 13px; margin-right: 2px; }
+    .wx-reg .rn { font-size: 10.6px; }
+    .wx-reg .rg { display: block; font-size: 8.4px; }
+    .wx-cell .wx-ic { font-size: 10px; }
+    .wx-cell .wx-t { font-size: 10.6px; }
+    .wx-cell .wx-p { font-size: 8.6px; }
+    .wx-note { font-size: 9px; gap: 0 8px; }
+    .wx-note .sw { width: 9px; height: 9px; }
+    #wxTableWrap { height: auto; }
+    #wxTableWrap > .wx-table { flex: 0 0 auto; }
+  }
+
+  /* ── 모바일: 엄지 탭 크기만 남기고 위아래 여백은 걷어낸다 ── */
   @media (max-width: 1023px) {
-    .side-tabs button { min-height: 34px; font-size: 12px; }
-    .side-ctx .live { font-size: 10px; }
-    .wx-kpi .l { font-size: 9.6px; }
-    .wx-kpi b { font-size: 15px; }
-    .wx-kpi .s { font-size: 9px; }
-    .wx-table th, .wx-table td { font-size: 10.5px; }
-    .wx-table tbody td, .wx-table tbody th { height: 28px; }
-    .wx-table .wx-tcol { min-width: 44px; }
-    .wx-reg .rn { font-size: 11px; }
-    .wx-cell .wx-t { font-size: 11px; }
-    .wx-cell .wx-p { font-size: 9px; }
-    .wx-reload { width: 34px; height: 34px; }
-    .wx-note { font-size: 9.6px; }
+    .side-tabs button { min-height: 30px; font-size: 11.5px; padding: 3px 6px; }
+    .wx-win button { min-height: 24px; font-size: 11px; padding: 3px 7px; }
+    .wx-reload { width: 28px; height: 28px; font-size: 13px; }
+    .wx-table th, .wx-table td { padding: 0 2px; font-size: 10.4px; }
+    .wx-table .wx-tcol { min-width: 38px; }
+    .wx-reg .rn { font-size: 10.4px; }
+    .wx-cell .wx-t { font-size: 10.2px; }
+    .wx-cell .wx-p { font-size: 8px; }
+    .wx-note { font-size: 8.8px; }
   }
-  @media (max-width: 400px) {
-    .side-tabs button { padding: 4px 4px; font-size: 11.5px; }
-    .wx-kpi { gap: 4px; }
-    .wx-kpi .k { padding: 4px 5px; }
-    .wx-kpi b { font-size: 14px; }
-    .wx-kpi .s { display: none; }
-    .wx-table th, .wx-table td { font-size: 10px; }
+  /* 낮은 폰(삼성 브라우저 주소창 포함 660~700px) — 줄 높이를 더 줄여 13개소가 한 번에 */
+  @media (max-width: 1023px) and (max-height: 720px) {
+    .wx-table thead th { height: 16px; }
+    .wx-table tbody td, .wx-table tbody th { height: 19px; }
+    .wx-cell .wx-t { font-size: 9.8px; }
+    .wx-cell .wx-p { font-size: 7.6px; }
   }
-  /* 낮은 화면 — 13개소가 카드 안에서 한 번에 보이도록 줄 높이만 줄인다 */
-  @media (min-width: 1024px) and (max-width: 1180px) {
-    .wx-kpi .s { display: none; }
-  }
-  @media (min-width: 1024px) and (max-height: 820px) {
-    .wx-kpi .k { padding: 4px 6px; }
-    .wx-kpi b { font-size: 15px; }
-    .wx-table th, .wx-table td { padding: 1px 3px; }
-    .wx-table thead th { height: 21px; }
-    .wx-table tbody td, .wx-table tbody th { height: 21px; }
-    .wx-cell .wx-t { font-size: 10px; }
-    .wx-cell .wx-p { font-size: 8px; margin-top: 0; }
-    .wx-note { font-size: 9px; }
-  }
-  @media (max-width: 1023px) and (max-height: 760px) {
-    .wx-table th, .wx-table td { padding: 1px 3px; }
-    .wx-table thead th { height: 22px; }
-    .wx-table tbody td, .wx-table tbody th { height: 20px; }
-    .wx-cell .wx-t { font-size: 10px; }
-    .wx-cell .wx-p { font-size: 8px; margin-top: 0; }
-  }
-  @media (max-width: 1023px) and (max-height: 680px) {
-    .wx-table thead th { height: 17px; }
+  @media (max-width: 1023px) and (max-height: 620px) {
+    .side-tabs button { min-height: 28px; font-size: 11px; }
+    .wx-win button { min-height: 22px; font-size: 10.6px; }
+    .wx-kpi .k { height: 20px; }
+    .wx-kpi b { font-size: 11.8px; }
+    .wx-table thead th { height: 15px; font-size: 8.4px; }
     .wx-table tbody td, .wx-table tbody th { height: 18px; }
-    .wx-cell .wx-ic { font-size: 9px; }
-    .wx-cell .wx-t { font-size: 9.5px; }
-    .wx-cell .wx-p { font-size: 7.6px; margin-top: 0; }
+    .wx-cell .wx-ic { font-size: 8.6px; }
+    .wx-cell .wx-t { font-size: 9.4px; }
+    .wx-cell .wx-p { font-size: 7.2px; }
     .wx-reg .rn { font-size: 10px; }
-    .wx-reg .rg { display: none; }
+    .wx-note { font-size: 8.4px; }
+  }
+  /* 높은 폰은 남는 높이만큼 행이 늘어난다 — 글자도 한 단계 키워 읽기 쉽게 */
+  @media (max-width: 1023px) and (min-height: 760px) {
+    .wx-table tbody td, .wx-table tbody th { height: 26px; }
+    .wx-table thead th { height: 20px; font-size: 9.4px; }
+    .wx-reg .rn { font-size: 11.2px; }
+    .wx-cell .wx-ic { font-size: 10.2px; }
+    .wx-cell .wx-t { font-size: 11.2px; }
+    .wx-cell .wx-p { font-size: 8.8px; }
+    .wx-kpi .k { height: 24px; }
+    .wx-kpi .l { font-size: 9.2px; }
+    .wx-kpi b { font-size: 13px; }
+  }
+  /* 넉넉한 데스크톱은 KPI 에 첫 시각까지 (좁은 화면은 숨김) */
+  @media (min-width: 1024px) and (min-height: 800px) {
+    .wx-kpi .k { height: 36px; flex-wrap: wrap; align-content: center; row-gap: 0; }
+    .wx-kpi .s { display: block; flex: 1 0 100%; margin-top: 1px; font-size: 8.6px; color: #5f7794; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   }
 
 </style>
@@ -1468,7 +1520,7 @@
       <div class="wx-meta" id="wxMeta"></div>
       <div class="wx-kpi" id="wxKpi"></div>
       <div class="wx-scroll" id="wxScroll"><div id="wxTableWrap"></div></div>
-      <p class="wx-note" id="wxNote"><b>❄</b> 0°C 미만 · <b>🌧</b> 강수 · <b>⚠</b> 강수×영하(결빙) · 셀에 마우스를 올리면 시간·기온·강수확률이 보입니다. 자료 · 기상청 단기·초단기예보(bionda short-term-12).</p>
+      <p class="wx-note" id="wxNote" title="셀에 마우스를 올리면 시간·기온·강수확률이 보입니다. 자료 · 기상청 단기·초단기예보(bionda short-term-12)."><span class="lg"><span class="sw cold4" aria-hidden="true"></span>4° 이하</span><span class="lg"><span class="sw fr" aria-hidden="true"></span>0° 미만</span><span class="lg"><span class="sw wet" aria-hidden="true"></span>강수</span><span class="lg"><span class="sw chill" aria-hidden="true"></span>강수×저온</span><span class="lg"><span class="sw ice" aria-hidden="true"></span>결빙</span><span class="src">기상청</span></p>
     </section>
 
     <footer class="side-foot">
@@ -4667,12 +4719,33 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     return hour.isNight ? '🌙' : '☀';
   }
 
-  /** 영하(<0°C) · 강수 · 동시 겹침(결빙) 셀 클래스 */
+  /** 셀 색 클래스 — 4°C 이하(살얼음 주의) · 0°C 미만 · 강수 · 강수×저온 · 강수×영하(결빙) */
   function wxCellClass(hour) {
     const temp = Number(hour.temp);
-    const wet = Boolean(hour.wet) || (hour.pty != null && String(hour.pty) !== '0');
-    const freezing = Number.isFinite(temp) && temp < 0;
-    return [freezing ? 'fr' : '', wet ? 'wet' : '', wet && freezing ? 'ice' : ''].filter(Boolean).join(' ');
+    const has = Number.isFinite(temp);
+    const wet = Boolean(hour.wet)
+      || (hour.pty != null && String(hour.pty) !== '0')
+      || Number(hour.rainMm) > 0 || Number(hour.snowCm) > 0;
+    const freezing = has && temp < 0;
+    const cold4 = has && temp >= 0 && temp <= 4;
+    return [
+      cold4 ? 'cold4' : '',
+      freezing ? 'fr' : '',
+      wet ? 'wet' : '',
+      wet && cold4 ? 'chill' : '',
+      wet && freezing ? 'ice' : '',
+    ].filter(Boolean).join(' ');
+  }
+
+  /** 셀 title 에 덧붙일 상태 문구 — 색만으로 구분되지 않는 경우를 글자로도 남긴다 */
+  function wxCellState(hour) {
+    const cls = wxCellClass(hour).split(' ');
+    if (cls.includes('ice')) return ' · 결빙 위험(강수×영하)';
+    if (cls.includes('chill')) return ' · 결빙 주의(강수×4°C 이하)';
+    if (cls.includes('wet')) return ' · 강수';
+    if (cls.includes('fr')) return ' · 영하';
+    if (cls.includes('cold4')) return ' · 4°C 이하';
+    return '';
   }
 
   /** 요약 KPI — windowKPIs 우선, 없으면 지역별 summaries 로 계산 */
@@ -4764,12 +4837,13 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     }
     const k = wxKpiFor(state.wxWindow);
     const box = (cls, label, value, sub) =>
-      `<div class="k ${cls}"><span class="l">${label}</span><b>${value}</b><span class="s">${sub}</span></div>`;
+      `<div class="k ${cls}" title="${esc(`${label} ${value} · ${sub}`)}"><span class="l">${label}</span><b>${value}</b><span class="s">${sub}</span></div>`;
+    const minCls = k.minTemp === null ? '' : (k.minTemp < 0 ? 'frz' : (k.minTemp <= 4 ? 'cold4' : ''));
     el.wxKpi.innerHTML = [
       box(k.wetRegions ? 'cold' : '', '강수 지역', `${k.wetRegions}곳`, `첫 비 ${wxWhen(k.earliestWetTime)}`),
       box(k.freezingRegions ? 'frz' : '', '영하 지역', `${k.freezingRegions}곳`, `첫 영하 ${wxWhen(k.earliestFreezingTime)}`),
       box(k.overlapRegions ? 'ice' : '', '결빙 겹침', `${k.overlapRegions}곳`, `첫 겹침 ${wxWhen(k.earliestOverlapTime)}`),
-      box('', '최저 기온', k.minTemp === null ? '—' : `${Math.round(k.minTemp)}°`, `${total}곳 중`),
+      box(minCls, '최저 기온', k.minTemp === null ? '—' : `${Math.round(k.minTemp)}°`, `${total}곳 중`),
     ].join('');
   }
 
@@ -4799,7 +4873,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
         const pop = Number(hour.pop);
         const tempTxt = Number.isFinite(temp) ? `${Math.round(temp)}°` : '—';
         const popTxt = Number.isFinite(pop) ? `${Math.round(pop)}%` : '—';
-        const title = `${hour.dateLabel || ''} ${wxPad(Number(hour.hourKst) || 0)}시 · ${tempTxt} · 강수 ${popTxt}${hour.type && hour.type !== '없음' ? ' · ' + hour.type : ''}`;
+        const title = `${hour.dateLabel || ''} ${wxPad(Number(hour.hourKst) || 0)}시 · ${tempTxt} · 강수 ${popTxt}${hour.type && hour.type !== '없음' ? ' · ' + hour.type : ''}${wxCellState(hour)}`;
         out.push(`<td class="wx-cell ${wxCellClass(hour)}${dayStart}" title="${esc(title)}"><span class="wx-ic" aria-hidden="true">${wxIcon(hour)}</span><span class="wx-t">${tempTxt}</span><span class="wx-p">${popTxt}</span></td>`);
       }
       return out.join('');
