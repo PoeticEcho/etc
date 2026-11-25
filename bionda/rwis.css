@@ -186,7 +186,7 @@ body.rwis-page .top-header {
   position: relative;
   width: 100%;
   background: #081322;
-  aspect-ratio: 16 / 7.45;
+  aspect-ratio: 16 / 7.0;
   overflow: hidden;
 }
 .rwis-map-stage svg {
@@ -216,10 +216,10 @@ body.rwis-page .top-header {
   background: #0d1b2d;
   border: 1.5px solid #213753;
   border-radius: 12px;
-  padding: 8px 11px;
+  padding: 7px 10px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   cursor: pointer;
   transition: border-color 0.15s ease, transform 0.12s ease, background 0.15s ease;
   text-align: left;
@@ -255,7 +255,26 @@ body.rwis-page .top-header {
   font-size: 11.5px;
   font-weight: 700;
   color: #88a9cb;
-  margin-top: 2px;
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.rzc-surf-chip {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 750;
+  background: rgba(148, 163, 184, 0.12);
+  color: #9bb7d4;
+  line-height: 1.45;
+}
+.rzc-surf-chip.is-wet {
+  background: rgba(56, 219, 248, 0.18);
+  color: #7ee8ff;
+  border: 1px solid rgba(56, 219, 248, 0.4);
 }
 
 .rzc-badge {
@@ -285,13 +304,76 @@ body.rwis-page .top-header {
   background: rgba(7, 17, 30, 0.65);
   border: 1px solid rgba(148, 163, 184, 0.16);
 }
+.rzc-telemetry.rzc-telemetry-dual {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+  padding: 5px 6px 4px;
+}
+.rzc-tcol {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rzc-tcol-road {
+  padding-right: 7px;
+  border-right: 1px solid rgba(148, 163, 184, 0.14);
+}
+.rzc-tcol-air {
+  padding-left: 7px;
+}
+.rzc-tcol-head {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.rzc-tlabel {
+  font-size: 10.5px;
+  font-weight: 750;
+  color: #7ea0c2;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
 .rzc-road-temp {
-  font-size: clamp(15px, 0.98vw, 18px);
+  font-size: clamp(14px, 0.88vw, 16px);
   font-weight: 900;
-  color: #7dd3fc;
+  color: #38dbf8;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 .rzc-road-temp.is-cold { color: #fb923c; }
 .rzc-road-temp.is-freeze { color: #fb7185; }
+.rzc-air-val {
+  font-size: clamp(13.5px, 0.84vw, 15px);
+  font-weight: 850;
+  color: #d6e7f7;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.rzc-air-val.is-cold { color: #60a5fa; }
+.rzc-air-val.is-freeze { color: #fb7185; }
+.rzc-pred-chip {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 750;
+  color: #84a7c9;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.rzc-pred-chip.is-drop { color: #7dd3fc; }
+.rzc-pred-chip.is-cold { color: #fb923c; }
+.rzc-pred-chip.is-freeze { color: #fb7185; font-weight: 850; }
+.rzc-spark-svg {
+  display: block;
+  width: 100%;
+  height: 27px;
+  overflow: visible;
+}
 .rzc-air-state {
   font-size: clamp(11.5px, 0.75vw, 13px);
   font-weight: 700;

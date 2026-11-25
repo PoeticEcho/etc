@@ -30,7 +30,9 @@ import {
   enrichZonesWithBionda,
   updateWarningHistory,
   alignShortTerm6hMatrix,
-  buildSpecialBulletinCards
+  buildSpecialBulletinCards,
+  buildZoneTempTrendSeries,
+  renderMicroSparklineSvg
 } from './rwis-data.js';
 
 const RWIS_CACHE_KEY = 'weather-watch:cache:rwis:v1';
@@ -38,6 +40,7 @@ const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v3';
 const OVERVIEW_CACHE_KEY = 'weather-watch:cache:overview:v2';
 const WARN_HISTORY_KEY = 'weather-watch:rwis-warn-history:v1';
 const CCTV_CLIENT_TTL_MS = 15 * 60 * 1000; // 서버 /api/cctv 15분 캐시와 정렬 (5분 루프 중복 호출 절감)
+const ROAD_TREND_CLIENT_TTL_MS = 10 * 60 * 1000; // 서버 /api/road-obs-trend 10분 Edge 캐시와 정렬
 const rwisCacheScope = () => getApiBase() || '__same_origin__';
 
 const $ = id => document.getElementById(id);
@@ -78,6 +81,8 @@ const state = {
   cctvFac: 'all',
   rwisStatus: null,
   roadStations: [],
+  roadTrend: null,
+  roadTrendFetchedAt: 0,
   roadRisk: null,
   shortTerm13: null,
   warningsPayload: null,
@@ -564,16 +569,63 @@ function renderZoneCards(enriched) {
           : `대구 ${LEVEL_NAME[bucket.E]} · 광주 ${LEVEL_NAME[bucket.S]}`)
       : `${state.dir === 'E' ? '대구' : '광주'} ${LEVEL_NAME[lv]}`;
 
-    // Road Obs line
+    // Road Obs + 6h 실측 · 2h 예측 초소형 인라인 스파크라인 (P2.5)
     const ro = z.roadObs;
     const hasRoadTemp = Number.isFinite(ro.minRoadTemp);
+    const hasAirTemp = Number.isFinite(ro.minAirTemp);
     const tempCls = hasRoadTemp
       ? (ro.minRoadTemp <= 0.5 ? 'is-freeze' : ro.minRoadTemp <= 2.5 ? 'is-cold' : '')
       : '';
-    const roadTempText = hasRoadTemp ? `노면 ${ro.minRoadTemp.toFixed(1)}°C` : '노면 확인 중';
-    const airParts = [];
-    if (Number.isFinite(ro.minAirTemp)) airParts.push(`기온 ${ro.minAirTemp.toFixed(1)}°C`);
-    if (ro.surfaceState) airParts.push(ro.surfaceState);
+    const airCls = hasAirTemp
+      ? (ro.minAirTemp < 0 ? 'is-freeze' : ro.minAirTemp <= 0.5 ? 'is-cold' : '')
+      : '';
+    const roadTempVal = hasRoadTemp ? `${ro.minRoadTemp.toFixed(1)}°` : '—';
+    const airTempVal = hasAirTemp ? `${ro.minAirTemp.toFixed(1)}°` : '—';
+
+    const surfLabel = ro.surfaceState || '';
+    const surfCode = Number(ro.surfaceCode);
+    const surfChip = surfLabel
+      ? `<span class="rzc-surf-chip${(surfCode >= 2 || /습윤|젖음|결빙|적설/.test(surfLabel)) ? ' is-wet' : ''}">${esc(surfLabel)}</span>`
+      : '';
+
+    const trend = buildZoneTempTrendSeries({
+      zone: z,
+      roadTrend: state.roadTrend,
+      shortTerm13: state.shortTerm13,
+      nowMs: Date.now()
+    });
+
+    const formatPredChip = (s, isRoad) => {
+      if (!s || s.pred2h === null || s.curVal === null) return '';
+      const diff = s.pred2h - s.curVal;
+      const arrow = diff <= -0.7 ? '↘' : diff >= 0.7 ? '↗' : '→';
+      const cls = isRoad
+        ? (s.pred2h <= 0.5 ? 'is-freeze' : s.pred2h <= 2.5 ? 'is-cold' : diff <= -1.2 ? 'is-drop' : '')
+        : (s.pred2h < 0 ? 'is-freeze' : s.pred2h <= 0.5 ? 'is-cold' : diff <= -1.2 ? 'is-drop' : '');
+      return `<span class="rzc-pred-chip ${cls}">${arrow}${s.pred2h.toFixed(1)}°</span>`;
+    };
+
+    const formatTrendTitle = (label, s, extra) => {
+      const segs = [`[${label} · 6h 실측 + 2h 예측]`];
+      if (s.startVal !== null && s.curVal !== null) {
+        const sign = s.delta6h > 0 ? '+' : '';
+        segs.push(`6h전 ${s.startVal.toFixed(1)}°C → 현재 ${s.curVal.toFixed(1)}°C (${sign}${s.delta6h.toFixed(1)}°C)`);
+      } else if (s.curVal !== null) {
+        segs.push(`현재 ${s.curVal.toFixed(1)}°C`);
+      } else {
+        segs.push('실측 수신 대기');
+      }
+      if (s.pred2h !== null) {
+        segs.push(`+2h 예상 ${s.pred2h.toFixed(1)}°C`);
+      }
+      if (extra) segs.push(extra);
+      return segs.join(' · ');
+    };
+
+    const roadSparkSvg = renderMicroSparklineSvg(trend.tr, { kind: 'road', uid: `z${z.suffix}-tr` });
+    const airSparkSvg = renderMicroSparklineSvg(trend.ta, { kind: 'air', uid: `z${z.suffix}-ta` });
+    const roadTitle = formatTrendTitle('노면 TR1', trend.tr, trend.stationName ? `관측소: ${trend.stationName}` : '');
+    const airTitle = formatTrendTitle('기온 TA', trend.ta, surfLabel ? `노면상태: ${surfLabel}` : '13개소 단기예보 연동');
 
     // Short-term 13 forecast line
     const sf = z.shortForecast;
@@ -608,13 +660,27 @@ function renderZoneCards(enriched) {
         <div class="rzc-top">
           <div>
             <div class="rzc-name">${esc(z.name.replace('–', ' ↔ '))}</div>
-            <div class="rzc-county">${esc(z.county)}</div>
+            <div class="rzc-county">${esc(z.county)}${surfChip}</div>
           </div>
           <span class="rzc-badge lv-${lv}">● ${esc(badgeText)}</span>
         </div>
-        <div class="rzc-telemetry">
-          <span class="rzc-road-temp ${tempCls}">${esc(roadTempText)}</span>
-          <span class="rzc-air-state">${esc(airParts.join(' · ') || (ro.stationName || '도로관측 대기'))}</span>
+        <div class="rzc-telemetry rzc-telemetry-dual">
+          <div class="rzc-tcol rzc-tcol-road" title="${esc(roadTitle)}">
+            <div class="rzc-tcol-head">
+              <span class="rzc-tlabel">노면</span>
+              <strong class="rzc-road-temp ${tempCls}">${esc(roadTempVal)}</strong>
+              ${formatPredChip(trend.tr, true)}
+            </div>
+            ${roadSparkSvg}
+          </div>
+          <div class="rzc-tcol rzc-tcol-air" title="${esc(airTitle)}">
+            <div class="rzc-tcol-head">
+              <span class="rzc-tlabel">기온</span>
+              <strong class="rzc-air-val ${airCls}">${esc(airTempVal)}</strong>
+              ${formatPredChip(trend.ta, false)}
+            </div>
+            ${airSparkSvg}
+          </div>
         </div>
         <div class="rzc-fcst ${fcstCls}">
           <span>${esc(fcstText)}</span>
@@ -1266,6 +1332,8 @@ function hydrateFromCache() {
     const d = rwisHit.entry.data;
     state.rwisStatus = d.rwisStatus || null;
     state.roadStations = Array.isArray(d.roadStations) ? d.roadStations : [];
+    state.roadTrend = d.roadTrend || null;
+    state.roadTrendFetchedAt = Number.isFinite(d.roadTrendFetchedAt) ? d.roadTrendFetchedAt : (d.roadTrend ? (rwisHit.entry.savedAt || 0) : 0);
     state.roadRisk = d.roadRisk || null;
     state.shortTerm13 = d.shortTerm13 || null;
     state.warningsPayload = d.warningsPayload || null;
@@ -1297,6 +1365,8 @@ function persistCache() {
     data: {
       rwisStatus: state.rwisStatus,
       roadStations: state.roadStations,
+      roadTrend: state.roadTrend,
+      roadTrendFetchedAt: state.roadTrendFetchedAt,
       roadRisk: state.roadRisk,
       shortTerm13: state.shortTerm13,
       warningsPayload: state.warningsPayload,
@@ -1362,6 +1432,7 @@ async function loadAllData({ force = false, silent = false } = {}) {
 
     const warnQuery = encodeURIComponent(buildFiveCountyWarningsQuery());
     const needCctv = force || !state.cctvPayload?.cctvs?.length || (Date.now() - state.cctvFetchedAt >= CCTV_CLIENT_TTL_MS);
+    const needTrend = force || !state.roadTrend?.times?.length || (Date.now() - state.roadTrendFetchedAt >= ROAD_TREND_CLIENT_TTL_MS);
 
     const tasks = [
       // P0-1 경량화: 188KB /api/status 대신 13KB /api/rwis 단독 호출 (중복 ITS CCTV 수신 및 파싱 제거)
@@ -1379,6 +1450,19 @@ async function loadAllData({ force = false, silent = false } = {}) {
           if (list.length) { state.roadStations = list; markLive(); }
         })
         .catch(e => { errors.push(`도로관측(${e?.message || 'err'})`); }),
+      ...(needTrend ? [
+        // P2.5: 6시간 노면·기온 추세 스파크라인 (비차단 보조 조회 · 실패 시에도 주 상황판 동작 유지)
+        fetchJsonSafe(`/api/road-obs-trend?line=14&hours=6${force ? '&force=1' : ''}`, 14000, 0)
+          .then(v => {
+            if (v?.ok && Array.isArray(v.times) && v.times.length) {
+              state.roadTrend = v;
+              state.roadTrendFetchedAt = Date.now();
+              persistCache();
+              renderAll();
+            }
+          })
+          .catch(() => {})
+      ] : []),
       fetchJsonSafe('/api/road-risk?roadNum=012', 12000)
         .then(v => { if (v?.ok) { state.roadRisk = v; markLive(); } })
         .catch(e => { errors.push(`도로위험(${e?.message || 'err'})`); }),

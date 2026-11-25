@@ -270,6 +270,7 @@ export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadR
       fsm: { E: levelFsmE, S: levelFsmS, max: Math.max(levelFsmE, levelFsmS), hasLive: fsmE !== null || fsmS !== null },
       vir: { E: levelVirE, S: levelVirS, max: Math.max(levelVirE, levelVirS), hasLive: virE !== null || virS !== null },
       roadObs: {
+        stationId: primaryStation?.stnId ? String(primaryStation.stnId) : (mapInfo.stnIds[0] || ''),
         stationName: primaryStation?.name || '',
         minRoadTemp,
         minAirTemp,
@@ -949,4 +950,328 @@ export function buildSpecialBulletinCards({
   }
 
   return cards.sort((a, b) => a.priority - b.priority);
+}
+
+/* ───────────────────── Phase P2.5: 6h 실측 + 2h 예측 인라인 스파크라인 엔진 ───────────────────── */
+function clampNum(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+function round1(v) {
+  return Math.round(v * 10) / 10;
+}
+
+function extractShortTermNearDelta(shortTerm13, regionIds = [], nowMs = Date.now()) {
+  const allRegions = Array.isArray(shortTerm13?.regions) ? shortTerm13.regions : [];
+  const matched = regionIds
+    .map(id => allRegions.find(r => r && r.id === id))
+    .filter(r => r && Array.isArray(r.hours) && r.hours.length);
+  if (!matched.length) return { fcst0: null, fcst1: null, fcst2: null, dTa1: null, dTa2: null };
+
+  const curHourMs = Math.floor(nowMs / 3600000) * 3600000;
+  const pickTempAtOffset = (hours, targetHoursAhead) => {
+    const targetMs = curHourMs + targetHoursAhead * 3600000;
+    let best = null;
+    let bestDiff = Infinity;
+    for (const h of hours) {
+      const t = Number(h?.temp);
+      if (!Number.isFinite(t)) continue;
+      const hMs = Date.parse(h?.time || '');
+      if (Number.isFinite(hMs)) {
+        const diff = Math.abs(hMs - targetMs);
+        if (diff <= 45 * 60000 && diff < bestDiff) {
+          best = t;
+          bestDiff = diff;
+        }
+      }
+    }
+    if (best !== null) return best;
+    const fallback = hours[targetHoursAhead];
+    return fallback && Number.isFinite(Number(fallback.temp)) ? Number(fallback.temp) : null;
+  };
+
+  const avgAt = (off) => {
+    const vals = matched.map(r => pickTempAtOffset(r.hours, off)).filter(v => v !== null);
+    if (!vals.length) return null;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  };
+
+  const fcst0 = avgAt(0);
+  const fcst1 = avgAt(1);
+  const fcst2 = avgAt(2);
+  return {
+    fcst0: fcst0 !== null ? round1(fcst0) : null,
+    fcst1: fcst1 !== null ? round1(fcst1) : null,
+    fcst2: fcst2 !== null ? round1(fcst2) : null,
+    dTa1: (fcst0 !== null && fcst1 !== null) ? round1(fcst1 - fcst0) : null,
+    dTa2: (fcst0 !== null && fcst2 !== null) ? round1(fcst2 - fcst0) : null
+  };
+}
+
+function estimateRecentHourlySlope(points = []) {
+  if (points.length < 2) return null;
+  const last = points[points.length - 1];
+  // 최근 1.2h ~ 3.5h 사이에서 2.0h에 가장 가까운 기준점을 우선 선택해 단발 잡음을 완화
+  let bestAnchor = null;
+  let bestScore = Infinity;
+  for (let i = points.length - 2; i >= 0; i--) {
+    const dtHours = (last.ms - points[i].ms) / 3600000;
+    if (dtHours < 0.4) continue;
+    if (dtHours >= 1.2 && dtHours <= 3.5) {
+      const score = Math.abs(dtHours - 2.0);
+      if (score < bestScore) {
+        bestScore = score;
+        bestAnchor = points[i];
+      }
+    }
+  }
+  if (!bestAnchor) {
+    for (let i = points.length - 2; i >= 0; i--) {
+      if ((last.ms - points[i].ms) >= 0.4 * 3600000) {
+        bestAnchor = points[i];
+        break;
+      }
+    }
+  }
+  if (!bestAnchor) return null;
+  const dtHours = (last.ms - bestAnchor.ms) / 3600000;
+  if (dtHours <= 0) return null;
+  return clampNum((last.v - bestAnchor.v) / dtHours, -3.5, 3.5);
+}
+
+/**
+ * 1개 구간의 노면온도(TR1) · 기온(TA) 6시간 실측 + 2시간 예측 시계열을 계산한다.
+ * - 6h 실측: /api/road-obs-trend 관측소 이력 + 최신 실황 값(curVal) 동기화
+ * - +2h 예측: 기온은 단기예보(+1h, +2h) 변화량 반영, 노면은 단기예보 ΔTA + 최근 노면 냉각/상승 기울기 결합
+ */
+export function buildZoneTempTrendSeries({ zone, roadTrend = null, shortTerm13 = null, nowMs = Date.now() } = {}) {
+  const mapInfo = ZONE_INTEGRATION_MAP[zone?.suffix] || { stnIds: [], regionIds: [] };
+  const trendStations = roadTrend?.stations || {};
+  const trendTimes = Array.isArray(roadTrend?.times) ? roadTrend.times : [];
+  const candidateIds = [zone?.roadObs?.stationId, ...(mapInfo.stnIds || [])].filter(Boolean).map(String);
+  const pickedId = candidateIds.find(id => trendStations[id]) || candidateIds[0] || '';
+  const stnSeries = pickedId ? trendStations[pickedId] : null;
+
+  const hoursWindow = Math.max(1, Number(roadTrend?.hours) || 6);
+  const windowMs = hoursWindow * 3600000;
+
+  const parsedTimes = trendTimes.map(iso => Date.parse(iso));
+  const validTimeMs = parsedTimes.filter(Number.isFinite);
+  const endMs = validTimeMs.length ? Math.max(validTimeMs[validTimeMs.length - 1], nowMs - 5 * 60000) : nowMs;
+  const startMs = endMs - windowMs;
+
+  const buildObs = (rawArr, liveCur) => {
+    const pts = [];
+    if (Array.isArray(rawArr) && rawArr.length) {
+      for (let i = 0; i < rawArr.length; i++) {
+        const v = rawArr[i];
+        const ms = parsedTimes[i];
+        if (!Number.isFinite(v) || !Number.isFinite(ms)) continue;
+        if (ms < startMs - 15 * 60000) continue;
+        const ratio = clampNum((ms - startMs) / windowMs, 0, 1);
+        pts.push({ ratio, ms, v: round1(v) });
+      }
+    }
+    if (Number.isFinite(liveCur)) {
+      const roundedLive = round1(liveCur);
+      if (pts.length && (endMs - pts[pts.length - 1].ms) <= 12 * 60000) {
+        pts[pts.length - 1] = { ratio: 1, ms: endMs, v: roundedLive };
+      } else {
+        pts.push({ ratio: 1, ms: endMs, v: roundedLive });
+      }
+    }
+    return pts;
+  };
+
+  const liveTr = Number.isFinite(zone?.roadObs?.minRoadTemp) ? zone.roadObs.minRoadTemp : null;
+  const liveTa = Number.isFinite(zone?.roadObs?.minAirTemp) ? zone.roadObs.minAirTemp : null;
+  const obsTr = buildObs(stnSeries?.tr, liveTr);
+  const obsTa = buildObs(stnSeries?.ta, liveTa);
+
+  const fcstDelta = extractShortTermNearDelta(shortTerm13, mapInfo.regionIds || [], nowMs);
+  const slopeTr = estimateRecentHourlySlope(obsTr);
+  const slopeTa = estimateRecentHourlySlope(obsTa);
+
+  const curTr = obsTr.length ? obsTr[obsTr.length - 1].v : liveTr;
+  const curTa = obsTa.length ? obsTa[obsTa.length - 1].v : liveTa;
+
+  // 기온(TA) +1h, +2h 예측 (실측 기준점 보정)
+  const predTa = [];
+  if (curTa !== null) {
+    let p1 = null;
+    let p2 = null;
+    if (fcstDelta.dTa1 !== null) {
+      p1 = round1(curTa + clampNum(fcstDelta.dTa1, -5.0, 5.0));
+      const d2 = fcstDelta.dTa2 !== null ? fcstDelta.dTa2 : fcstDelta.dTa1 * 1.75;
+      p2 = round1(curTa + clampNum(d2, -7.5, 7.5));
+    } else if (slopeTa !== null) {
+      p1 = round1(curTa + clampNum(slopeTa * 0.8, -3.5, 3.5));
+      p2 = round1(curTa + clampNum(slopeTa * 1.35, -5.5, 5.5));
+    }
+    if (p1 !== null) predTa.push({ h: 1, v: p1 });
+    if (p2 !== null) predTa.push({ h: 2, v: p2 });
+  } else if (fcstDelta.fcst1 !== null) {
+    predTa.push({ h: 1, v: fcstDelta.fcst1 });
+    if (fcstDelta.fcst2 !== null) predTa.push({ h: 2, v: fcstDelta.fcst2 });
+  }
+
+  // 노면온도(TR1) +1h, +2h 예측 (단기예보 기온변화 + 최근 노면 냉각/상승 관성 결합)
+  const predTr = [];
+  if (curTr !== null) {
+    let d1 = null;
+    let d2 = null;
+    if (fcstDelta.dTa1 !== null) {
+      const m1 = slopeTr !== null ? slopeTr : fcstDelta.dTa1;
+      d1 = clampNum(0.65 * fcstDelta.dTa1 + 0.35 * m1, -4.0, 4.0);
+      const step2Ta = fcstDelta.dTa2 !== null ? (fcstDelta.dTa2 - fcstDelta.dTa1) : fcstDelta.dTa1 * 0.75;
+      d2 = clampNum(d1 + 0.70 * step2Ta + 0.20 * m1, -6.5, 6.5);
+    } else if (slopeTr !== null) {
+      d1 = clampNum(0.75 * slopeTr, -3.5, 3.5);
+      d2 = clampNum(d1 + 0.45 * slopeTr, -5.5, 5.5);
+    }
+    if (d1 !== null) predTr.push({ h: 1, v: round1(curTr + d1) });
+    if (d2 !== null) predTr.push({ h: 2, v: round1(curTr + d2) });
+  }
+
+  const finalize = (obs, pred, curVal) => {
+    const startVal = obs.length >= 2 ? obs[0].v : null;
+    const pred1h = pred[0]?.v ?? null;
+    const pred2h = pred[1]?.v ?? pred1h;
+    const delta6h = (startVal !== null && curVal !== null) ? round1(curVal - startVal) : null;
+    const deltaPred2h = (pred2h !== null && curVal !== null) ? round1(pred2h - curVal) : null;
+    const minFuture = [curVal, pred1h, pred2h].filter(v => v !== null);
+    const minVal = minFuture.length ? Math.min(...minFuture) : null;
+    const crossesZeroSoon = Boolean(
+      (curVal !== null && curVal <= 0)
+      || (pred1h !== null && pred1h <= 0)
+      || (pred2h !== null && pred2h <= 0)
+    );
+    return {
+      obs,
+      pred,
+      startVal,
+      curVal,
+      pred1h,
+      pred2h,
+      delta6h,
+      deltaPred2h,
+      minFuture: minVal,
+      crossesZeroSoon
+    };
+  };
+
+  return {
+    stationId: pickedId,
+    stationName: stnSeries?.name || zone?.roadObs?.stationName || '',
+    tr: finalize(obsTr, predTr, curTr),
+    ta: finalize(obsTa, predTa, curTa)
+  };
+}
+
+/**
+ * 초소형 인라인 SVG 스파크라인 (좌 75% 6h 실측 실선 + 현재점 ● + 우 25% +2h 점선 예측 + 조건부 0°C 기준선)
+ */
+export function renderMicroSparklineSvg(series, { kind = 'road', uid = 'sp' } = {}) {
+  const W = 122;
+  const H = 28;
+  const X_LEFT = 2;
+  const X_NOW = 89;
+  const X_P1 = 104;
+  const X_P2 = 119;
+  const Y_TOP = 3.5;
+  const Y_BOT = 24.5;
+
+  const obs = Array.isArray(series?.obs) ? series.obs : [];
+  const pred = Array.isArray(series?.pred) ? series.pred : [];
+  const allVals = [
+    ...obs.map(p => p.v),
+    ...pred.map(p => p.v)
+  ].filter(Number.isFinite);
+
+  if (!allVals.length) {
+    return `<svg class="rzc-spark-svg is-empty" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
+      + `<rect x="${X_NOW}" y="1" width="${W - X_NOW - 1}" height="${H - 2}" rx="2" fill="rgba(148,163,184,0.05)"/>`
+      + `<line x1="${X_LEFT}" y1="${(H / 2).toFixed(1)}" x2="${X_P2}" y2="${(H / 2).toFixed(1)}" stroke="rgba(148,163,184,0.22)" stroke-width="1" stroke-dasharray="2 3"/>`
+      + `</svg>`;
+  }
+
+  let rawMin = Math.min(...allVals);
+  let rawMax = Math.max(...allVals);
+  const showZero = rawMin <= 3.5 && rawMax >= -2.5;
+  if (showZero) {
+    rawMin = Math.min(rawMin, 0);
+    rawMax = Math.max(rawMax, 0);
+  }
+  let span = rawMax - rawMin;
+  if (span < 4.0) {
+    const mid = (rawMin + rawMax) / 2;
+    rawMin = mid - 2.0;
+    rawMax = mid + 2.0;
+    span = 4.0;
+  }
+  const padY = span * 0.12;
+  const yMin = rawMin - padY;
+  const yMax = rawMax + padY;
+  const yOf = (v) => Number((Y_BOT - ((v - yMin) / (yMax - yMin)) * (Y_BOT - Y_TOP)).toFixed(1));
+  const xObs = (ratio) => Number((X_LEFT + clampNum(ratio, 0, 1) * (X_NOW - X_LEFT)).toFixed(1));
+
+  const minKey = series?.minFuture;
+  let stroke = '#38dbf8';
+  if (kind === 'road') {
+    stroke = (minKey !== null && minKey <= 0.5) ? '#fb7185'
+      : (minKey !== null && minKey <= 2.5) ? '#fb923c'
+      : '#38dbf8';
+  } else {
+    stroke = (minKey !== null && minKey < 0) ? '#fb7185'
+      : (minKey !== null && minKey <= 0.5) ? '#60a5fa'
+      : '#9bc4e6';
+  }
+
+  const obsCoords = obs.map(p => [xObs(p.ratio), yOf(p.v)]);
+  const anchor = obsCoords.length ? obsCoords[obsCoords.length - 1] : [X_NOW, yOf(pred[0].v)];
+  const predCoords = [anchor];
+  for (const p of pred) {
+    predCoords.push([p.h === 1 ? X_P1 : X_P2, yOf(p.v)]);
+  }
+
+  const gradId = `spg-${String(uid).replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  const parts = [];
+  parts.push(`<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${stroke}" stop-opacity="0.24"/><stop offset="100%" stop-color="${stroke}" stop-opacity="0.01"/></linearGradient></defs>`);
+
+  // 우측 +2h 예측 영역 음영 및 현재 시각 경계선
+  parts.push(`<rect x="${X_NOW}" y="1" width="${W - X_NOW - 1}" height="${H - 2}" rx="2" fill="rgba(148,163,184,0.06)"/>`);
+  parts.push(`<line x1="${X_NOW}" y1="2" x2="${X_NOW}" y2="${H - 2}" stroke="rgba(148,163,184,0.22)" stroke-width="0.8" stroke-dasharray="1.5 2"/>`);
+
+  // 0°C 결빙 기준선 (영상 3.5°C 이하 접근 시 표시)
+  if (yMin <= 0 && yMax >= 0) {
+    const y0 = yOf(0);
+    parts.push(`<line x1="${X_LEFT}" y1="${y0}" x2="${X_P2}" y2="${y0}" stroke="rgba(96,165,250,0.48)" stroke-width="0.9" stroke-dasharray="2 2"/>`);
+    const lblY = y0 > H - 7 ? y0 - 2 : y0 + 7;
+    parts.push(`<text x="${X_LEFT + 1}" y="${lblY.toFixed(1)}" font-size="7" font-weight="700" fill="rgba(147,197,253,0.75)">0°</text>`);
+  }
+
+  // 6h 실측 영역 그라데이션 채우기 + 실선
+  if (obsCoords.length >= 2) {
+    const linePts = obsCoords.map(([x, y]) => `${x},${y}`).join(' ');
+    const firstX = obsCoords[0][0];
+    const lastX = obsCoords[obsCoords.length - 1][0];
+    const areaD = `M${obsCoords.map(([x, y]) => `${x} ${y}`).join(' L')} L${lastX} ${H - 1} L${firstX} ${H - 1} Z`;
+    parts.push(`<path d="${areaD}" fill="url(#${gradId})"/>`);
+    parts.push(`<polyline class="sp-obs" points="${linePts}" fill="none" stroke="${stroke}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>`);
+  }
+
+  // +2h 예측 점선 + 끝점 링
+  if (predCoords.length >= 2) {
+    const pPts = predCoords.map(([x, y]) => `${x},${y}`).join(' ');
+    const endPt = predCoords[predCoords.length - 1];
+    parts.push(`<polyline class="sp-pred" points="${pPts}" fill="none" stroke="${stroke}" stroke-width="1.45" stroke-opacity="0.88" stroke-dasharray="2.6 2" stroke-linecap="round" stroke-linejoin="round"/>`);
+    parts.push(`<circle cx="${endPt[0]}" cy="${endPt[1]}" r="1.7" fill="#07111e" stroke="${stroke}" stroke-width="1.1"/>`);
+  }
+
+  // 현재 시점 앵커 점
+  if (obsCoords.length >= 1) {
+    parts.push(`<circle class="sp-now" cx="${anchor[0]}" cy="${anchor[1]}" r="2.3" fill="${stroke}" stroke="#07111e" stroke-width="1"/>`);
+  }
+
+  return `<svg class="rzc-spark-svg" viewBox="0 0 ${W} ${H}" aria-hidden="true">${parts.join('')}</svg>`;
 }
