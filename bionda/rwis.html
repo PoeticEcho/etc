@@ -105,12 +105,36 @@
 
         <section class="rwis-panel">
           <div class="rwis-side-tabs" role="tablist" aria-label="우측 정보 탭">
-            <button type="button" class="rwis-side-tab" data-side-tab="telemetry" role="tab" aria-selected="true">🛣️ 노면관측 · 13개소 예보</button>
-            <button type="button" class="rwis-side-tab" data-side-tab="cctv" role="tab" aria-selected="false">📹 지점·CCTV (62)</button>
+            <button type="button" class="rwis-side-tab" data-side-tab="short6" role="tab" aria-selected="true">🕒 6H 단기예보</button>
+            <button type="button" class="rwis-side-tab" data-side-tab="telemetry" role="tab" aria-selected="false">🛣️ 도로관측</button>
+            <button type="button" class="rwis-side-tab" data-side-tab="cctv" role="tab" aria-selected="false">📹 지점·CCTV <span id="cctvTabCount"></span></button>
           </div>
 
-          <!-- Tab 1: Live KMA Road Obs + 13-Region Short-Term Forecast -->
-          <div id="sidePanelTelemetry" class="rwis-side-body">
+          <!-- Tab 1 (Default TV Main): 특이사항 속보 (24h · 5개 지역 특보) + 6H 13개소 단기예보 표 -->
+          <div id="sidePanelShort6" class="rwis-side-body rwis-short6-body">
+            <section class="rwis-bulletin-box" aria-label="24시간 이내 특이사항 속보">
+              <div class="rwis-bulletin-head">
+                <h2>📢 특이사항 속보</h2>
+                <span id="bulletinScopeMeta" class="rwis-bulletin-meta">24h 예보 · 5개 지역 특보 감시</span>
+              </div>
+              <div id="bulletinCards" class="rwis-bulletin-grid">
+                <div class="rwis-bulletin-empty">특보·24시간 예보 특이사항 확인 중…</div>
+              </div>
+            </section>
+
+            <section class="rwis-short6-wrap" aria-label="13개 읍면동 6시간 단기예보">
+              <div class="rwis-sec-head" style="margin-bottom:4px;">
+                <h2>🕒 13개 읍·면·동 6시간 단기예보</h2>
+                <a class="rwis-sec-link" href="./hourly.html">전체 시간표 ↗</a>
+              </div>
+              <div id="short6Matrix" class="rwis-s6-matrix">
+                <div class="rwis-s6-loading">13개소 6시간 단기예보 수신 중…</div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Tab 2: Live KMA Road Obs (TR1) + 13-Region 12h Summary -->
+          <div id="sidePanelTelemetry" class="rwis-side-body" hidden>
             <div>
               <div class="rwis-sec-head">
                 <h2>🛣️ 기상청 도로기상관측소 실측 (TR1 노면온도)</h2>
@@ -141,10 +165,10 @@
             </div>
           </div>
 
-          <!-- Tab 2: 62-Point 123-Camera CCTV Directory -->
+          <!-- Tab 3: Mainpage-Aligned (/api/cctv) Highway CCTV Directory -->
           <div id="sidePanelCctv" class="rwis-side-body" hidden>
             <div class="rwis-cctv-controls">
-              <input type="search" id="cctvSearchInput" class="rwis-cctv-search" placeholder="지점·주소·IC/터널·이정 검색 (예: 논공교, 거창, 가야1)…" autocomplete="off">
+              <input type="search" id="cctvSearchInput" class="rwis-cctv-search" placeholder="CCTV 이름·IC/터널·이정 검색 (예: 야로대교, 논공교, 거창)…" autocomplete="off">
               <div class="rwis-cctv-filters">
                 <button type="button" class="rwis-fchip" data-cctv-fac="all" aria-pressed="true">전체</button>
                 <button type="button" class="rwis-fchip" data-cctv-fac="icjc" aria-pressed="false">IC·JC</button>
@@ -160,28 +184,30 @@
     </div>
   </main>
 
-  <!-- Live HLS CCTV Modal -->
+  <!-- Live HLS CCTV Modal (Mainpage /api/cctv + cctv-player.js 기준) -->
   <div id="rwisCctvModal" class="rwis-modal-backdrop" hidden>
     <div class="rwis-modal" role="dialog" aria-modal="true" aria-labelledby="rwisModalTitle">
       <div class="rwis-modal-head">
         <div>
-          <div id="rwisModalTitle" class="rwis-modal-title">CCTV</div>
+          <div id="rwisModalTitle" class="rwis-modal-title">노면 살얼음 CCTV</div>
           <div id="rwisModalSub" class="rwis-modal-sub">광주대구선</div>
         </div>
         <button type="button" id="rwisModalClose" class="rwis-tool-btn" aria-label="닫기">✕ 닫기</button>
       </div>
       <div class="rwis-modal-stage">
-        <video id="rwisVideo" controls muted playsinline preload="none"></video>
+        <video id="rwisVideo" controls muted playsinline autoplay preload="none"></video>
         <div id="rwisModalOverlay" class="rwis-modal-overlay" hidden>
           <strong id="rwisModalOverlayTitle">영상을 불러오는 중…</strong>
           <small id="rwisModalOverlayText">잠시만 기다려 주세요.</small>
         </div>
       </div>
       <div class="rwis-modal-foot">
-        <span id="rwisModalMeta">-</span>
-        <div style="display:flex;gap:6px;">
-          <button type="button" id="rwisModalRetry" class="rwis-tool-btn">↻ 다시 연결</button>
-          <a id="rwisModalOpenUrl" class="rwis-tool-btn" href="#" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">새 탭 ↗</a>
+        <span id="rwisModalMeta">로드플러스·ITS 실시간 CCTV (새로고침 시 스트림 주소 갱신)</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" id="rwisModalPrev" class="rwis-tool-btn" title="이전 지점 CCTV">◀ 이전</button>
+          <button type="button" id="rwisModalNext" class="rwis-tool-btn" title="다음 지점 CCTV">다음 ▶</button>
+          <button type="button" id="rwisModalRetry" class="rwis-tool-btn">↻ 새로고침</button>
+          <a id="rwisModalOpenUrl" class="rwis-tool-btn" href="./cctv.html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">새 창에서 보기 ↗</a>
         </div>
       </div>
     </div>

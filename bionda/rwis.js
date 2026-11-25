@@ -1,4 +1,7 @@
 import { apiUrl, getApiBase } from './config.js';
+import { getKmaIconInfo, renderKmaIconSvg } from './kma-icons.js';
+import { fetchCctvDirectory } from './cctv-request.js';
+import { cameraDirectory, cameraId } from './cctv-order.js';
 import {
   readPageCache,
   writePageCache,
@@ -22,12 +25,17 @@ import {
   COUNTY_LABELS,
   ROUTE_NODES,
   CORRIDOR_MAP_STATIONS,
-  enrichZonesWithBionda
+  WATCH_WARNING_REGIONS,
+  enrichZonesWithBionda,
+  updateWarningHistory,
+  alignShortTerm6hMatrix,
+  buildSpecialBulletinCards
 } from './rwis-data.js';
 
 const RWIS_CACHE_KEY = 'weather-watch:cache:rwis:v1';
 const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v3';
 const OVERVIEW_CACHE_KEY = 'weather-watch:cache:overview:v2';
+const WARN_HISTORY_KEY = 'weather-watch:rwis-warn-history:v1';
 const rwisCacheScope = () => getApiBase() || '__same_origin__';
 
 const $ = id => document.getElementById(id);
@@ -42,12 +50,26 @@ const PROV_FILL = {
   '전라남도': '#10253a'
 };
 
+function readWarnHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(WARN_HISTORY_KEY) || 'null') || { activeByRegion: {}, lifted: [] };
+  } catch {
+    return { activeByRegion: {}, lifted: [] };
+  }
+}
+
+function saveWarnHistory(hist) {
+  try {
+    localStorage.setItem(WARN_HISTORY_KEY, JSON.stringify(hist));
+  } catch {}
+}
+
 const state = {
   metric: 'fsm',          // 'fsm' (살얼음) | 'vir' (가시거리)
   dir: 'both',            // 'both' | 'E' (대구↑) | 'S' (광주↓)
   showRoadTemps: true,
   mapBig: false,
-  sideTab: 'telemetry',   // 'telemetry' | 'cctv'
+  sideTab: 'short6',      // 'short6' (기본 TV 메인) | 'telemetry' | 'cctv'
   showAllStations: false,
   selectedZoneSuffix: null,
   cctvQuery: '',
@@ -56,6 +78,9 @@ const state = {
   roadStations: [],
   roadRisk: null,
   shortTerm13: null,
+  warningsPayload: null,
+  warningHistory: readWarnHistory(),
+  cctvPayload: null,
   fromCache: false,
   lastSyncedAt: 0,
   lastSyncHourKey: null,
@@ -63,7 +88,8 @@ const state = {
   dwellTimer: null,
   loadPromise: null,
   hls: null,
-  activeCam: null
+  activeCamIndex: -1,
+  activeCamId: ''
 };
 
 /* ───────────────────── 좌표 투영 & 노선 지오메트리 ───────────────────── */
@@ -451,7 +477,7 @@ function renderCorridorMap(enriched) {
     const pillW = Math.max(84, node.name.length * (isTn ? 14.5 : 19) + 26);
     const pillH = node.sub ? 48 : (isTn ? 28 : 34);
 
-    out.push(`<g class="node-hit" data-point="${esc(node.point || '')}" data-nodename="${esc(node.name)}">`);
+    out.push(`<g class="node-hit" data-point="${esc(node.point || '')}" data-nodename="${esc(node.name)}" data-km="${node.km}">`);
     out.push(`<line x1="${n1(q.x)}" y1="${n1(q.y)}" x2="${n1(lx)}" y2="${n1(ly)}" stroke="#6e98c2" stroke-width="1.5" opacity="0.72"/>`);
     if (isTn) {
       out.push(`<rect x="${n1(q.x - 10)}" y="${n1(q.y - 7)}" width="20" height="14" rx="5" fill="#0b1a2d" stroke="#cbd5e1" stroke-width="2.2"/>`);
@@ -507,8 +533,9 @@ function renderCorridorMap(enriched) {
   });
   stage.querySelectorAll('.node-hit').forEach(el => {
     el.addEventListener('click', () => {
-      const ptName = el.dataset.point;
-      if (ptName) openPointCctvByName(ptName);
+      const ptName = el.dataset.point || el.dataset.nodename || '';
+      const km = Number(el.dataset.km);
+      if (ptName || Number.isFinite(km)) openPointCctvByName(ptName, km);
     });
   });
 }
@@ -729,78 +756,234 @@ function renderSidePanel(enriched) {
     }
   }
 
-  // 4. 62-Point CCTV Directory (Tab 2)
+  // 4. Tab 1 (Default TV Main): 특이사항 속보 + 6H 13개소 단기예보 표
+  renderShort6Tab();
+
+  // 5. Tab 3: Mainpage-Aligned (/api/cctv) Highway CCTV Directory
   renderCctvList();
 }
 
-function getMergedCctvPoints() {
-  const livePoints = state.rwisStatus?.cctv?.points;
-  if (Array.isArray(livePoints) && livePoints.length) return livePoints;
-  return RWIS_MASTER.points;
+/* ───────────────────── Tab 1: 특이사항 속보 + 6H 13개소 단기예보 표 ───────────────────── */
+function renderShort6Tab() {
+  // 1. 상단 특이사항 속보 (24h 예보 + 5개 지역 특보 묶음 규칙)
+  const cardsEl = $('bulletinCards');
+  const metaEl = $('bulletinScopeMeta');
+  if (cardsEl) {
+    const cards = buildSpecialBulletinCards({
+      shortTerm13: state.shortTerm13,
+      warningsPayload: state.warningsPayload,
+      warningHistory: state.warningHistory,
+      nowMs: Date.now()
+    });
+    const warnOk = Boolean(state.warningsPayload?.ok);
+    const hasFcst = Boolean(state.shortTerm13?.regions?.length);
+    if (metaEl) {
+      if (!hasFcst && !warnOk) {
+        metaEl.textContent = '24h 예보 · 5개 지역 특보 수신 중…';
+      } else if (cards.length) {
+        metaEl.textContent = `특이사항 ${cards.length}건 · 5개 지역 특보 감시`;
+      } else {
+        metaEl.textContent = '특이사항 0건 · 5개 지역 특보 감시 중';
+      }
+    }
+
+    if (!hasFcst && !warnOk) {
+      cardsEl.innerHTML = '<div class="rwis-bulletin-empty">특보·24시간 예보 특이사항을 불러오는 중입니다…</div>';
+    } else if (!cards.length) {
+      cardsEl.innerHTML = '<div class="rwis-bulletin-empty">✅ 향후 24시간 특이사항 없음 · 5개 지역(함양·거창·합천·고령·달성) 특보 없음 · 무강수 · 전구간 영상</div>';
+    } else {
+      cardsEl.innerHTML = cards.map(c => `
+        <div class="rwis-bcard tone-${esc(c.tone)}">
+          <div class="rwis-bcard-top">
+            <span class="rwis-bcard-title">${esc(c.icon)} ${esc(c.title)}</span>
+            <span class="rwis-bcard-badge">${esc(c.badge)}</span>
+          </div>
+          <div class="rwis-bcard-detail">${esc(c.detail)}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // 2. 하단 13개소 6시간 단기예보 표
+  const matEl = $('short6Matrix');
+  if (!matEl) return;
+  const { headerHours, rows } = alignShortTerm6hMatrix(state.shortTerm13);
+  if (!rows.length || !headerHours.length) {
+    matEl.innerHTML = '<div class="rwis-s6-loading">13개소 6시간 단기예보 수신 중…</div>';
+    return;
+  }
+
+  const nowKstH = new Date(Date.now() + 9 * 3600000).getUTCHours();
+  const fmtHm = iso => (iso ? String(iso).slice(11, 16) : '');
+
+  let html = '<div class="rwis-s6-head">';
+  html += '<div class="rwis-s6-th">대상 지역 (서→동)</div>';
+  html += '<div class="rwis-s6-th">요약 (24h)</div>';
+  for (let i = 0; i < headerHours.length; i++) {
+    const h = headerHours[i];
+    const subTag = (i === 0 && h.hourKst === nowKstH)
+      ? '현재'
+      : (i === 0 ? '시작' : (h.isTomorrow ? '내일' : '오늘'));
+    html += `<div class="rwis-s6-th ${i === 0 ? 'is-now' : ''}"><span>${String(h.hourKst).padStart(2, '0')}시</span><small>${esc(subTag)}</small></div>`;
+  }
+  html += '</div>';
+
+  for (const row of rows) {
+    const { region: r, routeIndex, cells6, sum24 } = row;
+    const wetTxt = sum24.firstWetTime ? `강수 ${fmtHm(sum24.firstWetTime)}` : '무강수';
+    const frzTxt = sum24.firstFreezingTime ? `영하 ${fmtHm(sum24.firstFreezingTime)}↓` : '영상';
+    const rangeTxt = sum24.minTemp !== null ? `${sum24.minTemp}~${sum24.maxTemp}°` : '—';
+    const botRight = sum24.overlapHours > 0
+      ? `<span class="s6-tag-ovl">겹침 ${sum24.overlapHours}h</span>`
+      : `<span class="s6-tag-dry">최대 ${sum24.maxPop}%</span>`;
+
+    html += `<a class="rwis-s6-row" href="./hourly.html" title="${esc(r.county)} ${esc(r.name)} 1시간 상세 시간표 보기">`;
+    html += `<div class="s6-name"><span class="s6-cbar" style="background:${esc(r.color || '#38bdf8')}"></span><div class="s6-geo"><div class="s6-geo-main">${esc(r.county)} ${esc(r.name)}</div><div class="s6-geo-sub">${esc(r.admin)} · ${routeIndex}/${rows.length}</div></div></div>`;
+    html += `<div class="s6-sum"><div class="s6-sum-line"><span class="${sum24.wetHours > 0 ? 's6-tag-wet' : 's6-tag-dry'}">${esc(wetTxt)}</span><span class="${sum24.freezingHours > 0 ? 's6-tag-frz' : 's6-tag-dry'}">${esc(frzTxt)}</span></div><div class="s6-sum-line"><span style="color:#dbeafe;">${esc(rangeTxt)}</span>${botRight}</div></div>`;
+
+    for (let j = 0; j < headerHours.length; j++) {
+      const h = cells6[j];
+      if (!h) {
+        html += '<div class="s6-cell"><div class="s6-c1"><span class="s6-temp">—</span></div><div class="s6-c2">-</div></div>';
+        continue;
+      }
+      const iconInfo = getKmaIconInfo({ sky: h.sky, pty: h.pty, isNight: h.isNight, lightning: h.lightning });
+      const isSnow = h.wet && (h.snowCm > 0 || ['2', '3', '6', '7'].includes(String(h.pty)));
+      const isSubzero = h.temp != null && h.temp < 0;
+      const isOverlap = h.wet && isSubzero;
+      const cellCls = [
+        's6-cell',
+        h.isNight ? 'is-night' : '',
+        isSnow ? 'is-snow' : (h.wet ? 'is-wet' : ''),
+        isSubzero ? 'is-subzero' : '',
+        isOverlap ? 'is-overlap' : ''
+      ].filter(Boolean).join(' ');
+
+      const tempTxt = h.temp != null ? `${Math.round(h.temp)}°` : '—';
+      const subTxt = h.snowCm > 0
+        ? `${h.snowCm}cm`
+        : h.rainMm > 0
+          ? `${h.rainMm.toFixed(1)}mm`
+          : `${h.pop ?? 0}%`;
+
+      html += `<div class="${cellCls}"><div class="s6-c1">${renderKmaIconSvg(iconInfo, 19)}<span class="s6-temp">${esc(tempTxt)}</span></div><div class="s6-c2 ${h.wet ? 'has-amt' : ''}">${esc(subTxt)}</div></div>`;
+    }
+    html += '</a>';
+  }
+
+  matEl.innerHTML = html;
+}
+
+/* ───────────────────── Tab 3: 메인페이지 기준(/api/cctv) CCTV 목록 & 모달 ───────────────────── */
+function getMainCctvEntries() {
+  if (state.cctvPayload?.cctvs?.length) {
+    return cameraDirectory(state.cctvPayload);
+  }
+  // /api/cctv 수신 전 임시 보조: RWIS status의 ITS 매칭 카메라만 사용
+  const rwisPts = state.rwisStatus?.cctv?.points;
+  if (Array.isArray(rwisPts) && rwisPts.length) {
+    const fallback = [];
+    for (const pt of rwisPts) {
+      const its = Array.isArray(pt.its) ? pt.its.find(x => x?.url) : null;
+      if (!its?.url) continue;
+      fallback.push({
+        camera: {
+          id: pt.cctvId || pt.id,
+          name: its.name || pt.name,
+          url: its.url,
+          format: its.format || 'HLS',
+          x: pt.lon,
+          y: pt.lat
+        },
+        displayName: pt.name,
+        km: Number(pt.km),
+        position: `${Number(pt.km).toFixed(2)}k`,
+        record: { id: pt.cctvId || pt.id, name: pt.name, km: Number(pt.km), basis: pt.kmSource || '공식', directions: '대구·광주' }
+      });
+    }
+    return fallback.sort((a, b) => a.km - b.km);
+  }
+  return [];
+}
+
+function classifyEntryFacility(entry) {
+  const name = String(entry?.displayName || '');
+  if (/(분기점|JC|IC$|함양$|거창$|가조$|해인사$|고령$)/i.test(name)) return 'icjc';
+  if (/휴게소/.test(name)) return 'rest';
+  if (/(터널|교\d*$|대교|육교)/.test(name)) return 'struct';
+  return 'other';
 }
 
 function renderCctvList() {
   const listEl = $('cctvPointList');
   if (!listEl) return;
+  const allEntries = getMainCctvEntries();
+  const cntEl = $('cctvTabCount');
+  if (cntEl) cntEl.textContent = allEntries.length ? `(${allEntries.length})` : '';
+
   const clearBtn = $('clearZoneFilterBtn');
+  let selectedZone = null;
+  if (state.selectedZoneSuffix) {
+    selectedZone = RWIS_MASTER.zones.find(x => x.suffix === state.selectedZoneSuffix) || null;
+  }
   if (clearBtn) {
-    clearBtn.hidden = !state.selectedZoneSuffix;
-    if (state.selectedZoneSuffix) {
-      const z = RWIS_MASTER.zones.find(x => x.suffix === state.selectedZoneSuffix);
-      clearBtn.textContent = `✕ ${z ? z.name : state.selectedZoneSuffix} 해제`;
+    clearBtn.hidden = !selectedZone;
+    if (selectedZone) {
+      clearBtn.textContent = `✕ ${selectedZone.name} 해제`;
     }
   }
 
   const q = state.cctvQuery.trim().toLowerCase();
-  const points = getMergedCctvPoints().filter(pt => {
-    if (state.selectedZoneSuffix && pt.zone !== state.selectedZoneSuffix && !(pt.nearZones || []).includes(state.selectedZoneSuffix)) {
-      return false;
+  const filtered = allEntries.filter(entry => {
+    if (selectedZone) {
+      if (entry.km < selectedZone.startKm - 1.5 || entry.km > selectedZone.endKm + 1.5) return false;
     }
-    if (state.cctvFac === 'icjc' && !['IC', 'JC'].includes(pt.facility)) return false;
-    if (state.cctvFac === 'rest' && !String(pt.facility || '').includes('휴게')) return false;
-    if (state.cctvFac === 'struct' && !['터널', '교량'].includes(pt.facility)) return false;
+    if (state.cctvFac !== 'all' && classifyEntryFacility(entry) !== state.cctvFac) return false;
     if (q) {
-      const hay = `${pt.name} ${pt.address || ''} ${pt.facility || ''} ${pt.km}k ${pt.cctvId || ''}`.toLowerCase();
+      const hay = `${entry.displayName} ${entry.position} ${entry.camera?.name || ''} ${entry.record?.id || ''}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
   });
 
-  if (!points.length) {
-    listEl.innerHTML = '<div style="text-align:center;color:#7c9dbe;padding:24px;">일치하는 CCTV 지점이 없습니다.</div>';
+  if (!allEntries.length) {
+    listEl.innerHTML = '<div style="text-align:center;color:#7c9dbe;padding:24px;">메인페이지 CCTV 목록(/api/cctv)을 불러오는 중입니다…</div>';
+    return;
+  }
+  if (!filtered.length) {
+    listEl.innerHTML = '<div style="text-align:center;color:#7c9dbe;padding:24px;">조건에 일치하는 CCTV 지점이 없습니다.</div>';
     return;
   }
 
-  listEl.innerHTML = points.map(pt => {
-    const cams = Array.isArray(pt.cams) && pt.cams.length ? pt.cams : [{ dir: 'D', cctvId: pt.cctvId }];
-    const btns = cams.map(c => {
-      const dirTxt = c.dir === 'G' ? '광주 ▶' : '대구 ▶';
-      return `<button type="button" class="rcr-play" data-pt-id="${esc(pt.id)}" data-cctv-id="${esc(c.cctvId || pt.cctvId || '')}" data-dir="${esc(c.dir || 'D')}">${dirTxt}</button>`;
-    }).join('');
+  listEl.innerHTML = filtered.map(entry => {
+    const cid = cameraId(entry.camera);
+    const metaSub = entry.record ? `${entry.record.basis} · ${entry.record.directions}` : '광주대구선 실시간 ITS';
     return `
       <div class="rwis-cctv-row">
         <div class="rcr-info">
           <div class="rcr-title">
-            <span class="rcr-km">${Number(pt.km).toFixed(1)}k</span>
-            <span>${esc(pt.name)}</span>
-            <span style="font-size:11px;color:#7da0c4;font-weight:700;">${esc(pt.facility || '')}</span>
+            <span class="rcr-km">${esc(entry.position)}</span>
+            <span>${esc(entry.displayName)}</span>
           </div>
-          <div class="rcr-addr">${esc(pt.address || '')}</div>
+          <div class="rcr-addr">${esc(metaSub)}</div>
         </div>
-        <div class="rcr-btns">${btns}</div>
+        <div class="rcr-btns">
+          <button type="button" class="rcr-play" data-cam-id="${esc(cid)}">▶ 실시간 보기</button>
+        </div>
       </div>
     `;
   }).join('');
 
   listEl.querySelectorAll('.rcr-play').forEach(btn => {
     btn.addEventListener('click', () => {
-      const pt = getMergedCctvPoints().find(p => p.id === btn.dataset.ptId);
-      if (pt) openCctvModal(pt, btn.dataset.cctvId, btn.dataset.dir);
+      const entries = getMainCctvEntries();
+      const idx = entries.findIndex(e => cameraId(e.camera) === btn.dataset.camId);
+      if (idx >= 0) openMainCctvByIndex(idx);
     });
   });
 }
 
-/* ───────────────────── HLS 실시간 CCTV 모달 ───────────────────── */
+/* ───────────────────── HLS 실시간 CCTV 모달 (메인페이지 cctv-player.js 기준) ───────────────────── */
 function clearModalVideo() {
   if (state.hls) {
     try { state.hls.destroy(); } catch {}
@@ -830,31 +1013,32 @@ function upgradeStreamUrl(u) {
   return raw;
 }
 
-function playHlsUrl(url, { poster = '', onFatalFallback = null } = {}) {
+function playMainCameraEntry(entry) {
   clearModalVideo();
   const video = $('rwisVideo');
-  const safeUrl = upgradeStreamUrl(url);
-  if (video) video.poster = poster || '';
-  $('rwisModalOpenUrl').href = safeUrl;
-  $('rwisModalMeta').textContent = safeUrl;
+  const cam = entry.camera;
+  const safeUrl = upgradeStreamUrl(cam.url);
+  const cid = cameraId(cam);
+
+  $('rwisModalTitle').textContent = `📹 ${entry.displayName} · 노면 살얼음 CCTV`;
+  $('rwisModalSub').textContent = `${entry.position} · 광주대구선 (${entry.record?.directions || '양방향'})`;
+  const standaloneUrl = new URL('cctv.html', location.href);
+  standaloneUrl.searchParams.set('id', cid);
+  $('rwisModalOpenUrl').href = standaloneUrl.href;
+  $('rwisModalMeta').textContent = '로드플러스·ITS 실시간 CCTV (새로고침 시 최신 스트림 토큰 갱신)';
   setModalOverlay(false);
 
-  const isHls = /\.m3u8(\?|$)/i.test(safeUrl) || /playlist|ktict\.co\.kr|hscdn\.com/i.test(safeUrl);
-  if (isHls && window.Hls && window.Hls.isSupported()) {
-    const hls = new window.Hls({ lowLatencyMode: true, maxBufferLength: 12, manifestLoadingTimeOut: 10000 });
+  const isHls = /hls|m3u8/i.test(`${cam.format || ''} ${safeUrl}`) || /ktict\.co\.kr|hscdn\.com/i.test(safeUrl);
+  if (isHls && !video.canPlayType('application/vnd.apple.mpegurl') && window.Hls?.isSupported()) {
+    const hls = new window.Hls();
     state.hls = hls;
     hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
       video.play().catch(() => {});
     });
     hls.on(window.Hls.Events.ERROR, (_, data) => {
-      if (!data?.fatal) return;
-      if (typeof onFatalFallback === 'function') {
-        const fb = onFatalFallback;
-        onFatalFallback = null;
-        fb();
-        return;
+      if (data?.fatal) {
+        setModalOverlay(true, '영상 연결에 실패했습니다', '스트림 토큰 만료 또는 일시 지연 — 아래 [↻ 새로고침]을 눌러 주세요.');
       }
-      setModalOverlay(true, '영상을 불러오지 못했습니다', '스트림 서버 일시 지연 또는 주소 만료 — [다시 연결]을 눌러 보세요.');
     });
     hls.loadSource(safeUrl);
     hls.attachMedia(video);
@@ -864,62 +1048,71 @@ function playHlsUrl(url, { poster = '', onFatalFallback = null } = {}) {
   }
 }
 
-async function fetchRoadplusStreamAndPlay(cctvId) {
-  if (!cctvId) {
-    setModalOverlay(true, '연결된 CCTV ID가 없습니다', '다른 인접 지점을 선택해 주세요.');
-    return;
-  }
-  setModalOverlay(true, '실시간 CCTV 스트림 연결 중…', '한국도로공사(Roadplus) 스트리밍 주소를 조회하고 있습니다.');
-  try {
-    const res = await fetch(apiUrl(`/api/rwis/api/stream?cctvId=${encodeURIComponent(cctvId)}`), {
-      signal: AbortSignal.timeout(22000)
-    });
-    const data = await res.json();
-    const streamUrl = data?.streamUrl || data?.stream?.hls || data?.hls || data?.url || '';
-    if (!res.ok || !streamUrl) throw new Error(data?.message || `HTTP ${res.status}`);
-    playHlsUrl(streamUrl, { poster: data?.snapshotUrl || '' });
-  } catch (err) {
-    setModalOverlay(true, 'CCTV 스트림 연결 실패', String(err?.message || err));
-  }
-}
-
-async function openCctvModal(pt, cctvId, dir = 'D') {
-  const id = cctvId || pt.cctvId;
-  state.activeCam = { pt, cctvId: id, dir };
-  $('rwisModalTitle').textContent = `📹 ${pt.name} (${dir === 'G' ? '광주방향' : '대구방향'})`;
-  $('rwisModalSub').textContent = `${Number(pt.km).toFixed(1)}km · ${pt.address || '광주대구선'}`;
+function openMainCctvByIndex(index) {
+  const entries = getMainCctvEntries();
+  if (!entries.length) return;
+  const safeIdx = Math.max(0, Math.min(entries.length - 1, index));
+  const entry = entries[safeIdx];
+  state.activeCamIndex = safeIdx;
+  state.activeCamId = cameraId(entry.camera);
   $('rwisCctvModal').hidden = false;
-  setModalOverlay(true, '실시간 CCTV 스트림 연결 중…', '한국도로공사 · ITS 스트리밍 주소를 확인하고 있습니다.');
-
-  // 1. Check if ITS live stream URL is already attached (pt.its is an array of matched ITS cams)
-  const itsList = Array.isArray(pt.its) ? pt.its : (pt.its ? [pt.its] : []);
-  const bestIts = itsList.find(x => x?.mode === 'exact' && x?.url) || itsList.find(x => x?.url) || null;
-  const matchedUrl = bestIts?.url || pt.url || (Array.isArray(pt.itsItems) && pt.itsItems[0]?.url) || '';
-  if (matchedUrl) {
-    playHlsUrl(matchedUrl, {
-      onFatalFallback: id ? () => fetchRoadplusStreamAndPlay(id) : null
-    });
-    return;
-  }
-
-  // 2. Otherwise query /api/rwis/api/stream?cctvId=... (Roadplus live HLS + snapshotUrl)
-  await fetchRoadplusStreamAndPlay(id);
+  playMainCameraEntry(entry);
 }
 
-function openPointCctvByName(name) {
-  const norm = s => String(s || '').replace(/\s+/g, '').toLowerCase();
-  const target = norm(name);
-  const pts = getMergedCctvPoints();
-  const pt = pts.find(p => norm(p.name) === target) || pts.find(p => norm(p.name).includes(target));
-  if (pt) {
-    openCctvModal(pt, pt.cctvId, 'D');
+async function refreshActiveModalCctv() {
+  setModalOverlay(true, 'CCTV 스트림 주소 갱신 중…', '메인페이지(/api/cctv)에서 최신 스트림 주소를 받아오고 있습니다.');
+  try {
+    const res = await fetchCctvDirectory(apiUrl('/api/cctv?refresh=1'), {
+      cache: 'no-store',
+      onRetry: () => setModalOverlay(true, 'CCTV 재연결 중…', '응답이 지연되어 자동으로 다시 연결하고 있습니다.')
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    if (payload?.cctvs?.length) {
+      state.cctvPayload = payload;
+      persistCache();
+      renderCctvList();
+    }
+    const entries = getMainCctvEntries();
+    let idx = entries.findIndex(e => cameraId(e.camera) === state.activeCamId);
+    if (idx < 0) idx = Math.max(0, Math.min(entries.length - 1, state.activeCamIndex));
+    if (idx >= 0 && entries[idx]) {
+      openMainCctvByIndex(idx);
+    } else {
+      throw new Error('연결된 CCTV를 찾을 수 없습니다.');
+    }
+  } catch (err) {
+    setModalOverlay(true, 'CCTV 새로고침 실패', String(err?.message || err));
   }
+}
+
+function openPointCctvByName(name, km = NaN) {
+  const entries = getMainCctvEntries();
+  if (!entries.length) {
+    setSideTab('cctv');
+    return;
+  }
+  const norm = s => String(s || '').replace(/\s+/g, '').replace(/(IC|JC|TN)$/i, '').toLowerCase();
+  const target = norm(name);
+  let idx = target
+    ? entries.findIndex(e => norm(e.displayName) === target || norm(e.displayName).includes(target) || target.includes(norm(e.displayName)))
+    : -1;
+  if (idx < 0 && Number.isFinite(km)) {
+    let bestD = Infinity;
+    entries.forEach((e, i) => {
+      const d = Math.abs(e.km - km);
+      if (d < bestD) { bestD = d; idx = i; }
+    });
+  }
+  if (idx < 0) idx = 0;
+  openMainCctvByIndex(idx);
 }
 
 function closeCctvModal() {
   clearModalVideo();
   $('rwisCctvModal').hidden = true;
-  state.activeCam = null;
+  state.activeCamIndex = -1;
+  state.activeCamId = '';
 }
 
 /* ───────────────────── PNG 리포트 저장 ───────────────────── */
@@ -1012,14 +1205,16 @@ function hydrateFromCache() {
     state.roadStations = Array.isArray(d.roadStations) ? d.roadStations : [];
     state.roadRisk = d.roadRisk || null;
     state.shortTerm13 = d.shortTerm13 || null;
+    state.warningsPayload = d.warningsPayload || null;
+    state.cctvPayload = d.cctvPayload || null;
     seedSharedCrossTabCaches(scope);
     state.fromCache = true;
     state.lastSyncedAt = rwisHit.entry.savedAt || 0;
     state.lastSyncHourKey = rwisHit.entry.hourKey || null;
     renderAll();
     const policy = evaluateCachePolicy({ cacheHit: rwisHit, freshMs: DEFAULT_FRESH_MS, dwellMs: DEFAULT_DWELL_MS });
-    // 도로관측 또는 13개소 예보 중 누락된 소스가 있으면 백그라운드 즉시 보완
-    if (!state.roadStations.length || !state.shortTerm13?.regions?.length) {
+    // 핵심 소스 중 누락된 항목이 있으면 백그라운드 즉시 보완
+    if (!state.roadStations.length || !state.shortTerm13?.regions?.length || !state.warningsPayload?.ok || !state.cctvPayload?.cctvs?.length) {
       return { ...policy, shouldFetchNow: true };
     }
     return policy;
@@ -1039,7 +1234,9 @@ function persistCache() {
       rwisStatus: state.rwisStatus,
       roadStations: state.roadStations,
       roadRisk: state.roadRisk,
-      shortTerm13: state.shortTerm13
+      shortTerm13: state.shortTerm13,
+      warningsPayload: state.warningsPayload,
+      cctvPayload: state.cctvPayload
     }
   });
 }
@@ -1069,6 +1266,12 @@ async function fetchJsonSafe(path, timeoutMs = 11000, retries = 1) {
   throw lastErr || new Error('API fetch failed');
 }
 
+function buildFiveCountyWarningsQuery() {
+  return WATCH_WARNING_REGIONS
+    .map(r => `${r.name}|${r.lat.toFixed(4)},${r.lon.toFixed(4)}`)
+    .join(';');
+}
+
 async function loadAllData({ force = false, silent = false } = {}) {
   if (state.loadPromise) return state.loadPromise;
   clearTimeout(state.dwellTimer);
@@ -1092,6 +1295,8 @@ async function loadAllData({ force = false, silent = false } = {}) {
       renderAll();
     };
 
+    const warnQuery = encodeURIComponent(buildFiveCountyWarningsQuery());
+
     const tasks = [
       fetchJsonSafe(`/api/rwis/api/status${refreshParam}`, 14000)
         .then(v => { if (v?.ok) { state.rwisStatus = v; markLive(); } })
@@ -1105,6 +1310,29 @@ async function loadAllData({ force = false, silent = false } = {}) {
       fetchJsonSafe('/api/road-risk?roadNum=012', 12000)
         .then(v => { if (v?.ok) { state.roadRisk = v; markLive(); } })
         .catch(e => { errors.push(`도로위험(${e?.message || 'err'})`); }),
+      fetchJsonSafe(`/api/warnings?places=${warnQuery}`, 12000)
+        .then(v => {
+          if (v?.ok && v?.items) {
+            state.warningsPayload = v;
+            state.warningHistory = updateWarningHistory(state.warningHistory, v, Date.now());
+            saveWarnHistory(state.warningHistory);
+            markLive();
+          }
+        })
+        .catch(e => { errors.push(`기상특보(${e?.message || 'err'})`); }),
+      fetchCctvDirectory(apiUrl(`/api/cctv${refreshParam}`), {
+        cache: force ? 'no-store' : 'default',
+        onRetry: () => {}
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const v = await res.json();
+          if (Array.isArray(v?.cctvs) && v.cctvs.length) {
+            state.cctvPayload = v;
+            markLive();
+          }
+        })
+        .catch(e => { errors.push(`CCTV(${e?.message || 'err'})`); }),
       fetchJsonSafe(`/api/short-term-12?roster=13${force ? '&force=1' : ''}`, 30000)
         .then(v => {
           if (v?.ok && Array.isArray(v.regions)) {
@@ -1154,6 +1382,7 @@ function setSideTab(tabName) {
   document.querySelectorAll('.rwis-side-tab').forEach(b => {
     b.setAttribute('aria-selected', b.dataset.sideTab === tabName ? 'true' : 'false');
   });
+  $('sidePanelShort6').hidden = tabName !== 'short6';
   $('sidePanelTelemetry').hidden = tabName !== 'telemetry';
   $('sidePanelCctv').hidden = tabName !== 'cctv';
 }
@@ -1238,11 +1467,28 @@ $('rwisModalClose')?.addEventListener('click', closeCctvModal);
 $('rwisCctvModal')?.addEventListener('click', e => {
   if (e.target === $('rwisCctvModal')) closeCctvModal();
 });
+$('rwisModalPrev')?.addEventListener('click', () => {
+  if (state.activeCamIndex > 0) openMainCctvByIndex(state.activeCamIndex - 1);
+});
+$('rwisModalNext')?.addEventListener('click', () => {
+  const entries = getMainCctvEntries();
+  if (state.activeCamIndex >= 0 && state.activeCamIndex < entries.length - 1) {
+    openMainCctvByIndex(state.activeCamIndex + 1);
+  }
+});
 $('rwisModalRetry')?.addEventListener('click', () => {
-  if (state.activeCam) openCctvModal(state.activeCam.pt, state.activeCam.cctvId, state.activeCam.dir);
+  refreshActiveModalCctv();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !$('rwisCctvModal').hidden) closeCctvModal();
+  if ($('rwisCctvModal').hidden) return;
+  if (e.key === 'Escape') closeCctvModal();
+  else if (e.key === 'ArrowLeft' && state.activeCamIndex > 0) openMainCctvByIndex(state.activeCamIndex - 1);
+  else if (e.key === 'ArrowRight') {
+    const entries = getMainCctvEntries();
+    if (state.activeCamIndex >= 0 && state.activeCamIndex < entries.length - 1) {
+      openMainCctvByIndex(state.activeCamIndex + 1);
+    }
+  }
 });
 
 /* ───────────────────── 초기화 ───────────────────── */

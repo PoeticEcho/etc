@@ -300,3 +300,477 @@ export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadR
     }
   };
 }
+
+/**
+ * 5개 핵심 관할 시·군 특보 조회 목록 (/api/warnings?places=... 1회 일괄 조회)
+ */
+export const WATCH_WARNING_REGIONS = [
+  { id: 'hamyang', name: '함양군', shortName: '함양', lat: 35.520, lon: 127.725 },
+  { id: 'geochang', name: '거창군', shortName: '거창', lat: 35.687, lon: 127.910 },
+  { id: 'hapcheon', name: '합천군', shortName: '합천', lat: 35.706, lon: 128.168 },
+  { id: 'goryeong', name: '고령군', shortName: '고령', lat: 35.728, lon: 128.263 },
+  { id: 'dalseong', name: '달성군', shortName: '달성', lat: 35.697, lon: 128.447 }
+];
+
+const SIX_HOURS_MS = 6 * 3600 * 1000;
+
+/**
+ * KMA 12자리 시각 문자열(YYYYMMDDHHmm, KST)을 epoch ms로 변환
+ */
+export function parseKmaStampMs(stamp) {
+  const s = String(stamp || '').trim();
+  if (!/^\d{12}$/.test(s)) return null;
+  const y = Number(s.slice(0, 4));
+  const mo = Number(s.slice(4, 6)) - 1;
+  const d = Number(s.slice(6, 8));
+  const h = Number(s.slice(8, 10));
+  const mi = Number(s.slice(10, 12));
+  return Date.UTC(y, mo, d, h - 9, mi);
+}
+
+function formatHmKst(msOrIso) {
+  if (!msOrIso) return '';
+  if (typeof msOrIso === 'string' && msOrIso.length >= 16 && msOrIso.includes('T')) {
+    return msOrIso.slice(11, 16);
+  }
+  const ms = typeof msOrIso === 'number' ? msOrIso : Date.parse(msOrIso);
+  if (!Number.isFinite(ms)) return '';
+  const k = new Date(ms + 9 * 3600000);
+  return `${String(k.getUTCHours()).padStart(2, '0')}:${String(k.getUTCMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * /api/warnings?places=... 응답을 5개 관할 지역 기준으로 정규화
+ */
+export function extractRegionWarningsMap(warningsPayload) {
+  const map = new Map();
+  for (const r of WATCH_WARNING_REGIONS) map.set(r.name, []);
+  if (!warningsPayload?.items || typeof warningsPayload.items !== 'object') return map;
+
+  for (const item of Object.values(warningsPayload.items)) {
+    if (!item) continue;
+    const name = String(item.name || '').trim();
+    const matched = WATCH_WARNING_REGIONS.find(r => r.name === name || name.includes(r.shortName));
+    if (matched) {
+      map.set(matched.name, Array.isArray(item.warnings) ? item.warnings : []);
+    }
+  }
+  return map;
+}
+
+/**
+ * 특보 발효/해제 이력 갱신 (6시간 이내 특보 해제 감지용)
+ */
+export function updateWarningHistory(prevHistory, warningsPayload, nowMs = Date.now()) {
+  const base = (prevHistory && typeof prevHistory === 'object')
+    ? prevHistory
+    : { activeByRegion: {}, lifted: [] };
+  const prevActive = base.activeByRegion && typeof base.activeByRegion === 'object'
+    ? base.activeByRegion
+    : {};
+  const prevLifted = Array.isArray(base.lifted) ? base.lifted : [];
+
+  // 6시간 지난 해제 이력은 정리
+  let lifted = prevLifted.filter(x => Number.isFinite(x?.liftedAtMs) && (nowMs - x.liftedAtMs) >= 0 && (nowMs - x.liftedAtMs) <= SIX_HOURS_MS);
+
+  // warningsConfirmed === true 일 때만 해제 판정(오탐 방지)
+  if (!warningsPayload?.ok || !warningsPayload?.warningsConfirmed) {
+    return { activeByRegion: prevActive, lifted };
+  }
+
+  const byRegion = extractRegionWarningsMap(warningsPayload);
+  const nextActive = {};
+
+  for (const reg of WATCH_WARNING_REGIONS) {
+    const curList = byRegion.get(reg.name) || [];
+    const curByTitle = new Map();
+    for (const w of curList) {
+      const title = String(w?.title || `${w?.kind || ''}${w?.level || ''}`).trim();
+      if (!title) continue;
+      curByTitle.set(title, {
+        title,
+        kind: w?.kind || '',
+        level: w?.level || '',
+        tmFc: w?.tmFc || '',
+        tmEf: w?.tmEf || ''
+      });
+    }
+
+    const oldList = Array.isArray(prevActive[reg.name]) ? prevActive[reg.name] : [];
+    for (const oldW of oldList) {
+      const t = String(oldW?.title || '').trim();
+      if (!t) continue;
+      if (!curByTitle.has(t)) {
+        // 기존 발효 중이던 특보가 해제됨!
+        const dup = lifted.some(x => x.regionName === reg.name && x.title === t && (nowMs - x.liftedAtMs) < 30 * 60 * 1000);
+        if (!dup) {
+          lifted.push({
+            regionName: reg.name,
+            shortName: reg.shortName,
+            title: t,
+            kind: oldW.kind || '',
+            level: oldW.level || '',
+            liftedAtMs: nowMs
+          });
+        }
+      }
+    }
+
+    nextActive[reg.name] = [...curByTitle.values()];
+  }
+
+  return { activeByRegion: nextActive, lifted };
+}
+
+/**
+ * 5개 지역 특보 카드 묶음 규칙:
+ *  - 1개 지역: 1장 단독 카드
+ *  - 2개 지역: 각각 1장씩 2장 카드
+ *  - 3개 이상 지역: 1장의 묶음 카드로 통합
+ */
+function expandWarningGroupByCount(entries, buildSingle, buildMerged) {
+  if (!entries.length) return [];
+  if (entries.length === 1) return [buildSingle(entries[0])];
+  if (entries.length === 2) return [buildSingle(entries[0]), buildSingle(entries[1])];
+  return [buildMerged(entries)];
+}
+
+function summarizeRegionNames(names, maxShow = 4) {
+  if (!names.length) return '';
+  if (names.length <= maxShow) return names.join('·');
+  return `${names.slice(0, maxShow).join('·')} 외 ${names.length - maxShow}곳`;
+}
+
+/**
+ * 13개소 6시간 단기예보 표 + 24시간 요약 데이터 정렬
+ */
+export function alignShortTerm6hMatrix(shortTerm13) {
+  const rawRegions = Array.isArray(shortTerm13?.regions) ? shortTerm13.regions : [];
+  if (!rawRegions.length) return { headerHours: [], rows: [] };
+
+  const byId = new Map(rawRegions.map(r => [String(r.id), r]));
+  const ordered = SHORT13_ROUTE_ORDER.map(id => byId.get(id)).filter(Boolean);
+  for (const r of rawRegions) {
+    if (!SHORT13_ROUTE_ORDER.includes(String(r.id))) ordered.push(r);
+  }
+
+  const colMap = new Map();
+  for (const r of ordered) {
+    for (const h of r?.hours || []) {
+      const k = String(h?.time || '').slice(0, 13);
+      if (k && !colMap.has(k)) colMap.set(k, h);
+    }
+  }
+  const allCols = [...colMap.values()].sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  const startMs = Date.parse(ordered.find(r => r.windowStart)?.windowStart || allCols[0]?.time || '');
+  const headerHours = Number.isFinite(startMs)
+    ? allCols.filter(h => Date.parse(h.time) < startMs + 6 * 3600000).slice(0, 6)
+    : allCols.slice(0, 6);
+
+  const summarizeSlice = (slice) => {
+    let minTemp = null, maxTemp = null, maxPop = 0;
+    let wetHours = 0, freezingHours = 0, overlapHours = 0;
+    let firstWetTime = null, firstFreezingTime = null, firstOverlapTime = null;
+    let maxRainMm = 0, maxSnowCm = 0, hasSnow = false, hasSleet = false;
+    for (const h of slice) {
+      if (!h) continue;
+      if (Number.isFinite(h.temp)) {
+        minTemp = minTemp === null ? h.temp : Math.min(minTemp, h.temp);
+        maxTemp = maxTemp === null ? h.temp : Math.max(maxTemp, h.temp);
+      }
+      if (Number.isFinite(h.pop)) maxPop = Math.max(maxPop, h.pop);
+      const isFrz = Number.isFinite(h.temp) && h.temp < 0;
+      const isWet = Boolean(h.wet);
+      if (isWet) {
+        wetHours++;
+        if (!firstWetTime) firstWetTime = h.time;
+        if (Number.isFinite(h.rainMm)) maxRainMm = Math.max(maxRainMm, h.rainMm);
+        if (Number.isFinite(h.snowCm)) maxSnowCm = Math.max(maxSnowCm, h.snowCm);
+        const pty = String(h.pty || '0');
+        if (pty === '3' || pty === '7' || h.snowCm > 0) hasSnow = true;
+        else if (pty === '2' || pty === '6') hasSleet = true;
+      }
+      if (isFrz) {
+        freezingHours++;
+        if (!firstFreezingTime) firstFreezingTime = h.time;
+      }
+      if (isWet && isFrz) {
+        overlapHours++;
+        if (!firstOverlapTime) firstOverlapTime = h.time;
+      }
+    }
+    return {
+      minTemp, maxTemp, maxPop,
+      wetHours, freezingHours, overlapHours,
+      firstWetTime, firstFreezingTime, firstOverlapTime,
+      maxRainMm, maxSnowCm, hasSnow, hasSleet
+    };
+  };
+
+  const rows = ordered.map((r, idx) => {
+    const rMap = new Map();
+    for (const h of r?.hours || []) {
+      const k = String(h?.time || '').slice(0, 13);
+      if (k) rMap.set(k, h);
+    }
+    const cells6 = headerHours.map(c => rMap.get(String(c.time).slice(0, 13)) || null);
+    const hours24 = (r?.hours || []).filter(h => {
+      if (!Number.isFinite(startMs)) return true;
+      const t = Date.parse(h?.time || '');
+      return Number.isFinite(t) && t >= startMs - 60000 && t < startMs + 24 * 3600000;
+    }).slice(0, 24);
+    const hours6 = cells6.filter(Boolean);
+    return {
+      region: r,
+      routeIndex: idx + 1,
+      cells6,
+      sum6: summarizeSlice(hours6),
+      sum24: summarizeSlice(hours24.length ? hours24 : hours6)
+    };
+  });
+
+  return { headerHours, rows };
+}
+
+/**
+ * 상단 [특이사항 속보] 카드 생성 (24시간 이내 특이사항 + 5개 지역 특보 묶음 규칙)
+ * - 6시간 이내: 강수+영하 겹침 / 주의보·경보 발표 / 특보 발효 해제 / 강우·강설 예고 / 영하 진입
+ * - 6~24시간 이내 예고: 야간/익일 결빙·강수·영하 진입 미리 알림
+ * - 5개 지역 특보 묶음: 1개 지역=1장, 2개 지역=각각 2장, 3개 이상=1장 묶음
+ */
+export function buildSpecialBulletinCards({ shortTerm13 = null, warningsPayload = null, warningHistory = null, nowMs = Date.now() } = {}) {
+  const cards = [];
+
+  // 1. 5개 관할 지역 기상특보 발표 / 발효 중
+  const warnByRegion = extractRegionWarningsMap(warningsPayload);
+  const activeGroups = new Map();
+  for (const reg of WATCH_WARNING_REGIONS) {
+    const list = warnByRegion.get(reg.name) || [];
+    for (const w of list) {
+      const title = String(w?.title || `${w?.kind || ''}${w?.level || ''}`).trim();
+      if (!title) continue;
+      const fcMs = parseKmaStampMs(w.tmFc);
+      const efMs = parseKmaStampMs(w.tmEf);
+      const recentFc = Number.isFinite(fcMs) && (nowMs - fcMs) >= -60000 && (nowMs - fcMs) <= SIX_HOURS_MS;
+      const soonEf = Number.isFinite(efMs) && efMs >= nowMs && (efMs - nowMs) <= SIX_HOURS_MS;
+      const isWithin6h = recentFc || soonEf;
+      const groupKey = `${title}|${isWithin6h ? '6h' : 'active'}`;
+      if (!activeGroups.has(groupKey)) activeGroups.set(groupKey, []);
+      activeGroups.get(groupKey).push({
+        regionName: reg.name,
+        shortName: reg.shortName,
+        title,
+        level: w.level || '',
+        kind: w.kind || '',
+        isWithin6h,
+        announcedText: w.announcedText || (fcMs ? formatHmKst(fcMs) : ''),
+        effectiveText: w.effectiveText || (efMs ? formatHmKst(efMs) : '')
+      });
+    }
+  }
+
+  for (const entries of activeGroups.values()) {
+    const first = entries[0];
+    const isSevere = first.level === '경보';
+    const tone = isSevere ? 'crit' : first.level === '주의보' ? 'warn' : 'info';
+    const badge = first.isWithin6h ? '6h 특보 발표' : '특보 발효 중';
+    const expanded = expandWarningGroupByCount(
+      entries,
+      (e) => ({
+        id: `warn-${e.title}-${e.regionName}`,
+        category: 'warning-issued',
+        priority: (e.isWithin6h ? 10 : 20) + (isSevere ? 0 : 2),
+        tone,
+        icon: isSevere ? '🚨' : '⚠️',
+        badge,
+        title: `${e.title} · ${e.regionName}`,
+        detail: e.effectiveText ? `발효 ${e.effectiveText}` : (e.announcedText ? `발표 ${e.announcedText}` : '기상특보 발효 중'),
+        count: 1,
+        regions: [e.regionName]
+      }),
+      (list) => ({
+        id: `warn-${first.title}-merged`,
+        category: 'warning-issued',
+        priority: (first.isWithin6h ? 10 : 20) + (isSevere ? 0 : 2),
+        tone,
+        icon: isSevere ? '🚨' : '⚠️',
+        badge,
+        title: `${first.title} · ${list.length === WATCH_WARNING_REGIONS.length ? '전 구간 5개 지역' : `${list.length}개 지역`}`,
+        detail: `${list.map(x => x.shortName).join('·')}${first.effectiveText ? ` · 발효 ${first.effectiveText}` : ''}`,
+        count: list.length,
+        regions: list.map(x => x.regionName)
+      })
+    );
+    cards.push(...expanded);
+  }
+
+  // 2. 6시간 이내 특보 발효 해제 (5개 지역 묶음 규칙 동일 적용)
+  const liftedRaw = (warningHistory?.lifted || []).filter(
+    x => Number.isFinite(x?.liftedAtMs) && (nowMs - x.liftedAtMs) >= 0 && (nowMs - x.liftedAtMs) <= SIX_HOURS_MS
+  );
+  const liftedGroups = new Map();
+  for (const item of liftedRaw) {
+    const key = String(item.title || '').trim();
+    if (!key) continue;
+    if (!liftedGroups.has(key)) liftedGroups.set(key, []);
+    // 같은 지역 중복 제거
+    if (!liftedGroups.get(key).some(x => x.regionName === item.regionName)) {
+      liftedGroups.get(key).push(item);
+    }
+  }
+  for (const entries of liftedGroups.values()) {
+    const first = entries[0];
+    const liftHm = formatHmKst(Math.max(...entries.map(x => x.liftedAtMs)));
+    const expanded = expandWarningGroupByCount(
+      entries,
+      (e) => ({
+        id: `lifted-${e.title}-${e.regionName}`,
+        category: 'warning-lifted',
+        priority: 32,
+        tone: 'clear',
+        icon: '✅',
+        badge: '6h 특보 해제',
+        title: `${e.title} 해제 · ${e.regionName}`,
+        detail: `${formatHmKst(e.liftedAtMs)} 해제 확인 · 대기 차량 복귀 검토`,
+        count: 1,
+        regions: [e.regionName]
+      }),
+      (list) => ({
+        id: `lifted-${first.title}-merged`,
+        category: 'warning-lifted',
+        priority: 32,
+        tone: 'clear',
+        icon: '✅',
+        badge: '6h 특보 해제',
+        title: `${first.title} 해제 · ${list.length === WATCH_WARNING_REGIONS.length ? '전 구간 5개 지역' : `${list.length}개 지역`}`,
+        detail: `${list.map(x => x.shortName).join('·')} · ${liftHm} 해제 · 복귀 검토`,
+        count: list.length,
+        regions: list.map(x => x.regionName)
+      })
+    );
+    cards.push(...expanded);
+  }
+
+  // 3. 13개소 단기예보 (6시간 이내 우선 + 24시간 이내 예고, 같은 유형끼리 묶음)
+  const matrix = alignShortTerm6hMatrix(shortTerm13);
+  const rows = matrix.rows;
+  if (rows.length) {
+    // 3-A. 6시간 이내 강수+영하 동시 겹침 (결빙 최우선)
+    const ov6 = rows.filter(x => x.sum6.overlapHours > 0);
+    if (ov6.length) {
+      const earliest = ov6.map(x => x.sum6.firstOverlapTime).filter(Boolean).sort()[0];
+      cards.push({
+        id: 'fcst-overlap-6h',
+        category: 'overlap-6h',
+        priority: 5,
+        tone: 'crit',
+        icon: '🚨',
+        badge: '6h 결빙 겹침',
+        title: `강수+영하 동시 겹침 · ${ov6.length}개소`,
+        detail: `${summarizeRegionNames(ov6.map(x => x.region.name))} · 최초 ${formatHmKst(earliest)}~`,
+        count: ov6.length,
+        regions: ov6.map(x => x.region.name)
+      });
+    }
+
+    // 3-B. 6시간 이내 강우/강설 예고
+    const wet6 = rows.filter(x => x.sum6.wetHours > 0);
+    if (wet6.length) {
+      const earliest = wet6.map(x => x.sum6.firstWetTime).filter(Boolean).sort()[0];
+      const hasSnow = wet6.some(x => x.sum6.hasSnow);
+      const hasSleet = wet6.some(x => x.sum6.hasSleet);
+      const pType = hasSnow ? '강설' : hasSleet ? '비·눈' : '강우';
+      const maxMm = Math.max(...wet6.map(x => x.sum6.maxRainMm || 0));
+      const maxCm = Math.max(...wet6.map(x => x.sum6.maxSnowCm || 0));
+      const amtTxt = maxCm > 0 ? ` · 최대 ${maxCm}cm` : maxMm > 0 ? ` · 최대 ${maxMm.toFixed(1)}mm` : '';
+      cards.push({
+        id: 'fcst-wet-6h',
+        category: 'wet-6h',
+        priority: 15,
+        tone: hasSnow ? 'warn' : 'wet',
+        icon: hasSnow ? '🌨️' : '🌧️',
+        badge: '6h 이내 강수',
+        title: `6시간 이내 ${pType} 예고 · ${wet6.length}개소`,
+        detail: `${summarizeRegionNames(wet6.map(x => x.region.name))} · ${formatHmKst(earliest)}~${amtTxt}`,
+        count: wet6.length,
+        regions: wet6.map(x => x.region.name)
+      });
+    }
+
+    // 3-C. 6시간 이내 영하 진입
+    const frz6 = rows.filter(x => x.sum6.freezingHours > 0);
+    if (frz6.length) {
+      const earliest = frz6.map(x => x.sum6.firstFreezingTime).filter(Boolean).sort()[0];
+      const minT = Math.min(...frz6.map(x => x.sum6.minTemp).filter(Number.isFinite));
+      cards.push({
+        id: 'fcst-freeze-6h',
+        category: 'freeze-6h',
+        priority: 18,
+        tone: 'freeze',
+        icon: '❄️',
+        badge: '6h 이내 영하',
+        title: `6시간 이내 영하 진입 · ${frz6.length}개소`,
+        detail: `${summarizeRegionNames(frz6.map(x => x.region.name))} · ${formatHmKst(earliest)}↓ · 최저 ${minT}°C`,
+        count: frz6.length,
+        regions: frz6.map(x => x.region.name)
+      });
+    }
+
+    // 3-D. 6~24시간 이내 예고 (6시간 내 이미 발령된 동일 유형이 없을 때 24시간 특이사항으로 표출)
+    const ov24 = rows.filter(x => x.sum24.overlapHours > 0);
+    if (!ov6.length && ov24.length) {
+      const earliest = ov24.map(x => x.sum24.firstOverlapTime).filter(Boolean).sort()[0];
+      cards.push({
+        id: 'fcst-overlap-24h',
+        category: 'overlap-24h',
+        priority: 40,
+        tone: 'warn',
+        icon: '⚠️',
+        badge: '24h 결빙 예고',
+        title: `24시간 이내 강수+영하 겹침 · ${ov24.length}개소`,
+        detail: `${summarizeRegionNames(ov24.map(x => x.region.name))} · 최초 ${formatHmKst(earliest)}~`,
+        count: ov24.length,
+        regions: ov24.map(x => x.region.name)
+      });
+    }
+
+    const wet24 = rows.filter(x => x.sum24.wetHours > 0);
+    if (!wet6.length && wet24.length) {
+      const earliest = wet24.map(x => x.sum24.firstWetTime).filter(Boolean).sort()[0];
+      const hasSnow = wet24.some(x => x.sum24.hasSnow);
+      const pType = hasSnow ? '강설' : '강수';
+      cards.push({
+        id: 'fcst-wet-24h',
+        category: 'wet-24h',
+        priority: 45,
+        tone: 'info',
+        icon: hasSnow ? '🌨️' : '🌧️',
+        badge: '24h 이내 강수',
+        title: `24시간 이내 ${pType} 예고 · ${wet24.length}개소`,
+        detail: `${summarizeRegionNames(wet24.map(x => x.region.name))} · 최초 ${formatHmKst(earliest)}~`,
+        count: wet24.length,
+        regions: wet24.map(x => x.region.name)
+      });
+    }
+
+    const frz24 = rows.filter(x => x.sum24.freezingHours > 0);
+    if (!frz6.length && frz24.length) {
+      const earliest = frz24.map(x => x.sum24.firstFreezingTime).filter(Boolean).sort()[0];
+      const minT = Math.min(...frz24.map(x => x.sum24.minTemp).filter(Number.isFinite));
+      cards.push({
+        id: 'fcst-freeze-24h',
+        category: 'freeze-24h',
+        priority: 50,
+        tone: 'cold',
+        icon: '❄️',
+        badge: '24h 이내 영하',
+        title: `24시간 이내 영하 진입 · ${frz24.length}개소`,
+        detail: `${summarizeRegionNames(frz24.map(x => x.region.name))} · 최초 ${formatHmKst(earliest)}↓ · 최저 ${minT}°C`,
+        count: frz24.length,
+        regions: frz24.map(x => x.region.name)
+      });
+    }
+  }
+
+  return cards.sort((a, b) => a.priority - b.priority);
+}
