@@ -66,9 +66,9 @@ export function getOrbitOffset(stepIndex) {
   return { dx, dy, step: idx };
 }
 
-export function computeTargetBrightness({ enabled = true, isAlert = false, isDesktop = true } = {}) {
+export function computeTargetBrightness({ enabled = true, isAlert = false, isDesktop = true, isLightMode = false } = {}) {
   if (!enabled || !isDesktop) return 1;
-  if (isAlert) return 1;
+  if (isAlert || isLightMode) return 1;
   return CALM_BRIGHTNESS;
 }
 
@@ -182,6 +182,8 @@ export function mountTvGuard({
 
   const isReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches || false;
   const isDesktop = () => window.innerWidth >= TV_MIN_WIDTH;
+  const isLightMode = () => !document.body.classList.contains('dark-mode') && !document.body.classList.contains('rwis-page');
+  let lastLightMode = isLightMode();
 
   const getMain = () => document.querySelector(mainSelector);
   const getHeader = () => document.querySelector(headerSelector);
@@ -189,9 +191,11 @@ export function mountTvGuard({
 
   function applyVisuals() {
     const desktop = isDesktop();
+    const light = isLightMode();
+    lastLightMode = light;
     const active = enabled && desktop;
     const reduced = isReducedMotion();
-    const brightness = computeTargetBrightness({ enabled, isAlert, isDesktop: desktop });
+    const brightness = computeTargetBrightness({ enabled, isAlert, isDesktop: desktop, isLightMode: light });
     const { dx, dy } = (active && !reduced) ? getOrbitOffset(stepIndex) : { dx: 0, dy: 0 };
 
     document.body.classList.toggle('tv-guard-on', active);
@@ -251,8 +255,14 @@ export function mountTvGuard({
   window.addEventListener('pointerdown', markInteraction, { passive: true });
   window.addEventListener('keydown', markInteraction, { passive: true });
 
-  // 창 크기 변경 (PC/TV ↔ 모바일 전환) 및 탭 간 ON/OFF 실시간 동기화
+  // 창 크기 변경 (PC/TV ↔ 모바일 전환), 라이트/다크 전환 및 탭 간 ON/OFF 실시간 동기화
   window.addEventListener('resize', applyVisuals, { passive: true });
+  if (typeof MutationObserver !== 'undefined') {
+    new MutationObserver(() => {
+      const curLight = isLightMode();
+      if (curLight !== lastLightMode) applyVisuals();
+    }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
   window.addEventListener('storage', (e) => {
     if (e.key === TV_GUARD_KEY) {
       enabled = readTvGuardEnabled();
@@ -292,7 +302,7 @@ export function mountTvGuard({
         isAlert,
         dx,
         dy,
-        brightness: computeTargetBrightness({ enabled, isAlert, isDesktop: desktop }),
+        brightness: computeTargetBrightness({ enabled, isAlert, isDesktop: desktop, isLightMode: isLightMode() }),
         step: stepIndex
       };
     }
