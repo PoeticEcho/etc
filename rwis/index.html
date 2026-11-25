@@ -1201,11 +1201,11 @@
     <div class="sec-lab">Worker 연결</div>
     <div class="url-field">
       <input id="workerUrl" type="text" inputmode="url" autocomplete="off" spellcheck="false"
-             placeholder="https://gwangju-daegu-cctv.내서브도메인.workers.dev" aria-label="Worker 주소" />
+             placeholder="https://bionda.herego.workers.dev/rwis" aria-label="Worker 주소" />
       <button id="btnConnect" class="btn btn--primary" type="button">연결</button>
     </div>
     <div class="status-line" id="statusLine">
-      <span>Worker를 연결하면 ITS CCTV 목록과 RWIS 실시간 등급을 받아옵니다. 연결하지 않아도 62지점 구조는 그대로 볼 수 있습니다.</span>
+      <span>Worker를 연결하면 ITS CCTV 목록과 RWIS 실시간 등급을 받아오고, 연결한 주소는 이 브라우저에 저장됩니다. 연결하지 않으면 정적 스냅샷으로 봅니다. 기본 주소는 <b>bionda.herego.workers.dev/rwis</b> — 칸에 채워 두었으니 <b>연결</b>만 누르면 됩니다.</span>
     </div>
 
     <div class="sec-lab">자동 새로고침</div>
@@ -1514,6 +1514,9 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     if (!/^https?:\/\//i.test(value)) value = 'https://' + value;
     return value;
   }
+
+  // 기본 제안 주소 — bionda Worker 의 /rwis 라우트 (기존 단독 Worker 대체)
+  const DEFAULT_BASE = 'https://bionda.herego.workers.dev/rwis';
 
   function levelClass(level) {
     return level === null || level === undefined ? 'lvnull' : 'lv' + level;
@@ -4803,6 +4806,9 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
   if (savedBase) {
     state.base = normalizeBase(savedBase);
     el.workerUrl.value = state.base;
+  } else {
+    // 기본 제안 주소만 채워 둡니다. 연결 전에는 여전히 정적 스냅샷으로 동작합니다.
+    el.workerUrl.value = DEFAULT_BASE;
   }
   state.prevLevels = readPrevLevels();
   applyRefresh(safeStorageGet(REFRESH_KEY) || 0, { quiet: true });
