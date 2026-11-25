@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#103c3e">
+  <meta name="theme-color" content="#0c2c30">
   <meta name="description" content="광주대구선(고속국도 12호선) 8개 관심지역의 비·눈 시작~종료 시각, 도로 살얼음, 제설·수방 의사결정 및 기상특보를 한눈에 감시하는 고밀도 기상 모니터">
   <meta property="og:type" content="website">
   <meta property="og:title" content="날씨봇 × 비온다? | 관심지역 기상·도로관리 모니터">
@@ -25,10 +25,10 @@
   <link rel="help" type="text/plain" title="봇용 브리핑 수집 안내" href="https://bionda.pages.dev/llms.txt">
   <link rel="alternate" type="application/json" title="현재 브리핑 준비 상태" href="https://bionda.pages.dev/share/status.json">
 </head>
-<body>
+<body class="dark-mode">
   <header class="top-header">
     <div class="wrap bar">
-      <a class="brandhome" href="#overview" aria-label="날씨봇 관심지역 기상 모니터 홈">
+      <a class="brandhome" href="#overview" aria-label="날씨봇 도로기상 상황판 홈" title="고령지사 관할 95~176k (함양IC~옥포JC) · 서→동 기상 이동 선행지표로 남원 50k~ 구간을 함께 감시합니다">
         <b class="brand"><img src="./favicon.png" alt="날씨봇" class="brand-favicon"> 날씨봇</b>
         <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 광주대구선 기상·도로살얼음 모니터</span>
       </a>
@@ -44,8 +44,10 @@
         </a>
       </nav>
       <div class="header-actions">
-        <button id="reloadAll" type="button" class="hdr-btn" title="전체 기상자료 새로고침">
-          <span class="icon-spin">↻</span> <span class="hdr-lbl-pc">새로고침</span>
+        <button id="reloadAll" type="button" class="hdr-stamp-pill" aria-live="polite" title="클릭 시 전체 기상·도로자료 강제 새로고침">
+          <span class="dot-live" aria-hidden="true"></span>
+          <span id="indexStampText" class="hdr-stamp-txt">수신 중…</span>
+          <span class="stamp-refresh-ico icon-spin" aria-hidden="true">↻</span>
         </button>
         <button id="shareBtn" type="button" class="hdr-btn hdr-btn-share" title="1:1 정방형(1080×1080) 현황 브리핑 PNG 생성 및 공유">
           📤 <span class="hdr-lbl-pc">현황공유</span><span class="hdr-lbl-mob">공유</span>
@@ -93,7 +95,7 @@
           <!-- Left / Top Sub-Pane: Route 12 (KMA ID 14) Mini-Map + All Corridor Road Weather Grid -->
           <div id="minimapPane" class="map-panel card compact-card">
             <div class="head map-head">
-              <div class="map-title-with-shield">
+              <div class="map-title-with-shield" title="고령지사 관할 95~176k (함양IC~옥포JC) · 서→동 기상 이동 선행지표로 남원 50k~ 구간을 함께 감시합니다">
                 <img src="./route12.svg" alt="고속국도 제12호선" class="route12-shield">
                 <div>
                   <span class="section-kicker">EXPRESSWAY NO.12 · KMA ID 14 (50k ~ 176k)</span>

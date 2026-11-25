@@ -594,7 +594,7 @@ function renderZoneCards(enriched) {
         bits.push(`❄️ ${sf.firstFreeze.hour}시 영하`);
         if (!fcstCls) fcstCls = 'is-warn';
       } else if (sf.firstZeroOrBelow) {
-        bits.push(`🧊 ${sf.firstZeroOrBelow.hour}시 0°C(결빙주의)`);
+        bits.push(`🧊 ${sf.firstZeroOrBelow.hour}시 0°C 주의`);
         if (!fcstCls) fcstCls = 'is-warn';
       } else if (sf.minTemp !== null) {
         bits.push(`최저 ${sf.minTemp.toFixed(0)}°C`);

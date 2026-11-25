@@ -50,9 +50,10 @@ let state = {
 function loadDarkMode() {
   try {
     const raw = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-    return !!raw?.darkMode;
+    if (raw && typeof raw.darkMode === 'boolean') return raw.darkMode;
+    return true; // 3개 상황판 공통 다크 상황실 기본 테마
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -516,6 +517,8 @@ function updateSourceStatus() {
   const stamp = $('hourlyStamp');
   const footerStamp = $('hourlyFooterStamp');
   const apiBtnLabel = $('hourlyApiBtnLabel');
+  const hdrPill = $('reloadHourlyBtn');
+  const hdrTxt = $('hourlyHeaderStampText');
   const p = state.payload;
 
   if (!p) {
@@ -530,6 +533,11 @@ function updateSourceStatus() {
     if (apiBtnLabel) apiBtnLabel.textContent = 'API 연결';
     if (footerStamp) footerStamp.textContent = stamp.textContent;
     pill.className = 'hr-status-pill is-error';
+    if (hdrPill && hdrTxt) {
+      hdrPill.classList.remove('is-cached');
+      hdrPill.classList.add('is-error');
+      hdrTxt.textContent = '연결 지연';
+    }
     return;
   }
 
@@ -558,6 +566,18 @@ function updateSourceStatus() {
   if (footerStamp) {
     const label = state.fromSnapshot ? '저장 자료' : '갱신';
     footerStamp.textContent = `${label} ${formatMdHm(p.updatedAt)}${state.isRevalidating ? ' · 갱신 중' : ''}`;
+  }
+  if (hdrPill && hdrTxt) {
+    const hm = formatMdHm(state.fromCache ? (state.cacheSavedAt || p.updatedAt) : (state.lastLoadedAt || p.updatedAt));
+    hdrPill.classList.toggle('is-cached', Boolean(state.fromCache && !state.fromSnapshot));
+    hdrPill.classList.remove('is-error');
+    if (state.fromSnapshot) {
+      hdrTxt.textContent = `저장 자료 · ${hm}`;
+    } else if (state.fromCache) {
+      hdrTxt.textContent = `캐시 즉시표출 · ${hm}`;
+    } else {
+      hdrTxt.textContent = `실시간 ${hm}`;
+    }
   }
 }
 
@@ -813,6 +833,9 @@ function bindEvents() {
 
   $('themeToggleBtn').addEventListener('click', () => {
     applyDarkMode(!document.body.classList.contains('dark-mode'), true);
+  });
+  window.addEventListener('storage', e => {
+    if (e.key === SETTINGS_KEY) applyDarkMode(loadDarkMode(), false);
   });
 
   $('shareHourly').onclick = () => openPngShare('13지역 시간별예보', () =>

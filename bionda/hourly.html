@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#103c3e">
+  <meta name="theme-color" content="#0c2c30">
   <meta name="description" content="고령·합천·거창·함양·달성 13개 읍면동 기상청 1시간 단기예보를 한눈에 비교하고 강수 시작·영하 진입·동시 겹침 시각을 자동 요약하는 상황실 통합 모니터">
   <meta property="og:type" content="website">
   <meta property="og:title" content="1시간 단기예보 (13개 지역) | 날씨봇 × 비온다?">
@@ -24,10 +24,10 @@
   <link rel="help" type="text/plain" title="봇용 브리핑 수집 안내" href="https://bionda.pages.dev/llms.txt">
   <link rel="alternate" type="application/json" title="현재 브리핑 준비 상태" href="https://bionda.pages.dev/share/status.json">
 </head>
-<body class="hourly-page">
+<body class="hourly-page dark-mode">
   <header class="top-header">
     <div class="wrap bar">
-      <a class="brandhome" href="./index.html" aria-label="날씨봇 도로기상 상황판 홈">
+      <a class="brandhome" href="./index.html" aria-label="날씨봇 도로기상 상황판 홈" title="고령지사 관할 95~176k (함양IC~옥포JC) 및 인접 5개 시·군 13개 읍면동 1시간 단기예보">
         <b class="brand"><img src="./favicon.png" alt="날씨봇" class="brand-favicon"> 날씨봇</b>
         <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 고령지사 관내 · 연계 13개 읍면동 1시간 단기예보</span>
       </a>
@@ -43,12 +43,14 @@
         </a>
       </nav>
       <div class="header-actions">
-        <button id="shareHourly" class="hdr-btn hdr-btn-share" type="button">📤 공유</button>
-        <button id="reloadHourlyBtn" type="button" class="hdr-btn" title="13개 지역 단기예보 새로고침">
-          <span class="icon-spin">↻</span> <span class="hdr-lbl-pc">새로고침</span>
+        <button id="reloadHourlyBtn" type="button" class="hdr-stamp-pill" aria-live="polite" title="클릭 시 13개 지역 단기·초단기예보 새로고침">
+          <span class="dot-live" aria-hidden="true"></span>
+          <span id="hourlyHeaderStampText" class="hdr-stamp-txt">수신 중…</span>
+          <span class="stamp-refresh-ico icon-spin" aria-hidden="true">↻</span>
         </button>
+        <button id="shareHourly" class="hdr-btn hdr-btn-share" type="button">📤 <span class="hdr-lbl-pc">현황공유</span><span class="hdr-lbl-mob">공유</span></button>
         <button id="themeToggleBtn" type="button" class="hdr-btn" title="다크/라이트 화면 전환 (상황판과 연동)">
-          🌓 <span id="themeToggleLabel" class="hdr-lbl-pc">다크모드</span>
+          🌓 <span id="themeToggleLabel" class="hdr-lbl-pc">라이트모드</span>
         </button>
         <button id="hourlyApiBtn" type="button" class="hdr-btn hdr-btn-accent" title="백엔드 API 서버 연결 확인 및 변경">
           🔌 <span class="hdr-lbl-pc" id="hourlyApiBtnLabel">API 연결</span><span class="hdr-lbl-mob">API</span>

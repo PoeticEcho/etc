@@ -12,11 +12,11 @@
 }
 
 body.dark-mode {
-  --hr-surface-alt: #102022;
-  --hr-head-bg: #152b2f;
-  --hr-head-ink: #cde4e0;
-  --hr-cell-border: #203b3f;
-  --hr-sticky-shadow: 4px 0 10px rgba(0, 0, 0, 0.28);
+  --hr-surface-alt: #0a1524;
+  --hr-head-bg: #0e1e33;
+  --hr-head-ink: #cfe2f5;
+  --hr-cell-border: #1d334d;
+  --hr-sticky-shadow: 4px 0 10px rgba(0, 0, 0, 0.34);
 }
 
 .hourly-wrap {

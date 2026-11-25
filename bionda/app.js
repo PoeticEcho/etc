@@ -107,7 +107,7 @@ const settings = {
   sound: true,
   wakeLock: true,
   sortRisk: true,
-  darkMode: false,
+  darkMode: true,
   showActionCards: false,
   desktopNotify: true,
   pcLayout: 'stacked', // 'stacked' (상하 기본 4x2 + 하단 분할) | 'split' (좌우 FHD 분할: 좌 2x4 + 우 상하 레이더/미니맵)
@@ -120,7 +120,7 @@ try {
     settings.sound = savedSettings.sound ?? true;
     settings.wakeLock = savedSettings.wakeLock ?? true;
     settings.sortRisk = savedSettings.sortRisk ?? true;
-    settings.darkMode = savedSettings.darkMode ?? false;
+    settings.darkMode = savedSettings.darkMode ?? true;
     settings.showActionCards = savedSettings.showActionCards ?? false;
     settings.desktopNotify = savedSettings.desktopNotify ?? true;
     settings.pcLayout = savedSettings.pcLayout === 'split' ? 'split' : 'stacked';
@@ -764,6 +764,28 @@ function updateUnifiedGlobalStamp() {
     '5분마다 자동 갱신',
     ...(overviewRevalidating ? ['갱신 중'] : [])
   ].join(' · ');
+
+  // 3개 탭 공통 상단 [● 실시간 MM-DD HH:MM ↻] 배지 동기화
+  const pill = $('reloadAll');
+  const pillTxt = $('indexStampText');
+  if (pill && pillTxt) {
+    const syncAt = lastLiveOverviewSyncAt || Date.now();
+    const d = new Date(syncAt + 9 * 3600000);
+    const p2 = v => String(v).padStart(2, '0');
+    const hm = `${p2(d.getUTCMonth() + 1)}-${p2(d.getUTCDate())} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`;
+    const hasAny = Boolean(latestObs || latestModel);
+    pill.classList.toggle('is-cached', overviewFromCache && !anyObsSnapshot);
+    pill.classList.toggle('is-error', !hasAny);
+    if (!hasAny) {
+      pillTxt.textContent = '수신 중…';
+    } else if (overviewFromCache) {
+      pillTxt.textContent = `캐시 즉시표출 · ${hm}`;
+    } else if (anyObsSnapshot) {
+      pillTxt.textContent = `저장 자료 · ${hm}`;
+    } else {
+      pillTxt.textContent = `실시간 ${hm}`;
+    }
+  }
   return stampFormatted;
 }
 
@@ -3206,6 +3228,17 @@ $('locate').onclick = () => {
 // 초기화 (캐시 선복원 0ms 표출 → 필요 시 백그라운드 SWR · 5분 자동갱신)
 mountNetHealthMonitor({ onRetry: () => refresh(true) });
 mountTvGuard();
+window.addEventListener('storage', e => {
+  if (e.key === SETTINGS_KEY) {
+    try {
+      const next = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      if (typeof next?.darkMode === 'boolean' && next.darkMode !== settings.darkMode) {
+        settings.darkMode = next.darkMode;
+        syncSettingsUI();
+      }
+    } catch {}
+  }
+});
 bindSplitterDrag();
 syncSettingsUI();
 syncWakeLock();
