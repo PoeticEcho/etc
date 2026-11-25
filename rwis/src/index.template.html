@@ -1201,11 +1201,11 @@
     <div class="sec-lab">Worker 연결</div>
     <div class="url-field">
       <input id="workerUrl" type="text" inputmode="url" autocomplete="off" spellcheck="false"
-             placeholder="https://bionda.herego.workers.dev/rwis" aria-label="Worker 주소" />
+             placeholder="https://bionda.pages.dev/api/rwis" aria-label="Worker 주소" />
       <button id="btnConnect" class="btn btn--primary" type="button">연결</button>
     </div>
     <div class="status-line" id="statusLine">
-      <span>Worker를 연결하면 ITS CCTV 목록과 RWIS 실시간 등급을 받아오고, 연결한 주소는 이 브라우저에 저장됩니다. 연결하지 않으면 정적 스냅샷으로 봅니다. 기본 주소는 <b>bionda.herego.workers.dev/rwis</b> — 칸에 채워 두었으니 <b>연결</b>만 누르면 됩니다.</span>
+      <span>Worker를 연결하면 ITS CCTV 목록과 RWIS 실시간 등급을 받아오고, 연결한 주소는 이 브라우저에 저장됩니다. 연결하지 않으면 정적 스냅샷으로 봅니다. 기본 주소는 <b>bionda.pages.dev/api/rwis</b> — 칸에 채워 두었으니 <b>연결</b>만 누르면 됩니다. 회사 PC처럼 <b>*.workers.dev</b> 가 막힌 망에서도 이 주소는 열립니다.</span>
     </div>
 
     <div class="sec-lab">자동 새로고침</div>
@@ -1509,14 +1509,28 @@ const ROUTE_GEO = __ROUTE_GEO__;
     let value = String(raw || '').trim();
     if (!value) return '';
     value = value.replace(/\s+/g, '');
-    value = value.replace(/\/api\/(status|cctv|rwis|stream)\/?.*$/i, '');
+    value = value.replace(/[?#].*$/, '');
     value = value.replace(/\/+$/, '');
     if (!/^https?:\/\//i.test(value)) value = 'https://' + value;
+    // 끝에 붙은 엔드포인트(/api/status·/api/cctv·/api/rwis·/api/stream) 한 단계를 떼어 냅니다.
+    //   https://bionda.pages.dev/api/rwis/api/status      → https://bionda.pages.dev/api/rwis
+    //   https://bionda.herego.workers.dev/rwis/api/cctv   → https://bionda.herego.workers.dev/rwis
+    // 단, 떼고 나면 호스트만 남는 경우는 프리픽스 자체일 수 있으므로 /api/rwis 일 때만 그대로 둡니다.
+    //   https://bionda.pages.dev/api/rwis                  → 그대로 (Pages 게이트웨이 프리픽스)
+    const tail = /^(.*?)(\/api\/(status|cctv|rwis|stream))$/i.exec(value);
+    if (tail) {
+      const head = tail[1].replace(/\/+$/, '');
+      const hostOnly = /^https?:\/\/[^/]+$/i.test(head);
+      if (head && !(hostOnly && /^rwis$/i.test(tail[3]))) value = head;
+    }
     return value;
   }
 
-  // 기본 제안 주소 — bionda Worker 의 /rwis 라우트 (기존 단독 Worker 대체)
-  const DEFAULT_BASE = 'https://bionda.herego.workers.dev/rwis';
+  // 기본 제안 주소 — bionda Pages 게이트웨이의 /api/rwis
+  //   (Service Binding env.API_WORKER 로 RWIS·CCTV Worker 에 그대로 전달됩니다)
+  //   사내망에서 차단되는 https://bionda.herego.workers.dev/rwis 를 대신합니다.
+  const DEFAULT_BASE = 'https://bionda.pages.dev/api/rwis';
+  let baseFallbackUsed = false;
 
   function levelClass(level) {
     return level === null || level === undefined ? 'lvnull' : 'lv' + level;
@@ -1842,6 +1856,28 @@ const ROUTE_GEO = __ROUTE_GEO__;
     el.statusLine.innerHTML = parts.filter(Boolean).join('<span class="sep">·</span>');
   }
 
+  /**
+   * 저장된 예전 주소(*.workers.dev)가 막혔을 때 Pages 게이트웨이(/api/rwis)로 한 번만 갈아탑니다.
+   * 스위치에 성공하면 새 주소를 localStorage 에도 저장하고, 안내 배너를 붙입니다.
+   */
+  async function retryWithPagesGateway(refresh) {
+    if (baseFallbackUsed || !state.base) return false;
+    if (state.base === DEFAULT_BASE) return false;
+    if (!/^https?:\/\/[^/]*\.workers\.dev(\/|$)/i.test(state.base)) return false;
+    baseFallbackUsed = true;
+    state.base = DEFAULT_BASE;
+    safeStorageSet('gdc.workerBase', state.base);
+    el.workerUrl.value = state.base;
+    await loadStatus(refresh);
+    if (!state.cctv && (!state.rwis || state.rwis.sample)) return false;
+    el.settingsPanel.querySelector('.fallback-note')?.remove();
+    const note = document.createElement('div');
+    note.className = 'status-line fallback-note';
+    note.innerHTML = `<span>예전 주소(<b>*.workers.dev</b>)가 막혀 자동으로 <b>${esc(DEFAULT_BASE)}</b> 로 넘어왔습니다. 주소는 이 브라우저에 저장했습니다.</span>`;
+    el.statusLine.insertAdjacentElement('afterend', note);
+    return true;
+  }
+
   async function loadStatus(refresh) {
     if (!state.base) { return loadSnapshot(); }
     el.btnReload.disabled = true;
@@ -1879,6 +1915,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
         throw new Error('Worker가 CCTV·RWIS 모두 오류를 반환했습니다.');
       }
     } catch (err) {
+      if (await retryWithPagesGateway(refresh)) return;
       state.cctv = null;
       state.rwis = sampleRwis();
       state.rises = {};
@@ -4806,6 +4843,7 @@ const ROUTE_GEO = __ROUTE_GEO__;
   if (savedBase) {
     state.base = normalizeBase(savedBase);
     el.workerUrl.value = state.base;
+    if (el.workerUrl.value !== savedBase) safeStorageSet('gdc.workerBase', state.base);
   } else {
     // 기본 제안 주소만 채워 둡니다. 연결 전에는 여전히 정적 스냅샷으로 동작합니다.
     el.workerUrl.value = DEFAULT_BASE;
