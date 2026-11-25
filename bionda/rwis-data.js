@@ -1122,16 +1122,21 @@ export function buildZoneTempTrendSeries({ zone, roadTrend = null, shortTerm13 =
     if (fcstDelta.fcst2 !== null) predTa.push({ h: 2, v: fcstDelta.fcst2 });
   }
 
-  // 노면온도(TR1) +1h, +2h 예측 (단기예보 기온변화 + 최근 노면 냉각/상승 관성 결합)
+  // 노면온도(TR1) +1h, +2h 예측 (단기예보 기온변화 + 최근 노면 냉각/상승 관성 결합 · 일출/일몰 반전 시 관성 신속 감쇠)
   const predTr = [];
   if (curTr !== null) {
     let d1 = null;
     let d2 = null;
     if (fcstDelta.dTa1 !== null) {
       const m1 = slopeTr !== null ? slopeTr : fcstDelta.dTa1;
-      d1 = clampNum(0.65 * fcstDelta.dTa1 + 0.35 * m1, -4.0, 4.0);
+      const sameDir1 = fcstDelta.dTa1 === 0 || (fcstDelta.dTa1 * m1 >= 0);
+      const wM1 = sameDir1 ? 0.35 : 0.15;
+      d1 = clampNum((1 - wM1) * fcstDelta.dTa1 + wM1 * m1, -4.0, 4.0);
       const step2Ta = fcstDelta.dTa2 !== null ? (fcstDelta.dTa2 - fcstDelta.dTa1) : fcstDelta.dTa1 * 0.75;
-      d2 = clampNum(d1 + 0.70 * step2Ta + 0.20 * m1, -6.5, 6.5);
+      const sameDir2 = step2Ta === 0 || (step2Ta * m1 >= 0);
+      const wM2 = sameDir2 ? 0.20 : 0.0;
+      const wTa2 = sameDir2 ? 0.70 : 0.90;
+      d2 = clampNum(d1 + wTa2 * step2Ta + wM2 * m1, -6.5, 6.5);
     } else if (slopeTr !== null) {
       d1 = clampNum(0.75 * slopeTr, -3.5, 3.5);
       d2 = clampNum(d1 + 0.45 * slopeTr, -5.5, 5.5);

@@ -1,9 +1,9 @@
 :root {
-  --bg: #eff4f2;
+  --bg: #f7faf9;
   --card-bg: #ffffff;
-  --ink: #162e30;
-  --muted: #58726f;
-  --border: #cfddd6;
+  --ink: #0b1e21;
+  --muted: #2d494e;
+  --border: #c4d5cf;
   --header-bg: #103c3e;
   --accent: #c7ed94;
   --danger: #d9381e;
@@ -12,11 +12,11 @@
   --directive-bg: #ffedd5;
   --watch: #d99b00;
   --watch-bg: #fef9c3;
-  --teal: #185856;
+  --teal: #114e4c;
   --font-ui: "Pretendard", Inter, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   --control-radius: 8px;
   --card-radius: 13px;
-  --action-text: #185856;
+  --action-text: #114e4c;
 }
 
 body.dark-mode {

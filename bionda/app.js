@@ -1,4 +1,3 @@
-import { ROUTE12_POLYLINE_KM, ROUTE12_PLACE_KM } from './route12.js';
 import { mountCctv } from './cctv-player.js';
 import { loadWeather, loadProbabilities, prefetchOpenMeteo, seedKmaForecast } from './weather.js';
 import { loadOverviewBundle, loadObservation, loadRoadStations, loadRoadRisk, seedOverviewCache, getLastObsError } from './observations.js';
@@ -8,10 +7,15 @@ import {
   isRoadRiskEscalated,
   ROAD_RISK_LABELS,
   FOG_RISK_LABELS,
-  evaluateResaltCard,
-  isSnowRelatedWarning,
   evaluateStandbyReturnDirective
 } from './ice.js';
+import {
+  ACTION_STAGE_META,
+  formatKstClock,
+  parseKstHhmmToMs,
+  createSnowDirectiveStore
+} from './snow-directive.js';
+import { resolveStationKm, renderCorridorMiniMap } from './minimap.js';
 import { openPngShare } from './share-dialog.js';
 import { renderOverviewCanvas, renderDetailCanvas } from './share.js';
 import { apiUrl, getApiBase, setApiBase, probeBackend, isBackendAvailable, getBackendStatusSnapshot } from './config.js';
@@ -790,288 +794,31 @@ function updateUnifiedGlobalStamp() {
 }
 
 
-const ROUTE12_ICS = [
-  ['남원56k', 35.430, 127.394, -10],
-  ['지리산77k', 35.487, 127.589, 12],
-  ['함양95k', 35.535, 127.752, 12],
-  ['거창121k', 35.678, 127.934, -9],
-  ['해인사146k', 35.696, 128.183, 12],
-  ['고령153k', 35.702, 128.252, -9],
-  ['옥포176k', 35.792, 128.463, -8]
-];
-
-
-const ROUTE12_STN_KM_FALLBACK = [
-  ['남원주차장', 50.8], ['번암교', 72.9], ['지리산휴', 75.4], ['옥계1교', 86.2],
-  ['함양', 95.0], ['죽산천교', 102.9], ['남상졸음', 115.3], ['거창휴', 134.1],
-  ['양전교', 158.2], ['논공휴', 169.2], ['논공교', 171.3]
-];
-
-function resolveStationKm(s) {
-  if (Number.isFinite(s?.milepostKm)) return s.milepostKm;
-  const match = ROUTE12_STN_KM_FALLBACK.find(([key]) => (s?.name || '').includes(key));
-  return match ? match[1] : null;
-}
-
 /**
  * 고속국도 제12호선(광주대구선 · KMA 14번) 8개 관심지역 & 전구간 도로기상관측소 미니맵 렌더링
- * 고령지사 MMF DB 실제 34포인트 노선 선형(48.8k~176.0k) 및 11개 도로관측소 이정표 매칭
+ * (모듈 분리: public/minimap.js)
  */
 function renderMiniMap() {
-  const container = $('minimapContainer');
-  const strip = $('roadStnStrip');
-  if (!container) return;
-
-  const minLon = 127.30, maxLon = 128.49;
-  const minLat = 35.38, maxLat = 35.80;
-  const W = 540, H = 242;
-  const project = (lat, lon) => {
-    const x = 34 + ((lon - minLon) / (maxLon - minLon)) * (W - 68);
-    const y = 162 - ((lat - minLat) / (maxLat - minLat)) * 78;
-    return [Number(x.toFixed(1)), Number(y.toFixed(1))];
-  };
-
-  const fullPoly = ROUTE12_POLYLINE_KM.map(([, la, lo]) => project(la, lo).join(',')).join(' ');
-  const goryeongPoly = ROUTE12_POLYLINE_KM.filter(([km]) => km >= 92.8).map(([, la, lo]) => project(la, lo).join(',')).join(' ');
-
-  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="고속국도 제12호선 광주대구선 실시간 노면·기상 미니맵">
-    <defs>
-      <radialGradient id="mmBgGlow" cx="54%" cy="54%" r="62%">
-        <stop offset="0%" stop-color="#175159" stop-opacity="0.72"/>
-        <stop offset="60%" stop-color="#0b282f" stop-opacity="0.92"/>
-        <stop offset="100%" stop-color="#06181d" stop-opacity="1"/>
-      </radialGradient>
-      <linearGradient id="hwyGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.94"/>
-        <stop offset="48%" stop-color="#6ee7b7" stop-opacity="0.98"/>
-        <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.95"/>
-      </linearGradient>
-      <linearGradient id="mmCardBg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#0e3037" stop-opacity="0.94"/>
-        <stop offset="100%" stop-color="#071d22" stop-opacity="0.96"/>
-      </linearGradient>
-      <linearGradient id="mmRidge" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#5eead4" stop-opacity="0.16"/>
-        <stop offset="100%" stop-color="#06181d" stop-opacity="0"/>
-      </linearGradient>
-      <pattern id="mmDots" width="22" height="22" patternUnits="userSpaceOnUse">
-        <circle cx="11" cy="11" r="0.75" fill="#99f6e4" opacity="0.14"/>
-      </pattern>
-    </defs>
-
-    <!-- Layered Telemetry Backdrop & Subtle Jirisan-Gaya Ridge Silhouette -->
-    <rect x="0" y="0" width="${W}" height="${H}" fill="url(#mmBgGlow)"/>
-    <rect x="0" y="27" width="${W}" height="${H - 27}" fill="url(#mmDots)"/>
-    <path d="M0 176 L48 152 L98 164 L152 132 L212 146 L278 118 L342 136 L412 108 L474 126 L540 104 L540 194 L0 194 Z" fill="url(#mmRidge)"/>
-
-    <!-- Top Header Band with Route 12 Shield -->
-    <rect x="0" y="0" width="${W}" height="27" fill="rgba(4, 17, 21, 0.78)"/>
-    <line x1="0" y1="27" x2="${W}" y2="27" stroke="rgba(127, 227, 179, 0.18)" stroke-width="1"/>
-    <image href="./route12.svg" x="9" y="4.5" width="18" height="18"/>
-    <text x="32" y="17.2" fill="#ecfdf5" font-size="10.2" font-weight="800" letter-spacing="-0.2">고속국도 12 광주대구선</text>
-    <text x="148" y="17" fill="#7ec9bf" font-size="9" font-weight="650">기상청 14번 노선</text>
-    <rect x="${W - 188}" y="5.5" width="179" height="16" rx="8" fill="rgba(45, 212, 191, 0.12)" stroke="rgba(94, 234, 212, 0.25)" stroke-width="0.8"/>
-    <text x="${W - 98.5}" y="16.2" text-anchor="middle" fill="#a7f3d0" font-size="8.8" font-weight="700">남원 50k → 고령 80k+ → 옥포 176k</text>
-
-    <!-- Subtle Corridor Horizon Guide -->
-    <line x1="18" y1="128" x2="${W - 18}" y2="128" stroke="rgba(153, 246, 228, 0.07)" stroke-dasharray="2,4"/>
-
-    <!-- Full Route 12 Corridor (48.8k ~ 176.0k) 3-Layer Highway Ribbon -->
-    <polyline points="${fullPoly}" fill="none" stroke="rgba(56, 217, 169, 0.16)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="${goryeongPoly}" fill="none" stroke="rgba(251, 191, 36, 0.26)" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="${fullPoly}" fill="none" stroke="#041418" stroke-width="6.8" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="${fullPoly}" fill="none" stroke="url(#hwyGrad)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="${fullPoly}" fill="none" stroke="rgba(255, 255, 255, 0.42)" stroke-width="0.9" stroke-dasharray="4,4" stroke-linecap="round" stroke-linejoin="round"/>
-  `;
-
-  // Key IC/JC Milepost Markers along the highway
-  for (const [label, ila, ilo, dy] of ROUTE12_ICS) {
-    const [ix, iy] = project(ila, ilo);
-    svg += `<g class="ic-tick">
-      <circle cx="${ix}" cy="${iy}" r="2.1" fill="#ecfdf5" opacity="0.82"/>
-      <text x="${ix}" y="${(iy + dy).toFixed(1)}" text-anchor="middle" fill="#9dd5cd" font-size="7.8" font-weight="700" opacity="0.9">${label}</text>
-    </g>`;
-  }
-
-  // 8 Watched Regions Callouts + GPS Pins (4-Tier Severity Colors: Green -> Yellow -> Orange -> Red)
-  const slotMap = {
-    '함양중부': { cx: 69, cy: 53, anchorY: 72 },
-    '거창': { cx: 203, cy: 53, anchorY: 72 },
-    '합천군서북부': { cx: 337, cy: 53, anchorY: 72 },
-    '고령군': { cx: 471, cy: 53, anchorY: 72 },
-    '남원': { cx: 69, cy: 210, anchorY: 191 },
-    '함양': { cx: 203, cy: 210, anchorY: 191 },
-    '거창군남부': { cx: 337, cy: 210, anchorY: 191 },
-    '대구 달성군남부': { cx: 471, cy: 210, anchorY: 191 }
-  };
-
-  // 기본 8개(광주대구선 권역) 관심지역만 노선 미니맵에 매칭·표시 (사용자 추가 타지역은 미니맵 제외)
-  places.forEach((p) => {
-    const isCorridorPreset = presets.some(q => coord(q) === coord(p));
-    const slot = isCorridorPreset ? slotMap[p.name] : null;
-    if (!slot) return;
-
-    const [px, py] = project(Math.max(minLat, Math.min(maxLat, p.lat)), Math.max(minLon, Math.min(maxLon, p.lon)));
-    const rec = getEffectiveRecord(p);
-    const sev = classifySeverityTier(rec);
-    const fillCol = sev.pinColor;
-    const ringCol = sev.ringColor;
-    const tempVal = rec.o?.temp ?? rec.w?.current?.temp;
-    const roadVal = rec.o?.roadTemp;
-    const timing = rainTimingSummary(rec.w, rec.o);
-    const hasWrn = (rec.wrn?.count || 0) > 0;
-    const isPlaceSelected = selectedWindyKey === `place:${coord(p)}`;
-
-    const shortName = p.name.replace('대구 ', '');
-    const kmVal = ROUTE12_PLACE_KM[p.name];
-    const nameLabel = kmVal ? `${shortName}(${Math.round(kmVal)}k)` : shortName;
-    const tempLabel = `${n(tempVal, 1)}°`;
-    const roadPart = roadVal != null ? `노면 ${roadVal.toFixed(1)}°` : (p.site || '');
-    const statusPart = hasWrn ? rec.wrn.top.title : timing.shortMapText;
-    const cardStroke = isPlaceSelected
-      ? '#38bdf8'
-      : sev.rank >= 2
-        ? fillCol
-        : 'rgba(148, 226, 213, 0.28)';
-    const subCol = sev.rank >= 3 ? '#fecaca' : sev.rank === 2 ? '#fed7aa' : '#9edbd0';
-
-    svg += `<g class="map-node" role="button" tabindex="0" aria-label="${escHtml(p.name)} 영상 선택" data-coord="${escHtml(coord(p))}" style="cursor:pointer">
-      <line x1="${px}" y1="${py}" x2="${slot.cx}" y2="${slot.anchorY}" stroke="${fillCol}" stroke-width="1.1" opacity="0.7"/>
-      <circle cx="${slot.cx}" cy="${slot.anchorY}" r="2.1" fill="${fillCol}" opacity="0.9"/>
-      <circle class="${sev.rank >= 2 || isPlaceSelected ? 'mm-pin-pulse' : ''}" cx="${px}" cy="${py}" r="${isPlaceSelected ? 12.5 : 10}" fill="${ringCol}"/>
-      <circle cx="${px}" cy="${py}" r="5.2" fill="${fillCol}" stroke="${isPlaceSelected ? '#38bdf8' : '#f8fafc'}" stroke-width="${isPlaceSelected ? 2.2 : 1.6}"/>
-      <g transform="translate(${slot.cx},${slot.cy})">
-        <rect class="mm-card-bg" x="-62" y="-19" width="124" height="38" rx="8" fill="url(#mmCardBg)" stroke="${cardStroke}" stroke-width="${isPlaceSelected ? 1.8 : 1.1}"/>
-        <rect x="-59.5" y="-14.5" width="3.4" height="29" rx="1.7" fill="${fillCol}"/>
-        <text x="-53" y="-3.2" text-anchor="start" fill="#e2f7f3" font-size="${nameLabel.length >= 10 ? '8.8' : '9.6'}" font-weight="750" letter-spacing="-0.25">${escHtml(nameLabel)}</text>
-        <text x="57" y="-2.5" text-anchor="end" fill="#ffffff" font-size="11" font-weight="850">${escHtml(tempLabel)}</text>
-        <text x="-53" y="11" text-anchor="start" fill="${subCol}" font-size="8.6" font-weight="650" letter-spacing="-0.15">${escHtml(roadPart)} · ${escHtml(statusPart)}</text>
-      </g>
-    </g>`;
+  renderCorridorMiniMap({
+    container: $('minimapContainer'),
+    strip: $('roadStnStrip'),
+    riskSummaryEl: $('corridorRiskSummary'),
+    places,
+    presets,
+    roadStations,
+    roadRiskData,
+    recentEscalations,
+    selectedWindyKey,
+    coordOf: coord,
+    getEffectiveRecord,
+    findStationRoadRisk,
+    rainTimingSummary,
+    onSelectTarget: openMapChoices,
+    fmt,
+    n,
+    el,
+    escHtml
   });
-
-  // All 11 Corridor KMA Road Weather Stations sorted Eastbound (50.8k -> 171.3k), clickable circular markers!
-  const corridorStns = roadStations
-    .filter(s => s.lon >= minLon && s.lon <= maxLon && (s.temp !== null || s.roadTemp !== null))
-    .map(s => ({ ...s, resolvedKm: resolveStationKm(s) }))
-    .sort((a, b) => (a.resolvedKm ?? 999) - (b.resolvedKm ?? 999) || a.lon - b.lon);
-
-  const classifyStnCol = s => {
-    const rRisk = findStationRoadRisk(s);
-    const iceLv = rRisk?.iceLevel || 0;
-    const fogLv = rRisk?.fogLevel || 0;
-    if (iceLv >= 3 || fogLv >= 3 || s.surfaceCode >= 4 || (s.roadTemp !== null && s.roadTemp <= 0.0)) return '#ef4444';
-    if (iceLv === 2 || fogLv === 2 || s.surfaceCode === 3 || (s.roadTemp !== null && s.roadTemp <= 2.5)) return '#f97316';
-    if (iceLv === 1 || fogLv === 1 || s.surfaceCode === 2 || (s.roadTemp !== null && s.roadTemp <= 4.5)) return '#eab308';
-    return '#38dbf8';
-  };
-
-  for (const stn of corridorStns) {
-    const [sx, sy] = project(stn.lat, stn.lon);
-    const kmTxt = stn.resolvedKm !== null ? `${stn.resolvedKm.toFixed(1)}k ` : '';
-    const trTxt = stn.roadTemp !== null ? `노면 ${stn.roadTemp.toFixed(1)}°C` : '';
-    const stnRisk = findStationRoadRisk(stn);
-    const riskTxt = stnRisk?.iceLevel ? ` · 012선 살얼음 ${stnRisk.iceLevel}단계(${stnRisk.iceLabel})` : '';
-    const dotCol = classifyStnCol(stn);
-    const isSel = selectedWindyKey === `stn:${stn.stnId}`;
-    svg += `<g class="stn-dot" data-stnid="${escHtml(stn.stnId)}" role="button" tabindex="0" transform="translate(${sx},${sy})" style="cursor:pointer">
-      <title>[도로기상 ${escHtml(kmTxt)}] ${escHtml(stn.name)} (${escHtml(stn.stationType)}, 고도 ${escHtml(stn.elevation ?? '—')}m) ${escHtml(trTxt)}${escHtml(riskTxt)} · 윈디 또는 CCTV 선택</title>
-      <circle cx="0" cy="0" r="10.5" fill="transparent"/>
-      ${isSel ? '<circle cx="0" cy="0" r="9.5" fill="rgba(56,189,248,0.28)" stroke="#38bdf8" stroke-width="1.3"/>' : ''}
-      <circle class="stn-marker-core" cx="0" cy="0" r="4.3" fill="${dotCol}" stroke="#041418" stroke-width="1.4"/>
-    </g>`;
-  }
-
-  svg += `</svg>`;
-  container.innerHTML = svg;
-
-  container.querySelectorAll('.map-node, .stn-dot').forEach(node => {
-    const activate = () => {
-      const target = node.dataset.coord
-        ? places.find(p => coord(p) === node.dataset.coord)
-        : corridorStns.find(s => String(s.stnId) === node.dataset.stnid);
-      if (target) openMapChoices(target, node);
-    };
-    node.setAttribute('aria-haspopup', 'dialog');
-    node.onclick = activate;
-    node.onkeydown = event => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        activate();
-      }
-    };
-  });
-
-  const riskSummaryEl = $('corridorRiskSummary');
-  if (riskSummaryEl) {
-    if (roadRiskData?.ok) {
-      const sum = roadRiskData.branchSummary || roadRiskData.corridorSummary || {};
-      const cnt = sum.iceCounts || [0, 0, 0, 0];
-      const fogCnt = sum.fogCounts || [0, 0, 0, 0];
-      const tmLabel = roadRiskData.tmKst ? fmt(roadRiskData.tmKst) : roadRiskData.tmUtc || '';
-      const areaTitle = roadRiskData.branchSummary?.rangeLabel
-        ? `🛣️ 고령지사[${roadRiskData.branchSummary.rangeLabel}]`
-        : '🛣️ 012선 도로살얼음';
-      const infoSpan = el(
-        'span',
-        `${areaTitle}(${tmLabel} · 10분갱신): 위험 ${cnt[3] || 0} · 주의 ${cnt[2] || 0} · 관심 ${cnt[1] || 0}` +
-          (fogCnt[1] + fogCnt[2] + fogCnt[3] > 0 ? ` | 🌫️ 안개 위험 ${fogCnt[3] || 0} · 주의 ${fogCnt[2] || 0} · 관심 ${fogCnt[1] || 0}` : '')
-      );
-      const children = [infoSpan];
-      if (recentEscalations.length) {
-        const latestEsc = recentEscalations[0];
-        children.push(el('span', `▲ 최근 격상: ${latestEsc.text}`, 'esc-tag'));
-      }
-      riskSummaryEl.replaceChildren(...children);
-      riskSummaryEl.hidden = false;
-    } else {
-      riskSummaryEl.hidden = true;
-    }
-  }
-
-  // 하단 도로기상관측소 전체 목록 (고속국도 12호선 이정표 오름차순 50.8k -> 171.3k 전구간 표출)
-  if (strip) {
-    strip.replaceChildren();
-    for (const s of corridorStns) {
-      const stnKey = `stn:${s.stnId}`;
-      const chip = el('button', '', 'road-stn-chip' + (selectedWindyKey === stnKey ? ' is-selected' : ''));
-      chip.type = 'button';
-      chip.dataset.stnid = s.stnId;
-
-      const topRow = el('div', '', 'road-stn-top');
-      const cleanName = s.name.replace('(도)', '');
-      const kmTag = s.resolvedKm !== null ? `${s.resolvedKm.toFixed(1)}k ` : '';
-      const elevStr = s.elevation && s.elevation >= 300 ? `(${s.elevation}m)` : s.stationType?.includes('결빙') ? '(교량)' : '';
-      const labelEl = el('b', `${kmTag}${cleanName}${elevStr}`);
-      labelEl.title = `${kmTag}${cleanName}${elevStr}`;
-      topRow.append(labelEl);
-
-      const stateTxt = s.surfaceState || (s.stationType?.includes('결빙') ? '교량센서' : '건조');
-      const isWarnState = s.surfaceCode >= 2 || (s.roadTemp !== null && s.roadTemp <= 1.0);
-      topRow.append(el('span', stateTxt, 'road-stn-state' + (isWarnState ? ' warn' : '')));
-
-      const valRow = el('div', '', 'road-stn-vals');
-      const roadSpan = el('em', s.roadTemp !== null ? `노면 ${s.roadTemp.toFixed(1)}°C` : '노면 —');
-      const airTxt = s.temp !== null ? ` · 기온 ${s.temp.toFixed(1)}°C` : ' · 교량결빙감시';
-      valRow.append(roadSpan, document.createTextNode(airTxt));
-
-      chip.append(topRow, valRow);
-      const stnRisk = findStationRoadRisk(s);
-      if (stnRisk && (stnRisk.iceLevel >= 1 || stnRisk.fogLevel >= 1)) {
-        const riskRow = el('div', '', 'road-stn-risk-row');
-        if (stnRisk.iceLevel >= 1) {
-          riskRow.append(el('span', `${stnRisk.iceLevel === 3 ? '🚨' : '❄'} 살얼음 ${stnRisk.iceLabel}`, `badge-ice rank-${stnRisk.iceLevel}`));
-        }
-        if (stnRisk.fogLevel >= 1) {
-          riskRow.append(el('span', `🌫️ 안개 ${stnRisk.fogLabel}`, `badge-ice rank-${stnRisk.fogLevel}`));
-        }
-        chip.append(riskRow);
-      }
-      chip.setAttribute('aria-haspopup', 'dialog');
-      chip.onclick = () => openMapChoices(s, chip);
-      strip.append(chip);
-    }
-  }
 }
 
 function focusVisualPaneIntoView() {
@@ -1210,210 +957,22 @@ async function loadKmaRadarImage(force = false) {
   }
 }
 
-const ACTION_STAGE_META = [
-  { id: 'preheat', icon: '🔑', label: '시동ON' },
-  { id: 'presalt', icon: '🚜', label: '예비살포' },
-  { id: 'mainplow', icon: '❄', label: '본살포' },
-  { id: 'floodwind', icon: '🌊', label: '수방·횡풍' }
-];
-const ACTION_STAGE_ORDER = { preheat: 0, presalt: 1, mainplow: 2, floodwind: 3 };
-
-const ACK_KEY = 'weather-watch:ack:v1';
-let acknowledgedActions = {};
-try {
-  acknowledgedActions = JSON.parse(localStorage.getItem(ACK_KEY) || '{}') || {};
-} catch {
-  acknowledgedActions = {};
-}
-function persistAck() {
-  try {
-    localStorage.setItem(ACK_KEY, JSON.stringify(acknowledgedActions));
-  } catch {}
-}
-
-// 세부페이지 예비살포/본살포 살포시각 기록 (입력 시에만 재살포 카드로 전환)
-const SPREAD_LOG_KEY = 'weather-watch:spread-log:v1';
-const SPREAD_MAX_AGE_MS = 24 * 3600000;
-let spreadLogs = {};
+// 제설 지시카드 · 살포시각 타이머 · 특보 해제 추적 · 확인(ACK) 상태 관리 (모듈 분리: public/snow-directive.js)
 let activeSpreadEditor = null; // { placeKey, stageId } | null
-try {
-  spreadLogs = JSON.parse(localStorage.getItem(SPREAD_LOG_KEY) || '{}') || {};
-} catch {
-  spreadLogs = {};
-}
-function persistSpreadLogs() {
-  try {
-    localStorage.setItem(SPREAD_LOG_KEY, JSON.stringify(spreadLogs));
-  } catch {}
-}
-function getSpreadEntry(place, stageId, nowMs = Date.now()) {
-  if (!place || !stageId) return null;
-  const id = coord(place);
-  const entry = spreadLogs[id]?.[stageId];
-  if (!entry || !Number.isFinite(entry.atMs)) return null;
-  if (nowMs - entry.atMs > SPREAD_MAX_AGE_MS) {
-    delete spreadLogs[id][stageId];
-    persistSpreadLogs();
-    return null;
-  }
-  return entry;
-}
-function setSpreadTime(place, stageId, atMs) {
-  const id = coord(place);
-  if (!spreadLogs[id]) spreadLogs[id] = {};
-  spreadLogs[id][stageId] = { atMs };
-  persistSpreadLogs();
-}
-function clearSpreadTime(place, stageId) {
-  const id = coord(place);
-  if (spreadLogs[id]) {
-    delete spreadLogs[id][stageId];
-    if (!Object.keys(spreadLogs[id]).length) delete spreadLogs[id];
-    persistSpreadLogs();
-  }
-}
-function formatKstClock(ms = Date.now()) {
-  const d = new Date(ms + 9 * 3600000);
-  return String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0');
-}
-function parseKstHhmmToMs(hhmm, nowMs = Date.now()) {
-  const m = String(hhmm || '').trim().match(/^(\d{2}):(\d{2})$/);
-  if (!m) return null;
-  const hh = Number(m[1]), mm = Number(m[2]);
-  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
-  const kstNow = new Date(nowMs + 9 * 3600000);
-  const y = kstNow.getUTCFullYear();
-  const mo = String(kstNow.getUTCMonth() + 1).padStart(2, '0');
-  const da = String(kstNow.getUTCDate()).padStart(2, '0');
-  let epoch = Date.parse(`${y}-${mo}-${da}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00+09:00`);
-  if (!Number.isFinite(epoch)) return null;
-  // 입력 시각이 현재보다 10분 이상 미래면 자정 이전(전일) 살포 시각으로 해석
-  if (epoch - nowMs > 10 * 60000) epoch -= 24 * 3600000;
-  return epoch;
-}
-
-// 제설 관련 기상특보(대설·한파 등) 해제 추적 (대기 차량 복귀 지시용)
-const SNOW_WRN_HIST_KEY = 'weather-watch:snow-wrn-hist:v1';
-const SNOW_WRN_CLEARED_TTL_MS = 6 * 3600000;
-let snowWrnHistory = {};
-try {
-  snowWrnHistory = JSON.parse(localStorage.getItem(SNOW_WRN_HIST_KEY) || '{}') || {};
-} catch {
-  snowWrnHistory = {};
-}
-function persistSnowWrnHistory() {
-  try {
-    localStorage.setItem(SNOW_WRN_HIST_KEY, JSON.stringify(snowWrnHistory));
-  } catch {}
-}
-function extractSnowWarnings(wrn) {
-  const list = Array.isArray(wrn?.raw) && wrn.raw.length
-    ? wrn.raw
-    : (Array.isArray(wrn?.tooltipLines) ? wrn.tooltipLines : []);
-  return list.filter(isSnowRelatedWarning);
-}
-function syncSnowWarningHistory(place, wrn, nowMs = Date.now()) {
-  if (!place || !wrn) return;
-  const id = coord(place);
-  const snowWrns = extractSnowWarnings(wrn);
-  const prev = snowWrnHistory[id];
-  if (snowWrns.length > 0) {
-    const titles = [...new Set(snowWrns.map(w => w.title || w.kind).filter(Boolean))];
-    snowWrnHistory[id] = { active: true, titles, lastSeenMs: nowMs, clearedAtMs: null, dismissed: false };
-    persistSnowWrnHistory();
-  } else if (prev?.active) {
-    snowWrnHistory[id] = {
-      active: false,
-      lastTitles: prev.titles || ['제설 관련 특보'],
-      clearedAtMs: nowMs,
-      dismissed: false
-    };
-    persistSnowWrnHistory();
-  } else if (prev && !prev.active && prev.clearedAtMs && nowMs - prev.clearedAtMs > SNOW_WRN_CLEARED_TTL_MS) {
-    delete snowWrnHistory[id];
-    persistSnowWrnHistory();
-  }
-}
-function getSnowWarningClearedState(place, wrn, nowMs = Date.now()) {
-  const id = coord(place);
-  const hasActiveSnowWrn = extractSnowWarnings(wrn).length > 0;
-  const entry = snowWrnHistory[id];
-  if (!entry || entry.active || entry.dismissed || !entry.clearedAtMs) {
-    return { recentlyCleared: false, clearedTitles: [], hasActiveSnowWrn };
-  }
-  if (nowMs - entry.clearedAtMs > SNOW_WRN_CLEARED_TTL_MS) {
-    delete snowWrnHistory[id];
-    persistSnowWrnHistory();
-    return { recentlyCleared: false, clearedTitles: [], hasActiveSnowWrn };
-  }
-  return {
-    recentlyCleared: true,
-    clearedTitles: entry.lastTitles || ['제설 관련 특보'],
-    hasActiveSnowWrn
-  };
-}
-
-function resolveDecisionCardsForPlace(place, rec, nowMs = Date.now()) {
-  const baseCards = rec?.w?.ice?.decisionCards || [
-    { stageId: 'preheat', title: '제설차 시동 ON', subtitle: '(살포기 유압 예열)', status: '대기', detail: '결빙·강설 신호 없음', state: 'idle' },
-    { stageId: 'presalt', title: '예비살포', subtitle: '(습염 사전 살포)', status: '대기', detail: '노면 결빙 위험 없음', state: 'idle' },
-    { stageId: 'mainplow', title: '본살포', subtitle: '(제설삽날·연속 살포)', status: '대기', detail: '강설 1.0cm/h 이상 시', state: 'idle' },
-    { stageId: 'floodwind', title: '수방 · 횡풍', subtitle: '(배수로·교량 안전)', status: '정상', detail: '강수·강풍 특이사항 없음', state: 'idle' }
-  ];
-  if (!place) return baseCards;
-  const ice = rec?.w?.ice;
-  const obs = rec?.o;
-  const airTemp = Number.isFinite(obs?.temp) ? obs.temp : (Number.isFinite(ice?.curTemp) ? ice.curTemp : rec?.w?.current?.temp ?? null);
-  const roadTemp = Number.isFinite(obs?.bridgeRoadTemp)
-    ? obs.bridgeRoadTemp
-    : Number.isFinite(obs?.roadTemp)
-      ? obs.roadTemp
-      : (Number.isFinite(ice?.bridgeTemp) ? ice.bridgeTemp : null);
-  const surfaceWet = Number.isFinite(obs?.surfaceCode)
-    ? [2, 3, 6].includes(obs.surfaceCode)
-    : ice?.curSurfaceWet ?? (rec?.w?.current?.precip > 0);
-  const surfaceState = obs?.surfaceState || ice?.curSurfaceState || (surfaceWet ? '습윤' : '건조');
-
-  return baseCards.map(card => {
-    if (!card || (card.stageId !== 'presalt' && card.stageId !== 'mainplow')) return card;
-    const logged = getSpreadEntry(place, card.stageId, nowMs);
-    if (!logged) return card;
-    return evaluateResaltCard(card, logged.atMs, {
-      nowMs,
-      airTemp,
-      roadTemp,
-      surfaceWet,
-      surfaceState,
-      stageLabel: card.stageId === 'mainplow' ? '본살포' : '예비살포'
-    });
-  });
-}
-
-function getActionSignature(cards) {
-  return cards.map(c => `${c.stageId}:${c.state}:${c.pcChip}`).join('|');
-}
-
-function getActiveActionCards(rec, place = null) {
-  const cards = place ? resolveDecisionCardsForPlace(place, rec) : (rec?.w?.ice?.decisionCards || []);
-  return cards
-    .filter(c => c && c.pcChip && (c.state === 'urgent' || c.state === 'watch'))
-    .sort((a, b) => {
-      if (a.state !== b.state) return a.state === 'urgent' ? -1 : 1;
-      const ha = Number.isFinite(a.hoursLeft) ? a.hoursLeft : 9;
-      const hb = Number.isFinite(b.hoursLeft) ? b.hoursLeft : 9;
-      if (ha !== hb) return ha - hb;
-      return (ACTION_STAGE_ORDER[a.stageId] ?? 9) - (ACTION_STAGE_ORDER[b.stageId] ?? 9);
-    });
-}
-
-function getUnackedActionCards(place, rec) {
-  const active = getActiveActionCards(rec, place);
-  if (!active.length) return [];
-  const sig = getActionSignature(active);
-  const id = coord(place);
-  // Safety guardrail: if state escalated or time/directives changed, signature no longer matches -> re-surfaces automatically!
-  return acknowledgedActions[id] === sig ? [] : active;
-}
+const snowDirective = createSnowDirectiveStore({ coordOf: coord });
+const {
+  getSpreadEntry,
+  setSpreadTime,
+  clearSpreadTime,
+  syncSnowWarningHistory,
+  getSnowWarningClearedState,
+  dismissSnowWarningCleared,
+  resolveDecisionCardsForPlace,
+  getActiveActionCards,
+  getUnackedActionCards,
+  acknowledgeActionCards,
+  clearAllAcknowledged
+} = snowDirective;
 
 function showActionConfirmPopover(anchorEl, place, activeCards) {
   const pop = $('actionConfirmPopover');
@@ -1439,8 +998,7 @@ function showActionConfirmPopover(anchorEl, place, activeCards) {
   const ackBtn = el('button', '✓ 확인했습니다 (이 카드 지시 숨김)', 'action-ack-btn');
   ackBtn.type = 'button';
   ackBtn.onclick = () => {
-    acknowledgedActions[coord(place)] = getActionSignature(activeCards);
-    persistAck();
+    acknowledgeActionCards(place, activeCards);
     pop.hidden = true;
     board();
   };
@@ -1586,8 +1144,7 @@ export function board() {
         const restoreBtn = el('button', `✓ 확인됨 ${ackedCount} · 다시보기`, 'act-ack-restore');
         restoreBtn.type = 'button';
         restoreBtn.onclick = () => {
-          acknowledgedActions = {};
-          persistAck();
+          clearAllAcknowledged();
           board();
         };
         stagePills.push(restoreBtn);
@@ -2243,10 +1800,7 @@ function renderDetail() {
       const dismissBtn = el('button', '확인', 'guide-dismiss-btn');
       dismissBtn.type = 'button';
       dismissBtn.onclick = () => {
-        if (snowWrnHistory[placeKey]) {
-          snowWrnHistory[placeKey].dismissed = true;
-          persistSnowWrnHistory();
-        }
+        dismissSnowWarningCleared(placeKey);
         renderDetail();
       };
       retBanner.append(dismissBtn);

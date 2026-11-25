@@ -34,7 +34,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
 
 let state = {
-  range: '12',     // '6' | '12' (1920x1080 1-screen default) | '24' | 'tomorrow'
+  range: '24',     // '6' | '12' | '24' (기본 24시간 비교) | 'tomorrow'
   mode: 'all',     // 'all' | 'pop' | 'temp' | 'pcp' | 'wind'
   sort: 'route',   // 'group' (고령·합천·거창·함양·달성) | 'route' (서->동)
   payload: null,
@@ -321,10 +321,11 @@ function renderSheet() {
   }
 
   const colCount = headerHours.length;
-  const minColPx = state.range === '6' ? 88 : state.range === '12' ? 66 : 56;
+  const minColPx = state.range === '6' ? 88 : state.range === '12' ? 66 : 58;
   sheet.style.setProperty('--hr-cols', String(colCount));
   sheet.style.setProperty('--hr-rows', String(regions.length));
   sheet.style.setProperty('--hr-min-col', `${minColPx}px`);
+  sheet.classList.toggle('is-dense', colCount >= 20);
 
   // Header Row
   let html = '<div class="hr-headrow">';

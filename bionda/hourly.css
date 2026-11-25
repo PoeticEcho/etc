@@ -1,14 +1,14 @@
 /* 관심 읍면동 1시간 단기예보 상황판 전용 스타일 (styles.css 라이트/다크 토큰과 완전 통합) */
 :root {
-  --hr-label: 158px;
-  --hr-sum: 146px;
-  --hr-cols: 12;
-  --hr-min-col: 66px;
-  --hr-surface-alt: #f7fbf9;
-  --hr-head-bg: #e5efec;
-  --hr-head-ink: #193e3c;
-  --hr-cell-border: #dbe7e3;
-  --hr-sticky-shadow: 4px 0 8px rgba(16, 60, 62, 0.06);
+  --hr-label: 154px;
+  --hr-sum: 140px;
+  --hr-cols: 24;
+  --hr-min-col: 58px;
+  --hr-surface-alt: #fbfdfd;
+  --hr-head-bg: #eef4f3;
+  --hr-head-ink: #0b2427;
+  --hr-cell-border: #d7e3df;
+  --hr-sticky-shadow: 4px 0 8px rgba(16, 60, 62, 0.05);
 }
 
 body.dark-mode {
@@ -244,7 +244,7 @@ body.dark-mode .hr-mpill.is-warn.has-hits {
   font-size: 11.5px;
   font-weight: 750;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: #ffffff;
   color: var(--ink);
 }
 .hr-tbtn small { font-weight: 650; opacity: 0.85; }
@@ -348,7 +348,7 @@ body:not(.dark-mode) .kma-sleet g {
   margin-top: 1px;
 }
 .hr-hour.is-night {
-  background: rgba(16, 46, 62, 0.055);
+  background: rgba(15, 42, 62, 0.018);
 }
 body.dark-mode .hr-hour.is-night {
   background: rgba(0, 0, 0, 0.2);
@@ -507,7 +507,7 @@ body.dark-mode .hr-cell.is-missing {
   filter: saturate(0.65);
 }
 .hr-cell.is-night {
-  background-color: rgba(16, 46, 62, 0.03);
+  background-color: rgba(15, 42, 62, 0.012);
 }
 body.dark-mode .hr-cell.is-night {
   background-color: rgba(0, 0, 0, 0.14);
@@ -617,6 +617,15 @@ body.dark-mode .hr-datarow:nth-child(even).flash-row .hr-namecol {
   font-weight: 850;
   line-height: 1.1;
   white-space: nowrap;
+  color: var(--ink);
+}
+.hr-scroller.is-dense .hr-c1 {
+  font-size: 11.5px;
+  gap: 1.5px;
+}
+.hr-scroller.is-dense .hr-c1 .kma-sym {
+  width: 18px;
+  height: 18px;
 }
 .hr-c1 .kma-sym {
   width: 20px;
@@ -629,11 +638,24 @@ body.dark-mode .hr-cell.is-subzero .hr-temp { color: #7dd3fc; }
 body.dark-mode .hr-cell.is-warm .hr-temp { color: #fdba74; }
 
 .hr-c2 {
-  font-size: 9.6px;
+  font-size: 9.8px;
   font-weight: 750;
   color: var(--muted);
   line-height: 1.1;
   white-space: nowrap;
+}
+body:not(.dark-mode) .hr-c2,
+body:not(.dark-mode) .hr-geo-sub,
+body:not(.dark-mode) .hr-sum-bot,
+body:not(.dark-mode) .hr-hour small {
+  color: #334e53;
+}
+body:not(.dark-mode) .hr-sum-onset:not(.is-wet),
+body:not(.dark-mode) .hr-sum-freeze:not(.is-cold) {
+  color: #274348;
+}
+body:not(.dark-mode) .hr-rainbar {
+  background: rgba(15, 42, 62, 0.12);
 }
 .hr-c2.has-amt {
   color: #0369a1;
