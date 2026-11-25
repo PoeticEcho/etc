@@ -52,6 +52,8 @@ body{
   font-weight:400;
   line-height:1.75;
   letter-spacing:-0.01em;
+  word-break:keep-all;
+  overflow-wrap:break-word;
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
 }
@@ -336,6 +338,16 @@ figcaption a:hover{color:var(--forest);border-color:var(--forest)}
 }
 .specs dt{font-size:11.5px;color:var(--muted);letter-spacing:.04em}
 .specs dd{font-size:14px;line-height:1.65;color:var(--ink)}
+.specs > .specs__archive{grid-column:1/-1;border-bottom:0;padding:17px 0 2px;align-items:center}
+.specs__archive dd a{
+  display:inline-flex;align-items:center;gap:9px;
+  font-family:var(--serif);font-size:14.5px;font-weight:600;color:var(--forest);letter-spacing:-.01em;
+  border-bottom:1px solid rgba(13,79,60,.32);padding-bottom:3px;
+  transition:border-color .25s,gap .25s,color .25s;
+}
+.specs__archive dd a:hover{border-color:var(--forest);gap:12px;color:var(--forest-2)}
+.specs__arw{font-family:var(--sans);font-size:13px;line-height:1;color:var(--forest-2);transition:transform .25s var(--ease)}
+.specs__archive dd a:hover .specs__arw{transform:translate(2px,-2px)}
 
 .features{
   display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
@@ -369,12 +381,26 @@ figcaption a:hover{color:var(--forest);border-color:var(--forest)}
 .doc__meta em{font-style:normal;font-size:11.5px;color:var(--muted)}
 /* 단지설계 원본(1100×1972)은 위쪽이 외관 조감도·아래쪽이 항공 배치도라, 썸네일은 배치도가 보이게 내립니다 */
 .doc--design .doc__img img{object-position:50% 60%}
-/* 공식 홈페이지 아카이브로 가는 카드 */
+/* 공식 홈페이지 아카이브로 가는 카드 — 자료 그리드의 마지막 한 줄을 채우는 가로 띠 */
 a.doc{text-decoration:none;color:inherit;cursor:pointer}
-.doc--archive{border-color:var(--forest);background:var(--forest-tint)}
-.doc--archive .doc__meta{border-top-color:rgba(13,79,60,.24)}
-.doc--archive .doc__meta b{color:var(--forest)}
-.doc--archive .doc__meta em{color:#356b58}
+.docs__item--archive{grid-column:1/-1}
+.doc--archive{
+  display:grid;grid-template-columns:minmax(0,300px) 1fr auto;align-items:center;
+  border-color:var(--forest);background:var(--forest-tint);cursor:pointer;
+}
+.doc__go{
+  display:inline-flex;align-items:center;gap:10px;margin-right:26px;padding:11px 18px;
+  border:1px solid var(--forest);color:var(--forest);font-size:12.5px;font-weight:600;letter-spacing:.04em;
+  white-space:nowrap;transition:background .25s,color .25s;
+}
+.doc__go i{font-style:normal;transition:transform .25s var(--ease)}
+.doc--archive:hover .doc__go{background:var(--forest);color:var(--cream)}
+.doc--archive:hover .doc__go i{transform:translateX(3px)}
+.doc--archive .doc__img{aspect-ratio:16/9;border-right:1px solid rgba(13,79,60,.2)}
+.doc--archive .doc__img img{object-position:50% 30%}
+.doc--archive .doc__meta{border-top:0;padding:20px 26px;gap:4px}
+.doc--archive .doc__meta b{color:var(--forest);font-size:17px}
+.doc--archive .doc__meta em{color:#356b58;font-size:12.5px}
 .doc--archive .doc__meta b::after{content:" ↗";font-family:var(--sans);font-size:12px;color:var(--forest)}
 
 /* ============================ news ============================ */
@@ -794,30 +820,45 @@ a.doc{text-decoration:none;color:inherit;cursor:pointer}
 .section.is-collapsed .sec-body{grid-template-rows:0fr;opacity:0}
 .section.is-collapsed .sec-fold__chev{transform:rotate(45deg) translate(-1px,-1px)}
 
-/* ============================ revisit bar ============================ */
-.revisit{
-  display:flex;align-items:center;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;
-  margin:0 0 clamp(30px,4.4vw,52px);padding:16px 20px;
-  border:1px solid var(--line-2);border-left:3px solid var(--forest);
-  background:linear-gradient(180deg,rgba(255,253,247,.8),rgba(245,242,235,.55));
+/* ============================ revisit panel (footer bottom) ============================ */
+.revisit-band{
+  grid-column:1/-1;margin-top:10px;padding:clamp(22px,2.8vw,32px) clamp(20px,3vw,32px);
+  border:1px solid rgba(245,242,235,.16);border-left:3px solid var(--forest-2);
+  background:linear-gradient(150deg,var(--paper) 0%,#efeade 100%);
+  color:var(--ink);
 }
-.revisit__text{min-width:220px;flex:1 1 280px}
-.revisit__title{font-family:var(--serif);font-size:14.5px;font-weight:600;color:var(--forest);letter-spacing:.01em}
-.revisit__desc{margin-top:3px;font-size:12px;line-height:1.7;color:var(--muted)}
-.revisit__desc strong{color:var(--ink-2);font-weight:600}
-.switch{
-  display:inline-flex;align-items:center;gap:11px;padding:6px 2px;border:0;background:none;
-  color:var(--ink-2);font-size:12px;letter-spacing:.06em;cursor:pointer;
+.revisit-band__inner{display:flex;align-items:center;justify-content:space-between;gap:22px clamp(28px,5vw,64px);flex-wrap:wrap}
+.revisit-band__text{flex:1 1 440px;min-width:0;max-width:min(680px,100%)}
+.revisit-band__eyebrow{color:var(--forest);letter-spacing:.26em;font-size:10.5px}
+.revisit-band__title{
+  font-family:var(--serif);font-size:clamp(19px,2.3vw,25px);font-weight:600;
+  line-height:1.45;letter-spacing:-.02em;color:var(--ink);margin-top:10px;
 }
-.switch__track{position:relative;width:46px;height:26px;border-radius:999px;background:var(--line-2);transition:background .3s}
-.switch__knob{
-  position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--white);
-  box-shadow:0 1px 3px rgba(4,26,20,.28);transition:transform .3s var(--ease);
+.revisit-band__desc{margin-top:9px;font-size:13px;line-height:1.8;color:var(--ink-2)}
+.revisit-band__desc b{font-weight:600;color:var(--ink)}
+.revisit-band__desc strong{font-weight:600;color:var(--forest)}
+.revisit-band__meta{margin-top:10px;font-size:11.5px;letter-spacing:.04em;color:var(--muted)}
+.revisit-band__ctrl{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px;text-align:right}
+.revisit-band__hint{font-size:11.5px;line-height:1.5;color:var(--muted)}
+.revisit-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:11px;
+  min-width:196px;height:52px;padding:0 24px;
+  border:1px solid var(--forest);background:var(--forest);color:var(--cream);
+  font-size:14px;font-weight:600;letter-spacing:.02em;cursor:pointer;
+  box-shadow:0 10px 24px -14px rgba(4,26,20,.55);
+  transition:background .25s,border-color .25s,box-shadow .25s,transform .25s;
 }
-.switch[aria-checked="true"] .switch__track{background:var(--forest)}
-.switch[aria-checked="true"] .switch__knob{transform:translateX(20px)}
-.switch__state{min-width:28px;text-align:left;color:var(--muted)}
-.switch[aria-checked="true"] .switch__state{color:var(--forest)}
+.revisit-btn:hover{background:var(--forest-2);border-color:var(--forest-2);box-shadow:0 14px 28px -14px rgba(4,26,20,.6);transform:translateY(-1px)}
+.revisit-btn:active{transform:none}
+.revisit-btn__ico{
+  flex:none;width:8px;height:8px;margin-top:2px;
+  border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;
+  transition:transform .3s var(--ease);
+}
+/* 펼침 상태: 누르면 닫힌다는 뜻으로 위 화살표 */
+.revisit-btn[aria-expanded="true"] .revisit-btn__ico{transform:rotate(-135deg)}
+/* 접힘 상태: 누르면 펼쳐진다는 뜻으로 아래 화살표 */
+.revisit-btn[aria-expanded="false"] .revisit-btn__ico{transform:rotate(45deg) translate(-1px,-1px)}
 
 /* ============================ school · shuttle ============================ */
 .school{margin-top:clamp(48px,6.4vw,84px);padding-top:clamp(32px,4.2vw,54px);border-top:1px solid var(--line)}
@@ -1070,6 +1111,11 @@ body.is-locked{overflow:hidden}
   .doc__meta{padding:7px 7px 8px;gap:0}
   .doc__meta b{font-size:11.5px;line-height:1.35;letter-spacing:-.03em}
   .doc__meta em{display:none}
+  .doc--archive{grid-template-columns:112px 1fr}
+  .doc__go{display:none}
+  .doc--archive .doc__img{aspect-ratio:1/1}
+  .doc--archive .doc__meta{padding:12px 14px}
+  .doc--archive .doc__meta b{font-size:14px}
   .features{grid-template-columns:1fr}
   .specs > div{grid-template-columns:104px 1fr;gap:10px}
   .dist__head,.dist li{grid-template-columns:1fr 74px;gap:10px}
@@ -1083,10 +1129,15 @@ body.is-locked{overflow:hidden}
   .park__stats{grid-template-columns:1fr 1fr}
   .acc__head{font-size:14px;padding:17px 2px}
   .closing h2{font-size:clamp(30px,9vw,44px)}
-  .revisit{padding:14px 15px}
-  .revisit__desc{font-size:11.5px}
-  .switch__state{font-size:11.5px}
+  .revisit-band{padding:22px 16px 24px}
+  .revisit-band__inner{gap:18px}
+  .revisit-band__title{font-size:19px}
+  .revisit-band__desc{font-size:12.5px}
+  .revisit-band__ctrl{width:100%;align-items:stretch;text-align:left}
+  .revisit-btn{width:100%;min-width:0;height:50px}
+  .revisit-band__hint{text-align:center}
   .sec-fold{padding:6px 12px;font-size:11px}
+  .plan__tabs .tabs__sep{display:none}
   .school__facts li{grid-template-columns:66px 1fr;gap:10px}
   .footer__btns{width:100%}
   .footer__btns .fbtn{flex:1 1 0;justify-content:center;padding:12px 12px}

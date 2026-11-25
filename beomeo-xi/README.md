@@ -139,12 +139,13 @@ GS건설 자이 공식 분양 홈페이지(**https://xi.co.kr/dgb**)와 자이 �
 `index.html`의 `.park__grid` 안에 `<li>` 하나를 추가하고, `data-zoom`(원본 경로)·`data-cap`(출처 포함 캡션)을
 다른 항목과 같은 형식으로 맞춰 주세요. 라이트박스 이전/다음 이동은 `data-group="park"`으로 묶입니다.
 
-## 섹션 접기(재방문자 모드)
+## 섹션 접기 · 재방문 안내
 
 - `단지개요(#overview)`·`평면도(#plan)`·`입지·FAQ(#location)` 헤더 오른쪽의 **접기/펼치기** 알약 버튼으로 각 섹션을 접습니다. 주간소식(`#news`)과 뷰(`#view`)는 항상 펼침입니다.
-- 주간소식 위의 **재방문자 모드** 스위치는 세 섹션을 한 번에 접거나 폅니다.
-- 접힌 섹션은 `localStorage`의 `beomeo_collapsed_sections`(배열, 예: `["overview","plan"]`)에 저장되어 새 방문·새로고침에도 유지됩니다. 저장값이 깨져 있으면 무시하고 모두 펼친 상태로 시작합니다.
-- 접힌 섹션의 내용은 `inert` 처리되어 키보드·스크린리더가 건너뜁니다. 내비게이션·앵커로 접힌 섹션을 찾아가면 자동으로 펼쳐집니다.
+- 페이지 맨 아래(푸터 마지막)의 **재방문 시 기본 정보를 닫아드릴까요?** 패널에 `기본 정보 닫기 / 기본 정보 보기` 버튼이 있습니다. 이 버튼은 세 섹션을 한 번에 접거나 펴고, 선택을 `localStorage`의 `beomeo_fold_pref`(`open`·`closed`)에 저장해 다음 방문에도 유지합니다.
+- 방문 횟수는 `beomeo_visit_count`로 셉니다. `beomeo_last_visit` 기준 30분 안의 새로고침은 같은 방문으로 보고, **3번째 방문부터는 기본 정보가 자동으로 접힌 채 열립니다**(명시적으로 고른 `beomeo_fold_pref`가 있으면 그 선택이 우선).
+- 개별 섹션의 접힘 상태는 `localStorage`의 `beomeo_collapsed_sections`(배열, 예: `["overview","plan"]`)에 저장되어 새 방문·새로고침에도 유지됩니다. 저장값이 깨져 있으면 무시하고 모두 펼친 상태로 시작합니다.
+- 접힌 섹션의 내용은 `inert` 처리되어 키보드·스크린리더가 건너뜁니다. 상단 메뉴·앵커로 접힌 섹션(또는 그 안쪽 `#school`·`#faq`)을 찾아가면 자동으로 펼친 뒤 부드럽게 이동합니다.
 - `<button class="sec-fold" data-fold="섹션id" aria-controls="섹션id-body">`를 추가하고 본문을 `<div class="sec-body" id="섹션id-body"><div class="sec-body__inner">…</div></div>`로 감싸면 같은 방식으로 동작합니다.
 
 ## 하단 푸터 액션

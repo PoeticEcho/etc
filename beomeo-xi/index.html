@@ -42,7 +42,7 @@
       <a href="#view">뷰·야시골</a>
       <a href="#plan">평면도</a>
       <a href="#location">입지·FAQ</a>
-      <a href="archive.html">공홈 아카이브</a>
+      <a href="archive.html">아카이브 보기</a>
     </nav>
     <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav" aria-label="메뉴 열기">
       <span></span><span></span>
@@ -145,6 +145,7 @@
         <div><dt>사용승인</dt><dd>2026년 2월 (국토교통부 2026-02-26)</dd></div>
         <div><dt>시공 / 시행</dt><dd>GS건설 / KB부동산신탁</dd></div>
         <div><dt>최고 높이</dt><dd>106.07m (103동)</dd></div>
+        <div class="specs__archive"><dt>아카이브</dt><dd><a href="archive.html">범어자이 홍보페이지 아카이브 보기 <span class="specs__arw" aria-hidden="true">↗</span></a></dd></div>
       </dl>
 
       <ul class="features">
@@ -197,9 +198,10 @@
             <span class="doc__img"><img src="assets/photos/09-night-view.jpg" alt="범어자이 야간 조감도" loading="lazy" /></span>
             <span class="doc__meta"><b>야간 조감도</b><em>대경일보 게재</em></span>
           </button></li>
-          <li class="reveal"><a class="doc doc--archive" href="archive.html">
+          <li class="reveal docs__item--archive"><a class="doc doc--archive" href="archive.html">
             <span class="doc__img"><img src="assets/photos/38-official-aerial-day.jpg" alt="범어자이 공식 홈페이지 아카이브" loading="lazy" /></span>
-            <span class="doc__meta"><b>공식 홈페이지 아카이브</b><em>xi.co.kr/dgb 전 메뉴 보존</em></span>
+            <span class="doc__meta"><b>공식 홈페이지 아카이브</b><em>xi.co.kr/dgb 와 자이 단지정보의 모든 메뉴·이미지·표를 그대로 보존했습니다</em></span>
+            <span class="doc__go">아카이브 열기 <i aria-hidden="true">→</i></span>
           </a></li>
         </ul>
       </div>
@@ -210,16 +212,6 @@
   <!-- ============ NEWS ============ -->
   <section class="section section--paper" id="news">
     <div class="container">
-      <div class="revisit reveal" id="revisit">
-        <div class="revisit__text">
-          <p class="revisit__title">재방문자 모드</p>
-          <p class="revisit__desc">고정 안내(단지개요·평면도·입지)를 접어두고 <strong>주간소식 · 뷰·야시골</strong>부터 바로 봅니다. 상태는 다음 방문에도 유지됩니다.</p>
-        </div>
-        <button class="switch" id="revisit-toggle" type="button" role="switch" aria-checked="false" aria-label="재방문자 모드: 고정 안내 접어두기">
-          <span class="switch__track" aria-hidden="true"><span class="switch__knob"></span></span>
-          <span class="switch__state" id="revisit-state">꺼짐</span>
-        </button>
-      </div>
       <header class="sec-head reveal">
         <p class="sec-no">02</p>
         <p class="sec-label">WEEKLY MAGAZINE</p>
@@ -580,6 +572,25 @@
         </button>
       </div>
     </div>
+
+    <!-- ============ REVISIT (page very bottom) ============ -->
+    <section class="revisit-band" id="revisit" aria-labelledby="revisit-title">
+      <div class="revisit-band__inner">
+        <div class="revisit-band__text reveal">
+          <p class="sec-label revisit-band__eyebrow">REVISIT · 다시 찾아오셨다면</p>
+          <p class="revisit-band__title" id="revisit-title">재방문 시 기본 정보를 닫아드릴까요?</p>
+          <p class="revisit-band__desc">세 번째 방문부터는 <b>단지개요 · 평면도 · 입지 · FAQ</b> 같은 기본 안내를 접어두고 <strong>주간소식과 뷰·야시골</strong>부터 보여드립니다. 접어둔 안내는 상단 메뉴에서 이름을 누르면 그때마다 펼쳐집니다.</p>
+          <p class="revisit-band__meta" id="revisit-meta">이 브라우저 첫 방문 · 기본 정보 펼침</p>
+        </div>
+        <div class="revisit-band__ctrl reveal">
+          <button class="revisit-btn" id="revisit-toggle" type="button" aria-expanded="true" aria-controls="overview-body plan-body location-body">
+            <i class="revisit-btn__ico" aria-hidden="true"></i>
+            <span class="revisit-btn__txt" id="revisit-state">기본 정보 닫기</span>
+          </button>
+          <p class="revisit-band__hint" id="revisit-hint">지금은 기본 정보가 모두 펼쳐져 있습니다</p>
+        </div>
+      </div>
+    </section>
   </div>
 </footer>
 

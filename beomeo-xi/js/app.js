@@ -111,16 +111,25 @@
   /* ----------------------------------------------------------- active nav */
   var navLinks = nav ? $$('a[href^="#"]', nav) : [];
   var sections = navLinks.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
-  if ('IntersectionObserver' in window && sections.length) {
-    var navIo = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        navLinks.forEach(function (a) {
-          a.classList.toggle('is-active', a.getAttribute('href') === '#' + entry.target.id);
-        });
-      });
-    }, { rootMargin: '-45% 0px -50% 0px' });
-    sections.forEach(function (s) { navIo.observe(s); });
+  var navTick = false;
+  function updateNavActive() {
+    var line = window.innerHeight * 0.45;
+    var current = null;
+    sections.forEach(function (s) {
+      var r = s.getBoundingClientRect();
+      if (r.top <= line && r.bottom > line) current = s;
+    });
+    navLinks.forEach(function (a) {
+      a.classList.toggle('is-active', !!current && a.getAttribute('href') === '#' + current.id);
+    });
+  }
+  if (sections.length) {
+    window.addEventListener('scroll', function () {
+      if (navTick) return;
+      navTick = true;
+      window.requestAnimationFrame(function () { navTick = false; updateNavActive(); });
+    }, { passive: true });
+    updateNavActive();
   }
 
   /* ----------------------------------------------------------- accordions */
@@ -560,6 +569,12 @@
 
   /* ------------------------------------------------------- section folding */
   var FOLD_KEY = 'beomeo_collapsed_sections';
+  var VISIT_KEY = 'beomeo_visit_count';
+  var VISIT_SEEN_KEY = 'beomeo_last_visit';
+  var PREF_KEY = 'beomeo_fold_pref';
+  var SESSION_GAP = 30 * 60 * 1000; // 이 간격 안의 새로고침은 같은 방문으로 셉니다
+  var AUTO_FOLD_VISITS = 3;         // 세 번째 방문부터 기본 정보를 접어 둡니다
+
   var foldables = $$('.sec-fold[data-fold]').map(function (btn) {
     var id = btn.getAttribute('data-fold');
     var sec = document.getElementById(id);
@@ -578,11 +593,29 @@
 
   var revisitToggle = $('#revisit-toggle');
   var revisitState = $('#revisit-state');
-  var newsSection = $('#news');
+  var revisitBand = $('#revisit');
+  var revisitMeta = $('#revisit-meta');
+  var revisitHint = $('#revisit-hint');
+
+  function store(key, value) { try { window.localStorage.setItem(key, value); } catch (e) {} }
+  function stored(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
+
+  // 방문 횟수 — 같은 세션 안의 새로고침은 한 번으로 셉니다.
+  var visitCount = 1;
+  function countVisit() {
+    var n = parseInt(stored(VISIT_KEY), 10);
+    if (!isFinite(n) || n < 0) n = 0;
+    var seen = parseInt(stored(VISIT_SEEN_KEY), 10);
+    var now = Date.now();
+    if (!isFinite(seen) || !seen || now - seen > SESSION_GAP) n += 1;
+    store(VISIT_KEY, String(n));
+    store(VISIT_SEEN_KEY, String(now));
+    return n;
+  }
 
   function readCollapsed() {
     try {
-      var raw = window.localStorage.getItem(FOLD_KEY);
+      var raw = stored(FOLD_KEY);
       var list = raw ? JSON.parse(raw) : [];
       return Array.isArray(list) ? list : [];
     } catch (e) { return []; }
@@ -591,7 +624,7 @@
     var list = foldables.filter(function (f) {
       return f.sec.classList.contains('is-collapsed');
     }).map(function (f) { return f.id; });
-    try { window.localStorage.setItem(FOLD_KEY, JSON.stringify(list)); } catch (e) {}
+    store(FOLD_KEY, JSON.stringify(list));
     syncRevisit();
   }
   function isCollapsed(item) { return item.sec.classList.contains('is-collapsed'); }
@@ -620,20 +653,29 @@
     return foldables.length > 0 && foldables.every(isCollapsed);
   }
   function syncRevisit() {
-    var on = allCollapsed();
-    if (revisitToggle) revisitToggle.setAttribute('aria-checked', String(on));
-    if (revisitState) revisitState.textContent = on ? '켜짐' : '꺼짐';
+    var closed = allCollapsed();
+    if (revisitToggle) revisitToggle.setAttribute('aria-expanded', String(!closed));
+    if (revisitState) revisitState.textContent = closed ? '기본 정보 보기' : '기본 정보 닫기';
+    if (revisitHint) revisitHint.textContent = closed ? '지금은 기본 안내를 접어 두었습니다' : '지금은 기본 정보가 모두 펼쳐져 있습니다';
+    if (revisitMeta) {
+      var nth = visitCount <= 1 ? '이 브라우저 첫 방문' : '이 브라우저 ' + visitCount + '번째 방문';
+      revisitMeta.textContent = nth + ' · ' + (closed ? '기본 정보 접힘' : '기본 정보 펼침');
+    }
   }
 
-  // restore saved state
+  // 첫 상태: 하단 토글로 저장한 선택 → 3회 이상 방문이면 자동 접기 → 그 밖에는 펼침
+  visitCount = countVisit();
+  var savedPref = stored(PREF_KEY);
   var savedCollapsed = readCollapsed();
   foldables.forEach(function (f) {
-    if (savedCollapsed.indexOf(f.id) !== -1) setFold(f, true, { save: false });
+    var closed;
+    if (savedPref === 'closed') closed = true;
+    else if (savedPref === 'open') closed = false;
+    else if (visitCount >= AUTO_FOLD_VISITS) closed = true;
+    else closed = savedCollapsed.indexOf(f.id) !== -1;
+    setFold(f, closed, { save: false });
   });
-  foldables.forEach(function (f) {
-    f.btn.setAttribute('aria-label', f.name + (isCollapsed(f) ? ' 펼치기' : ' 접기'));
-  });
-  syncRevisit();
+  saveCollapsed();
 
   foldables.forEach(function (f) {
     f.btn.addEventListener('click', function () {
@@ -649,42 +691,74 @@
     });
   });
 
+  // 하단 재방문 바 — 사용자가 직접 고른 상태를 저장하고 다음 방문에도 지킵니다.
   if (revisitToggle) {
     revisitToggle.addEventListener('click', function () {
-      var turnOn = !allCollapsed();
-      foldables.forEach(function (f) { setFold(f, turnOn, { save: false }); });
+      var willClose = !allCollapsed();
+      foldables.forEach(function (f) { setFold(f, willClose, { save: false }); });
+      store(PREF_KEY, willClose ? 'closed' : 'open');
       saveCollapsed();
-      if (turnOn && newsSection) {
-        // 접기 애니메이션이 끝난 뒤 최종 위치로 시선을 옮깁니다.
-        window.setTimeout(function () {
-          var top = newsSection.getBoundingClientRect().top + window.pageYOffset - 72;
-          if (window.pageYOffset > top + 4) window.scrollTo({ top: top, behavior: reduced ? 'auto' : 'smooth' });
-        }, 640);
+      toast(willClose
+        ? '기본 정보를 접어두었습니다. 다음 방문에도 유지됩니다.'
+        : '기본 정보를 모두 펼쳤습니다. 다음 방문에도 유지됩니다.');
+      // 섹션이 접히며 문서가 짧아져도 이 바가 화면 안에 남도록 위치를 잡아 둡니다.
+      if (revisitBand) {
+        window.requestAnimationFrame(function () {
+          var top = revisitBand.getBoundingClientRect().top + window.pageYOffset - 96;
+          if (Math.abs(window.pageYOffset - top) > 40) {
+            window.scrollTo({ top: Math.max(0, top), behavior: reduced ? 'auto' : 'smooth' });
+          }
+        });
       }
     });
   }
 
-  // 안내 링크로 접힌 섹션을 찾아가면 그 섹션은 펼쳐 둡니다.
+  // 접힌 섹션 안쪽 앵커까지 감안해 알맞은 접이 항목을 찾습니다.
+  function foldFor(id, node) {
+    var byId = foldables.filter(function (f) { return f.id === id; })[0];
+    if (byId) return byId;
+    var sec = node && node.closest ? node.closest('.section') : null;
+    if (!sec) return null;
+    return foldables.filter(function (f) { return f.sec === sec; })[0] || null;
+  }
+  function scrollToNode(node) {
+    var topbarH = topbar ? topbar.offsetHeight : 78;
+    var top = node.getBoundingClientRect().top + window.pageYOffset - (topbarH + 8);
+    window.scrollTo({ top: Math.max(0, top), behavior: reduced ? 'auto' : 'smooth' });
+  }
+
+  // 상단 메뉴·본문 링크: 접힌 섹션이면 먼저 펼치고 부드럽게 이동합니다.
   $$('a[href^="#"]').forEach(function (a) {
-    a.addEventListener('click', function () {
-      var id = a.getAttribute('href').slice(1);
+    a.addEventListener('click', function (e) {
+      var id = (a.getAttribute('href') || '').slice(1);
       if (!id) return;
-      var target = foldables.filter(function (f) { return f.id === id; })[0];
-      if (target && isCollapsed(target)) {
-        setFold(target, false);
-        window.setTimeout(function () {
-          var el2 = document.getElementById(id);
-          if (el2) el2.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-        }, 620);
+      var node = document.getElementById(id);
+      if (!node) return;
+      var f = foldFor(id, node);
+      if (!f || !isCollapsed(f)) return;
+      e.preventDefault();
+      setFold(f, false);
+      if (nav && nav.classList.contains('is-open')) setNav(false);
+      if (f.sec === node) {
+        // 섹션 자체로 이동 — 펼쳐도 섹션 위쪽 좌표는 그대로입니다.
+        window.requestAnimationFrame(function () { scrollToNode(node); });
+      } else {
+        // 섹션 안쪽(#school·#faq)은 펼침이 끝난 뒤 위치가 정해집니다.
+        window.setTimeout(function () { scrollToNode(node); }, reduced ? 0 : 600);
       }
+      if (window.history && history.replaceState) history.replaceState(null, '', '#' + id);
     });
   });
 
-  // 주소에 붙은 해시가 접힌 섹션이면 열고 보여줍니다.
+  // 주소에 붙은 해시가 접힌 섹션(또는 그 안쪽)이면 펼치고 보여줍니다.
   if (location.hash) {
     var hashId = location.hash.slice(1);
-    var hashTarget = foldables.filter(function (f) { return f.id === hashId; })[0];
-    if (hashTarget && isCollapsed(hashTarget)) setFold(hashTarget, false);
+    var hashNode = document.getElementById(hashId);
+    var hashFold = hashNode ? foldFor(hashId, hashNode) : null;
+    if (hashFold && isCollapsed(hashFold)) {
+      setFold(hashFold, false);
+      window.setTimeout(function () { scrollToNode(hashNode); }, reduced ? 0 : 120);
+    }
   }
 
   /* --------------------------------------------------------- footer actions */
