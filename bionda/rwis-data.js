@@ -11,7 +11,7 @@ export const LEVEL_DETAIL = ['0단계 · 안전', '1단계 · 관심', '2단계 
 // 100% 실제 경계 폴리곤 내부(Point-in-Polygon) 검증 완료 광역 지명 좌표 (base map 좌표계)
 export const PROVINCE_LABELS_FIXED = {
   전북: { x: 75, y: 300 },
-  경남: { x: 655, y: 635 },
+  경남: { x: 665, y: 578 },
   경북: { x: 1020, y: 175 },
   대구: { x: 1510, y: 270 }
 };
@@ -58,15 +58,15 @@ export const SHORT13_MAP_LOCATIONS = [
   { id: 'hamyang',  name: '함양읍', county: '함양군', lat: 35.5166,   lon: 127.7288,   dx: -135, dy: -136 },
   { id: 'jigok',    name: '지곡면', county: '함양군', lat: 35.5632,   lon: 127.7764,   dx: -120, dy: -115 },
   { id: 'sudong',   name: '수동면', county: '함양군', lat: 35.5191,   lon: 127.7899,   dx: 136,  dy: -72 },
-  { id: 'geochang', name: '거창읍', county: '거창군', lat: 35.6849,   lon: 127.9060,   dx: -158, dy: -56 },
+  { id: 'geochang', name: '거창읍', county: '거창군', lat: 35.6849,   lon: 127.9060,   dx: -216, dy: -46 },
   { id: 'namsang',  name: '남상면', county: '거창군', lat: 35.6402,   lon: 127.9122,   dx: 118,  dy: 38 },
   { id: 'namha',    name: '남하면', county: '거창군', lat: 35.6647,   lon: 127.9458,   dx: 118,  dy: 22 },
   { id: 'gajo',     name: '가조면', county: '거창군', lat: 35.7080,   lon: 128.0169,   dx: -72,  dy: -108 },
-  { id: 'gaya',     name: '가야면', county: '합천군', lat: 35.762683, lon: 128.139463, dx: 0,    dy: -20 },
+  { id: 'gaya',     name: '가야면', county: '합천군', lat: 35.762683, lon: 128.139463, dx: -62,  dy: -28 },
   { id: 'yaro',     name: '야로면', county: '합천군', lat: 35.7022,   lon: 128.1699,   dx: -95,  dy: 118 },
   { id: 'ssangnim', name: '쌍림면', county: '고령군', lat: 35.6768,   lon: 128.2441,   dx: 45,   dy: 76 },
-  { id: 'daegaya',  name: '대가야읍', county: '고령군', lat: 35.7305, lon: 128.2679,   dx: -115, dy: -66 },
-  { id: 'seongsan', name: '성산면', county: '고령군', lat: 35.7469,   lon: 128.3621,   dx: 96,   dy: 84 },
+  { id: 'daegaya',  name: '대가야읍', county: '고령군', lat: 35.7305, lon: 128.2679,   dx: -84,  dy: -62 },
+  { id: 'seongsan', name: '성산면', county: '고령군', lat: 35.7469,   lon: 128.3621,   dx: 64,   dy: 84 },
   { id: 'okpo',     name: '옥포읍', county: '달성군', lat: 35.7866,   lon: 128.4660,   dx: 132,  dy: 96 }
 ];
 
