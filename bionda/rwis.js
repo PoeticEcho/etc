@@ -830,23 +830,30 @@ function upgradeStreamUrl(u) {
   return raw;
 }
 
-function playHlsUrl(url) {
+function playHlsUrl(url, { poster = '', onFatalFallback = null } = {}) {
   clearModalVideo();
   const video = $('rwisVideo');
   const safeUrl = upgradeStreamUrl(url);
+  if (video) video.poster = poster || '';
   $('rwisModalOpenUrl').href = safeUrl;
   $('rwisModalMeta').textContent = safeUrl;
   setModalOverlay(false);
 
   const isHls = /\.m3u8(\?|$)/i.test(safeUrl) || /playlist|ktict\.co\.kr|hscdn\.com/i.test(safeUrl);
   if (isHls && window.Hls && window.Hls.isSupported()) {
-    const hls = new window.Hls({ lowLatencyMode: true, maxBufferLength: 12, manifestLoadingTimeOut: 9000 });
+    const hls = new window.Hls({ lowLatencyMode: true, maxBufferLength: 12, manifestLoadingTimeOut: 10000 });
     state.hls = hls;
     hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
       video.play().catch(() => {});
     });
     hls.on(window.Hls.Events.ERROR, (_, data) => {
       if (!data?.fatal) return;
+      if (typeof onFatalFallback === 'function') {
+        const fb = onFatalFallback;
+        onFatalFallback = null;
+        fb();
+        return;
+      }
       setModalOverlay(true, '영상을 불러오지 못했습니다', '스트림 서버 일시 지연 또는 주소 만료 — [다시 연결]을 눌러 보세요.');
     });
     hls.loadSource(safeUrl);
@@ -857,35 +864,46 @@ function playHlsUrl(url) {
   }
 }
 
+async function fetchRoadplusStreamAndPlay(cctvId) {
+  if (!cctvId) {
+    setModalOverlay(true, '연결된 CCTV ID가 없습니다', '다른 인접 지점을 선택해 주세요.');
+    return;
+  }
+  setModalOverlay(true, '실시간 CCTV 스트림 연결 중…', '한국도로공사(Roadplus) 스트리밍 주소를 조회하고 있습니다.');
+  try {
+    const res = await fetch(apiUrl(`/api/rwis/api/stream?cctvId=${encodeURIComponent(cctvId)}`), {
+      signal: AbortSignal.timeout(22000)
+    });
+    const data = await res.json();
+    const streamUrl = data?.streamUrl || data?.stream?.hls || data?.hls || data?.url || '';
+    if (!res.ok || !streamUrl) throw new Error(data?.message || `HTTP ${res.status}`);
+    playHlsUrl(streamUrl, { poster: data?.snapshotUrl || '' });
+  } catch (err) {
+    setModalOverlay(true, 'CCTV 스트림 연결 실패', String(err?.message || err));
+  }
+}
+
 async function openCctvModal(pt, cctvId, dir = 'D') {
-  state.activeCam = { pt, cctvId: cctvId || pt.cctvId, dir };
+  const id = cctvId || pt.cctvId;
+  state.activeCam = { pt, cctvId: id, dir };
   $('rwisModalTitle').textContent = `📹 ${pt.name} (${dir === 'G' ? '광주방향' : '대구방향'})`;
   $('rwisModalSub').textContent = `${Number(pt.km).toFixed(1)}km · ${pt.address || '광주대구선'}`;
   $('rwisCctvModal').hidden = false;
   setModalOverlay(true, '실시간 CCTV 스트림 연결 중…', '한국도로공사 · ITS 스트리밍 주소를 확인하고 있습니다.');
 
-  // 1. Check if ITS live stream URL is already attached to point
-  const matchedUrl = pt.its?.url || pt.url || (Array.isArray(pt.itsItems) && pt.itsItems[0]?.url) || '';
+  // 1. Check if ITS live stream URL is already attached (pt.its is an array of matched ITS cams)
+  const itsList = Array.isArray(pt.its) ? pt.its : (pt.its ? [pt.its] : []);
+  const bestIts = itsList.find(x => x?.mode === 'exact' && x?.url) || itsList.find(x => x?.url) || null;
+  const matchedUrl = bestIts?.url || pt.url || (Array.isArray(pt.itsItems) && pt.itsItems[0]?.url) || '';
   if (matchedUrl) {
-    playHlsUrl(matchedUrl);
+    playHlsUrl(matchedUrl, {
+      onFatalFallback: id ? () => fetchRoadplusStreamAndPlay(id) : null
+    });
     return;
   }
 
-  // 2. Otherwise query /api/rwis/api/stream?cctvId=...
-  const id = cctvId || pt.cctvId;
-  if (!id) {
-    setModalOverlay(true, '연결된 CCTV ID가 없습니다', '다른 인접 지점을 선택해 주세요.');
-    return;
-  }
-  try {
-    const res = await fetch(apiUrl(`/api/rwis/api/stream?cctvId=${encodeURIComponent(id)}`), { signal: AbortSignal.timeout(10000) });
-    const data = await res.json();
-    const streamUrl = data?.stream?.hls || data?.hls || data?.url || '';
-    if (!res.ok || !streamUrl) throw new Error(data?.message || `HTTP ${res.status}`);
-    playHlsUrl(streamUrl);
-  } catch (err) {
-    setModalOverlay(true, 'CCTV 스트림 연결 실패', String(err?.message || err));
-  }
+  // 2. Otherwise query /api/rwis/api/stream?cctvId=... (Roadplus live HLS + snapshotUrl)
+  await fetchRoadplusStreamAndPlay(id);
 }
 
 function openPointCctvByName(name) {
