@@ -276,6 +276,13 @@ body.rwis-page .top-header {
   color: #7ee8ff;
   border: 1px solid rgba(56, 219, 248, 0.4);
 }
+.rzc-stn-basis {
+  font-size: 10.8px;
+  font-weight: 650;
+  color: #7fa3c7;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
 
 .rzc-badge {
   display: inline-flex;

@@ -26,16 +26,20 @@ import {
   COUNTY_LABELS,
   ROUTE_NODES,
   CORRIDOR_MAP_STATIONS,
+  SHORT13_MAP_LOCATIONS,
   WATCH_WARNING_REGIONS,
   enrichZonesWithBionda,
   updateWarningHistory,
   alignShortTerm6hMatrix,
   buildSpecialBulletinCards,
   buildZoneTempTrendSeries,
-  renderMicroSparklineSvg
+  renderMicroSparklineSvg,
+  formatStationBasisLabel,
+  formatRwisCalloutLines
 } from './rwis-data.js';
 
 const RWIS_CACHE_KEY = 'weather-watch:cache:rwis:v1';
+const RWIS_UI_KEY = 'weather-watch:rwis-ui:v1';
 const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v3';
 const OVERVIEW_CACHE_KEY = 'weather-watch:cache:overview:v2';
 const WARN_HISTORY_KEY = 'weather-watch:rwis-warn-history:v1';
@@ -69,10 +73,34 @@ function saveWarnHistory(hist) {
   } catch {}
 }
 
+function readRwisUiPrefs() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RWIS_UI_KEY) || '{}') || {};
+    return {
+      showRoadTemps: typeof raw.showRoadTemps === 'boolean' ? raw.showRoadTemps : true,
+      showShort13Map: typeof raw.showShort13Map === 'boolean' ? raw.showShort13Map : true
+    };
+  } catch {
+    return { showRoadTemps: true, showShort13Map: true };
+  }
+}
+
+function saveRwisUiPrefs() {
+  try {
+    localStorage.setItem(RWIS_UI_KEY, JSON.stringify({
+      showRoadTemps: state.showRoadTemps,
+      showShort13Map: state.showShort13Map
+    }));
+  } catch {}
+}
+
+const initialUi = readRwisUiPrefs();
+
 const state = {
   metric: 'fsm',          // 'fsm' (살얼음) | 'vir' (가시거리)
   dir: 'both',            // 'both' | 'E' (대구↑) | 'S' (광주↓)
-  showRoadTemps: true,
+  showRoadTemps: initialUi.showRoadTemps,
+  showShort13Map: initialUi.showShort13Map,
   mapBig: false,
   sideTab: 'short6',      // 'short6' (기본 TV 메인) | 'telemetry' | 'cctv'
   showAllStations: false,
@@ -81,6 +109,7 @@ const state = {
   cctvFac: 'all',
   rwisStatus: null,
   roadStations: [],
+  roadObsTm: '',
   roadTrend: null,
   roadTrendFetchedAt: 0,
   roadRisk: null,
@@ -273,9 +302,15 @@ function renderCorridorMap(enriched) {
   const rwisTmRaw = typeof rwisTmObj === 'string'
     ? rwisTmObj
     : (state.metric === 'vir' ? (rwisTmObj?.VR || rwisTmObj?.FR) : (rwisTmObj?.FR || rwisTmObj?.VR));
-  const obsStamp = rwisTmRaw
-    ? formatKstHm(rwisTmRaw)
-    : (state.roadRisk?.tmKst ? formatKstHm(state.roadRisk.tmKst) : formatKstHm(state.lastSyncedAt));
+  const syncStamp = formatKstHm(state.lastSyncedAt) || formatKstHm(state.roadObsTm) || formatKstHm(rwisTmRaw);
+  const roadHm = state.roadObsTm ? formatKstHm(state.roadObsTm).slice(6) : '';
+  const rwisHm = rwisTmRaw ? formatKstHm(rwisTmRaw).slice(6) : '';
+  const baseBits = [];
+  if (roadHm) baseBits.push(`노면실측 ${roadHm}`);
+  if (rwisHm) baseBits.push(`RWIS ${rwisHm}`);
+  const stampHeadline = syncStamp
+    ? `갱신 ${syncStamp}${baseBits.length ? ` (${baseBits.join(' · ')})` : ''}`
+    : '수신 중';
   const srcName = rwisCore?.ok
     ? '기상청 RWIS 실시간'
     : (state.roadRisk?.ok ? '기상청 012 도로위험 연동' : '기상청 도로기상');
@@ -288,6 +323,10 @@ function renderCorridorMap(enriched) {
     </linearGradient>
     <linearGradient id="rwSea" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0a1626"/><stop offset="100%" stop-color="#0e1e33"/>
+    </linearGradient>
+    <linearGradient id="rwCalloutBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e3038" stop-opacity="0.96"/>
+      <stop offset="100%" stop-color="#071c24" stop-opacity="0.98"/>
     </linearGradient>
     <clipPath id="rwClip"><rect x="0" y="${G.rect.y}" width="${G.rect.w}" height="${G.rect.h}"/></clipPath>
     <filter id="rwGlow" x="-20%" y="-20%" width="140%" height="140%">
@@ -302,12 +341,12 @@ function renderCorridorMap(enriched) {
   // Canvas paper
   out.push(`<rect x="0" y="0" width="${G.w}" height="${G.h}" fill="url(#rwPaper)"/>`);
 
-  // Header strip inside SVG (TV crisp + PNG report ready)
+  // Header strip inside SVG (TV crisp + PNG report ready · 상단 실시간 스탬프와 분 단위 완전 일치)
   out.push(`<rect x="0" y="0" width="${G.w}" height="${G.head}" fill="#0a1626"/>`);
   out.push(`<line x1="0" y1="${G.head}" x2="${G.w}" y2="${G.head}" stroke="#1d3552" stroke-width="1.5"/>`);
   out.push(`<circle cx="30" cy="24" r="5.5" fill="${LEVEL_COLORS[maxLv]}"/>`);
   out.push(`<text x="46" y="30" fill="#e8f3ff" font-size="19.5" font-weight="800" letter-spacing="-0.3">${esc(srcName)} · ${esc(metricLabel)}</text>`);
-  out.push(`<text x="46" y="53" fill="#8fb2d4" font-size="15" font-weight="600">기준 ${esc(obsStamp || '수신 중')} · 함양IC 95.0 → 옥포JC 176.0km · 8개 구간 · ${esc(dirLabel)}</text>`);
+  out.push(`<text x="46" y="53" fill="#8fb2d4" font-size="14.5" font-weight="650">${esc(stampHeadline)} · 함양IC 95.0 → 옥포JC 176.0km · 8개 구간 · ${esc(dirLabel)}</text>`);
 
   // Right-side TV level count pills inside SVG header
   const chipSpecs = [
@@ -431,53 +470,77 @@ function renderCorridorMap(enriched) {
   }
   out.push('</g>');
 
-  // 7. Live Road Surface Temperature (TR1) Badges along the Corridor (Non-overlapping clean offsets)
-  if (state.showRoadTemps && state.roadStations.length) {
-    const stnMap = new Map(state.roadStations.map(s => [String(s.stnId), s]));
-    const STN_OFFSETS = {
-      '14206': { dx: -76, dy: 42 },  // 함양(도) - below-left of 함양IC
-      '14409': { dx: -56, dy: -32 }, // 죽산천교 - above-left of straightaway
-      '14207': { dx: 72, dy: 28 },   // 남상졸음 - south-east of diagonal
-      '14208': { dx: 18, dy: -78 },  // 거창휴 - high above 가조IC/TN
-      '14209': { dx: 52, dy: 38 },   // 양전교 - south-east of 고령IC~동고령IC
-      '14103': { dx: -16, dy: -54 }, // 논공휴 - above 고령JC~옥포JC
-      '14410': { dx: 98, dy: 104 }   // 논공교 - cleanly below 고령JC box, clear of 대구 & 달성군
+  // 7-A. 13개 단기예보 읍·면·동 지점별 현재 날씨·기온 캡슐 ([🌤️ 13개지역] 토글)
+  if (state.showShort13Map && Array.isArray(state.shortTerm13?.regions) && state.shortTerm13.regions.length) {
+    const regMap = new Map(state.shortTerm13.regions.map(r => [String(r.id), r]));
+    const curHourMs = Math.floor(Date.now() / 3600000) * 3600000;
+    const pickCurHour = (hours = []) => {
+      if (!hours.length) return null;
+      let best = hours[0];
+      let bestDiff = Infinity;
+      for (const h of hours) {
+        const ms = Date.parse(h?.time || '');
+        if (Number.isFinite(ms)) {
+          const diff = Math.abs(ms - curHourMs);
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            best = h;
+          }
+        }
+      }
+      return best;
     };
-    out.push('<g class="road-temp-pins">');
-    for (const stn of CORRIDOR_MAP_STATIONS) {
-      const obs = stnMap.get(stn.stnId);
-      if (!obs || !Number.isFinite(obs.roadTemp)) continue;
-      const q = G.map(mapX(stn.lon), mapY(stn.lat));
-      const tr = obs.roadTemp;
-      const pillCol = tr <= 0.5 ? '#f43f5e' : tr <= 2.5 ? '#fb923c' : '#38dbf8';
-      const off = STN_OFFSETS[stn.stnId] || { dx: 0, dy: -44 };
-      const px = Math.max(78, Math.min(G.w - 78, q.x + off.dx));
-      const py = Math.max(G.rect.y + 22, Math.min(G.rect.y + G.rect.h - 20, q.y + off.dy));
-      const txt = `${stn.label} ${tr.toFixed(1)}°`;
-      const bw = txt.length * 10 + 20;
-      out.push(`<line x1="${n1(q.x)}" y1="${n1(q.y)}" x2="${n1(px)}" y2="${n1(py)}" stroke="${pillCol}" stroke-width="1.4" stroke-dasharray="3 2" opacity="0.78"/>`);
-      out.push(`<circle cx="${n1(q.x)}" cy="${n1(q.y)}" r="4" fill="${pillCol}" stroke="#061222" stroke-width="1.5"/>`);
-      out.push(`<rect x="${n1(px - bw / 2)}" y="${n1(py - 13)}" width="${n1(bw)}" height="25" rx="12.5" fill="#071526" stroke="${pillCol}" stroke-width="1.7" filter="url(#rwShadow)"/>`);
-      out.push(`<text x="${n1(px)}" y="${n1(py + 4)}" text-anchor="middle" fill="${pillCol}" font-size="14" font-weight="850">${esc(txt)}</text>`);
+
+    out.push('<g class="short13-map-pins">');
+    for (const loc of SHORT13_MAP_LOCATIONS) {
+      const reg = regMap.get(loc.id);
+      const curH = reg ? pickCurHour(reg.hours) : null;
+      if (!curH || !Number.isFinite(Number(curH.temp))) continue;
+
+      const tVal = Math.round(Number(curH.temp));
+      const iconInfo = getKmaIconInfo(curH);
+      const q = G.map(mapX(loc.lon), mapY(loc.lat));
+      const px = Math.max(66, Math.min(G.w - 66, q.x + (loc.dx || 0)));
+      const py = Math.max(G.rect.y + 20, Math.min(G.rect.y + G.rect.h - 20, q.y + (loc.dy || 0)));
+
+      const isWet = Boolean(curH.wet || Number(curH.rainMm) > 0 || Number(curH.snowCm) > 0);
+      const isSnow = Number(curH.snowCm) > 0 || String(curH.pty) === '3' || String(curH.pty) === '2';
+      const strokeCol = isSnow ? '#818cf8' : isWet ? '#38dbf8' : tVal < 0 ? '#fb7185' : tVal === 0 ? '#60a5fa' : '#3a6591';
+      const tempCol = tVal < 0 ? '#fda4af' : tVal === 0 ? '#93c5fd' : isWet ? '#7dd3fc' : '#ffffff';
+      const labelTxt = `${loc.name}`;
+      const tempTxt = `${tVal}°`;
+      const pillW = Math.max(108, labelTxt.length * 14 + tempTxt.length * 9 + 42);
+      const pillH = 28;
+      const popVal = Number(curH.chance ?? curH.pop ?? 0);
+
+      out.push(`<g class="short13-hit" data-region="${esc(loc.id)}" style="cursor:pointer">`);
+      out.push(`<title>[${esc(loc.county)} ${esc(loc.name)} 현재 단기예보] ${esc(iconInfo.label)} · 기온 ${tVal}°C · 강수확률 ${popVal}%</title>`);
+      out.push(`<line x1="${n1(q.x)}" y1="${n1(q.y)}" x2="${n1(px)}" y2="${n1(py)}" stroke="${strokeCol}" stroke-width="1.15" stroke-dasharray="2.5 2.5" opacity="0.68"/>`);
+      out.push(`<circle cx="${n1(q.x)}" cy="${n1(q.y)}" r="3.2" fill="${strokeCol}" stroke="#071322" stroke-width="1.2"/>`);
+      out.push(`<rect x="${n1(px - pillW / 2)}" y="${n1(py - pillH / 2)}" width="${n1(pillW)}" height="${pillH}" rx="14" fill="#08182b" fill-opacity="0.93" stroke="${strokeCol}" stroke-width="1.35" filter="url(#rwShadow)"/>`);
+      out.push(`<g transform="translate(${n1(px - pillW / 2 + 8)}, ${n1(py - 9)})">${renderKmaIconSvg(iconInfo, 18)}</g>`);
+      out.push(`<text x="${n1(px - pillW / 2 + 30)}" y="${n1(py + 5)}" fill="#dcebfb" font-size="13.5" font-weight="800" letter-spacing="-0.2">${esc(labelTxt)}</text>`);
+      out.push(`<text x="${n1(px + pillW / 2 - 10)}" y="${n1(py + 5.5)}" text-anchor="end" fill="${tempCol}" font-size="14.5" font-weight="900">${esc(tempTxt)}</text>`);
+      out.push('</g>');
     }
     out.push('</g>');
   }
 
-  // 8. IC / JC / TN Nodes & High-Contrast TV Labels
+  // 8. IC / JC / TN Nodes & High-Contrast TV Labels (무충돌 보정 오프셋)
   const LABEL_OFFSET = {
-    '함양IC': { dx: -76, dy: -42 },
-    '함양JC': { dx: 74, dy: 44 },
-    '거창IC': { dx: -74, dy: -20 },
-    '살피재TN': { dx: -26, dy: -46 },
-    '가조IC': { dx: 8, dy: -42 },
-    '가조TN': { dx: 12, dy: 48 },
-    '가야1TN': { dx: 12, dy: -46 },
-    '가야3TN': { dx: 58, dy: -44 },
+    '함양IC':   { dx: -82, dy: -42 },
+    '함양JC':   { dx: 82,  dy: 32 },
+    '거창IC':   { dx: -76, dy: -16 },
+    '살피재TN': { dx: -16, dy: -66 },
+    '가조IC':   { dx: 10,  dy: -38 },
+    '가조TN':   { dx: 12,  dy: 48 },
+    '가야1TN':  { dx: 24,  dy: -50 },
+    '가야3TN':  { dx: 66,  dy: -44 },
     '해인사IC': { dx: -16, dy: 52 },
-    '고령IC': { dx: 24, dy: 54 },
-    '동고령IC': { dx: -76, dy: -40 },
-    '고령JC': { dx: 92, dy: 30 },
-    '옥포JC': { dx: 78, dy: -34 }
+    '고령IC':   { dx: 26,  dy: 54 },
+    '동고령IC': { dx: -52, dy: -44 },
+    '고령JC':   { dx: 92,  dy: 30 },
+    '옥포JC':   { dx: 82,  dy: -34 }
   };
 
   out.push('<g class="route-nodes">');
@@ -486,7 +549,7 @@ function renderCorridorMap(enriched) {
     const q = G.map(pb.x, pb.y);
     const off = LABEL_OFFSET[node.name] || { dx: 0, dy: node.side > 0 ? -42 : 44 };
     const lx = Math.max(76, Math.min(G.w - 76, q.x + off.dx));
-    const ly = Math.max(G.rect.y + 30, Math.min(G.rect.y + G.rect.h - 26, q.y + off.dy));
+    const ly = Math.max(G.rect.y + 30, Math.min(G.rect.y + G.rect.h - 32, q.y + off.dy));
     const isTn = node.kind === 'tn';
     const isJc = node.kind === 'jc';
     const fontSize = isTn ? 17 : 22;
@@ -513,6 +576,68 @@ function renderCorridorMap(enriched) {
     out.push('</g>');
   }
   out.push('</g>');
+
+  // 9. 상·하단 깔끔 도킹형 7개 도로기상관측소(RWIS) 콜아웃 카드 ([🌡️ 노면온도] 토글 · 도로기상 상황판 미니맵 카드 스타일)
+  if (state.showRoadTemps && state.roadStations.length) {
+    const stnMap = new Map(state.roadStations.map(s => [String(s.stnId), s]));
+    const stnRisks = state.roadRisk?.stationRisks || {};
+    const CARD_W = 218;
+    const CARD_H = 54;
+
+    out.push('<g class="road-temp-pins">');
+    for (const stn of CORRIDOR_MAP_STATIONS) {
+      const obs = stnMap.get(stn.stnId);
+      if (!obs || (!Number.isFinite(obs.roadTemp) && !Number.isFinite(obs.temp))) continue;
+
+      const q = G.map(mapX(stn.lon), mapY(stn.lat));
+      const dock = stn.dock || { cx: q.x, cy: q.y - 60, row: 'top' };
+      const cx = dock.cx;
+      const cy = dock.cy;
+      const anchorY = dock.row === 'top' ? cy + CARD_H / 2 : cy - CARD_H / 2;
+
+      const tr = obs.roadTemp;
+      const iceLv = Number(stnRisks[stn.stnId]?.iceLevel) || 0;
+      const surfCode = Number(obs.surfaceCode) || 0;
+      let barCol = '#38dbf8';
+      let subCol = '#9edbd0';
+      let strokeCol = 'rgba(148, 226, 213, 0.34)';
+      if (iceLv >= 3 || surfCode >= 4 || (tr !== null && tr <= 0.5)) {
+        barCol = '#f43f5e';
+        subCol = '#fecaca';
+        strokeCol = '#f43f5e';
+      } else if (iceLv === 2 || surfCode === 3 || (tr !== null && tr <= 2.5)) {
+        barCol = '#fb923c';
+        subCol = '#fed7aa';
+        strokeCol = '#fb923c';
+      } else if (iceLv === 1 || surfCode === 2 || (tr !== null && tr <= 4.0)) {
+        barCol = '#facc15';
+        subCol = '#fde68a';
+        strokeCol = 'rgba(250, 204, 21, 0.55)';
+      }
+
+      const lines = formatRwisCalloutLines(stn, obs);
+
+      out.push(`<g class="rwis-stn-hit" data-km="${stn.km}" data-name="${esc(stn.shortName || stn.label)}" style="cursor:pointer">`);
+      out.push(`<title>[도로기상관측 ${stn.km.toFixed(1)}km · ${esc(stn.label)}] ${esc(lines.titleLeft)} ${esc(lines.titleRight)} · ${esc(lines.subLine)} (클릭 시 인근 실시간 CCTV 재생)</title>`);
+      out.push(`<line x1="${n1(q.x)}" y1="${n1(q.y)}" x2="${n1(cx)}" y2="${n1(anchorY)}" stroke="${barCol}" stroke-width="1.45" opacity="0.78"/>`);
+      out.push(`<circle cx="${n1(cx)}" cy="${n1(anchorY)}" r="2.8" fill="${barCol}" opacity="0.92"/>`);
+      out.push(`<circle cx="${n1(q.x)}" cy="${n1(q.y)}" r="9.5" fill="${barCol}" fill-opacity="0.2"/>`);
+      out.push(`<circle cx="${n1(q.x)}" cy="${n1(q.y)}" r="5" fill="${barCol}" stroke="#f8fafc" stroke-width="1.6"/>`);
+      out.push(`<g transform="translate(${n1(cx)}, ${n1(cy)})" filter="url(#rwShadow)">`);
+      out.push(`<rect x="${-CARD_W / 2}" y="${-CARD_H / 2}" width="${CARD_W}" height="${CARD_H}" rx="10" fill="url(#rwCalloutBg)" stroke="${strokeCol}" stroke-width="1.35"/>`);
+      out.push(`<rect x="${-CARD_W / 2 + 6}" y="${-CARD_H / 2 + 7}" width="4.2" height="${CARD_H - 14}" rx="2.1" fill="${barCol}"/>`);
+      out.push(`<text x="${-CARD_W / 2 + 16}" y="-4.5" fill="#e8f8f5" font-size="15" font-weight="850" letter-spacing="-0.3">${esc(lines.titleLeft)}</text>`);
+      if (lines.hasAir) {
+        out.push(`<text x="${CARD_W / 2 - 11}" y="-3.5" text-anchor="end" fill="#ffffff" font-size="17" font-weight="900">${esc(lines.titleRight)}</text>`);
+      } else {
+        out.push(`<text x="${CARD_W / 2 - 11}" y="-5" text-anchor="end" fill="#84a9cc" font-size="12.5" font-weight="750">${esc(lines.titleRight)}</text>`);
+      }
+      out.push(`<text x="${-CARD_W / 2 + 16}" y="16.5" fill="${subCol}" font-size="13" font-weight="700" letter-spacing="-0.2">${esc(lines.subLine)}</text>`);
+      out.push('</g>');
+      out.push('</g>');
+    }
+    out.push('</g>');
+  }
   out.push('</g>'); // end clip
 
   // Footer Legend inside SVG
@@ -554,6 +679,18 @@ function renderCorridorMap(enriched) {
       if (ptName || Number.isFinite(km)) openPointCctvByName(ptName, km);
     });
   });
+  stage.querySelectorAll('.rwis-stn-hit').forEach(el => {
+    el.addEventListener('click', () => {
+      const km = Number(el.dataset.km);
+      const name = el.dataset.name || '';
+      if (Number.isFinite(km)) openPointCctvByName(name, km);
+    });
+  });
+  stage.querySelectorAll('.short13-hit').forEach(el => {
+    el.addEventListener('click', () => {
+      setSideTab('short6');
+    });
+  });
 }
 
 /* ───────────────────── 8개 구간 통합 카드 렌더 ───────────────────── */
@@ -587,6 +724,8 @@ function renderZoneCards(enriched) {
     const surfChip = surfLabel
       ? `<span class="rzc-surf-chip${(surfCode >= 2 || /습윤|젖음|결빙|적설/.test(surfLabel)) ? ' is-wet' : ''}">${esc(surfLabel)}</span>`
       : '';
+    const basisTxt = formatStationBasisLabel(ro.stationName);
+    const basisHtml = basisTxt ? `<span class="rzc-stn-basis">${esc(basisTxt)}</span>` : '';
 
     const trend = buildZoneTempTrendSeries({
       zone: z,
@@ -660,7 +799,7 @@ function renderZoneCards(enriched) {
         <div class="rzc-top">
           <div>
             <div class="rzc-name">${esc(z.name.replace('–', ' ↔ '))}</div>
-            <div class="rzc-county">${esc(z.county)}${surfChip}</div>
+            <div class="rzc-county">${esc(z.county)}${surfChip}${basisHtml}</div>
           </div>
           <span class="rzc-badge lv-${lv}">● ${esc(badgeText)}</span>
         </div>
@@ -1332,6 +1471,7 @@ function hydrateFromCache() {
     const d = rwisHit.entry.data;
     state.rwisStatus = d.rwisStatus || null;
     state.roadStations = Array.isArray(d.roadStations) ? d.roadStations : [];
+    state.roadObsTm = d.roadObsTm || '';
     state.roadTrend = d.roadTrend || null;
     state.roadTrendFetchedAt = Number.isFinite(d.roadTrendFetchedAt) ? d.roadTrendFetchedAt : (d.roadTrend ? (rwisHit.entry.savedAt || 0) : 0);
     state.roadRisk = d.roadRisk || null;
@@ -1365,6 +1505,7 @@ function persistCache() {
     data: {
       rwisStatus: state.rwisStatus,
       roadStations: state.roadStations,
+      roadObsTm: state.roadObsTm,
       roadTrend: state.roadTrend,
       roadTrendFetchedAt: state.roadTrendFetchedAt,
       roadRisk: state.roadRisk,
@@ -1437,17 +1578,39 @@ async function loadAllData({ force = false, silent = false } = {}) {
     const tasks = [
       // P0-1 경량화: 188KB /api/status 대신 13KB /api/rwis 단독 호출 (중복 ITS CCTV 수신 및 파싱 제거)
       fetchJsonSafe(`/api/rwis/api/rwis${refreshParam}`, 14000)
-        .then(v => {
+        .then(async v => {
           if (v?.ok) {
             state.rwisStatus = v.kind === 'rwis' ? { ok: true, rwis: v } : v;
             markLive();
+            // RWIS 관측 슬롯이 현재 시각보다 12분 이상 뒤처진 캐시본이면 백그라운드로 1회 즉시 최신화 시도
+            if (!force) {
+              const core = getRwisCore();
+              const tmStr = core?.tm?.FR || core?.tm?.VR || (typeof core?.tm === 'string' ? core.tm : '');
+              if (/^\d{12}$/.test(tmStr)) {
+                const slotMs = Date.parse(`${tmStr.slice(0, 4)}-${tmStr.slice(4, 6)}-${tmStr.slice(6, 8)}T${tmStr.slice(8, 10)}:${tmStr.slice(10, 12)}:00+09:00`);
+                if (Number.isFinite(slotMs) && (Date.now() - slotMs) >= 12 * 60000) {
+                  try {
+                    const fresh = await fetchJsonSafe('/api/rwis/api/rwis?refresh=1', 14000, 0);
+                    if (fresh?.ok) {
+                      state.rwisStatus = fresh.kind === 'rwis' ? { ok: true, rwis: fresh } : fresh;
+                      persistCache();
+                      renderAll();
+                    }
+                  } catch {}
+                }
+              }
+            }
           }
         })
         .catch(e => { errors.push(`RWIS(${e?.message || 'err'})`); }),
       fetchJsonSafe('/api/road-obs?line=14', 12000)
         .then(v => {
           const list = Array.isArray(v) ? v : (Array.isArray(v?.stations) ? v.stations : []);
-          if (list.length) { state.roadStations = list; markLive(); }
+          if (list.length) {
+            state.roadStations = list;
+            if (v?.tm1) state.roadObsTm = String(v.tm1);
+            markLive();
+          }
         })
         .catch(e => { errors.push(`도로관측(${e?.message || 'err'})`); }),
       ...(needTrend ? [
@@ -1562,9 +1725,24 @@ document.querySelectorAll('[data-dir]').forEach(btn => {
   });
 });
 
+if ($('toggleRoadTempOverlay')) {
+  $('toggleRoadTempOverlay').setAttribute('aria-pressed', String(state.showRoadTemps));
+}
+if ($('toggleShort13Overlay')) {
+  $('toggleShort13Overlay').setAttribute('aria-pressed', String(state.showShort13Map));
+}
+
 $('toggleRoadTempOverlay')?.addEventListener('click', () => {
   state.showRoadTemps = !state.showRoadTemps;
   $('toggleRoadTempOverlay').setAttribute('aria-pressed', String(state.showRoadTemps));
+  saveRwisUiPrefs();
+  renderAll();
+});
+
+$('toggleShort13Overlay')?.addEventListener('click', () => {
+  state.showShort13Map = !state.showShort13Map;
+  $('toggleShort13Overlay').setAttribute('aria-pressed', String(state.showShort13Map));
+  saveRwisUiPrefs();
   renderAll();
 });
 
@@ -1674,9 +1852,25 @@ if (policy.shouldFetchNow) {
   }, policy.backgroundDwellDelayMs);
 }
 
-// 50인치 TV 24시간 무인 표출용 5분 주기 자동 갱신 + 정시 롤오버 감지
+// 50인치 TV 24시간 무인 표출용 정각 5분 슬롯(:01, :06, :11...) 동기화 갱신 + 백업 인터벌
+function scheduleAlignedFiveMinRefresh() {
+  const now = Date.now();
+  const fiveMin = 5 * 60 * 1000;
+  // 매 5분 슬롯 직후 +65초(:01:05, :06:05...)에 맞춰 기상청 5분 자료 생성 직후 동기화
+  const targetOffset = 65 * 1000;
+  let nextMs = Math.floor((now - targetOffset) / fiveMin + 1) * fiveMin + targetOffset;
+  const waitMs = Math.max(15000, nextMs - now);
+  setTimeout(() => {
+    if (!document.hidden) loadAllData({ force: false, silent: true });
+    scheduleAlignedFiveMinRefresh();
+  }, waitMs);
+}
+scheduleAlignedFiveMinRefresh();
+
 setInterval(() => {
-  if (!document.hidden) loadAllData({ force: false, silent: true });
+  if (!document.hidden && (!state.lastSyncedAt || Date.now() - state.lastSyncedAt >= OVERVIEW_REFRESH_MS + 30000)) {
+    loadAllData({ force: false, silent: true });
+  }
 }, OVERVIEW_REFRESH_MS);
 
 document.addEventListener('visibilitychange', () => {

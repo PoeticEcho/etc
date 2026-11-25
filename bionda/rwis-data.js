@@ -11,7 +11,7 @@ export const LEVEL_DETAIL = ['0단계 · 안전', '1단계 · 관심', '2단계 
 // 100% 실제 경계 폴리곤 내부(Point-in-Polygon) 검증 완료 광역 지명 좌표 (base map 좌표계)
 export const PROVINCE_LABELS_FIXED = {
   전북: { x: 75, y: 300 },
-  경남: { x: 680, y: 715 },
+  경남: { x: 655, y: 635 },
   경북: { x: 1020, y: 175 },
   대구: { x: 1510, y: 270 }
 };
@@ -42,16 +42,66 @@ export const ROUTE_NODES = [
   { km: 176.0, name: '옥포JC', kind: 'jc', side: -1, point: '옥포분기점_광주대구', sub: '중부내륙선지선 분기', branch: { a: [244, 62], label: '중부내륙선지선' } }
 ];
 
-// 광주대구선 관내 핵심 도로기상관측소 (95.0k ~ 171.3k 지도 위 실측 노면온도 오버레이용)
+// 광주대구선 관내 핵심 도로기상관측소 (95.0k ~ 171.3k 지도 위 상·하단 콜아웃 카드 도킹 좌표 포함)
 export const CORRIDOR_MAP_STATIONS = [
-  { stnId: '14206', label: '함양(도)', km: 95.0, lat: 35.5327, lon: 127.7495, type: '기본' },
-  { stnId: '14409', label: '죽산천교', km: 102.9, lat: 35.5486, lon: 127.8289, type: '결빙' },
-  { stnId: '14207', label: '남상졸음', km: 115.3, lat: 35.6366, lon: 127.9066, type: '기본' },
-  { stnId: '14208', label: '거창휴', km: 134.1, lat: 35.7074, lon: 128.0541, type: '기본' },
-  { stnId: '14209', label: '양전교', km: 158.2, lat: 35.7247, lon: 128.2979, type: '기본' },
-  { stnId: '14103', label: '논공휴', km: 169.2, lat: 35.7653, lon: 128.4015, type: '거점' },
-  { stnId: '14410', label: '논공교', km: 171.3, lat: 35.7681, lon: 128.4230, type: '결빙' }
+  { stnId: '14206', label: '함양(도)', shortName: '함양', km: 95.0, lat: 35.5327, lon: 127.7495, type: '기본', dock: { cx: 132, cy: 644, row: 'bottom' } },
+  { stnId: '14409', label: '죽산천교', shortName: '죽산천교', km: 102.9, lat: 35.5486, lon: 127.8289, type: '결빙', dock: { cx: 280, cy: 108, row: 'top' } },
+  { stnId: '14207', label: '남상졸음', shortName: '남상졸음', km: 115.3, lat: 35.6366, lon: 127.9066, type: '기본', dock: { cx: 635, cy: 644, row: 'bottom' } },
+  { stnId: '14208', label: '거창휴', shortName: '거창휴', km: 134.1, lat: 35.7074, lon: 128.0541, type: '기본', dock: { cx: 690, cy: 108, row: 'top' } },
+  { stnId: '14209', label: '양전교', shortName: '양전교', km: 158.2, lat: 35.7247, lon: 128.2979, type: '기본', dock: { cx: 1055, cy: 644, row: 'bottom' } },
+  { stnId: '14103', label: '논공휴', shortName: '논공휴', km: 169.2, lat: 35.7653, lon: 128.4015, type: '거점', dock: { cx: 1215, cy: 108, row: 'top' } },
+  { stnId: '14410', label: '논공교', shortName: '논공교', km: 171.3, lat: 35.7681, lon: 128.4230, type: '결빙', dock: { cx: 1405, cy: 644, row: 'bottom' } }
 ];
+
+// 13개 단기예보 읍·면·동 실제 지리 좌표 및 지도 위 무충돌 오프셋 (42개 지도 요소 간 겹침 0건 검증 완료)
+export const SHORT13_MAP_LOCATIONS = [
+  { id: 'hamyang',  name: '함양읍', county: '함양군', lat: 35.5166,   lon: 127.7288,   dx: -135, dy: -136 },
+  { id: 'jigok',    name: '지곡면', county: '함양군', lat: 35.5632,   lon: 127.7764,   dx: -120, dy: -115 },
+  { id: 'sudong',   name: '수동면', county: '함양군', lat: 35.5191,   lon: 127.7899,   dx: 136,  dy: -72 },
+  { id: 'geochang', name: '거창읍', county: '거창군', lat: 35.6849,   lon: 127.9060,   dx: -158, dy: -56 },
+  { id: 'namsang',  name: '남상면', county: '거창군', lat: 35.6402,   lon: 127.9122,   dx: 118,  dy: 38 },
+  { id: 'namha',    name: '남하면', county: '거창군', lat: 35.6647,   lon: 127.9458,   dx: 118,  dy: 22 },
+  { id: 'gajo',     name: '가조면', county: '거창군', lat: 35.7080,   lon: 128.0169,   dx: -72,  dy: -108 },
+  { id: 'gaya',     name: '가야면', county: '합천군', lat: 35.762683, lon: 128.139463, dx: 0,    dy: -20 },
+  { id: 'yaro',     name: '야로면', county: '합천군', lat: 35.7022,   lon: 128.1699,   dx: -95,  dy: 118 },
+  { id: 'ssangnim', name: '쌍림면', county: '고령군', lat: 35.6768,   lon: 128.2441,   dx: 45,   dy: 76 },
+  { id: 'daegaya',  name: '대가야읍', county: '고령군', lat: 35.7305, lon: 128.2679,   dx: -115, dy: -66 },
+  { id: 'seongsan', name: '성산면', county: '고령군', lat: 35.7469,   lon: 128.3621,   dx: 96,   dy: 84 },
+  { id: 'okpo',     name: '옥포읍', county: '달성군', lat: 35.7866,   lon: 128.4660,   dx: 132,  dy: 96 }
+];
+
+/**
+ * 구간 카드 노면 기준 관측소 표기 포맷
+ * - '함양(도)' -> '함양(도) 기준' (함양군/함양IC와 구분 유지)
+ * - '죽산천교(도)' -> '죽산천교 기준'
+ */
+export function formatStationBasisLabel(stationName = '') {
+  const raw = String(stationName || '').trim();
+  if (!raw) return '';
+  const cleaned = raw === '함양(도)' ? '함양(도)' : raw.replace(/\(도\)$/, '');
+  return `${cleaned} 기준`;
+}
+
+/**
+ * 지도 위 RWIS 콜아웃 카드 2줄 문구 생성 (단위 테스트 가능 순수 함수)
+ * - 1줄 좌: '함양(95k)', 1줄 우: '3.0°' (기온 결측 교량센서는 '교량')
+ * - 2줄: '노면 5.1° - 건조 (40%)' (습도가 없으면 괄호 생략: '노면 4.3° - 건조')
+ */
+export function formatRwisCalloutLines(stnMeta, obs) {
+  const shortName = stnMeta?.shortName || String(stnMeta?.label || '').replace(/\(도\)$/, '');
+  const kmVal = Number.isFinite(stnMeta?.km) ? Math.round(stnMeta.km) : null;
+  const titleLeft = kmVal !== null ? `${shortName}(${kmVal}k)` : shortName;
+  const hasAir = Number.isFinite(obs?.temp);
+  const titleRight = hasAir ? `${obs.temp.toFixed(1)}°` : '교량';
+
+  const trTxt = Number.isFinite(obs?.roadTemp) ? `노면 ${obs.roadTemp.toFixed(1)}°` : '노면 —';
+  const surfTxt = (obs?.surfaceState && obs.surfaceState !== '관측중') ? obs.surfaceState : '건조';
+  const hasHum = Number.isFinite(obs?.humidity) && obs.humidity > 0;
+  const humPart = hasHum ? ` (${Math.round(obs.humidity)}%)` : '';
+  const subLine = `${trTxt} - ${surfTxt}${humPart}`;
+
+  return { titleLeft, titleRight, hasAir, subLine, hasHum };
+}
 
 // 8개 RWIS 구간 ↔ 기존 기상청 도로기상관측소(/api/road-obs, /api/road-risk) & 13개 단기예보(/api/short-term-12) 연계 매핑
 export const ZONE_INTEGRATION_MAP = {
