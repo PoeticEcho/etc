@@ -382,7 +382,7 @@ function renderCorridorMap(enriched) {
     '함양IC':   { dx: -82, dy: -48 },
     '함양JC':   { dx: 82,  dy: 28 },
     '거창IC':   { dx: -76, dy: -16 },
-    '살피재TN': { dx: -8,  dy: 46 },
+    '살피재TN': { dx: 10,  dy: 46 },
     '가조IC':   { dx: -24, dy: -46 },
     '가조TN':   { dx: 6,   dy: 48 },
     '가야1TN':  { dx: -12, dy: -50 },
@@ -588,12 +588,14 @@ function renderCorridorMap(enriched) {
   }
   out.push('</g>');
 
-  // 6. Corridor Milepost Ticks (100, 110, 130, 140, 150, 160, 170)
+  // 6. Corridor Milepost Ticks (100, 110, 140, 150, 160, 170 — 가조IC 131.1k 인접 130k 생략 및 노선 법선 방향 이격)
   out.push('<g class="mileposts" aria-hidden="true">');
-  for (const km of [100, 110, 130, 140, 150, 160, 170]) {
+  for (const km of [100, 110, 140, 150, 160, 170]) {
     const p = pointAtKm(km, G.base);
     const q = G.map(p.x, p.y);
-    out.push(`<text x="${n1(q.x)}" y="${n1(q.y - 20)}" text-anchor="middle" fill="#7da3c8" font-size="13.5" font-weight="750">${km}k</text>`);
+    const nx = -Math.sin(p.tangent || 0);
+    const ny = Math.cos(p.tangent || 0);
+    out.push(`<text x="${n1(q.x - nx * 24)}" y="${n1(q.y - ny * 24 + 4)}" text-anchor="middle" fill="#7da3c8" font-size="13.5" font-weight="750">${km}k</text>`);
   }
   out.push('</g>');
 
