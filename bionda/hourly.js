@@ -13,6 +13,7 @@ import {
   DEFAULT_DWELL_MS,
   HOURLY_REFRESH_MS
 } from './page-cache.js';
+import { mountNetHealthMonitor, reportApiSuccess, reportApiFailure } from './net-health.js';
 
 const SETTINGS_KEY = 'weather-watch:settings:v2';
 const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v3';
@@ -692,6 +693,7 @@ async function fetchShortTerm12Data(optsOrForce = false) {
   }
 
   hourlyFetchInFlight = (async () => {
+    let liveErr = '';
     try {
       const params = new URLSearchParams({ roster: '13' });
       if (force) params.set('force', '1');
@@ -718,13 +720,20 @@ async function fetchShortTerm12Data(optsOrForce = false) {
           state.lastLoadedAt = nowMs;
           lastLoadedHourKst = cacheHourKey(nowMs);
           writePageCache(HOURLY_CACHE_KEY, { scope: hourlyCacheScope(), data, nowMs });
+          reportApiSuccess('hourly', nowMs);
           updateSourceStatus();
           renderSheet();
           if ($('detailDialog')?.open && state.selectedRegionId) openRegionDetail(state.selectedRegionId);
           return;
         }
+      } else {
+        liveErr = `HTTP ${r.status}`;
       }
-    } catch {}
+    } catch (err) {
+      liveErr = String(err?.message || '네트워크 응답 없음');
+    }
+
+    reportApiFailure('hourly', liveErr || '단기예보 API 응답 실패');
 
     if (silent && state.payload) {
       state.isRevalidating = false;
@@ -950,5 +959,6 @@ function restoreHourlyCacheAndBoot() {
 
 if (typeof document !== 'undefined') {
   bindEvents();
+  mountNetHealthMonitor({ onRetry: () => triggerSmartManualRefresh() });
   restoreHourlyCacheAndBoot();
 }

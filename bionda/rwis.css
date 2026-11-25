@@ -1,0 +1,718 @@
+/* 광주대구선 도로살얼음상황판 (50인치 TV 최적화 · 1920x1080 1스크린 + 모바일 반응형) */
+
+body.rwis-page {
+  background: #07111e;
+  color: #e8f1fb;
+  padding-bottom: 18px;
+  min-height: 100vh;
+}
+
+.rwis-wrap {
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 8px 14px 10px;
+}
+
+/* Header overrides for dark TV cockpit cohesion */
+body.rwis-page .top-header {
+  background: #0c2c30;
+  border-bottom: 1px solid rgba(110, 210, 200, 0.2);
+}
+
+.rwis-stamp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(15, 34, 54, 0.85);
+  border: 1px solid rgba(120, 190, 220, 0.3);
+  color: #cfe7f8;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.rwis-stamp-pill .dot-live {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.22);
+}
+.rwis-stamp-pill.is-cached .dot-live {
+  background: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+}
+.rwis-stamp-pill.is-error .dot-live {
+  background: #f87171;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.26);
+}
+
+/* Main 2-column 50-inch TV grid */
+.rwis-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.72fr) minmax(420px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.rwis-panel {
+  background: #0d1a2b;
+  border: 1px solid #1f3550;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.34);
+}
+
+/* Left column: Map + 8 zone cards */
+.rwis-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rwis-map-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  background: #0a1524;
+  border-bottom: 1px solid #1c314b;
+}
+
+.rwis-map-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rwis-map-heading h1 {
+  margin: 0;
+  font-size: clamp(16px, 1.15vw, 21px);
+  font-weight: 850;
+  color: #f4f9ff;
+  letter-spacing: -0.02em;
+}
+.rwis-map-sub {
+  font-size: clamp(12px, 0.82vw, 14px);
+  color: #8fb2d4;
+  font-weight: 600;
+}
+
+.rwis-ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rwis-seg {
+  display: inline-flex;
+  background: #07101c;
+  border: 1px solid #223956;
+  border-radius: 9px;
+  padding: 2px;
+  gap: 2px;
+}
+.rwis-seg button {
+  border: none;
+  background: transparent;
+  color: #9bb7d4;
+  padding: 5px 11px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.rwis-seg button[aria-pressed="true"] {
+  background: #1d4e78;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.rwis-tool-btn {
+  border: 1px solid #284466;
+  background: #12243b;
+  color: #e2effb;
+  padding: 6px 11px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.rwis-tool-btn:hover {
+  background: #1a3352;
+  filter: none;
+}
+.rwis-tool-btn[aria-pressed="true"] {
+  background: #124d4a;
+  border-color: #2dd4bf;
+  color: #ccfbf1;
+}
+
+.rwis-map-stage {
+  position: relative;
+  width: 100%;
+  background: #081322;
+  aspect-ratio: 16 / 7.45;
+  overflow: hidden;
+}
+.rwis-map-stage svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.rwis-map-stage .zone-hit {
+  cursor: pointer;
+}
+.rwis-map-stage .node-hit {
+  cursor: pointer;
+}
+.rwis-map-stage .node-hit:hover rect,
+.rwis-map-stage .node-hit:hover circle {
+  filter: brightness(1.18);
+}
+
+/* 8 Zone Cards (4x2 TV grid) */
+.rwis-zones-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rwis-zone-card {
+  background: #0d1b2d;
+  border: 1.5px solid #213753;
+  border-radius: 12px;
+  padding: 8px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.12s ease, background 0.15s ease;
+  text-align: left;
+}
+.rwis-zone-card:hover {
+  border-color: #38bdf8;
+  background: #12243b;
+  transform: translateY(-1px);
+}
+.rwis-zone-card.is-selected {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+  background: #132842;
+}
+.rwis-zone-card.lv-1 { border-color: rgba(250, 204, 21, 0.55); }
+.rwis-zone-card.lv-2 { border-color: rgba(251, 146, 60, 0.72); background: rgba(66, 32, 12, 0.38); }
+.rwis-zone-card.lv-3 { border-color: rgba(244, 63, 94, 0.85); background: rgba(74, 14, 29, 0.45); }
+
+.rzc-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+.rzc-name {
+  font-size: clamp(14px, 0.92vw, 17px);
+  font-weight: 850;
+  color: #f8fbff;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.rzc-county {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #88a9cb;
+  margin-top: 2px;
+}
+
+.rzc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: clamp(11.5px, 0.76vw, 13px);
+  font-weight: 850;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.rzc-badge.lv-0 { background: rgba(56, 189, 248, 0.16); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.45); }
+.rzc-badge.lv-1 { background: rgba(250, 204, 21, 0.18); color: #fde047; border: 1px solid rgba(250, 204, 21, 0.55); }
+.rzc-badge.lv-2 { background: rgba(251, 146, 60, 0.24); color: #fdba74; border: 1px solid rgba(251, 146, 60, 0.7); }
+.rzc-badge.lv-3 { background: rgba(244, 63, 94, 0.28); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.85); }
+
+.rzc-telemetry {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(7, 17, 30, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+.rzc-road-temp {
+  font-size: clamp(15px, 0.98vw, 18px);
+  font-weight: 900;
+  color: #7dd3fc;
+}
+.rzc-road-temp.is-cold { color: #fb923c; }
+.rzc-road-temp.is-freeze { color: #fb7185; }
+.rzc-air-state {
+  font-size: clamp(11.5px, 0.75vw, 13px);
+  font-weight: 700;
+  color: #bfd3e8;
+}
+
+.rzc-fcst {
+  font-size: clamp(11.5px, 0.75vw, 13px);
+  font-weight: 700;
+  color: #a4c0dc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.rzc-fcst.is-warn { color: #fde047; }
+.rzc-fcst.is-overlap { color: #fda4af; font-weight: 850; }
+
+.rzc-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.18);
+  font-size: 11.5px;
+  color: #7d9cbe;
+  font-weight: 650;
+}
+.rzc-cctv-btn {
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.1);
+  color: #bae6fd;
+  padding: 3px 8px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.rzc-cctv-btn:hover {
+  background: rgba(56, 189, 248, 0.24);
+  filter: none;
+}
+
+/* Right column: 3 KPIs + Tabbed Telemetry/Forecast/CCTV */
+.rwis-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rwis-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.rwis-kpi {
+  background: #0d1a2b;
+  border: 1.5px solid #1f3550;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.rwis-kpi.lv-3 { border-color: rgba(244, 63, 94, 0.8); background: rgba(74, 14, 29, 0.38); }
+.rwis-kpi.lv-2 { border-color: rgba(251, 146, 60, 0.7); background: rgba(66, 32, 12, 0.32); }
+.rwis-kpi.lv-1 { border-color: rgba(250, 204, 21, 0.55); }
+.rk-label {
+  font-size: 12px;
+  font-weight: 750;
+  color: #8fb2d4;
+}
+.rk-val {
+  font-size: clamp(20px, 1.45vw, 26px);
+  font-weight: 900;
+  color: #f8fbff;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.rk-val.c-0 { color: #38bdf8; }
+.rk-val.c-1 { color: #fde047; }
+.rk-val.c-2 { color: #fb923c; }
+.rk-val.c-3 { color: #fb7185; }
+.rk-sub {
+  font-size: 12px;
+  font-weight: 650;
+  color: #9cb9d6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rwis-side-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #0a1524;
+  border-bottom: 1px solid #1c314b;
+}
+.rwis-side-tab {
+  border: 1px solid #223956;
+  background: #102035;
+  color: #a9c4df;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: clamp(13px, 0.85vw, 15px);
+  font-weight: 800;
+  text-align: center;
+}
+.rwis-side-tab[aria-selected="true"] {
+  background: #164e63;
+  border-color: #38bdf8;
+  color: #fff;
+}
+
+.rwis-side-body {
+  padding: 10px 12px 12px;
+  max-height: calc(100vh - 210px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rwis-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.rwis-sec-head h2 {
+  margin: 0;
+  font-size: clamp(13.5px, 0.9vw, 16px);
+  font-weight: 850;
+  color: #e6f2ff;
+}
+.rwis-sec-link {
+  font-size: 12px;
+  font-weight: 750;
+  color: #7dd3fc;
+  text-decoration: none;
+}
+.rwis-sec-link:hover { text-decoration: underline; }
+
+/* Road obs table (TV readable) */
+.rwis-obs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: clamp(12.5px, 0.8vw, 14px);
+}
+.rwis-obs-table th {
+  text-align: left;
+  padding: 6px 7px;
+  font-size: 11.5px;
+  color: #84a5c7;
+  border-bottom: 1px solid #1f3550;
+  font-weight: 750;
+}
+.rwis-obs-table td {
+  padding: 5.5px 7px;
+  border-bottom: 1px solid rgba(31, 53, 80, 0.6);
+  font-weight: 700;
+  color: #e2eefb;
+  white-space: nowrap;
+}
+.rwis-obs-table tr:last-child td { border-bottom: none; }
+.rwis-obs-table .td-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.rwis-obs-table .td-cold { color: #fb923c; font-weight: 850; }
+.rwis-obs-table .td-freeze { color: #fb7185; font-weight: 900; }
+.rwis-stn-type {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 800;
+  background: rgba(251, 146, 60, 0.18);
+  color: #fdba74;
+}
+.rwis-stn-type.hub {
+  background: rgba(45, 212, 191, 0.16);
+  color: #5eead4;
+}
+
+/* 13-region short-term forecast compact TV grid */
+.rwis-short13-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.rwis-s13-card {
+  background: #0a1524;
+  border: 1px solid #1e344e;
+  border-radius: 9px;
+  padding: 5.5px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rwis-s13-card.is-overlap {
+  border-color: rgba(244, 63, 94, 0.75);
+  background: rgba(74, 14, 29, 0.35);
+}
+.rwis-s13-card.is-freeze {
+  border-color: rgba(251, 146, 60, 0.6);
+}
+.rwis-s13-card.is-wet {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+.s13-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+}
+.s13-name {
+  font-size: clamp(13px, 0.82vw, 14.5px);
+  font-weight: 850;
+  color: #f1f7ff;
+}
+.s13-grp {
+  font-size: 11px;
+  color: #7c9dbe;
+  font-weight: 650;
+}
+.s13-temps {
+  font-size: 13px;
+  font-weight: 850;
+  color: #7dd3fc;
+  font-variant-numeric: tabular-nums;
+}
+.s13-temps.is-subzero { color: #fb7185; }
+.s13-meta {
+  font-size: 11.8px;
+  font-weight: 700;
+  color: #9bb7d4;
+}
+.s13-meta.is-overlap { color: #fda4af; }
+.s13-meta.is-wet { color: #7dd3fc; }
+
+/* CCTV panel (Tab 2) */
+.rwis-cctv-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.rwis-cctv-search {
+  width: 100%;
+  padding: 8px 11px;
+  border-radius: 9px;
+  border: 1px solid #243c5a;
+  background: #07111e;
+  color: #eef6ff;
+  font-size: 13px;
+}
+.rwis-cctv-filters {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.rwis-fchip {
+  border: 1px solid #243c5a;
+  background: #0b1829;
+  color: #9eb9d6;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+}
+.rwis-fchip[aria-pressed="true"] {
+  background: #1d4e78;
+  border-color: #38bdf8;
+  color: #fff;
+}
+.rwis-cctv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rwis-cctv-row {
+  background: #0a1524;
+  border: 1px solid #1d334d;
+  border-radius: 9px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rwis-cctv-row:hover {
+  border-color: #38bdf8;
+  background: #112238;
+}
+.rcr-info { min-width: 0; }
+.rcr-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #f1f7ff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.rcr-km {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #38bdf8;
+  font-variant-numeric: tabular-nums;
+}
+.rcr-addr {
+  font-size: 11.5px;
+  color: #82a0bf;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rcr-btns {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.rcr-play {
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: rgba(14, 165, 233, 0.16);
+  color: #bae6fd;
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.rcr-play:hover {
+  background: #0ea5e9;
+  color: #031525;
+  filter: none;
+}
+
+/* Fullscreen map mode */
+body.rwis-map-big .rwis-grid {
+  grid-template-columns: 1fr;
+}
+body.rwis-map-big .rwis-side-col {
+  display: none;
+}
+body.rwis-map-big .rwis-map-stage {
+  aspect-ratio: 16 / 8.2;
+}
+
+/* CCTV Video Modal */
+.rwis-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  background: rgba(3, 8, 17, 0.84);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+.rwis-modal-backdrop[hidden] { display: none !important; }
+.rwis-modal {
+  width: min(920px, 100%);
+  background: #0d1b2d;
+  border: 1.5px solid #2b4a6e;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
+}
+.rwis-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #091321;
+  border-bottom: 1px solid #1f3550;
+}
+.rwis-modal-title {
+  font-size: 17px;
+  font-weight: 850;
+  color: #f4f9ff;
+}
+.rwis-modal-sub {
+  font-size: 12.5px;
+  color: #8cb0d4;
+  margin-top: 2px;
+}
+.rwis-modal-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+.rwis-modal-stage video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #000;
+}
+.rwis-modal-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  text-align: center;
+  background: rgba(5, 11, 22, 0.92);
+  color: #dbeafe;
+}
+.rwis-modal-overlay[hidden] { display: none !important; }
+.rwis-modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: #091321;
+  border-top: 1px solid #1f3550;
+  font-size: 12px;
+  color: #8cb0d4;
+}
+
+/* Responsive (Laptop / Tablet / Mobile 390px) */
+@media (max-width: 1320px) {
+  .rwis-grid { grid-template-columns: 1fr; }
+  .rwis-side-body { max-height: none; }
+}
+@media (max-width: 900px) {
+  .rwis-zones-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .rwis-wrap { padding: 8px 10px 24px; }
+  .rwis-zones-grid { grid-template-columns: 1fr; }
+  .rwis-kpi-strip { grid-template-columns: 1fr; }
+  .rwis-short13-grid { grid-template-columns: 1fr; }
+  .rwis-map-stage { aspect-ratio: 16 / 10.5; }
+  .rwis-stamp-pill { display: none; }
+  #rwisTvBtn, #rwisPngBtn { display: none; }
+}

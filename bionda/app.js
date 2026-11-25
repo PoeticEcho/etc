@@ -26,6 +26,7 @@ import {
   DEFAULT_DWELL_MS,
   OVERVIEW_REFRESH_MS
 } from './page-cache.js';
+import { mountNetHealthMonitor, reportApiSuccess, reportApiFailure } from './net-health.js';
 
 const $ = id => document.getElementById(id);
 const el = (tag, txt = '', cls = '') => {
@@ -2624,11 +2625,14 @@ export async function refresh(forceOrOpts = false) {
       lastLiveOverviewSyncAt = Date.now();
       lastSyncHourKey = currentKstHourKey();
       persistOverviewCache();
+      reportApiSuccess('overview', lastLiveOverviewSyncAt);
       if (probPromises.length) {
         Promise.allSettled(probPromises).then(() => {
           if (!overviewRevalidating) persistOverviewCache();
         });
       }
+    } else {
+      reportApiFailure('overview', getLastObsError() || '도로기상·예보 API 응답 실패');
     }
     render();
   })();
@@ -3199,6 +3203,7 @@ $('locate').onclick = () => {
 };
 
 // 초기화 (캐시 선복원 0ms 표출 → 필요 시 백그라운드 SWR · 5분 자동갱신)
+mountNetHealthMonitor({ onRetry: () => refresh(true) });
 bindSplitterDrag();
 syncSettingsUI();
 syncWakeLock();

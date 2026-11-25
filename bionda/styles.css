@@ -183,7 +183,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible {
 .page-tab.is-active .pt-badge {
   background: rgba(14, 51, 53, 0.16);
 }
-@media (max-width: 1180px) {
+@media (max-width: 1380px) {
   .tag { display: none; }
 }
 @media (max-width: 980px) {
@@ -199,13 +199,18 @@ button:focus-visible, a:focus-visible, summary:focus-visible {
     width: 100%;
     margin-left: 0;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .page-tab {
     justify-content: center;
-    padding: 5px 8px;
-    font-size: 11.5px;
+    padding: 5px 6px;
+    font-size: 11px;
+    gap: 3px;
   }
+}
+@media (max-width: 440px) {
+  .page-tab .pt-badge { display: none; }
+  .page-tab { padding: 5px 4px; font-size: 10.5px; }
 }
 .hdr-btn {
   background: #204c4e;

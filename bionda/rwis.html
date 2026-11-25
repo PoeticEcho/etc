@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c2c30">
+  <meta name="description" content="광주대구선(함양IC~옥포JC) 기상청 도로살얼음(RWIS) · 실측 노면온도(TR1) · 13개 읍면동 1시간 단기예보 · 62지점 CCTV 통합 50인치 TV 상황판">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="도로살얼음상황판 (RWIS · 노면온도 · 13개소 예보) | 날씨봇 × 비온다?">
+  <meta property="og:description" content="광주대구선 8개 구간 도로살얼음·가시거리, 실측 노면온도(TR1), 13개 읍면동 단기예보 및 62지점 CCTV 통합 관제">
+  <meta property="og:image" content="https://bionda.pages.dev/og-image.jpg">
+  <title>도로살얼음상황판 (광주대구선 RWIS · 노면 · 13개소 예보) | 날씨봇 × 비온다?</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./rwis.css">
+  <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+</head>
+<body class="rwis-page">
+  <header class="top-header">
+    <div class="wrap bar">
+      <a class="brandhome" href="./index.html" aria-label="날씨봇 도로기상 상황판 홈">
+        <b class="brand"><img src="./favicon.png" alt="날씨봇" class="brand-favicon"> 날씨봇</b>
+        <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 광주대구선 도로살얼음 · 노면 · CCTV 상황판</span>
+      </a>
+      <nav class="page-tabs" aria-label="대시보드 메뉴 전환">
+        <a class="page-tab" href="./index.html">
+          <span class="pt-ico">🛣️</span><span class="pt-txt">도로기상 상황판</span>
+        </a>
+        <a class="page-tab" href="./hourly.html">
+          <span class="pt-ico">🕒</span><span class="pt-txt">1시간 단기예보</span><span class="pt-badge">13개소</span>
+        </a>
+        <a class="page-tab is-active" href="./rwis.html" aria-current="page">
+          <span class="pt-ico">❄️</span><span class="pt-txt">도로살얼음상황판</span>
+        </a>
+      </nav>
+      <div class="header-actions">
+        <span id="rwisStampPill" class="rwis-stamp-pill" aria-live="polite">
+          <span class="dot-live" aria-hidden="true"></span>
+          <span id="rwisStampText">수신 중…</span>
+        </span>
+        <button id="rwisReloadBtn" type="button" class="hdr-btn" title="기상청 도로정보·RWIS·13개소 단기예보 강제 새로고침">
+          <span class="icon-spin">↻</span> <span class="hdr-lbl-pc">새로고침</span>
+        </button>
+        <button id="rwisPngBtn" type="button" class="hdr-btn hdr-btn-share" title="현재 도로살얼음 노선도 PNG 저장">
+          📷 <span class="hdr-lbl-pc">리포트</span>
+        </button>
+        <button id="rwisTvBtn" type="button" class="hdr-btn hdr-btn-accent" title="50인치 TV 전체화면 전환">
+          📺 <span class="hdr-lbl-pc" id="rwisTvLabel">TV 전체화면</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="rwis-wrap">
+    <div class="rwis-grid">
+      <!-- Left Main Column: Corridor Vector Map + 8 Integrated Zone Cards -->
+      <div class="rwis-main-col">
+        <section class="rwis-panel" aria-label="광주대구선 도로살얼음·가시거리 노선 지도">
+          <div class="rwis-map-toolbar">
+            <div class="rwis-map-heading">
+              <h1>❄️ 광주대구선 도로살얼음 상황판</h1>
+              <span id="rwisMapSub" class="rwis-map-sub">함양IC 95.0km → 옥포JC 176.0km · 8개 구간 · 양방향</span>
+            </div>
+            <div class="rwis-ctrl-group">
+              <div class="rwis-seg" role="group" aria-label="지표 전환">
+                <button type="button" data-metric="fsm" aria-pressed="true">❄️ 살얼음</button>
+                <button type="button" data-metric="vir" aria-pressed="false">👁️ 가시거리</button>
+              </div>
+              <div class="rwis-seg" role="group" aria-label="방향 선택">
+                <button type="button" data-dir="E" aria-pressed="false">대구 ↑</button>
+                <button type="button" data-dir="S" aria-pressed="false">광주 ↓</button>
+                <button type="button" data-dir="both" aria-pressed="true">양방향</button>
+              </div>
+              <button type="button" id="toggleRoadTempOverlay" class="rwis-tool-btn" aria-pressed="true" title="지도 위 도로기상관측소 실측 노면온도(TR1) 표시">🌡️ 노면온도</button>
+              <button type="button" id="toggleMapBigBtn" class="rwis-tool-btn" aria-pressed="false" title="지도 크게 보기 전환">⛶ 지도 크게</button>
+            </div>
+          </div>
+
+          <div id="rwisMapStage" class="rwis-map-stage" role="region" aria-label="전북·경남·경북·대구 및 함양·거창·합천·고령·달성 광주대구선 노선 지도"></div>
+        </section>
+
+        <section id="rwisZonesGrid" class="rwis-zones-grid" aria-label="8개 구간별 살얼음·노면온도·단기예보 요약"></section>
+      </div>
+
+      <!-- Right Side Column: 3 TV KPIs + Tabbed Telemetry / 13-Region Forecast / 62-Point CCTV -->
+      <aside class="rwis-side-col" aria-label="도로기상 실측·13개소 단기예보·CCTV 패널">
+        <div class="rwis-kpi-strip">
+          <article id="kpiMaxRisk" class="rwis-kpi">
+            <span class="rk-label">도로살얼음 최고등급</span>
+            <strong id="kpiMaxRiskVal" class="rk-val">—</strong>
+            <span id="kpiMaxRiskSub" class="rk-sub">8개 구간 확인 중</span>
+          </article>
+          <article id="kpiMinRoad" class="rwis-kpi">
+            <span class="rk-label">최저 노면온도 (TR1)</span>
+            <strong id="kpiMinRoadVal" class="rk-val">—</strong>
+            <span id="kpiMinRoadSub" class="rk-sub">기상청 도로관측</span>
+          </article>
+          <article id="kpiShort13" class="rwis-kpi">
+            <span class="rk-label">13개소 단기예보(12h)</span>
+            <strong id="kpiShort13Val" class="rk-val">—</strong>
+            <span id="kpiShort13Sub" class="rk-sub">강수·영하·겹침 집계</span>
+          </article>
+        </div>
+
+        <section class="rwis-panel">
+          <div class="rwis-side-tabs" role="tablist" aria-label="우측 정보 탭">
+            <button type="button" class="rwis-side-tab" data-side-tab="telemetry" role="tab" aria-selected="true">🛣️ 노면관측 · 13개소 예보</button>
+            <button type="button" class="rwis-side-tab" data-side-tab="cctv" role="tab" aria-selected="false">📹 지점·CCTV (62)</button>
+          </div>
+
+          <!-- Tab 1: Live KMA Road Obs + 13-Region Short-Term Forecast -->
+          <div id="sidePanelTelemetry" class="rwis-side-body">
+            <div>
+              <div class="rwis-sec-head">
+                <h2>🛣️ 기상청 도로기상관측소 실측 (TR1 노면온도)</h2>
+                <button type="button" id="toggleAllStationsBtn" class="rwis-fchip" aria-pressed="false">전구간 11개소</button>
+              </div>
+              <table class="rwis-obs-table" aria-label="광주대구선 도로기상관측소 실측 표">
+                <thead>
+                  <tr>
+                    <th>관측소 (이정)</th>
+                    <th class="td-num">노면(TR1)</th>
+                    <th class="td-num">기온</th>
+                    <th>상태</th>
+                    <th class="td-num">012살얼음</th>
+                  </tr>
+                </thead>
+                <tbody id="roadObsTbody">
+                  <tr><td colspan="5" style="text-align:center;color:#7c9dbe;padding:16px;">실측 노면온도 수신 중…</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <div class="rwis-sec-head">
+                <h2>🕒 13개 읍·면·동 1시간 단기예보 (향후 12h)</h2>
+                <a class="rwis-sec-link" href="./hourly.html">전체 시간표 ↗</a>
+              </div>
+              <div id="short13Grid" class="rwis-short13-grid"></div>
+            </div>
+          </div>
+
+          <!-- Tab 2: 62-Point 123-Camera CCTV Directory -->
+          <div id="sidePanelCctv" class="rwis-side-body" hidden>
+            <div class="rwis-cctv-controls">
+              <input type="search" id="cctvSearchInput" class="rwis-cctv-search" placeholder="지점·주소·IC/터널·이정 검색 (예: 논공교, 거창, 가야1)…" autocomplete="off">
+              <div class="rwis-cctv-filters">
+                <button type="button" class="rwis-fchip" data-cctv-fac="all" aria-pressed="true">전체</button>
+                <button type="button" class="rwis-fchip" data-cctv-fac="icjc" aria-pressed="false">IC·JC</button>
+                <button type="button" class="rwis-fchip" data-cctv-fac="rest" aria-pressed="false">휴게소</button>
+                <button type="button" class="rwis-fchip" data-cctv-fac="struct" aria-pressed="false">터널·교량</button>
+                <button type="button" id="clearZoneFilterBtn" class="rwis-fchip" hidden>✕ 구간필터 해제</button>
+              </div>
+            </div>
+            <div id="cctvPointList" class="rwis-cctv-list"></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Live HLS CCTV Modal -->
+  <div id="rwisCctvModal" class="rwis-modal-backdrop" hidden>
+    <div class="rwis-modal" role="dialog" aria-modal="true" aria-labelledby="rwisModalTitle">
+      <div class="rwis-modal-head">
+        <div>
+          <div id="rwisModalTitle" class="rwis-modal-title">CCTV</div>
+          <div id="rwisModalSub" class="rwis-modal-sub">광주대구선</div>
+        </div>
+        <button type="button" id="rwisModalClose" class="rwis-tool-btn" aria-label="닫기">✕ 닫기</button>
+      </div>
+      <div class="rwis-modal-stage">
+        <video id="rwisVideo" controls muted playsinline preload="none"></video>
+        <div id="rwisModalOverlay" class="rwis-modal-overlay" hidden>
+          <strong id="rwisModalOverlayTitle">영상을 불러오는 중…</strong>
+          <small id="rwisModalOverlayText">잠시만 기다려 주세요.</small>
+        </div>
+      </div>
+      <div class="rwis-modal-foot">
+        <span id="rwisModalMeta">-</span>
+        <div style="display:flex;gap:6px;">
+          <button type="button" id="rwisModalRetry" class="rwis-tool-btn">↻ 다시 연결</button>
+          <a id="rwisModalOpenUrl" class="rwis-tool-btn" href="#" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">새 탭 ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./vendor/hls.min.js"></script>
+  <script type="module" src="./rwis.js"></script>
+</body>
+</html>
