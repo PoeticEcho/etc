@@ -75,11 +75,16 @@ function formatHm(isoStr) {
   return String(isoStr).slice(11, 16);
 }
 
-function formatMdHm(isoStr) {
-  if (!isoStr) return '';
-  const s = String(isoStr);
+export function formatMdHm(input) {
+  if (input == null || input === '') return '';
+  if (typeof input === 'number' && Number.isFinite(input)) {
+    const k = new Date(input + 9 * 3600000);
+    const pad2 = n => String(n).padStart(2, '0');
+    return `${pad2(k.getUTCMonth() + 1)}-${pad2(k.getUTCDate())} ${pad2(k.getUTCHours())}:${pad2(k.getUTCMinutes())}`;
+  }
+  const s = String(input);
   if (s.endsWith('+09:00')) return `${s.slice(5, 10)} ${s.slice(11, 16)}`;
-  const d = new Date(s);
+  const d = /^\d+$/.test(s) ? new Date(Number(s)) : new Date(s);
   if (Number.isNaN(d.getTime())) return `${s.slice(5, 10)} ${s.slice(11, 16)}`;
   const k = new Date(d.getTime() + 9 * 3600000);
   const pad2 = n => String(n).padStart(2, '0');

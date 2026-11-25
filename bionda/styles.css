@@ -2611,6 +2611,10 @@ input {
 }
 
 /* Complete Dark Mode Contrast Rules for Newly Added Controls */
+body.dark-mode #groups button.grp-warn { background: #2c2111; border-color: #8c5a18; color: #fcd34d; }
+body.dark-mode #groups button.grp-warn[aria-pressed="true"] { background: #d96b16; border-color: #d96b16; color: #fff; }
+body.dark-mode #groups button.grp-map { background: #102a38; border-color: #245b73; color: #7ce8ff; }
+body.dark-mode #groups button.grp-map[aria-pressed="true"] { background: #185856; border-color: #38dbf8; color: #fff; }
 body.dark-mode #groups button.grp-action { background: #3b1d1a; border-color: #7c3b34; color: #ffb5a8; }
 body.dark-mode #groups button.grp-action[aria-pressed="true"] { background: #c92a14; border-color: #c92a14; color: #fff; }
 body.dark-mode .act-pill { background: #3b1d1a; border-color: #7c3b34; color: #ffb5a8; }
