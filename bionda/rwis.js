@@ -37,6 +37,7 @@ const RWIS_CACHE_KEY = 'weather-watch:cache:rwis:v1';
 const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v3';
 const OVERVIEW_CACHE_KEY = 'weather-watch:cache:overview:v2';
 const WARN_HISTORY_KEY = 'weather-watch:rwis-warn-history:v1';
+const CCTV_CLIENT_TTL_MS = 15 * 60 * 1000; // 서버 /api/cctv 15분 캐시와 정렬 (5분 루프 중복 호출 절감)
 const rwisCacheScope = () => getApiBase() || '__same_origin__';
 
 const $ = id => document.getElementById(id);
@@ -82,6 +83,7 @@ const state = {
   warningsPayload: null,
   warningHistory: readWarnHistory(),
   cctvPayload: null,
+  cctvFetchedAt: 0,
   fromCache: false,
   lastSyncedAt: 0,
   lastSyncHourKey: null,
@@ -228,8 +230,15 @@ function getZoneLevel(zone) {
   return bucket.max;
 }
 
+function getRwisCore() {
+  if (!state.rwisStatus) return null;
+  if (state.rwisStatus.rwis) return state.rwisStatus.rwis;
+  if (state.rwisStatus.kind === 'rwis' || Array.isArray(state.rwisStatus.zones)) return state.rwisStatus;
+  return null;
+}
+
 function getEnriched() {
-  const rwisZones = state.rwisStatus?.rwis?.zones || [];
+  const rwisZones = getRwisCore()?.zones || [];
   return enrichZonesWithBionda({
     rwisZones,
     roadStations: state.roadStations,
@@ -254,14 +263,15 @@ function renderCorridorMap(enriched) {
     if (lv > maxLv) maxLv = lv;
   }
 
-  const rwisTmObj = state.rwisStatus?.rwis?.tm;
+  const rwisCore = getRwisCore();
+  const rwisTmObj = rwisCore?.tm;
   const rwisTmRaw = typeof rwisTmObj === 'string'
     ? rwisTmObj
     : (state.metric === 'vir' ? (rwisTmObj?.VR || rwisTmObj?.FR) : (rwisTmObj?.FR || rwisTmObj?.VR));
   const obsStamp = rwisTmRaw
     ? formatKstHm(rwisTmRaw)
     : (state.roadRisk?.tmKst ? formatKstHm(state.roadRisk.tmKst) : formatKstHm(state.lastSyncedAt));
-  const srcName = state.rwisStatus?.rwis?.ok
+  const srcName = rwisCore?.ok
     ? '기상청 RWIS 실시간'
     : (state.roadRisk?.ok ? '기상청 012 도로위험 연동' : '기상청 도로기상');
 
@@ -583,6 +593,9 @@ function renderZoneCards(enriched) {
       if (sf.firstFreeze) {
         bits.push(`❄️ ${sf.firstFreeze.hour}시 영하`);
         if (!fcstCls) fcstCls = 'is-warn';
+      } else if (sf.firstZeroOrBelow) {
+        bits.push(`🧊 ${sf.firstZeroOrBelow.hour}시 0°C(결빙주의)`);
+        if (!fcstCls) fcstCls = 'is-warn';
       } else if (sf.minTemp !== null) {
         bits.push(`최저 ${sf.minTemp.toFixed(0)}°C`);
       }
@@ -743,6 +756,8 @@ function renderSidePanel(enriched) {
           metaCls = 'is-wet';
         } else if (r.firstFreeze) {
           meta = `❄️ ${r.firstFreeze.hour}시 영하 진입`;
+        } else if (r.firstZeroOrBelow) {
+          meta = `🧊 ${r.firstZeroOrBelow.hour}시 0°C 결빙주의`;
         }
         return `
           <div class="rwis-s13-card ${cls}">
@@ -1071,6 +1086,7 @@ async function refreshActiveModalCctv() {
     const payload = await res.json();
     if (payload?.cctvs?.length) {
       state.cctvPayload = payload;
+      state.cctvFetchedAt = Date.now();
       persistCache();
       renderCctvList();
     }
@@ -1234,6 +1250,7 @@ function hydrateFromCache() {
     state.shortTerm13 = d.shortTerm13 || null;
     state.warningsPayload = d.warningsPayload || null;
     state.cctvPayload = d.cctvPayload || null;
+    state.cctvFetchedAt = Number.isFinite(d.cctvFetchedAt) ? d.cctvFetchedAt : (d.cctvPayload ? (rwisHit.entry.savedAt || 0) : 0);
     seedSharedCrossTabCaches(scope);
     state.fromCache = true;
     state.lastSyncedAt = rwisHit.entry.savedAt || 0;
@@ -1263,7 +1280,8 @@ function persistCache() {
       roadRisk: state.roadRisk,
       shortTerm13: state.shortTerm13,
       warningsPayload: state.warningsPayload,
-      cctvPayload: state.cctvPayload
+      cctvPayload: state.cctvPayload,
+      cctvFetchedAt: state.cctvFetchedAt
     }
   });
 }
@@ -1323,10 +1341,17 @@ async function loadAllData({ force = false, silent = false } = {}) {
     };
 
     const warnQuery = encodeURIComponent(buildFiveCountyWarningsQuery());
+    const needCctv = force || !state.cctvPayload?.cctvs?.length || (Date.now() - state.cctvFetchedAt >= CCTV_CLIENT_TTL_MS);
 
     const tasks = [
-      fetchJsonSafe(`/api/rwis/api/status${refreshParam}`, 14000)
-        .then(v => { if (v?.ok) { state.rwisStatus = v; markLive(); } })
+      // P0-1 경량화: 188KB /api/status 대신 13KB /api/rwis 단독 호출 (중복 ITS CCTV 수신 및 파싱 제거)
+      fetchJsonSafe(`/api/rwis/api/rwis${refreshParam}`, 14000)
+        .then(v => {
+          if (v?.ok) {
+            state.rwisStatus = v.kind === 'rwis' ? { ok: true, rwis: v } : v;
+            markLive();
+          }
+        })
         .catch(e => { errors.push(`RWIS(${e?.message || 'err'})`); }),
       fetchJsonSafe('/api/road-obs?line=14', 12000)
         .then(v => {
@@ -1347,19 +1372,22 @@ async function loadAllData({ force = false, silent = false } = {}) {
           }
         })
         .catch(e => { errors.push(`기상특보(${e?.message || 'err'})`); }),
-      fetchCctvDirectory(apiUrl(`/api/cctv${refreshParam}`), {
-        cache: force ? 'no-store' : 'default',
-        onRetry: () => {}
-      })
-        .then(async res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const v = await res.json();
-          if (Array.isArray(v?.cctvs) && v.cctvs.length) {
-            state.cctvPayload = v;
-            markLive();
-          }
+      ...(needCctv ? [
+        fetchCctvDirectory(apiUrl(`/api/cctv${refreshParam}`), {
+          cache: force ? 'no-store' : 'default',
+          onRetry: () => {}
         })
-        .catch(e => { errors.push(`CCTV(${e?.message || 'err'})`); }),
+          .then(async res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const v = await res.json();
+            if (Array.isArray(v?.cctvs) && v.cctvs.length) {
+              state.cctvPayload = v;
+              state.cctvFetchedAt = Date.now();
+              markLive();
+            }
+          })
+          .catch(e => { errors.push(`CCTV(${e?.message || 'err'})`); })
+      ] : []),
       fetchJsonSafe(`/api/short-term-12?roster=13${force ? '&force=1' : ''}`, 30000)
         .then(v => {
           if (v?.ok && Array.isArray(v.regions)) {

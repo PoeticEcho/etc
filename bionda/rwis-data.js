@@ -115,7 +115,8 @@ export function summarizeShortRegion12h(region) {
   let minTemp = null;
   let maxPop = 0;
   let firstWet = null;
-  let firstFreeze = null;
+  let firstFreeze = null;      // 엄격 영하 (< 0°C, hourly.html / 6H 표와 100% 통일)
+  let firstZeroOrBelow = null; // 0°C 이하 결빙경계 (<= 0°C)
   let firstOverlap = null;
   let curTemp = null;
 
@@ -129,24 +130,33 @@ export function summarizeShortRegion12h(region) {
     const pop = Number(h?.chance ?? h?.pop ?? 0);
     if (Number.isFinite(pop) && pop > maxPop) maxPop = pop;
     const isWet = Boolean(h?.wet || (Number.isFinite(h?.rainMm) && h.rainMm > 0) || (Number.isFinite(h?.snowCm) && h.snowCm > 0));
-    const isFreeze = Number.isFinite(t) && t <= 0;
+    const isFreeze = Number.isFinite(t) && t < 0;
+    const isZeroOrBelow = Number.isFinite(t) && t <= 0;
+    const hourNum = Number.isFinite(h?.hourKst) ? h.hourKst : Number(String(h?.time || '').slice(11, 13));
     if (isWet && !firstWet) {
       firstWet = {
-        hour: Number.isFinite(h?.hourKst) ? h.hourKst : Number(String(h?.time || '').slice(11, 13)),
+        hour: hourNum,
         type: h?.type && h.type !== '없음' ? h.type : '강수',
         time: h?.time || ''
       };
     }
     if (isFreeze && !firstFreeze) {
       firstFreeze = {
-        hour: Number.isFinite(h?.hourKst) ? h.hourKst : Number(String(h?.time || '').slice(11, 13)),
+        hour: hourNum,
+        temp: t,
+        time: h?.time || ''
+      };
+    }
+    if (isZeroOrBelow && !firstZeroOrBelow) {
+      firstZeroOrBelow = {
+        hour: hourNum,
         temp: t,
         time: h?.time || ''
       };
     }
     if (isWet && isFreeze && !firstOverlap) {
       firstOverlap = {
-        hour: Number.isFinite(h?.hourKst) ? h.hourKst : Number(String(h?.time || '').slice(11, 13)),
+        hour: hourNum,
         type: h?.type && h.type !== '없음' ? h.type : '강수',
         temp: t
       };
@@ -162,6 +172,7 @@ export function summarizeShortRegion12h(region) {
     maxPop,
     firstWet,
     firstFreeze,
+    firstZeroOrBelow,
     firstOverlap
   };
 }
@@ -243,11 +254,13 @@ export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadR
     let fcstMinTemp = null;
     let fcstFirstWet = null;
     let fcstFirstFreeze = null;
+    let fcstFirstZeroOrBelow = null;
     let fcstHasOverlap = false;
     for (const r of matchedRegions) {
       if (r.minTemp !== null && (fcstMinTemp === null || r.minTemp < fcstMinTemp)) fcstMinTemp = r.minTemp;
       if (r.firstWet && (!fcstFirstWet || r.firstWet.hour < fcstFirstWet.hour)) fcstFirstWet = r.firstWet;
       if (r.firstFreeze && (!fcstFirstFreeze || r.firstFreeze.hour < fcstFirstFreeze.hour)) fcstFirstFreeze = r.firstFreeze;
+      if (r.firstZeroOrBelow && (!fcstFirstZeroOrBelow || r.firstZeroOrBelow.hour < fcstFirstZeroOrBelow.hour)) fcstFirstZeroOrBelow = r.firstZeroOrBelow;
       if (r.firstOverlap) fcstHasOverlap = true;
     }
 
@@ -269,6 +282,7 @@ export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadR
         minTemp: fcstMinTemp,
         firstWet: fcstFirstWet,
         firstFreeze: fcstFirstFreeze,
+        firstZeroOrBelow: fcstFirstZeroOrBelow,
         hasOverlap: fcstHasOverlap,
         regions: matchedRegions
       }
