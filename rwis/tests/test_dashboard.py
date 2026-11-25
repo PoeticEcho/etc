@@ -795,7 +795,7 @@ def main() -> int:
         print("    상태:", page.evaluate("""() => ({
           mode: document.getElementById('modePill').dataset.state,
           tm: document.getElementById('rwisTm').textContent,
-          badge: document.querySelector('#zoneGrid .badge').dataset.level,
+          badge: (document.querySelector('#zoneGrid .badge') || { dataset: {} }).dataset.level,
           meta: document.getElementById('routeMeta').textContent,
         })"""))
         route = page.evaluate("""() => {

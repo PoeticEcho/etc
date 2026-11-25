@@ -466,7 +466,7 @@
 
   /* ── 하단 독 (모바일 엄지 존) ───────────── */
   .dock { display: none; flex: none; background: #0b1424; border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
-  .dock-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px 8px 7px; }
+  .dock-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 6px 8px 7px; }
   .dock-bar button {
     display: flex; align-items: center; justify-content: center; gap: 5px;
     min-height: 46px; border-radius: 12px; font-size: 12px; font-weight: 800;
@@ -650,7 +650,7 @@
     border: 0; border-radius: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); gap: 6px;
     background: var(--bg);
   }
-  body.immersive[data-view="list"] .side > .sec-head,
+  body.immersive[data-view="list"] .side > .side-ctx,
   body.immersive[data-view="list"] .side .summary,
   body.immersive[data-view="list"] .side .zone-chips,
   body.immersive[data-view="list"] .side .side-foot { display: none; }
@@ -1177,6 +1177,150 @@
   .modal-title h2 { font-size: 16px; font-weight: 800; letter-spacing: -.01em; }
   .sheet .badge { border-radius: 7px; }
 
+  /* ══════════════════════════════════════════════════════════════
+     v15 — 우측 패널 탭(도로기상 위험 | 노선 날씨) + 노선 날씨 표
+     원칙: 패널 높이는 그대로, 표만 카드 안에서 스크롤. 페이지 스크롤 0.
+     ══════════════════════════════════════════════════════════════ */
+  .side-head { align-items: center; }
+  .side-tabs {
+    display: flex; gap: 3px; flex: 1 1 auto; min-width: 0;
+    background: #0b1626; border: 1px solid var(--edge-2); border-radius: 10px; padding: 3px;
+  }
+  .side-tabs button {
+    flex: 1 1 0; min-width: 0; min-height: 28px; padding: 4px 6px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    font-size: 11.5px; font-weight: 800; letter-spacing: -.01em; color: #8ea6c0; white-space: nowrap;
+    transition: background .15s, color .15s;
+  }
+  .side-tabs button:hover { color: var(--text); }
+  .side-tabs button.on {
+    color: #04121f; background: linear-gradient(180deg,#7dd3fc,#38bdf8);
+    box-shadow: 0 2px 8px rgba(56,189,248,.26);
+  }
+  .side-tabs button .ic { font-size: 12px; line-height: 1; }
+  .side-ctx { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; flex: none; min-width: 0; }
+  .side-ctx .live { flex: 1 1 auto; min-width: 0; font-size: 10.5px; font-weight: 600; color: #6b82a4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .side-ctx .right { margin-left: auto; display: flex; gap: 5px; align-items: center; }
+  .side-ctx .seg-filter button { padding: 3px 8px; font-size: 10.5px; }
+  #sidePanel[data-tab="weather"] .side-ctx,
+  #sidePanel[data-tab="weather"] .rwis-only { display: none !important; }
+
+  /* ── 노선 날씨 패널 ── */
+  .wx { display: flex; flex-direction: column; gap: 7px; flex: 1 1 auto; min-height: 0; }
+  #wxSection[hidden] { display: none !important; }
+  .wx-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: none; }
+  .wx-win { flex: none; }
+  .wx-win button { padding: 4px 9px; font-size: 10.8px; }
+  .wx-state { flex: 1 1 auto; min-width: 0; font-size: 10px; font-weight: 600; color: #5f7794; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wx-state.err { color: #fca5a5; }
+  .wx-state.busy { color: #7dd3fc; }
+  .wx-reload { width: 30px; height: 30px; flex: none; font-size: 14px; }
+  .wx-reload[aria-busy="true"] { animation: spin .9s linear infinite; color: #7dd3fc; }
+  .wx-meta { display: flex; gap: 3px 10px; flex-wrap: wrap; flex: none; font-size: 9.8px; color: #6b82a4; font-variant-numeric: tabular-nums; }
+  .wx-meta b { color: #a9bfd6; font-weight: 800; }
+  .wx-meta .nx b { color: #7dd3fc; }
+  .wx-kpi { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 5px; flex: none; }
+  .wx-kpi .k { background: #0d1929; border: 1px solid var(--edge-2); border-radius: 9px; padding: 5px 7px; min-width: 0; }
+  .wx-kpi .l { display: block; font-size: 9.3px; font-weight: 600; color: #6b82a4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wx-kpi b { display: block; margin-top: 1px; font-size: 16px; line-height: 1.12; font-weight: 800; letter-spacing: -.02em; color: #e8eef8; font-variant-numeric: tabular-nums; }
+  .wx-kpi .s { display: block; font-size: 8.8px; color: #5f7794; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wx-kpi .k.cold b { color: #7dd3fc; }
+  .wx-kpi .k.ice { border-color: rgba(248,113,113,.42); background: rgba(248,113,113,.07); }
+  .wx-kpi .k.ice b { color: #fca5a5; }
+  .wx-kpi .k.frz b { color: #93c5fd; }
+  .wx-scroll {
+    flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain;
+    border: 1px solid var(--edge-2); border-radius: 10px; background: #0b1524; scrollbar-width: thin;
+  }
+  .wx-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+  .wx-scroll::-webkit-scrollbar-thumb { background: #24354f; border-radius: 8px; }
+  .wx-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-variant-numeric: tabular-nums; }
+  .wx-table th, .wx-table td { padding: 2px 3px; font-size: 10px; text-align: center; white-space: nowrap; }
+  .wx-table thead th {
+    position: sticky; top: 0; z-index: 2; height: 24px;
+    background: #0f1d31; color: #8ea6c0; font-size: 9.3px; font-weight: 700; letter-spacing: 0;
+  }
+  .wx-table th.wx-reg, .wx-table td.wx-reg {
+    position: sticky; left: 0; z-index: 1; text-align: left;
+    background: #0c1728; min-width: 76px; max-width: 96px;
+  }
+  .wx-table thead th.wx-reg { z-index: 3; }
+  .wx-table tbody td, .wx-table tbody th { border-top: 1px solid #101d2f; height: 26px; line-height: 1.1; }
+  .wx-table tbody tr:first-child td, .wx-table tbody tr:first-child th { border-top: 0; }
+  .wx-table .wx-tcol { min-width: 40px; }
+  .wx-reg .ord { display: inline-block; min-width: 13px; margin-right: 2px; font-size: 8.6px; font-weight: 700; color: #5f7794; }
+  .wx-reg .rn { font-size: 10.3px; font-weight: 700; color: #dbe7f5; letter-spacing: -.02em; line-height: 1.15; }
+  .wx-reg .rg { display: block; font-size: 8.4px; font-weight: 600; color: #5f7794; letter-spacing: -.01em; line-height: 1; }
+  .wx-cell .wx-ic { font-size: 10px; line-height: 1; margin-right: 1px; }
+  .wx-cell .wx-t { font-size: 10.4px; line-height: 1.08; font-weight: 800; color: #cfe2f5; }
+  .wx-cell .wx-p { display: block; margin-top: 1px; font-size: 8.4px; line-height: 1; color: #5f7794; }
+  .wx-cell.fr { background: rgba(56,189,248,.10); }
+  .wx-cell.fr .wx-t { color: #7dd3fc; }
+  .wx-cell.wet { background: rgba(56,189,248,.17); }
+  .wx-cell.wet .wx-p { color: #7dd3fc; font-weight: 700; }
+  .wx-cell.ice { background: rgba(248,113,113,.22); box-shadow: inset 0 0 0 1px rgba(248,113,113,.34); }
+  .wx-cell.ice .wx-t, .wx-cell.ice .wx-p { color: #fecaca; }
+  .wx-cell.daystart, .wx-h.daystart { border-left: 1px solid #24405f; }
+  .wx-cell.na { color: #3d5271; }
+  .wx-note { flex: none; margin: 0; font-size: 9.3px; line-height: 1.45; color: #5f7794; word-break: keep-all; }
+  .wx-note b { color: #8ea6c0; font-weight: 800; }
+  .wx-empty { margin: 0; padding: 20px 10px; text-align: center; font-size: 11.5px; line-height: 1.6; color: #6b82a4; }
+  .wx-empty .retry { margin-top: 8px; }
+
+  @media (max-width: 1023px) {
+    .side-tabs button { min-height: 34px; font-size: 12px; }
+    .side-ctx .live { font-size: 10px; }
+    .wx-kpi .l { font-size: 9.6px; }
+    .wx-kpi b { font-size: 15px; }
+    .wx-kpi .s { font-size: 9px; }
+    .wx-table th, .wx-table td { font-size: 10.5px; }
+    .wx-table tbody td, .wx-table tbody th { height: 28px; }
+    .wx-table .wx-tcol { min-width: 44px; }
+    .wx-reg .rn { font-size: 11px; }
+    .wx-cell .wx-t { font-size: 11px; }
+    .wx-cell .wx-p { font-size: 9px; }
+    .wx-reload { width: 34px; height: 34px; }
+    .wx-note { font-size: 9.6px; }
+  }
+  @media (max-width: 400px) {
+    .side-tabs button { padding: 4px 4px; font-size: 11.5px; }
+    .wx-kpi { gap: 4px; }
+    .wx-kpi .k { padding: 4px 5px; }
+    .wx-kpi b { font-size: 14px; }
+    .wx-kpi .s { display: none; }
+    .wx-table th, .wx-table td { font-size: 10px; }
+  }
+  /* 낮은 화면 — 13개소가 카드 안에서 한 번에 보이도록 줄 높이만 줄인다 */
+  @media (min-width: 1024px) and (max-width: 1180px) {
+    .wx-kpi .s { display: none; }
+  }
+  @media (min-width: 1024px) and (max-height: 820px) {
+    .wx-kpi .k { padding: 4px 6px; }
+    .wx-kpi b { font-size: 15px; }
+    .wx-table th, .wx-table td { padding: 1px 3px; }
+    .wx-table thead th { height: 21px; }
+    .wx-table tbody td, .wx-table tbody th { height: 21px; }
+    .wx-cell .wx-t { font-size: 10px; }
+    .wx-cell .wx-p { font-size: 8px; margin-top: 0; }
+    .wx-note { font-size: 9px; }
+  }
+  @media (max-width: 1023px) and (max-height: 760px) {
+    .wx-table th, .wx-table td { padding: 1px 3px; }
+    .wx-table thead th { height: 22px; }
+    .wx-table tbody td, .wx-table tbody th { height: 20px; }
+    .wx-cell .wx-t { font-size: 10px; }
+    .wx-cell .wx-p { font-size: 8px; margin-top: 0; }
+  }
+  @media (max-width: 1023px) and (max-height: 680px) {
+    .wx-table thead th { height: 17px; }
+    .wx-table tbody td, .wx-table tbody th { height: 18px; }
+    .wx-cell .wx-ic { font-size: 9px; }
+    .wx-cell .wx-t { font-size: 9.5px; }
+    .wx-cell .wx-p { font-size: 7.6px; margin-top: 0; }
+    .wx-reg .rn { font-size: 10px; }
+    .wx-reg .rg { display: none; }
+  }
+
 </style>
 </head>
 <body data-view="route">
@@ -1264,9 +1408,15 @@
     </div>
   </section>
 
-  <aside class="card side" id="sidePanel" aria-label="도로기상 위험과 지점 목록">
-    <div class="sec-head">
-      <h2>도로기상 위험 <span class="live" id="rwisTm">관측시각 확인 중</span></h2>
+  <aside class="card side" id="sidePanel" data-tab="rwis" aria-label="도로기상 위험·노선 날씨와 지점 목록">
+    <div class="sec-head side-head">
+      <div class="side-tabs" id="sideTabs" role="tablist" aria-label="우측 패널 보기">
+        <button type="button" role="tab" id="tabRwis" data-tab="rwis" class="on" aria-selected="true" aria-controls="rwisCtx">도로기상 위험</button>
+        <button type="button" role="tab" id="tabWx" data-tab="weather" aria-selected="false" aria-controls="wxSection"><span class="ic" aria-hidden="true">🌦</span>노선 날씨</button>
+      </div>
+    </div>
+    <div class="side-ctx" id="rwisCtx">
+      <span class="live" id="rwisTm" aria-live="polite">관측시각 확인 중</span>
       <div class="right">
         <div class="seg-filter" id="rwisFilter" role="group" aria-label="위험 등급 필터">
           <button type="button" data-f="all" class="on" aria-pressed="true">전체 16</button>
@@ -1274,10 +1424,10 @@
         </div>
       </div>
     </div>
-    <div class="summary" id="rwisSummary"></div>
-    <div class="chips zone-chips" id="zoneChips" role="group" aria-label="구간 선택"></div>
+    <div class="summary rwis-only" id="rwisSummary"></div>
+    <div class="chips zone-chips rwis-only" id="zoneChips" role="group" aria-label="구간 선택"></div>
 
-    <section id="listSection" style="display:flex;flex-direction:column;min-height:0;flex:1 1 auto;gap:6px">
+    <section id="listSection" class="rwis-only" style="display:flex;flex-direction:column;min-height:0;flex:1 1 auto;gap:6px">
       <div class="sec-head">
         <h2 style="font-size:12.5px">지점 · CCTV <span class="count" id="listCount">0</span></h2>
         <div class="right">
@@ -1305,6 +1455,22 @@
       </div>
     </section>
 
+    <section class="wx" id="wxSection" role="tabpanel" aria-labelledby="tabWx" hidden>
+      <div class="wx-top">
+        <div class="seg-filter wx-win" id="wxWindows" role="group" aria-label="예보 기간">
+          <button type="button" data-w="h6" class="on" aria-pressed="true">6시간</button>
+          <button type="button" data-w="h12" aria-pressed="false">12시간</button>
+          <button type="button" data-w="tomorrow" aria-pressed="false">내일까지</button>
+        </div>
+        <span class="wx-state" id="wxState" aria-live="polite"></span>
+        <button type="button" class="icon-btn wx-reload" id="wxReload" title="노선 날씨 새로고침" aria-label="노선 날씨 새로고침">⟳</button>
+      </div>
+      <div class="wx-meta" id="wxMeta"></div>
+      <div class="wx-kpi" id="wxKpi"></div>
+      <div class="wx-scroll" id="wxScroll"><div id="wxTableWrap"></div></div>
+      <p class="wx-note" id="wxNote"><b>❄</b> 0°C 미만 · <b>🌧</b> 강수 · <b>⚠</b> 강수×영하(결빙) · 셀에 마우스를 올리면 시간·기온·강수확률이 보입니다. 자료 · 기상청 단기·초단기예보(bionda short-term-12).</p>
+    </section>
+
     <footer class="side-foot">
       <b>자료</b> CCTV 123대/62지점: 한국도로공사 로드플러스(2026-11-20) · <b>도로기상</b> 기상청 RWIS(FSM·VIR) ·
       배경 경계 통계청 시도·시군(2013). <b>등급</b> 0 안전 / 1 관심 / 2 주의 / 3 위험 — 구간 등급은 구간 내 링크 최고 등급.
@@ -1318,6 +1484,7 @@
   <nav class="dock-bar" id="dockBar" aria-label="화면 전환">
     <button type="button" data-view="route" class="on" aria-pressed="true"><span class="ic" aria-hidden="true">🗺️</span>노선도</button>
     <button type="button" data-view="list" aria-pressed="false"><span class="ic" aria-hidden="true">📹</span>CCTV</button>
+    <button type="button" id="btnWxDock" aria-pressed="false"><span class="ic" aria-hidden="true">🌦</span>날씨</button>
     <button type="button" id="btnShotDock"><span class="ic" aria-hidden="true">📸</span>리포트</button>
   </nav>
 </div>
@@ -1443,6 +1610,17 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     refreshMin: 0,        // 자동 새로고침 주기(분) — 0 이면 수동
     rises: {},            // 직전 관측 대비 상향: 'E170fsm' → { from, to }
     prevLevels: null,     // localStorage 에 남긴 직전 관측 { tm, levels }
+    sideTab: 'rwis',      // rwis 도로기상 위험 | weather 노선 날씨
+    wx: null,             // bionda short-term-12 응답
+    wxAt: 0,              // 마지막으로 받은 시각(ms)
+    wxError: '',
+    wxBusy: false,
+    wxWindow: 'h6',       // h6 | h12 | tomorrow
+    wxNextAt: null,       // 다음 갱신 예정(ms) — 매시 :17 / :47
+    wxSlotAt: 0,          // 마지막 성공 호출이 덮은 슬롯(ms)
+    wxLoadedOnce: false,  // 날씨 탭을 한 번이라도 열었는가(열기 전에는 호출하지 않음)
+    wxPending: false,     // 숨겨진 동안 지나간 슬롯
+    wxTimer: null,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -1478,6 +1656,10 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     nodeSheetClose: $('nodeSheetClose'), nodeSheetClose2: $('nodeSheetClose2'),
     zoneSheet: $('zoneSheet'), sheetTitle: $('sheetTitle'), sheetBody: $('sheetBody'),
     sheetClose: $('sheetClose'), sheetClose2: $('sheetClose2'), sheetList: $('sheetList'),
+    sidePanel: $('sidePanel'), sideTabs: $('sideTabs'), tabRwis: $('tabRwis'), tabWx: $('tabWx'),
+    rwisCtx: $('rwisCtx'), btnWxDock: $('btnWxDock'),
+    wxSection: $('wxSection'), wxWindows: $('wxWindows'), wxState: $('wxState'), wxReload: $('wxReload'),
+    wxMeta: $('wxMeta'), wxKpi: $('wxKpi'), wxScroll: $('wxScroll'), wxTable: $('wxTableWrap'),
   };
 
   /* ── 유틸 ───────────────────────────── */
@@ -4297,6 +4479,7 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
       renderRoute();
       if (typeof lastLayout !== 'undefined') lastLayout = layoutKey();
     }
+    syncDockWx();
   }
 
   function openSettings(on) {
@@ -4360,6 +4543,398 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     auto.nextAt = Date.now() + value * 60000;
     auto.ticker = window.setInterval(tickRefresh, 1000);
     tickRefresh();
+  }
+
+  /* ══ v15 — 노선 날씨 (bionda short-term-12) ══════════════════
+     bionda.pages.dev/api/short-term-12 는 CORS 가 열려 있어(Access-Control-Allow-Origin: *)
+     브라우저가 직접 받는다. 값은 13개 지역의 시간별 기온·강수확률·하늘상태이고,
+     windowKPIs 에 6·12·24시간·내일까지 요약이 함께 실려 온다.                */
+
+  const WX_URL = 'https://bionda.pages.dev/api/short-term-12';
+  const WX_SLOTS = [17, 47];          // 매시 17분 · 47분
+  const WX_WIN_LABEL = { h6: '6시간', h12: '12시간', tomorrow: '내일까지' };
+  const WX_STALE_MS = 26 * 60000;     // 30분 슬롯 하나가 지나면 다시 받는다
+
+  function wxPad(n) { return String(n).padStart(2, '0'); }
+
+  /** '11-25' → '11-26' (연도 없이 달력 계산, 시간대 영향 없음) */
+  function wxNextDayLabel(label) {
+    const m = /^(\d{1,2})-(\d{1,2})$/.exec(String(label || ''));
+    if (!m) return '';
+    const d = new Date(2024, Number(m[1]) - 1, Number(m[2]));
+    d.setDate(d.getDate() + 1);
+    return `${wxPad(d.getMonth() + 1)}-${wxPad(d.getDate())}`;
+  }
+
+  function wxTodayLabel() {
+    const d = new Date();
+    return `${wxPad(d.getMonth() + 1)}-${wxPad(d.getDate())}`;
+  }
+
+  /** 서→동 순서: routeOrder 1 함양읍 → 13 옥포읍 */
+  function wxSortRegions(regions) {
+    return (regions || []).slice().sort((a, b) => {
+      const ao = Number(a && a.routeOrder);
+      const bo = Number(b && b.routeOrder);
+      const aOk = Number.isFinite(ao);
+      const bOk = Number.isFinite(bo);
+      if (aOk && bOk && ao !== bo) return ao - bo;
+      if (aOk !== bOk) return aOk ? -1 : 1;
+      return String((a && a.name) || '').localeCompare(String((b && b.name) || ''), 'ko');
+    });
+  }
+
+  /** 기간 창에 보여 줄 시간만 고른다: 6시간 · 12시간 · 내일까지 */
+  function wxHoursFor(region, win) {
+    const hours = (region && region.hours) || [];
+    if (win === 'h6') return hours.filter((h) => Number(h.offset) < 6).slice(0, 6);
+    if (win === 'h12') return hours.filter((h) => Number(h.offset) < 12).slice(0, 12);
+    const first = hours[0];
+    if (!first) return [];
+    const today = first.dateLabel || '';
+    const tomorrow = wxNextDayLabel(today);
+    return hours.filter((h) => h.dateLabel === today || (tomorrow && h.dateLabel === tomorrow));
+  }
+
+  /** 다음 :17 또는 :47 (로컬 시계 기준) */
+  function wxNextSlot(nowMs) {
+    const now = Number(nowMs) || Date.now();
+    const base = new Date(now);
+    base.setSeconds(0, 0);
+    for (const min of WX_SLOTS) {
+      const cand = new Date(base.getTime());
+      cand.setMinutes(min);
+      if (cand.getTime() > now) return cand.getTime();
+    }
+    const next = new Date(base.getTime());
+    next.setHours(next.getHours() + 1);
+    next.setMinutes(WX_SLOTS[0]);
+    return next.getTime();
+  }
+
+  /** 지금까지 지나간 가장 최근 :17/:47 */
+  function wxLastSlot(nowMs) {
+    const now = Number(nowMs) || Date.now();
+    const base = new Date(now);
+    base.setSeconds(0, 0);
+    for (let i = WX_SLOTS.length - 1; i >= 0; i -= 1) {
+      const cand = new Date(base.getTime());
+      cand.setMinutes(WX_SLOTS[i]);
+      if (cand.getTime() <= now) return cand.getTime();
+    }
+    const prev = new Date(base.getTime());
+    prev.setHours(prev.getHours() - 1);
+    prev.setMinutes(WX_SLOTS[WX_SLOTS.length - 1]);
+    return prev.getTime();
+  }
+
+  function wxSlotLabel(ms) {
+    const d = new Date(ms);
+    return `${wxPad(d.getHours())}:${wxPad(d.getMinutes())}`;
+  }
+
+  /** 슬롯이 왔을 때 할 일 — 탭이 숨겨져 있으면 호출을 건너뛰고 표시만 남긴다 */
+  function wxSlotAction(hidden, loaded) {
+    if (!loaded) return 'idle';
+    return hidden ? 'pending' : 'fetch';
+  }
+
+  function wxHm(iso) {
+    const m = /T(\d{2}):(\d{2})/.exec(String(iso || ''));
+    return m ? `${m[1]}:${m[2]}` : '—';
+  }
+
+  function wxWhen(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2})/.exec(String(iso || ''));
+    if (!m) return '없음';
+    const label = `${m[2]}-${m[3]}`;
+    const lead = label === wxTodayLabel() ? '' : '내일 ';
+    return `${lead}${wxPad(Number(m[4]))}시`;
+  }
+
+  function wxIcon(hour) {
+    const pty = String(hour.pty == null ? '0' : hour.pty);
+    if (pty === '1') return '🌧';
+    if (pty === '2') return '🌨';
+    if (pty === '3') return '❄';
+    if (pty === '4') return '🌦';
+    if (pty === '5') return '💧';
+    if (pty === '6') return '🌨';
+    if (pty === '7') return '❄';
+    const sky = String(hour.sky || '1');
+    if (sky === '4') return '☁';
+    if (sky === '3') return '⛅';
+    return hour.isNight ? '🌙' : '☀';
+  }
+
+  /** 영하(<0°C) · 강수 · 동시 겹침(결빙) 셀 클래스 */
+  function wxCellClass(hour) {
+    const temp = Number(hour.temp);
+    const wet = Boolean(hour.wet) || (hour.pty != null && String(hour.pty) !== '0');
+    const freezing = Number.isFinite(temp) && temp < 0;
+    return [freezing ? 'fr' : '', wet ? 'wet' : '', wet && freezing ? 'ice' : ''].filter(Boolean).join(' ');
+  }
+
+  /** 요약 KPI — windowKPIs 우선, 없으면 지역별 summaries 로 계산 */
+  function wxKpiFor(win) {
+    const data = state.wx;
+    const regions = (data && data.regions) || [];
+    const key = win === 'tomorrow' ? 'tomorrow' : win;
+    const fromApi = data && data.windowKPIs && data.windowKPIs[key];
+    if (fromApi) {
+      return {
+        wetRegions: Number(fromApi.wetRegions) || 0,
+        freezingRegions: Number(fromApi.freezingRegions) || 0,
+        overlapRegions: Number(fromApi.overlapRegions) || 0,
+        minTemp: Number.isFinite(Number(fromApi.minTemp)) ? Number(fromApi.minTemp) : null,
+        earliestWetTime: fromApi.earliestWetTime || null,
+        earliestFreezingTime: fromApi.earliestFreezingTime || null,
+        earliestOverlapTime: fromApi.earliestOverlapTime || null,
+      };
+    }
+    const out = {
+      wetRegions: 0, freezingRegions: 0, overlapRegions: 0, minTemp: null,
+      earliestWetTime: null, earliestFreezingTime: null, earliestOverlapTime: null,
+    };
+    const earlier = (a, b) => (!a ? b : !b ? a : (new Date(a) <= new Date(b) ? a : b));
+    for (const region of regions) {
+      const s = region.summaries && region.summaries[key];
+      if (!s) continue;
+      if (Number(s.wetHours) > 0) {
+        out.wetRegions += 1;
+        out.earliestWetTime = earlier(out.earliestWetTime, s.firstWetTime);
+      }
+      if (Number.isFinite(Number(s.minTemp)) && Number(s.minTemp) < 0) {
+        out.freezingRegions += 1;
+        out.earliestFreezingTime = earlier(out.earliestFreezingTime, s.firstFreezingTime);
+      }
+      if (Number(s.overlapHours) > 0) {
+        out.overlapRegions += 1;
+        out.earliestOverlapTime = earlier(out.earliestOverlapTime, s.firstOverlapTime);
+      }
+      if (Number.isFinite(Number(s.minTemp))) {
+        out.minTemp = out.minTemp === null ? Number(s.minTemp) : Math.min(out.minTemp, Number(s.minTemp));
+      }
+    }
+    return out;
+  }
+
+  function renderWxState() {
+    if (!el.wxState) return;
+    if (state.wxBusy) {
+      el.wxState.textContent = '불러오는 중…';
+      el.wxState.className = 'wx-state busy';
+      if (el.wxReload) el.wxReload.setAttribute('aria-busy', 'true');
+      return;
+    }
+    if (el.wxReload) el.wxReload.removeAttribute('aria-busy');
+    if (state.wxError) {
+      el.wxState.textContent = '불러오지 못했습니다 · ⟳ 다시 시도';
+      el.wxState.className = 'wx-state err';
+      return;
+    }
+    el.wxState.className = 'wx-state';
+    el.wxState.textContent = '';
+  }
+
+  function renderWxMeta() {
+    if (!el.wxMeta) return;
+    const next = state.wxNextAt || wxNextSlot(Date.now());
+    const left = next - Date.now();
+    const leftTxt = left > 0
+      ? (left >= 60000 ? `${Math.ceil(left / 60000)}분 뒤` : `${Math.max(1, Math.ceil(left / 1000))}초 뒤`)
+      : '곧';
+    const nx = `<span class="nx">다음 갱신 <b>${wxSlotLabel(next)}</b> · ${leftTxt}</span>`;
+    if (!state.wx) {
+      el.wxMeta.innerHTML = `<span>기준 확인 중</span>${nx}`;
+      return;
+    }
+    const src = state.wx.sources || {};
+    el.wxMeta.innerHTML = `<span>기준 <b>단기 ${wxHm(src.shortBase)}</b> · <b>초단기 ${wxHm(src.ultraBase)}</b></span>${nx}`;
+  }
+
+  function renderWxKpi() {
+    if (!el.wxKpi) return;
+    const total = ((state.wx && state.wx.regions) || []).length;
+    if (!state.wx) {
+      el.wxKpi.innerHTML = ['강수 지역', '영하 지역', '결빙 겹침', '최저 기온'].map((label) =>
+        `<div class="k"><span class="l">${label}</span><b>—</b><span class="s">기다리는 중</span></div>`
+      ).join('');
+      return;
+    }
+    const k = wxKpiFor(state.wxWindow);
+    const box = (cls, label, value, sub) =>
+      `<div class="k ${cls}"><span class="l">${label}</span><b>${value}</b><span class="s">${sub}</span></div>`;
+    el.wxKpi.innerHTML = [
+      box(k.wetRegions ? 'cold' : '', '강수 지역', `${k.wetRegions}곳`, `첫 비 ${wxWhen(k.earliestWetTime)}`),
+      box(k.freezingRegions ? 'frz' : '', '영하 지역', `${k.freezingRegions}곳`, `첫 영하 ${wxWhen(k.earliestFreezingTime)}`),
+      box(k.overlapRegions ? 'ice' : '', '결빙 겹침', `${k.overlapRegions}곳`, `첫 겹침 ${wxWhen(k.earliestOverlapTime)}`),
+      box('', '최저 기온', k.minTemp === null ? '—' : `${Math.round(k.minTemp)}°`, `${total}곳 중`),
+    ].join('');
+  }
+
+  function renderWxTable() {
+    if (!el.wxTable) return;
+    if (!state.wx) {
+      el.wxTable.innerHTML = `<p class="wx-empty">${state.wxBusy ? '노선 날씨를 불러오는 중…' : state.wxError ? '날씨를 불러오지 못했습니다.<br>⟳ 을 눌러 다시 시도하세요.' : '노선 날씨를 불러오는 중…'}</p>`;
+      return;
+    }
+    const regions = wxSortRegions(state.wx.regions);
+    const rows = regions.map((region) => ({ region, hours: wxHoursFor(region, state.wxWindow) }));
+    const head = (rows.find((row) => row.hours.length) || { hours: [] }).hours;
+    const cols = head.length;
+    if (!cols) {
+      el.wxTable.innerHTML = '<p class="wx-empty">표시할 시간대가 없습니다.</p>';
+      return;
+    }
+
+    const cells = (hours, count) => {
+      const out = [];
+      for (let i = 0; i < count; i += 1) {
+        const hour = hours[i];
+        if (!hour) { out.push('<td class="wx-cell na">·</td>'); continue; }
+        const prev = i > 0 ? hours[i - 1] : null;
+        const dayStart = prev && prev.dateLabel !== hour.dateLabel ? ' daystart' : '';
+        const temp = Number(hour.temp);
+        const pop = Number(hour.pop);
+        const tempTxt = Number.isFinite(temp) ? `${Math.round(temp)}°` : '—';
+        const popTxt = Number.isFinite(pop) ? `${Math.round(pop)}%` : '—';
+        const title = `${hour.dateLabel || ''} ${wxPad(Number(hour.hourKst) || 0)}시 · ${tempTxt} · 강수 ${popTxt}${hour.type && hour.type !== '없음' ? ' · ' + hour.type : ''}`;
+        out.push(`<td class="wx-cell ${wxCellClass(hour)}${dayStart}" title="${esc(title)}"><span class="wx-ic" aria-hidden="true">${wxIcon(hour)}</span><span class="wx-t">${tempTxt}</span><span class="wx-p">${popTxt}</span></td>`);
+      }
+      return out.join('');
+    };
+
+    const headCells = head.map((hour, i) => {
+      const dayStart = i > 0 && head[i - 1].dateLabel !== hour.dateLabel ? ' daystart' : '';
+      const label = `${wxPad(Number(hour.hourKst) || 0)}시`;
+      const title = `${hour.dateLabel || ''} ${label}`;
+      return `<th class="wx-h wx-tcol${dayStart}" scope="col" title="${esc(title)}">${label}</th>`;
+    }).join('');
+
+    const body = rows.map(({ region, hours }) => {
+      const order = Number(region.routeOrder);
+      const sub = [region.admin, region.county].filter(Boolean).join(' ');
+      const name = esc(region.name || '');
+      return `<tr data-order="${Number.isFinite(order) ? order : ''}" data-name="${name}">` +
+        `<th class="wx-reg" scope="row" title="${esc([sub, region.name].filter(Boolean).join(' '))}">` +
+        `<span class="ord">${Number.isFinite(order) ? order : ''}</span><span class="rn">${name}</span>` +
+        `<span class="rg">${esc(region.group || '')}</span></th>` +
+        cells(hours, cols) + '</tr>';
+    }).join('');
+
+    el.wxTable.innerHTML = `<table class="wx-table" id="wxTable" aria-label="서→동 13개소 시간별 예보">` +
+      `<thead><tr><th class="wx-reg wx-tcol" scope="col">지역</th>${headCells}</tr></thead>` +
+      `<tbody>${body}</tbody></table>`;
+
+    if (!state.wxBusy && !state.wxError) {
+      el.wxState.textContent = `${rows.length}개소 · ${cols}시간`;
+      el.wxState.className = 'wx-state';
+    }
+  }
+
+  function renderWeather() {
+    renderWxState();
+    renderWxMeta();
+    renderWxKpi();
+    renderWxTable();
+  }
+
+  function setWxWindow(win) {
+    const next = WX_WIN_LABEL[win] ? win : 'h6';
+    state.wxWindow = next;
+    for (const btn of el.wxWindows.querySelectorAll('button[data-w]')) {
+      const on = btn.dataset.w === next;
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', String(on));
+    }
+    renderWeather();
+  }
+
+  function wxShouldRefresh() {
+    return !state.wx || !state.wxAt || Date.now() - state.wxAt > WX_STALE_MS;
+  }
+
+  async function loadWeather(opts) {
+    if (state.wxBusy) return;
+    state.wxBusy = true;
+    state.wxError = '';
+    renderWeather();
+    try {
+      const res = await fetch(WX_URL, { cache: 'no-store', credentials: 'omit' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data || !Array.isArray(data.regions) || !data.regions.length) throw new Error('빈 응답');
+      state.wx = data;
+      state.wxAt = Date.now();
+      state.wxLoadedOnce = true;
+      state.wxSlotAt = wxLastSlot(Date.now());
+      state.wxPending = false;
+    } catch (err) {
+      state.wxError = (err && err.message) || 'network';
+    } finally {
+      state.wxBusy = false;
+      renderWeather();
+      wxSchedule();
+    }
+  }
+
+  function wxSchedule() {
+    if (state.wxTimer) window.clearTimeout(state.wxTimer);
+    state.wxNextAt = wxNextSlot(Date.now());
+    const wait = Math.max(1500, state.wxNextAt - Date.now() + 250);
+    state.wxTimer = window.setTimeout(wxOnSlot, wait);
+    renderWxMeta();
+  }
+
+  function wxOnSlot() {
+    state.wxTimer = null;
+    const loaded = state.wxLoadedOnce && Boolean(state.wx);
+    const action = wxSlotAction(document.hidden, loaded);
+    if (action === 'fetch') loadWeather();
+    else if (action === 'pending') state.wxPending = true;
+    wxSchedule();
+  }
+
+  function wxResume() {
+    if (document.hidden || !state.wxLoadedOnce || !state.wx) return;
+    const missed = state.wxPending || (state.wxSlotAt && wxLastSlot(Date.now()) > state.wxSlotAt);
+    if (missed) { state.wxPending = false; loadWeather(); }
+    wxSchedule();
+  }
+
+  function syncDockWx() {
+    if (!el.btnWxDock) return;
+    const on = state.view === 'list' && state.sideTab === 'weather';
+    el.btnWxDock.classList.toggle('on', on);
+    el.btnWxDock.setAttribute('aria-pressed', String(on));
+    /* 	CCTV와 날씨는 같은 목록 화면을 공유하므로 동시에 켜지지 않게 한다 */
+    const listBtn = el.dockBar && el.dockBar.querySelector('button[data-view="list"]');
+    if (listBtn) {
+      const listOn = state.view === 'list' && state.sideTab !== 'weather';
+      listBtn.classList.toggle('on', listOn);
+      listBtn.setAttribute('aria-pressed', String(listOn));
+    }
+  }
+
+  function setSideTab(tab, opts) {
+    const next = tab === 'weather' ? 'weather' : 'rwis';
+    state.sideTab = next;
+    if (el.sidePanel) el.sidePanel.dataset.tab = next;
+    if (el.sideTabs) {
+      for (const btn of el.sideTabs.querySelectorAll('button[data-tab]')) {
+        const on = btn.dataset.tab === next;
+        btn.classList.toggle('on', on);
+        btn.setAttribute('aria-selected', String(on));
+      }
+    }
+    if (el.wxSection) el.wxSection.hidden = next !== 'weather';
+    if (next === 'weather') {
+      renderWeather();
+      if (wxShouldRefresh()) loadWeather();
+    }
+    syncDockWx();
+    if (opts && opts.focus && el.tabWx) el.tabWx.focus({ preventScroll: true });
   }
 
   /* ── 노선 ↔ 목록 · 영상 연동 ─────────── */
@@ -4729,9 +5304,34 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
   });
 
   el.dockBar.addEventListener('click', (event) => {
+    if (event.target.closest('#btnWxDock')) {
+      setSideTab('weather');
+      setView('list');
+      return;
+    }
     const btn = event.target.closest('button[data-view]');
-    if (btn) setView(btn.dataset.view);
+    if (!btn) return;
+    if (btn.dataset.view === 'list') setSideTab('rwis');
+    setView(btn.dataset.view);
   });
+
+  el.sideTabs.addEventListener('click', (event) => {
+    const btn = event.target.closest('button[data-tab]');
+    if (btn) setSideTab(btn.dataset.tab);
+  });
+
+  el.wxWindows.addEventListener('click', (event) => {
+    const btn = event.target.closest('button[data-w]');
+    if (btn) setWxWindow(btn.dataset.w);
+  });
+
+  el.wxReload.addEventListener('click', () => loadWeather({ manual: true }));
+
+  document.addEventListener('visibilitychange', wxResume);
+  window.addEventListener('focus', wxResume);
+  window.setInterval(() => {
+    if (state.sideTab === 'weather') renderWxMeta();
+  }, 15000);
 
   const runShot = (button) => {
     const label = button.innerHTML;
@@ -4850,6 +5450,8 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
   }
   state.prevLevels = readPrevLevels();
   applyRefresh(safeStorageGet(REFRESH_KEY) || 0, { quiet: true });
+  setSideTab('rwis');
+  wxSchedule();
   applyImmersive();
   setView('route');
   renderAll();
@@ -4882,6 +5484,38 @@ const ROUTE_GEO = {"source":"kostat 2013 시도·시군 경계 단순화 (southk
     zoneOwnPoints: (suffix) => zoneOwnPoints(currentPoints(), suffix),
     zoneNearPoints: (suffix) => zoneNearPoints(currentPoints(), suffix),
     camCountOf,
+    /* v15 — 노선 날씨 탭 검증 */
+    sideTab: () => state.sideTab,
+    setSideTab,
+    wx: {
+      url: WX_URL,
+      state: () => ({
+        tab: state.sideTab, window: state.wxWindow, busy: state.wxBusy, error: state.wxError,
+        at: state.wxAt, nextAt: state.wxNextAt, slotAt: state.wxSlotAt,
+        loaded: Boolean(state.wx), pending: state.wxPending,
+      }),
+      sortRegions: wxSortRegions,
+      hoursFor: wxHoursFor,
+      nextSlot: wxNextSlot,
+      lastSlot: wxLastSlot,
+      slotLabel: wxSlotLabel,
+      slotAction: wxSlotAction,
+      kpiFor: wxKpiFor,
+      setData: (payload) => {
+        state.wx = payload;
+        state.wxAt = Date.now();
+        state.wxLoadedOnce = true;
+        state.wxSlotAt = wxLastSlot(Date.now());
+        state.wxError = '';
+        renderWeather();
+      },
+      load: () => loadWeather({ manual: true }),
+      render: renderWeather,
+      setWindow: setWxWindow,
+      rows: () => wxSortRegions((state.wx && state.wx.regions) || [])
+        .map((r) => ({ order: r.routeOrder, name: r.name, cols: wxHoursFor(r, state.wxWindow).length })),
+      schedule: wxSchedule,
+    },
   };
 })();
 </script>

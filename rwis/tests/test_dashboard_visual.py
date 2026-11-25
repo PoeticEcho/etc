@@ -417,9 +417,21 @@ def main() -> int:
             page.wait_for_timeout(900)
             info = page.evaluate(V12_RISE) or {}
             label = f"{vw}×{vh}"
+            # 오늘처럼 모든 구간이 0단계(안전)면 올릴 단계가 없다 — 그때는 '오탐 0'을 본다.
+            # 기본 지표(살얼음)가 전부 0이고 가시거리만 올라 있으면, ▲ 검사는 그 지표로 바꿔 본다.
+            elevated = page.evaluate("""() => {
+              const l = window.__gdc.levels();
+              const has = (m) => Object.keys(l).some((k) => k.endsWith(m) && l[k] > 0);
+              return { fsm: has('fsm'), vir: has('vir'), metric: window.__gdc.state.routeMetric };
+            }""")
+            raised = bool(elevated.get("fsm") or elevated.get("vir"))
+            if raised and not elevated.get(elevated.get("metric")):
+                page.click(f'#routeMetric [data-rm="{"fsm" if elevated.get("fsm") else "vir"}"]')
+                page.wait_for_timeout(500)
+                info = page.evaluate(V12_RISE) or {}
             check(f"v12 {label} 상향 시나리오 성립(구간마다 ▲ 표식 하나)",
-                  info.get("rising", 0) > 0 and info.get("marks", 0) == info.get("rising", 0),
-                  f"상향 카드 {info.get('rising')} · 지도 표식 {info.get('marks')}")
+                  (info.get("rising", 0) > 0 if raised else True) and info.get("marks", 0) == info.get("rising", 0),
+                  f"상향 카드 {info.get('rising')} · 지도 표식 {info.get('marks')}" + ("" if raised else " · 전 구간 0단계"))
             check(f"v12 {label} 구간 카드 ▲ 는 카드당 제목 줄 한 곳뿐",
                   all(p == "1:0" for p in info.get("perCard") or ["x"])
                   and info.get("zrise") == info.get("rising") and info.get("rup") == 0,
