@@ -43,7 +43,7 @@ const rwisCacheScope = () => getApiBase() || '__same_origin__';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
-const LEVEL_COLORS = ['#38bdf8', '#facc15', '#fb923c', '#f43f5e'];
+const LEVEL_COLORS = ['#38dbf8', '#facc15', '#fb923c', '#f43f5e'];
 const PROV_FILL = {
   '경상남도': '#122943',
   '경상북도': '#10243a',
@@ -444,7 +444,7 @@ function renderCorridorMap(enriched) {
       if (!obs || !Number.isFinite(obs.roadTemp)) continue;
       const q = G.map(mapX(stn.lon), mapY(stn.lat));
       const tr = obs.roadTemp;
-      const pillCol = tr <= 0.5 ? '#f43f5e' : tr <= 2.5 ? '#fb923c' : '#38bdf8';
+      const pillCol = tr <= 0.5 ? '#f43f5e' : tr <= 2.5 ? '#fb923c' : '#38dbf8';
       const off = STN_OFFSETS[stn.stnId] || { dx: 0, dy: -44 };
       const px = Math.max(78, Math.min(G.w - 78, q.x + off.dx));
       const py = Math.max(G.rect.y + 22, Math.min(G.rect.y + G.rect.h - 20, q.y + off.dy));
@@ -789,6 +789,8 @@ function renderShort6Tab() {
       shortTerm13: state.shortTerm13,
       warningsPayload: state.warningsPayload,
       warningHistory: state.warningHistory,
+      roadStations: state.roadStations,
+      roadRisk: state.roadRisk,
       nowMs: Date.now()
     });
     const warnOk = Boolean(state.warningsPayload?.ok);
@@ -854,35 +856,51 @@ function renderShort6Tab() {
       : `<span class="s6-tag-dry">최대 ${sum24.maxPop}%</span>`;
 
     html += `<a class="rwis-s6-row" href="./hourly.html" title="${esc(r.county)} ${esc(r.name)} 1시간 상세 시간표 보기">`;
-    html += `<div class="s6-name"><span class="s6-cbar" style="background:${esc(r.color || '#38bdf8')}"></span><div class="s6-geo"><div class="s6-geo-main">${esc(r.county)} ${esc(r.name)}</div><div class="s6-geo-sub">${esc(r.admin)} · ${routeIndex}/${rows.length}</div></div></div>`;
+    html += `<div class="s6-name"><span class="s6-cbar" style="background:${esc(r.color || '#38dbf8')}"></span><div class="s6-geo"><div class="s6-geo-main">${esc(r.county)} ${esc(r.name)}</div><div class="s6-geo-sub">${esc(r.admin)} · ${routeIndex}/${rows.length}</div></div></div>`;
     html += `<div class="s6-sum"><div class="s6-sum-line"><span class="${sum24.wetHours > 0 ? 's6-tag-wet' : 's6-tag-dry'}">${esc(wetTxt)}</span><span class="${sum24.freezingHours > 0 ? 's6-tag-frz' : 's6-tag-dry'}">${esc(frzTxt)}</span></div><div class="s6-sum-line"><span style="color:#dbeafe;">${esc(rangeTxt)}</span>${botRight}</div></div>`;
 
     for (let j = 0; j < headerHours.length; j++) {
       const h = cells6[j];
       if (!h) {
-        html += '<div class="s6-cell"><div class="s6-c1"><span class="s6-temp">—</span></div><div class="s6-c2">-</div></div>';
+        html += '<div class="s6-cell"><div class="s6-c1"><span class="s6-temp">—</span></div><div class="s6-c2 is-quiet">·</div></div>';
         continue;
       }
       const iconInfo = getKmaIconInfo({ sky: h.sky, pty: h.pty, isNight: h.isNight, lightning: h.lightning });
       const isSnow = h.wet && (h.snowCm > 0 || ['2', '3', '6', '7'].includes(String(h.pty)));
       const isSubzero = h.temp != null && h.temp < 0;
       const isOverlap = h.wet && isSubzero;
+      const popVal = Number(h.pop ?? 0);
+      const isHighPop = !h.wet && popVal >= 40;
       const cellCls = [
         's6-cell',
         h.isNight ? 'is-night' : '',
         isSnow ? 'is-snow' : (h.wet ? 'is-wet' : ''),
+        isHighPop ? 'is-highpop' : '',
         isSubzero ? 'is-subzero' : '',
         isOverlap ? 'is-overlap' : ''
       ].filter(Boolean).join(' ');
 
       const tempTxt = h.temp != null ? `${Math.round(h.temp)}°` : '—';
-      const subTxt = h.snowCm > 0
-        ? `${h.snowCm}cm`
-        : h.rainMm > 0
-          ? `${h.rainMm.toFixed(1)}mm`
-          : `${h.pop ?? 0}%`;
+      let subTxt = '·';
+      let subCls = 'is-quiet';
+      if (h.snowCm > 0) {
+        subTxt = `${h.snowCm}cm`;
+        subCls = 'has-amt';
+      } else if (h.rainMm > 0) {
+        subTxt = `${h.rainMm.toFixed(1)}mm`;
+        subCls = 'has-amt';
+      } else if (h.wet) {
+        subTxt = `${popVal || 60}%`;
+        subCls = 'has-amt';
+      } else if (popVal >= 40) {
+        subTxt = `${popVal}%`;
+        subCls = 'is-highpop';
+      } else if (popVal > 0) {
+        subTxt = `${popVal}%`;
+        subCls = 'is-quiet';
+      }
 
-      html += `<div class="${cellCls}"><div class="s6-c1">${renderKmaIconSvg(iconInfo, 19)}<span class="s6-temp">${esc(tempTxt)}</span></div><div class="s6-c2 ${h.wet ? 'has-amt' : ''}">${esc(subTxt)}</div></div>`;
+      html += `<div class="${cellCls}"><div class="s6-c1">${renderKmaIconSvg(iconInfo, 20)}<span class="s6-temp">${esc(tempTxt)}</span></div><div class="s6-c2 ${subCls}">${esc(subTxt)}</div></div>`;
     }
     html += '</a>';
   }
@@ -1204,9 +1222,11 @@ function renderAll() {
       shortTerm13: state.shortTerm13,
       warningsPayload: state.warningsPayload,
       warningHistory: state.warningHistory,
+      roadStations: state.roadStations,
+      roadRisk: state.roadRisk,
       nowMs: Date.now()
     });
-    const hasUrgent = maxLv >= 2 || cards.some(c => c.tone === 'crit' || c.category === 'warning-issued');
+    const hasUrgent = maxLv >= 2 || cards.some(c => c.tone === 'crit' || c.category === 'warning-issued' || c.category === 'measured-presalt');
     tvGuard.setAlertActive(hasUrgent);
   }
 }

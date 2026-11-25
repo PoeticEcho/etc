@@ -1,9 +1,12 @@
-// 30분 이상 API 호출 연속 실패 시 중앙 "! 통합인증 로그인을 확인해 주세요" 안내 모듈
-// (새벽 04~05시 사내 네트워크 단절 / 통합인증 세션 만료 대응 · 전 페이지 공유)
+// 실시간 데이터 10분 이상 미갱신 또는 API 연속 실패 시 중앙 안내 팝업 모듈
+// (새벽 04~05시 사내 네트워크 단절 · 통합인증 세션 만료 · 인터넷 접속 이상 대응 · 전 페이지 공유)
 
 export const NET_HEALTH_KEY = 'weather-watch:net-health:v1';
-export const AUTH_ALERT_THRESHOLD_MS = 30 * 60 * 1000; // 30분 누적 실패 기준
+export const STALE_DATA_THRESHOLD_MS = 10 * 60 * 1000; // 실시간 데이터 10분 이상 미갱신 기준
+export const AUTH_ALERT_THRESHOLD_MS = 10 * 60 * 1000; // API 연속 실패 누적 10분 기준
 export const STREAK_GAP_RESET_MS = 20 * 60 * 1000;     // 20분 이상 공백(절전/종료 후 재실행) 시 새 카운트
+export const STALE_MAX_WINDOW_MS = 12 * 3600 * 1000;   // 12시간 이상 지난 구기록은 초기 진입 오알람 방지
+export const BOOT_GRACE_MS = 90 * 1000;                // 페이지 최초 진입 90초간 로딩 유예
 export const AUTH_ALERT_SNOOZE_MS = 10 * 60 * 1000;    // 임시 닫기 시 10분 후 재표출
 
 function defaultState() {
@@ -99,25 +102,64 @@ export function snoozeNetHealthAlert(nowMs = Date.now(), snoozeMs = AUTH_ALERT_S
 
 export function evaluateAuthAlert(state, nowMs = Date.now(), options = {}) {
   const thresholdMs = Number.isFinite(options.thresholdMs) ? options.thresholdMs : AUTH_ALERT_THRESHOLD_MS;
+  const staleThresholdMs = Number.isFinite(options.staleThresholdMs) ? options.staleThresholdMs : STALE_DATA_THRESHOLD_MS;
   const gapResetMs = Number.isFinite(options.gapResetMs) ? options.gapResetMs : STREAK_GAP_RESET_MS;
-  if (!state || !Number.isFinite(state.firstFailedAtMs) || !Number.isFinite(state.lastFailedAtMs)) {
-    return { shouldAlert: false, isFailing: false, elapsedMs: 0, elapsedMinutes: 0, snoozed: false };
+  const bootGraceMs = Number.isFinite(options.bootGraceMs) ? options.bootGraceMs : BOOT_GRACE_MS;
+  const sessionStartMs = Number.isFinite(options.sessionStartMs) ? options.sessionStartMs : null;
+
+  if (!state) {
+    return { shouldAlert: false, isFailing: false, reason: null, elapsedMs: 0, elapsedMinutes: 0, snoozed: false };
   }
-  // 마지막 실패 후 장시간 경과(절전 복귀 등)했다면 과거 실패 기록으로 오알람 방지
-  if (nowMs - state.lastFailedAtMs > gapResetMs) {
-    return { shouldAlert: false, isFailing: false, elapsedMs: 0, elapsedMinutes: 0, snoozed: false };
-  }
-  const elapsedMs = Math.max(0, nowMs - state.firstFailedAtMs);
-  const elapsedMinutes = Math.floor(elapsedMs / 60000);
-  const thresholdReached = elapsedMs >= thresholdMs && (state.consecutiveFailures || 0) >= 2;
+
   const snoozed = Number.isFinite(state.snoozedUntilMs) && nowMs < state.snoozedUntilMs;
+
+  // 1) API 호출 연속 실패 누적 판정 (절전 공백 > gapResetMs 시 오알람 방지)
+  if (
+    Number.isFinite(state.firstFailedAtMs) &&
+    Number.isFinite(state.lastFailedAtMs) &&
+    nowMs - state.lastFailedAtMs <= gapResetMs
+  ) {
+    const elapsedMs = Math.max(0, nowMs - state.firstFailedAtMs);
+    const elapsedMinutes = Math.floor(elapsedMs / 60000);
+    const thresholdReached = elapsedMs >= thresholdMs && (state.consecutiveFailures || 0) >= 2;
+    if (thresholdReached) {
+      return {
+        shouldAlert: !snoozed,
+        isFailing: true,
+        reason: 'api-failure',
+        thresholdReached: true,
+        snoozed,
+        elapsedMs,
+        elapsedMinutes
+      };
+    }
+  }
+
+  // 2) 실시간 데이터 미갱신(10분 이상) 판정 — 페이지 최초 진입 로딩 유예(90초) 후 체크
+  const pastBootGrace = sessionStartMs === null || (nowMs - sessionStartMs >= bootGraceMs);
+  if (pastBootGrace && Number.isFinite(state.lastSuccessAtMs)) {
+    const staleMs = Math.max(0, nowMs - state.lastSuccessAtMs);
+    if (staleMs >= staleThresholdMs && staleMs <= STALE_MAX_WINDOW_MS) {
+      return {
+        shouldAlert: !snoozed,
+        isFailing: (state.consecutiveFailures || 0) > 0,
+        reason: 'data-stale',
+        thresholdReached: true,
+        snoozed,
+        elapsedMs: staleMs,
+        elapsedMinutes: Math.floor(staleMs / 60000)
+      };
+    }
+  }
+
   return {
-    shouldAlert: thresholdReached && !snoozed,
-    isFailing: (state.consecutiveFailures || 0) > 0,
-    thresholdReached,
+    shouldAlert: false,
+    isFailing: (state.consecutiveFailures || 0) > 0 && Number.isFinite(state.lastFailedAtMs) && (nowMs - state.lastFailedAtMs <= gapResetMs),
+    reason: null,
+    thresholdReached: false,
     snoozed,
-    elapsedMs,
-    elapsedMinutes
+    elapsedMs: 0,
+    elapsedMinutes: 0
   };
 }
 
@@ -150,6 +192,11 @@ function ensureModalDom(onRetry) {
         padding: 24px;
         background: rgba(6, 13, 24, 0.78);
         backdrop-filter: blur(6px);
+        animation: netAuthFadeIn 0.35s ease-out;
+      }
+      @keyframes netAuthFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
       .net-auth-overlay[hidden] { display: none !important; }
       .net-auth-card {
@@ -162,6 +209,11 @@ function ensureModalDom(onRetry) {
         box-shadow: 0 28px 80px rgba(0, 0, 0, 0.65), 0 0 0 6px rgba(248, 113, 113, 0.22);
         text-align: center;
         font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+        animation: netAuthPopIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @keyframes netAuthPopIn {
+        from { opacity: 0; transform: translateY(10px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
       }
       .net-auth-badge {
         display: inline-flex;
@@ -214,11 +266,11 @@ function ensureModalDom(onRetry) {
       .net-auth-btn-primary {
         padding: 12px 24px;
         border-radius: 12px;
-        border: 1.5px solid #38bdf8;
-        background: #0ea5e9;
+        border: 1.5px solid #38dbf8;
+        background: #38dbf8;
         color: #031525;
         font-size: clamp(14px, 1.15vw, 17px);
-        font-weight: 800;
+        font-weight: 850;
         cursor: pointer;
       }
       .net-auth-btn-primary:hover { filter: brightness(1.08); }
@@ -251,10 +303,10 @@ function ensureModalDom(onRetry) {
   el.innerHTML = `
     <div class="net-auth-card">
       <div class="net-auth-badge" aria-hidden="true">!</div>
-      <h2 id="netAuthAlertTitle" class="net-auth-title">! 통합인증 로그인을 확인해 주세요</h2>
-      <p class="net-auth-desc">
-        기상·도로정보 API 호출이 <b>30분 이상</b> 연속 실패하고 있습니다.<br>
-        새벽(04~05시) 사내 네트워크 단절 또는 통합인증 세션 만료 여부를 확인한 뒤 다시 연결해 주세요.
+      <h2 id="netAuthAlertTitle" class="net-auth-title">! 통합인증 로그인 · 인터넷 접속을 확인해 주세요</h2>
+      <p id="netAuthAlertDesc" class="net-auth-desc">
+        실시간 기상·도로 데이터가 <b>10분 이상</b> 업데이트되지 않았습니다.<br>
+        사내 통합인증 로그인 만료 여부 또는 인터넷 접속 상태를 확인한 뒤 다시 연결해 주세요.
       </p>
       <div id="netAuthAlertMeta" class="net-auth-meta"></div>
       <div class="net-auth-actions">
@@ -279,20 +331,38 @@ function ensureModalDom(onRetry) {
   return el;
 }
 
+let monitorSessionStartMs = Date.now();
+
 export function syncAuthAlertModal(nowMs = Date.now()) {
   if (typeof document === 'undefined') return null;
   const state = readNetHealthState();
-  const verdict = evaluateAuthAlert(state, nowMs);
+  const verdict = evaluateAuthAlert(state, nowMs, { sessionStartMs: monitorSessionStartMs });
   const modal = document.getElementById('netAuthAlertModal');
   if (!modal) return verdict;
 
   if (verdict.shouldAlert) {
+    const titleEl = modal.querySelector('#netAuthAlertTitle');
+    const descEl = modal.querySelector('#netAuthAlertDesc');
+    if (titleEl && descEl) {
+      if (verdict.reason === 'api-failure') {
+        titleEl.textContent = '! 통합인증 로그인 · 인터넷 접속을 확인해 주세요';
+        descEl.innerHTML = '기상·도로정보 API 호출이 <b>10분 이상</b> 연속 실패하고 있습니다.<br>사내 네트워크 단절, 인터넷 접속 상태 또는 통합인증 로그인 만료 여부를 확인한 뒤 다시 연결해 주세요.';
+      } else {
+        titleEl.textContent = '! 실시간 데이터 10분 이상 미갱신 — 접속 확인 필요';
+        descEl.innerHTML = '실시간 기상·도로 데이터가 <b>10분 이상</b> 업데이트되지 않았습니다.<br>통합인증 로그인 세션 만료 또는 인터넷 접속 상태를 확인한 뒤 다시 연결해 주세요.';
+      }
+    }
     const meta = modal.querySelector('#netAuthAlertMeta');
     if (meta) {
-      const parts = [
-        `<span>연속 실패 <b>${verdict.elapsedMinutes}분</b> (${state.consecutiveFailures}회)</span>`,
-        `<span>마지막 정상 수신: <b>${formatKstShort(state.lastSuccessAtMs)}</b></span>`
-      ];
+      const parts = verdict.reason === 'api-failure'
+        ? [
+            `<span>연속 실패 <b>${verdict.elapsedMinutes}분</b> (${state.consecutiveFailures}회)</span>`,
+            `<span>마지막 정상 수신: <b>${formatKstShort(state.lastSuccessAtMs)}</b></span>`
+          ]
+        : [
+            `<span>실시간 미갱신 <b>${verdict.elapsedMinutes}분 경과</b></span>`,
+            `<span>마지막 정상 수신: <b>${formatKstShort(state.lastSuccessAtMs)}</b></span>`
+          ];
       if (state.lastError) {
         const safeErr = state.lastError.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
         parts.push(`<span>최근 상태: ${safeErr}</span>`);
@@ -320,6 +390,7 @@ export function reportApiFailure(source = '', errorMsg = '', nowMs = Date.now())
 
 export function mountNetHealthMonitor({ onRetry } = {}) {
   if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+  monitorSessionStartMs = Date.now();
   ensureModalDom(onRetry);
   syncAuthAlertModal();
   if (!mountedMonitor) {

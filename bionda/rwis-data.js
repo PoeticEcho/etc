@@ -546,14 +546,176 @@ export function alignShortTerm6hMatrix(shortTerm13) {
   return { headerHours, rows };
 }
 
+// 관할(95~176k) vs 서쪽 선행지표(50~86k) 도로기상관측소 메타
+const CORRIDOR_STN_IDS = new Set(['14206', '14409', '14207', '14208', '14209', '14103', '14410']);
+const WEST_LEAD_STN_IDS = new Set(['14205', '14407', '14102', '14408']);
+const STN_TO_REGION_IDS = {
+  '14206': ['hamyang', 'jigok'],
+  '14409': ['sudong'],
+  '14207': ['namsang'],
+  '14208': ['gajo', 'geochang'],
+  '14209': ['daegaya', 'seongsan'],
+  '14103': ['okpo', 'seongsan'],
+  '14410': ['okpo'],
+  '14205': ['hamyang'],
+  '14407': ['hamyang'],
+  '14102': ['hamyang'],
+  '14408': ['hamyang']
+};
+
 /**
- * 상단 [특이사항 속보] 카드 생성 (24시간 이내 특이사항 + 5개 지역 특보 묶음 규칙)
+ * 실측 도로기상관측소(TR1·기온·노면상태) + 012 도로위험 + 단기예보 기반
+ * 한국도로공사 [예비살포 조건 도달] 자동 판정
+ * - 기준 1: 실측 결빙·적설(surfaceCode 5·6) 또는 서리(4)+노면≤2℃
+ * - 기준 2: 대기 ≤ 4℃(미측정 시 허용) & 노면(TR1) ≤ 2℃ & 습윤/강수/안개/결빙 우려(노면 습윤·강수·012 주의 이상·2h내 강수시작)
+ * - 기준 3: 새벽(00~08시 KST) 영하→0℃ 상승 어는비 우려 + 노면 ≤ 2℃
+ */
+export function evaluateMeasuredPresaltAlerts({ roadStations = [], roadRisk = null, shortTerm13 = null, nowMs = Date.now() } = {}) {
+  const corridorHits = [];
+  const westLeadHits = [];
+  if (!Array.isArray(roadStations) || !roadStations.length) {
+    return { corridorHits, westLeadHits };
+  }
+
+  const kstHour = new Date(nowMs + 9 * 3600000).getUTCHours();
+  const isDawnWindow = kstHour >= 0 && kstHour <= 8;
+  const stnRisks = roadRisk?.stationRisks || {};
+  const regionMap = new Map((shortTerm13?.regions || []).map(r => [String(r.id), r]));
+
+  for (const s of roadStations) {
+    if (!s?.stnId) continue;
+    const id = String(s.stnId);
+    const isCorridor = CORRIDOR_STN_IDS.has(id);
+    const isWestLead = WEST_LEAD_STN_IDS.has(id);
+    if (!isCorridor && !isWestLead) continue;
+
+    const tr = Number.isFinite(s.roadTemp) ? s.roadTemp : null;
+    const ta = Number.isFinite(s.temp) ? s.temp : null;
+    const sc = Number.isFinite(s.surfaceCode) ? s.surfaceCode : Number(s.surfaceCode || 0);
+    const sr = stnRisks[id] || null;
+    const iceLv = Number(sr?.iceLevel || 0);
+    const fogLv = Number(sr?.fogLevel || 0);
+
+    // 인접 13개소 예보에서 향후 2시간 내 강수 시작 / 새벽 영하→0℃ 어는비 여부 확인
+    const nearRegions = (STN_TO_REGION_IDS[id] || []).map(rid => regionMap.get(rid)).filter(Boolean);
+    let rainSoon = false;
+    let dawnFreezingRain = false;
+    for (const r of nearRegions) {
+      const hrs = Array.isArray(r.hours) ? r.hours : [];
+      const h0 = hrs[0], h1 = hrs[1], h2 = hrs[2];
+      if (h0?.wet || h1?.wet || h2?.wet) rainSoon = true;
+      if (isDawnWindow && h0 && h1) {
+        const warmingNearZero =
+          Number.isFinite(h0.temp) && Number.isFinite(h1.temp) &&
+          h0.temp < 0 && h1.temp >= h0.temp && h1.temp <= 1.5;
+        if (warmingNearZero && (h0.wet || h1.wet)) dawnFreezingRain = true;
+      }
+    }
+
+    const wetOrPrecip = (sc >= 2 && sc <= 6) || (Number.isFinite(s.dayPrecip) && s.dayPrecip > 0) || rainSoon;
+    const riskHigh = iceLv >= 2 || fogLv >= 2;
+    const airOk = ta === null || ta <= 4.0;
+    const roadCold = tr !== null && tr <= 2.0;
+
+    let reason = '';
+    let severity = 0; // 2=crit(결빙/적설 또는 노면≤0.5), 1=warn(예비살포)
+
+    if (sc === 5 || sc === 6) {
+      reason = sc === 5 ? '실측 결빙 감지' : '실측 적설·슬러시';
+      severity = 2;
+    } else if (sc === 4 && roadCold) {
+      reason = '노면 서리·≤2℃';
+      severity = 2;
+    } else if (dawnFreezingRain && roadCold) {
+      reason = '새벽(00~08시) 어는비 우려';
+      severity = 2;
+    } else if (roadCold && airOk && (wetOrPrecip || riskHigh)) {
+      reason = sc >= 2 ? `노면 ${s.surfaceState || '습윤'}·≤2℃` : rainSoon ? '노면≤2℃·강수임박' : '노면≤2℃·012위험';
+      severity = tr <= 0.5 || iceLv >= 3 ? 2 : 1;
+    }
+
+    if (!reason) continue;
+
+    const hit = {
+      stnId: id,
+      name: String(s.name || id).replace(/\(도\)$/, ''),
+      roadTemp: tr,
+      airTemp: ta,
+      surfaceCode: sc,
+      surfaceState: s.surfaceState && s.surfaceState !== '관측중' ? s.surfaceState : '',
+      reason,
+      severity
+    };
+    if (isCorridor) corridorHits.push(hit);
+    else westLeadHits.push(hit);
+  }
+
+  const byColdest = (a, b) => (a.roadTemp ?? 99) - (b.roadTemp ?? 99);
+  corridorHits.sort(byColdest);
+  westLeadHits.sort(byColdest);
+  return { corridorHits, westLeadHits };
+}
+
+/**
+ * 상단 [특이사항 속보] 카드 생성 (실측 예비살포 + 24시간 이내 특이사항 + 5개 지역 특보 묶음 규칙)
+ * - 최우선: 실측 도로관측 기반 예비살포 조건 도달 (관할 95~176k & 서쪽 선행 50~86k)
  * - 6시간 이내: 강수+영하 겹침 / 주의보·경보 발표 / 특보 발효 해제 / 강우·강설 예고 / 영하 진입
  * - 6~24시간 이내 예고: 야간/익일 결빙·강수·영하 진입 미리 알림
  * - 5개 지역 특보 묶음: 1개 지역=1장, 2개 지역=각각 2장, 3개 이상=1장 묶음
  */
-export function buildSpecialBulletinCards({ shortTerm13 = null, warningsPayload = null, warningHistory = null, nowMs = Date.now() } = {}) {
+export function buildSpecialBulletinCards({
+  shortTerm13 = null,
+  warningsPayload = null,
+  warningHistory = null,
+  roadStations = [],
+  roadRisk = null,
+  nowMs = Date.now()
+} = {}) {
   const cards = [];
+
+  // 0. 실측 도로기상관측소 기반 [예비살포 조건 도달] 카드 (관할 95~176k + 서쪽 선행 50~86k)
+  const presalt = evaluateMeasuredPresaltAlerts({ roadStations, roadRisk, shortTerm13, nowMs });
+  if (presalt.corridorHits.length) {
+    const top = presalt.corridorHits[0];
+    const hasCrit = presalt.corridorHits.some(h => h.severity >= 2);
+    const names = summarizeRegionNames(presalt.corridorHits.map(h => h.name), 3);
+    const trStr = top.roadTemp !== null ? `노면 ${top.roadTemp.toFixed(1)}°C` : '';
+    const taStr = top.airTemp !== null ? `대기 ${top.airTemp.toFixed(1)}°C` : '';
+    const tempMeta = [trStr, taStr, top.reason].filter(Boolean).join(' · ');
+    cards.push({
+      id: 'measured-presalt-corridor',
+      category: 'measured-presalt',
+      priority: 3,
+      tone: hasCrit ? 'crit' : 'warn',
+      icon: '🧂',
+      badge: '실측 제설판단',
+      title: presalt.corridorHits.length === 1
+        ? `예비살포 조건 도달 · ${top.name}`
+        : `예비살포 조건 도달 · ${presalt.corridorHits.length}개소`,
+      detail: `${names} (${tempMeta}) · 예비살포 지시 검토`,
+      count: presalt.corridorHits.length,
+      regions: presalt.corridorHits.map(h => h.name)
+    });
+  }
+  if (presalt.westLeadHits.length) {
+    const top = presalt.westLeadHits[0];
+    const names = summarizeRegionNames(presalt.westLeadHits.map(h => h.name), 3);
+    const trStr = top.roadTemp !== null ? `노면 ${top.roadTemp.toFixed(1)}°C` : '';
+    const taStr = top.airTemp !== null ? `대기 ${top.airTemp.toFixed(1)}°C` : '';
+    const tempMeta = [trStr, taStr, top.reason].filter(Boolean).join(' · ');
+    cards.push({
+      id: 'measured-presalt-westlead',
+      category: 'measured-presalt-west',
+      priority: 7,
+      tone: 'warn',
+      icon: '🧂',
+      badge: '서쪽 선행(50~86k)',
+      title: `서쪽 선행구간 결빙·예비살포 감지 · ${presalt.westLeadHits.length}개소`,
+      detail: `${names} (${tempMeta}) · 서→동 유입 대비`,
+      count: presalt.westLeadHits.length,
+      regions: presalt.westLeadHits.map(h => h.name)
+    });
+  }
 
   // 1. 5개 관할 지역 기상특보 발표 / 발효 중
   const warnByRegion = extractRegionWarningsMap(warningsPayload);

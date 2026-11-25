@@ -735,5 +735,5 @@ export function classifySeverityTier({ w = null, o = null, wrn = null, roadRisk 
   if ((wrn?.count || 0) > 0 || nowWet || surfaceCode === 2 || surfaceCode === 3 || roadIce === 1 || roadFog === 1) {
     return { tier: 1, key: 'watch', cls: 'tier-watch', pinColor: '#eab308', ringColor: 'rgba(234,179,8,0.34)', label: '관심' };
   }
-  return { tier: 0, key: 'calm', cls: 'tier-calm', pinColor: '#10b981', ringColor: 'rgba(16,185,129,0.28)', label: '평온' };
+  return { tier: 0, key: 'calm', cls: 'tier-calm', pinColor: '#38dbf8', ringColor: 'rgba(56,219,248,0.28)', label: '평온' };
 }

@@ -70,7 +70,7 @@ body.rwis-page .top-header {
   box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.22);
 }
 .rwis-stamp-pill.is-cached .dot-live {
-  background: #38bdf8;
+  background: #38dbf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
 }
 .rwis-stamp-pill.is-error .dot-live {
@@ -225,12 +225,12 @@ body.rwis-page .top-header {
   text-align: left;
 }
 .rwis-zone-card:hover {
-  border-color: #38bdf8;
+  border-color: #38dbf8;
   background: #12243b;
   transform: translateY(-1px);
 }
 .rwis-zone-card.is-selected {
-  border-color: #38bdf8;
+  border-color: #38dbf8;
   box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
   background: #132842;
 }
@@ -374,7 +374,7 @@ body.rwis-page .top-header {
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
-.rk-val.c-0 { color: #38bdf8; }
+.rk-val.c-0 { color: #38dbf8; }
 .rk-val.c-1 { color: #fde047; }
 .rk-val.c-2 { color: #fb923c; }
 .rk-val.c-3 { color: #fb7185; }
@@ -408,7 +408,7 @@ body.rwis-page .top-header {
 }
 .rwis-side-tab[aria-selected="true"] {
   background: #164e63;
-  border-color: #38bdf8;
+  border-color: #38dbf8;
   color: #fff;
 }
 
@@ -620,9 +620,9 @@ body.rwis-page .top-header {
 }
 .s6-geo { min-width: 0; }
 .s6-geo-main {
-  font-size: 12px;
+  font-size: 12.6px;
   font-weight: 850;
-  color: #f1f7ff;
+  color: #f4f9ff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -633,18 +633,18 @@ body.rwis-page .top-header {
   font-weight: 650;
   color: #7c9fc2;
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 .s6-sum {
-  padding: 4px 5px;
+  padding: 3px 5px;
   border-left: 1px solid rgba(31, 53, 80, 0.65);
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 750;
-  line-height: 1.18;
+  line-height: 1.16;
   font-variant-numeric: tabular-nums;
 }
 .s6-sum-line {
@@ -654,10 +654,10 @@ body.rwis-page .top-header {
   gap: 3px;
   white-space: nowrap;
 }
-.s6-tag-wet { color: #38bdf8; font-weight: 850; }
-.s6-tag-frz { color: #93c5fd; font-weight: 850; }
+.s6-tag-wet { color: #60a5fa; font-weight: 900; }
+.s6-tag-frz { color: #a5b4fc; font-weight: 900; }
 .s6-tag-ovl { color: #fb7185; font-weight: 900; }
-.s6-tag-dry { color: #8ea9c4; }
+.s6-tag-dry { color: #82a0be; }
 .s6-cell {
   border-left: 1px solid rgba(31, 53, 80, 0.55);
   padding: 3px 2px;
@@ -669,10 +669,11 @@ body.rwis-page .top-header {
   font-variant-numeric: tabular-nums;
 }
 .s6-cell.is-night { background: rgba(7, 15, 29, 0.45); }
-.s6-cell.is-subzero { background: rgba(30, 58, 138, 0.34); }
-.s6-cell.is-wet { background: rgba(2, 132, 199, 0.24); }
-.s6-cell.is-snow { background: rgba(56, 189, 248, 0.28); }
-.s6-cell.is-overlap { background: rgba(225, 29, 72, 0.32); }
+.s6-cell.is-highpop { background: rgba(37, 99, 235, 0.16); }
+.s6-cell.is-subzero { background: rgba(67, 56, 202, 0.34); }
+.s6-cell.is-wet { background: rgba(37, 99, 235, 0.30); }
+.s6-cell.is-snow { background: rgba(79, 70, 229, 0.36); }
+.s6-cell.is-overlap { background: rgba(225, 29, 72, 0.36); }
 .s6-c1 {
   display: inline-flex;
   align-items: center;
@@ -680,21 +681,33 @@ body.rwis-page .top-header {
   line-height: 1;
 }
 .s6-temp {
-  font-size: 13px;
-  font-weight: 850;
-  color: #f1f7ff;
+  font-size: 14.5px;
+  font-weight: 900;
+  color: #f8fbff;
 }
-.s6-cell.is-subzero .s6-temp { color: #93c5fd; }
+.s6-cell.is-subzero .s6-temp { color: #c7d2fe; }
 .s6-cell.is-overlap .s6-temp { color: #fda4af; }
 .s6-c2 {
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 750;
   color: #84a5c7;
   line-height: 1.1;
 }
+.s6-c2.is-quiet {
+  font-size: 10px;
+  font-weight: 650;
+  color: #6b89a8;
+  opacity: 0.52;
+}
+.s6-c2.is-highpop {
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #93c5fd;
+}
 .s6-c2.has-amt {
-  color: #7dd3fc;
-  font-weight: 850;
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #fde047;
 }
 
 .rwis-sec-head {
@@ -849,7 +862,7 @@ body.rwis-page .top-header {
 }
 .rwis-fchip[aria-pressed="true"] {
   background: #1d4e78;
-  border-color: #38bdf8;
+  border-color: #38dbf8;
   color: #fff;
 }
 .rwis-cctv-list {
@@ -868,7 +881,7 @@ body.rwis-page .top-header {
   gap: 8px;
 }
 .rwis-cctv-row:hover {
-  border-color: #38bdf8;
+  border-color: #38dbf8;
   background: #112238;
 }
 .rcr-info { min-width: 0; }
@@ -884,7 +897,7 @@ body.rwis-page .top-header {
 .rcr-km {
   font-size: 11.5px;
   font-weight: 800;
-  color: #38bdf8;
+  color: #38dbf8;
   font-variant-numeric: tabular-nums;
 }
 .rcr-addr {

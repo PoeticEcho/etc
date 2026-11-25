@@ -941,7 +941,7 @@ function renderMiniMap() {
     if (iceLv >= 3 || fogLv >= 3 || s.surfaceCode >= 4 || (s.roadTemp !== null && s.roadTemp <= 0.0)) return '#ef4444';
     if (iceLv === 2 || fogLv === 2 || s.surfaceCode === 3 || (s.roadTemp !== null && s.roadTemp <= 2.5)) return '#f97316';
     if (iceLv === 1 || fogLv === 1 || s.surfaceCode === 2 || (s.roadTemp !== null && s.roadTemp <= 4.5)) return '#eab308';
-    return '#10b981';
+    return '#38dbf8';
   };
 
   for (const stn of corridorStns) {
