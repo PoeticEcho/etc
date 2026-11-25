@@ -3,14 +3,14 @@
 body.rwis-page {
   background: #07111e;
   color: #e8f1fb;
-  padding-bottom: 18px;
+  padding-bottom: 6px;
   min-height: 100vh;
 }
 
 .rwis-wrap {
   max-width: 1920px;
   margin: 0 auto;
-  padding: 8px 14px 10px;
+  padding: 7px 14px 6px;
 }
 
 /* Header overrides for dark TV cockpit cohesion */
@@ -186,7 +186,7 @@ body.rwis-page .top-header {
   position: relative;
   width: 100%;
   background: #081322;
-  aspect-ratio: 16 / 7.0;
+  aspect-ratio: 16 / 6.75;
   overflow: hidden;
 }
 .rwis-map-stage svg {

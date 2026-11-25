@@ -1048,9 +1048,16 @@ export function buildZoneTempTrendSeries({ zone, roadTrend = null, shortTerm13 =
   const mapInfo = ZONE_INTEGRATION_MAP[zone?.suffix] || { stnIds: [], regionIds: [] };
   const trendStations = roadTrend?.stations || {};
   const trendTimes = Array.isArray(roadTrend?.times) ? roadTrend.times : [];
-  const candidateIds = [zone?.roadObs?.stationId, ...(mapInfo.stnIds || [])].filter(Boolean).map(String);
-  const pickedId = candidateIds.find(id => trendStations[id]) || candidateIds[0] || '';
-  const stnSeries = pickedId ? trendStations[pickedId] : null;
+  const candidateIds = [...new Set([zone?.roadObs?.stationId, ...(mapInfo.stnIds || [])].filter(Boolean).map(String))];
+  const hasAnyFinite = (arr) => Array.isArray(arr) && arr.some(Number.isFinite);
+  const trStnId = candidateIds.find(id => hasAnyFinite(trendStations[id]?.tr))
+    || candidateIds.find(id => trendStations[id])
+    || candidateIds[0]
+    || '';
+  // 교량 결빙감시 관측소(죽산천교 14409, 논공교 14410 등)는 TR1만 있고 TA가 null이므로 동일 구간의 기온 보유 관측소(남상졸음 14207, 논공휴 14103)로 자동 보완
+  const taStnId = candidateIds.find(id => hasAnyFinite(trendStations[id]?.ta)) || trStnId;
+  const trStnSeries = trStnId ? trendStations[trStnId] : null;
+  const taStnSeries = taStnId ? trendStations[taStnId] : null;
 
   const hoursWindow = Math.max(1, Number(roadTrend?.hours) || 6);
   const windowMs = hoursWindow * 3600000;
@@ -1085,8 +1092,8 @@ export function buildZoneTempTrendSeries({ zone, roadTrend = null, shortTerm13 =
 
   const liveTr = Number.isFinite(zone?.roadObs?.minRoadTemp) ? zone.roadObs.minRoadTemp : null;
   const liveTa = Number.isFinite(zone?.roadObs?.minAirTemp) ? zone.roadObs.minAirTemp : null;
-  const obsTr = buildObs(stnSeries?.tr, liveTr);
-  const obsTa = buildObs(stnSeries?.ta, liveTa);
+  const obsTr = buildObs(trStnSeries?.tr, liveTr);
+  const obsTa = buildObs(taStnSeries?.ta, liveTa);
 
   const fcstDelta = extractShortTermNearDelta(shortTerm13, mapInfo.regionIds || [], nowMs);
   const slopeTr = estimateRecentHourlySlope(obsTr);
@@ -1161,8 +1168,9 @@ export function buildZoneTempTrendSeries({ zone, roadTrend = null, shortTerm13 =
   };
 
   return {
-    stationId: pickedId,
-    stationName: stnSeries?.name || zone?.roadObs?.stationName || '',
+    stationId: trStnId,
+    stationName: trStnSeries?.name || zone?.roadObs?.stationName || '',
+    airStationName: taStnSeries?.name || '',
     tr: finalize(obsTr, predTr, curTr),
     ta: finalize(obsTa, predTa, curTa)
   };
