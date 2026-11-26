@@ -153,7 +153,9 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     };
   });
 
-  const peak = samples.reduce((a, b) => (b.rank > a.rank ? b : a), samples[0] || { rank: 0, level: '신호 없음' });
+  const peakIdx = samples.reduce((bestIdx, s, idx) => (s.rank > (samples[bestIdx]?.rank ?? -1) ? idx : bestIdx), 0);
+  const peak = samples[peakIdx] || { rank: 0, level: '신호 없음' };
+  const peakDisplayClock = peakIdx === 0 ? '현재' : ((peak.time || '').slice(11, 16) || '현재');
   const temps = samples.map(x => x.temp).filter(Number.isFinite);
   const minTempVal = temps.length ? Math.min(...temps) : null;
   const low = minTempVal !== null ? minTempVal.toFixed(1) + '°C' : '—';
@@ -175,13 +177,13 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
   ].filter(Boolean).join(' · ');
 
   const shortReason = peak.rank
-    ? `${(peak.time || '').slice(11, 16) || '현재'} ${peak.cause}`
+    ? `${peakDisplayClock} ${peak.cause}`
     : incomplete
     ? '일부 시간대 자료 부족'
     : '향후 6시간 결빙 위험 조건 없음 (정상)';
 
   const reason = peak.rank
-    ? `${(peak.time || '').slice(11, 16) || '현재'} ${peak.cause} (최저 ${low}) · ${evidence}`
+    ? `${peakDisplayClock} ${peak.cause} (최저 ${low}) · ${evidence}`
     : incomplete
     ? '일부 시간대에 필요한 모델값이 빠져 있습니다.'
     : `현재부터 6시간 뒤까지 최저 기온 ${low} (${evidence || '기상 정상'}). 검토한 시간대에서 결빙 관심 조건이 나타나지 않았습니다.`;
@@ -281,10 +283,11 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     }
   } else if (peak.rank === 1) {
     const watchIdx = Math.max(0, samples.findIndex(s => s.rank === 1));
-    const watchClock = (peak.time || '').slice(11, 16) || '야간';
-    const preheatClock = addHoursClock(watchClock, -3);
+    const watchRawClock = (samples[watchIdx]?.time || peak.time || '').slice(11, 16);
+    const watchClock = watchIdx === 0 ? '현재' : (watchRawClock || '야간');
+    const preheatClock = watchRawClock ? addHoursClock(watchRawClock, -3) : '즉시';
     const watchHrs = Math.max(0, watchIdx - 3);
-    const preheatHr = preheatClock.slice(0, 2) + '시';
+    const preheatHr = preheatClock.includes(':') ? preheatClock.slice(0, 2) + '시' : preheatClock;
     snowActions.push({
       stage: 'watch',
       rank: 1,
@@ -676,8 +679,27 @@ export function evaluateStandbyReturnDirective({
   };
 }
 
-export const ROAD_RISK_LABELS = ['정보없음', '관심', '주의', '위험'];
+export const ROAD_RISK_LABELS = ['안전', '관심', '주의', '위험'];
 export const FOG_RISK_LABELS = ['안개없음', '관심', '주의', '위험'];
+
+export function normalizeRiskGrade(raw) {
+  if (raw === null || raw === undefined || raw === '') return null;
+  if (typeof raw === 'number') {
+    return Number.isInteger(raw) && raw >= 0 && raw <= 3 ? raw : null;
+  }
+  const str = String(raw).trim();
+  return /^[0-3]$/.test(str) ? Number(str) : null;
+}
+
+export function formatRoadIceLabel(raw) {
+  const g = normalizeRiskGrade(raw);
+  return g === null ? '정보 없음' : ROAD_RISK_LABELS[g];
+}
+
+export function formatRoadFogLabel(raw) {
+  const g = normalizeRiskGrade(raw);
+  return g === null ? '정보 없음' : FOG_RISK_LABELS[g];
+}
 
 /**
  * 기상청 도로 위험기상정보(0~3단계) 격상 판정: 0→2, 0→3, 1→2, 1→3, 2→3

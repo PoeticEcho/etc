@@ -23,6 +23,7 @@ import {
   reportApiFailure
 } from './net-health.js';
 import { mountTvGuard } from './tv-guard.js';
+import { mountIceAlertModal } from './ice-alert-modal.js';
 import {
   RWIS_MASTER,
   RWIS_ROUTE_GEO,
@@ -33,6 +34,9 @@ import {
   CORRIDOR_MAP_STATIONS,
   SHORT13_MAP_LOCATIONS,
   WATCH_WARNING_REGIONS,
+  ZONE_INTEGRATION_MAP,
+  indexStationRisks,
+  normalizeZoneGrade,
   enrichZonesWithBionda,
   updateWarningHistory,
   alignShortTerm6hMatrix,
@@ -296,6 +300,14 @@ function getZoneLevel(zone) {
   return bucket.max;
 }
 
+function getZoneRawLevel(zone) {
+  const bucket = state.metric === 'vir' ? zone.vir : zone.fsm;
+  if (!bucket || bucket.missing) return null;
+  if (state.dir === 'E') return bucket.rawE ?? bucket.E;
+  if (state.dir === 'S') return bucket.rawS ?? bucket.S;
+  return bucket.rawMax ?? bucket.max;
+}
+
 function getRwisCore() {
   if (!state.rwisStatus) return null;
   if (state.rwisStatus.rwis) return state.rwisStatus.rwis;
@@ -304,12 +316,14 @@ function getRwisCore() {
 }
 
 function getEnriched() {
-  const rwisZones = getRwisCore()?.zones || [];
+  const core = getRwisCore();
+  const rwisZones = core?.zones || [];
   return enrichZonesWithBionda({
     rwisZones,
     roadStations: state.roadStations,
     roadRisk: state.roadRisk,
-    shortTerm13: state.shortTerm13
+    shortTerm13: state.shortTerm13,
+    rwisTm: core?.tm || null
   });
 }
 
@@ -322,26 +336,42 @@ function renderCorridorMap(enriched) {
   const dirLabel = state.dir === 'E' ? '대구방향(상행)' : state.dir === 'S' ? '광주방향(하행)' : '양방향';
 
   const counts = [0, 0, 0, 0];
+  let missingZones = 0;
   let maxLv = 0;
   for (const z of enriched.zones) {
-    const lv = getZoneLevel(z);
-    counts[lv] = (counts[lv] || 0) + 1;
-    if (lv > maxLv) maxLv = lv;
+    const rawLv = getZoneRawLevel(z);
+    if (rawLv === null) {
+      missingZones++;
+      continue;
+    }
+    counts[rawLv] = (counts[rawLv] || 0) + 1;
+    if (rawLv > maxLv) maxLv = rawLv;
   }
 
   const rwisCore = getRwisCore();
   const rwisTmObj = rwisCore?.tm;
-  const rwisTmRaw = typeof rwisTmObj === 'string'
+  const frRaw = typeof rwisTmObj === 'string'
     ? rwisTmObj
-    : (state.metric === 'vir' ? (rwisTmObj?.VR || rwisTmObj?.FR) : (rwisTmObj?.FR || rwisTmObj?.VR));
+    : (rwisTmObj?.FR || state.roadRisk?.sources?.frgTmKst || state.roadRisk?.tmKst || '');
+  const vrRaw = typeof rwisTmObj === 'string'
+    ? ''
+    : (rwisTmObj?.VR || state.roadRisk?.sources?.fogTmKst || '');
+  const rwisTmRaw = state.metric === 'vir' ? (vrRaw || frRaw) : (frRaw || vrRaw);
   const effectiveRoadTm = state.roadObsTm || extractRoadObsTm(state.roadStations);
   const syncStamp = formatKstHm(state.lastSyncedAt) || formatKstHm(effectiveRoadTm) || formatKstHm(rwisTmRaw);
   const roadHm = effectiveRoadTm ? formatKstHm(effectiveRoadTm).slice(6) : '';
-  const rwisHm = rwisTmRaw ? formatKstHm(rwisTmRaw).slice(6) : '';
+  const frHm = frRaw ? formatKstHm(frRaw).slice(6) : '';
+  const vrHm = vrRaw ? formatKstHm(vrRaw).slice(6) : '';
   const roadAgeMin = Math.floor(getRoadObsAgeMs() / 60000);
   const baseBits = [];
   if (roadHm) baseBits.push(roadAgeMin >= 10 && Number.isFinite(roadAgeMin) ? `노면실측 ${roadHm} ⚠${roadAgeMin}분전` : `노면실측 ${roadHm}`);
-  if (rwisHm) baseBits.push(`RWIS ${rwisHm}`);
+  if (state.metric === 'vir') {
+    if (vrHm) baseBits.push(`가시거리 ${vrHm}`);
+    if (frHm && vrHm && frHm !== vrHm) baseBits.push(`살얼음 ${frHm}`);
+  } else {
+    if (frHm) baseBits.push(`RWIS ${frHm}`);
+    if (vrHm && frHm && vrHm !== frHm) baseBits.push(`안개 ${vrHm}`);
+  }
   const stampHeadline = syncStamp
     ? `갱신 ${syncStamp}${baseBits.length ? ` (${baseBits.join(' · ')})` : ''}`
     : '수신 중';
@@ -384,30 +414,35 @@ function renderCorridorMap(enriched) {
   out.push(`<rect x="0" y="0" width="${G.w}" height="${G.h}" fill="url(#rwPaper)"/>`);
 
   // Header strip inside SVG (TV crisp + PNG report ready · 상단 실시간 스탬프와 분 단위 완전 일치)
+  const headerDotCol = missingZones === enriched.zones.length ? '#64748b' : LEVEL_COLORS[maxLv];
   out.push(`<rect x="0" y="0" width="${G.w}" height="${G.head}" fill="#0a1626"/>`);
   out.push(`<line x1="0" y1="${G.head}" x2="${G.w}" y2="${G.head}" stroke="#1d3552" stroke-width="1.5"/>`);
-  out.push(`<circle cx="30" cy="24" r="5.5" fill="${LEVEL_COLORS[maxLv]}"/>`);
+  out.push(`<circle cx="30" cy="24" r="5.5" fill="${headerDotCol}"/>`);
   out.push(`<text x="46" y="30" fill="#e8f3ff" font-size="19.5" font-weight="800" letter-spacing="-0.3">${esc(srcName)} · ${esc(metricLabel)}</text>`);
   out.push(`<text x="46" y="53" fill="#8fb2d4" font-size="14.5" font-weight="650">${esc(stampHeadline)} · 함양IC 95.0 → 옥포JC 176.0km · 8개 구간 · ${esc(dirLabel)}</text>`);
 
   // Right-side TV level count pills inside SVG header
+  const allMissing = missingZones === enriched.zones.length;
   const chipSpecs = [
     { lv: 3, label: '위험', count: counts[3] },
     { lv: 2, label: '주의', count: counts[2] },
     { lv: 1, label: '관심', count: counts[1] },
-    { lv: 0, label: '안전', count: counts[0] }
+    { lv: 0, label: allMissing ? '미수신' : '안전', count: allMissing ? missingZones : counts[0], muted: allMissing }
   ];
   let cx = G.w - 28;
   for (let i = chipSpecs.length - 1; i >= 0; i--) {
     const cs = chipSpecs[i];
     const cw = 124;
     cx -= cw;
-    const col = LEVEL_COLORS[cs.lv];
-    const active = cs.count > 0;
+    const col = cs.muted ? '#64748b' : LEVEL_COLORS[cs.lv];
+    const active = cs.count > 0 && !cs.muted;
+    const blinkCls = active && cs.lv >= 3 ? ' class="rwis-zone-blink-danger"' : active && cs.lv === 2 ? ' class="rwis-zone-blink-caution"' : '';
+    out.push(`<g${blinkCls}>`);
     out.push(`<rect x="${cx}" y="12" width="${cw}" height="42" rx="10" fill="${active ? col : '#0f2035'}" fill-opacity="${active ? '0.2' : '0.85'}" stroke="${active ? col : '#263f5d'}" stroke-width="${active ? '2' : '1.2'}"/>`);
     out.push(`<circle cx="${cx + 20}" cy="33" r="5" fill="${col}"/>`);
     out.push(`<text x="${cx + 32}" y="39" fill="#d9e8f8" font-size="16" font-weight="800">${cs.label}</text>`);
     out.push(`<text x="${cx + cw - 14}" y="40" text-anchor="end" fill="${active ? col : '#7896b6'}" font-size="20" font-weight="900">${cs.count}</text>`);
+    out.push(`</g>`);
     cx -= 9;
   }
 
@@ -492,7 +527,7 @@ function renderCorridorMap(enriched) {
   const rwisRenderList = [];
   if (state.showRoadTemps && state.roadStations.length) {
     const stnMap = new Map(state.roadStations.map(s => [String(s.stnId), s]));
-    const stnRisks = state.roadRisk?.stationRisks || {};
+    const stnRisks = indexStationRisks(state.roadRisk);
     for (const stn of CORRIDOR_MAP_STATIONS) {
       const obs = stnMap.get(stn.stnId);
       if (!obs || (!Number.isFinite(obs.roadTemp) && !Number.isFinite(obs.temp))) continue;
@@ -504,7 +539,7 @@ function renderCorridorMap(enriched) {
       const anchorY = dock.row === 'top' ? dcy + CARD_H / 2 : dcy - CARD_H / 2;
 
       const tr = obs.roadTemp;
-      const iceLv = Number(stnRisks[stn.stnId]?.iceLevel) || 0;
+      const iceLv = normalizeZoneGrade(stnRisks.get(stn.stnId)?.iceLevel) ?? 0;
       const surfCode = Number(obs.surfaceCode) || 0;
       let barCol = '#38dbf8';
       let subCol = '#a7e8dc';
@@ -524,7 +559,7 @@ function renderCorridorMap(enriched) {
       }
 
       const lines = formatRwisCalloutLines(stn, obs);
-      rwisRenderList.push({ stn, q, dcx, dcy, anchorY, barCol, subCol, strokeCol, lines });
+      rwisRenderList.push({ stn, q, dcx, dcy, anchorY, barCol, subCol, strokeCol, lines, iceLv });
     }
   }
 
@@ -584,7 +619,7 @@ function renderCorridorMap(enriched) {
   }
   out.push('</g>');
 
-  // 5. Highway Corridor Zones (Bidirectional or Single-Direction)
+  // 5. Highway Corridor Zones (Bidirectional or Single-Direction · 상향 주의·위험 구간 점멸 및 결측 회색 분리)
   out.push('<g class="corridor-zones">');
   for (const zone of enriched.zones) {
     const rawPts = zonePoints(zone, G.base).map(p => G.map(p.x, p.y));
@@ -598,23 +633,28 @@ function renderCorridorMap(enriched) {
     if (state.dir === 'both') {
       const topPts = offsetPolyline(rawPts, -6.5);  // 위: 대구방향 상행 (E)
       const botPts = offsetPolyline(rawPts, 6.5);   // 아래: 광주방향 하행 (S)
-      const colE = LEVEL_COLORS[bucket.E] || LEVEL_COLORS[0];
-      const colS = LEVEL_COLORS[bucket.S] || LEVEL_COLORS[0];
-      if (bucket.E >= 2) {
-        out.push(`<path d="${polyPath(topPts)}" fill="none" stroke="${colE}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" opacity="0.34" filter="url(#rwGlow)"/>`);
+      const rawE = bucket.missing ? null : (bucket.rawE ?? bucket.E);
+      const rawS = bucket.missing ? null : (bucket.rawS ?? bucket.S);
+      const colE = rawE === null ? '#475569' : (LEVEL_COLORS[rawE] || LEVEL_COLORS[0]);
+      const colS = rawS === null ? '#475569' : (LEVEL_COLORS[rawS] || LEVEL_COLORS[0]);
+      const blinkE = rawE >= 3 ? ' class="rwis-zone-blink-danger"' : rawE === 2 ? ' class="rwis-zone-blink-caution"' : '';
+      const blinkS = rawS >= 3 ? ' class="rwis-zone-blink-danger"' : rawS === 2 ? ' class="rwis-zone-blink-caution"' : '';
+      if (rawE !== null && rawE >= 2) {
+        out.push(`<path${blinkE} d="${polyPath(topPts)}" fill="none" stroke="${colE}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" opacity="0.34" filter="url(#rwGlow)"/>`);
       }
-      if (bucket.S >= 2) {
-        out.push(`<path d="${polyPath(botPts)}" fill="none" stroke="${colS}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" opacity="0.34" filter="url(#rwGlow)"/>`);
+      if (rawS !== null && rawS >= 2) {
+        out.push(`<path${blinkS} d="${polyPath(botPts)}" fill="none" stroke="${colS}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" opacity="0.34" filter="url(#rwGlow)"/>`);
       }
-      out.push(`<path d="${polyPath(topPts)}" fill="none" stroke="${colE}" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round"/>`);
-      out.push(`<path d="${polyPath(botPts)}" fill="none" stroke="${colS}" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round"/>`);
+      out.push(`<path${blinkE} d="${polyPath(topPts)}" fill="none" stroke="${colE}" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round"/>`);
+      out.push(`<path${blinkS} d="${polyPath(botPts)}" fill="none" stroke="${colS}" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round"/>`);
     } else {
-      const lv = state.dir === 'E' ? bucket.E : bucket.S;
-      const col = LEVEL_COLORS[lv] || LEVEL_COLORS[0];
-      if (lv >= 2) {
-        out.push(`<path d="${centerPath}" fill="none" stroke="${col}" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" opacity="0.36" filter="url(#rwGlow)"/>`);
+      const rawLv = bucket.missing ? null : (state.dir === 'E' ? (bucket.rawE ?? bucket.E) : (bucket.rawS ?? bucket.S));
+      const col = rawLv === null ? '#475569' : (LEVEL_COLORS[rawLv] || LEVEL_COLORS[0]);
+      const blinkCls = rawLv >= 3 ? ' class="rwis-zone-blink-danger"' : rawLv === 2 ? ' class="rwis-zone-blink-caution"' : '';
+      if (rawLv !== null && rawLv >= 2) {
+        out.push(`<path${blinkCls} d="${centerPath}" fill="none" stroke="${col}" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" opacity="0.36" filter="url(#rwGlow)"/>`);
       }
-      out.push(`<path d="${centerPath}" fill="none" stroke="${col}" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>`);
+      out.push(`<path${blinkCls} d="${centerPath}" fill="none" stroke="${col}" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>`);
     }
 
     // Invisible wide hit target for clicking a zone
@@ -699,8 +739,9 @@ function renderCorridorMap(enriched) {
   if (rwisRenderList.length) {
     out.push('<g class="road-temp-pins">');
     for (const item of rwisRenderList) {
-      const { stn, dcx, dcy, anchorY, barCol, subCol, strokeCol, lines } = item;
-      out.push(`<g class="rwis-stn-hit" data-km="${stn.km}" data-name="${esc(stn.shortName || stn.label)}" style="cursor:pointer">`);
+      const { stn, dcx, dcy, anchorY, barCol, subCol, strokeCol, lines, iceLv } = item;
+      const stnBlinkCls = iceLv >= 3 ? ' rwis-zone-blink-danger' : iceLv === 2 ? ' rwis-zone-blink-caution' : '';
+      out.push(`<g class="rwis-stn-hit${stnBlinkCls}" data-km="${stn.km}" data-name="${esc(stn.shortName || stn.label)}" style="cursor:pointer">`);
       out.push(`<title>[도로기상관측 ${stn.km.toFixed(1)}km · ${esc(stn.label)}] ${esc(lines.titleLeft)} ${esc(lines.titleRight)} · ${esc(lines.subLine)} (클릭 시 인근 실시간 CCTV 재생)</title>`);
       out.push(`<circle cx="${n1(dcx)}" cy="${n1(anchorY)}" r="2.6" fill="${barCol}" opacity="0.88"/>`);
       out.push(`<g transform="translate(${n1(dcx)}, ${n1(dcy)})" filter="url(#rwShadow)">`);
@@ -780,12 +821,17 @@ function renderZoneCards(enriched) {
   if (!grid) return;
   grid.innerHTML = enriched.zones.map(z => {
     const bucket = state.metric === 'vir' ? z.vir : z.fsm;
-    const lv = getZoneLevel(z);
-    const badgeText = state.dir === 'both'
-      ? (bucket.E === bucket.S
-          ? `양방향 ${LEVEL_NAME[lv]}`
-          : `대구 ${LEVEL_NAME[bucket.E]} · 광주 ${LEVEL_NAME[bucket.S]}`)
-      : `${state.dir === 'E' ? '대구' : '광주'} ${LEVEL_NAME[lv]}`;
+    const rawLv = getZoneRawLevel(z);
+    const lv = rawLv ?? 0;
+    const isMissing = rawLv === null;
+    const fmtDirLv = v => (v === null || v === undefined ? '정보 없음' : LEVEL_NAME[v]);
+    const badgeText = isMissing
+      ? '정보 없음'
+      : state.dir === 'both'
+        ? ((bucket.rawE ?? bucket.E) === (bucket.rawS ?? bucket.S)
+            ? `양방향 ${LEVEL_NAME[lv]}`
+            : `대구 ${fmtDirLv(bucket.rawE ?? bucket.E)} · 광주 ${fmtDirLv(bucket.rawS ?? bucket.S)}`)
+        : `${state.dir === 'E' ? '대구' : '광주'} ${LEVEL_NAME[lv]}`;
 
     // Road Obs + 6h 실측 · 2h 예측 초소형 인라인 스파크라인 (P2.5)
     const ro = z.roadObs;
@@ -875,14 +921,20 @@ function renderZoneCards(enriched) {
     }
 
     const selCls = state.selectedZoneSuffix === z.suffix ? ' is-selected' : '';
+    const iceAlertCls = (z.fsm?.rawMax ?? -1) >= 3
+      ? ' is-ice-alert-danger'
+      : (z.fsm?.rawMax ?? -1) === 2
+        ? ' is-ice-alert-caution'
+        : '';
+    const badgeStyle = isMissing ? ' style="background:rgba(71,85,105,0.28);color:#cbd5e1;border-color:rgba(148,163,184,0.35);"' : '';
     return `
-      <div class="rwis-zone-card lv-${lv}${selCls}" data-zone="${esc(z.suffix)}" role="button" tabindex="0">
+      <div class="rwis-zone-card lv-${lv}${selCls}${iceAlertCls}" data-zone="${esc(z.suffix)}" role="button" tabindex="0">
         <div class="rzc-top">
           <div>
             <div class="rzc-name">${esc(z.name.replace('–', ' ↔ '))}</div>
             <div class="rzc-county">${esc(z.county)}${surfChip}${basisHtml}</div>
           </div>
-          <span class="rzc-badge lv-${lv}">● ${esc(badgeText)}</span>
+          <span class="rzc-badge lv-${lv}"${badgeStyle}>● ${esc(badgeText)}</span>
         </div>
         <div class="rzc-telemetry rzc-telemetry-dual">
           <div class="rzc-tcol rzc-tcol-road" title="${esc(roadTitle)}">
@@ -935,17 +987,30 @@ function renderZoneCards(enriched) {
 function renderSidePanel(enriched) {
   // 1. 3 TV KPIs
   const counts = [0, 0, 0, 0];
+  let missingZones = 0;
   let maxLv = 0;
   for (const z of enriched.zones) {
-    const lv = getZoneLevel(z);
-    counts[lv]++;
-    if (lv > maxLv) maxLv = lv;
+    const rawLv = getZoneRawLevel(z);
+    if (rawLv === null) {
+      missingZones++;
+      continue;
+    }
+    counts[rawLv]++;
+    if (rawLv > maxLv) maxLv = rawLv;
   }
   const kpiMax = $('kpiMaxRisk');
-  kpiMax.className = `rwis-kpi lv-${maxLv}`;
-  $('kpiMaxRiskVal').className = `rk-val c-${maxLv}`;
-  $('kpiMaxRiskVal').textContent = `${LEVEL_NAME[maxLv]} (${maxLv}단계)`;
-  $('kpiMaxRiskSub').textContent = `위험 ${counts[3]} · 주의 ${counts[2]} · 관심 ${counts[1]} · 안전 ${counts[0]}`;
+  if (missingZones === enriched.zones.length) {
+    kpiMax.className = 'rwis-kpi';
+    $('kpiMaxRiskVal').className = 'rk-val';
+    $('kpiMaxRiskVal').textContent = '정보 없음';
+    $('kpiMaxRiskSub').textContent = '위험등급 자료 수신 중';
+  } else {
+    kpiMax.className = `rwis-kpi lv-${maxLv}`;
+    $('kpiMaxRiskVal').className = `rk-val c-${maxLv}`;
+    $('kpiMaxRiskVal').textContent = `${LEVEL_NAME[maxLv]} (${maxLv}단계)`;
+    const missNote = missingZones > 0 ? ` · 미수신 ${missingZones}` : '';
+    $('kpiMaxRiskSub').textContent = `위험 ${counts[3]} · 주의 ${counts[2]} · 관심 ${counts[1]} · 안전 ${counts[0]}${missNote}`;
+  }
 
   const coldest = enriched.coldestRoadStation;
   const kpiMin = $('kpiMinRoad');
@@ -979,7 +1044,7 @@ function renderSidePanel(enriched) {
   // 2. Road Weather Observation Table
   const tbody = $('roadObsTbody');
   if (tbody) {
-    const stnRisks = state.roadRisk?.stationRisks || {};
+    const stnRisks = indexStationRisks(state.roadRisk);
     const list = (state.roadStations || [])
       .filter(s => s && s.stnId)
       .filter(s => state.showAllStations || (Number(s.milepostKm) || 0) >= 94)
@@ -998,11 +1063,11 @@ function renderSidePanel(enriched) {
           : s.stationType === '거점'
             ? '<span class="rwis-stn-type hub">거점</span>'
             : '';
-        const risk = stnRisks[String(s.stnId)];
-        const iceLv = Number.isFinite(risk?.iceLevel) ? risk.iceLevel : null;
+        const risk = stnRisks.get(String(s.stnId));
+        const iceLv = normalizeZoneGrade(risk?.iceLevel);
         const iceBadge = iceLv !== null
           ? `<span class="rzc-badge lv-${iceLv}" style="padding:1px 6px;font-size:11px;">${LEVEL_NAME[iceLv]}</span>`
-          : '<span style="color:#6d8dad;">—</span>';
+          : '<span style="color:#6d8dad;font-size:11px;">정보 없음</span>';
         const stateTxt = s.surfaceState && s.surfaceState !== '관측중' ? s.surfaceState : '—';
         return `
           <tr>
@@ -1059,15 +1124,15 @@ function renderSidePanel(enriched) {
   }
 
   // 4. Tab 1 (Default TV Main): 특이사항 속보 + 6H 13개소 단기예보 표
-  renderShort6Tab();
+  renderShort6Tab(enriched);
 
   // 5. Tab 3: Mainpage-Aligned (/api/cctv) Highway CCTV Directory
   renderCctvList();
 }
 
 /* ───────────────────── Tab 1: 특이사항 속보 + 6H 13개소 단기예보 표 ───────────────────── */
-function renderShort6Tab() {
-  // 1. 상단 특이사항 속보 (24h 예보 + 5개 지역 특보 묶음 규칙)
+function renderShort6Tab(enriched = null) {
+  // 1. 상단 특이사항 속보 (24h 예보 + 5개 지역 특보 묶음 규칙 + 고령지사 주의·위험 격상 최우선)
   const cardsEl = $('bulletinCards');
   const metaEl = $('bulletinScopeMeta');
   if (cardsEl) {
@@ -1077,6 +1142,7 @@ function renderShort6Tab() {
       warningHistory: state.warningHistory,
       roadStations: state.roadStations,
       roadRisk: state.roadRisk,
+      enrichedZones: enriched?.zones || [],
       nowMs: Date.now()
     });
     const warnOk = Boolean(state.warningsPayload?.ok);
@@ -1466,6 +1532,30 @@ function exportMapPng() {
 
 /* ───────────────────── 데이터 로딩 & 5분 탭 캐싱 ───────────────────── */
 let tvGuard = null;
+let iceAlertModal = null;
+
+function syncBranchIceAlertModal(enriched) {
+  if (!iceAlertModal || state.fromCache) return;
+  const rwisCore = getRwisCore();
+  if (!rwisCore?.ok && !state.roadRisk?.ok) return;
+  const rwisTmObj = rwisCore?.tm;
+  const tmKst = typeof rwisTmObj === 'string'
+    ? rwisTmObj
+    : (rwisTmObj?.FR || state.roadRisk?.sources?.frgTmKst || state.roadRisk?.tmKst || '');
+  const items = (enriched?.zones || []).map(z => ({
+    id: `zone:${z.suffix}`,
+    label: String(z.name || '').replace('–', ' ↔ '),
+    kmLabel: `${z.startKm.toFixed(1)}~${z.endKm.toFixed(1)}k`,
+    inBranch: true,
+    iceLevel: z.fsm?.rawMax ?? null,
+    stnIds: ZONE_INTEGRATION_MAP[z.suffix]?.stnIds || []
+  }));
+  iceAlertModal.update({
+    items,
+    roadStations: state.roadStations,
+    tmKst
+  });
+}
 
 function updateBurnInBtnUI(status) {
   const btn = $('rwisBurnInBtn');
@@ -1506,6 +1596,7 @@ function renderAll() {
   renderZoneCards(enriched);
   renderSidePanel(enriched);
   updateStampUI(false);
+  syncBranchIceAlertModal(enriched);
 
   // 주의(2)·위험(3) 또는 기상특보·6h 결빙겹침 시 잔상방지 휘도를 즉시 100%로 복귀
   if (tvGuard) {
@@ -1516,9 +1607,10 @@ function renderAll() {
       warningHistory: state.warningHistory,
       roadStations: state.roadStations,
       roadRisk: state.roadRisk,
+      enrichedZones: enriched.zones,
       nowMs: Date.now()
     });
-    const hasUrgent = maxLv >= 2 || cards.some(c => c.tone === 'crit' || c.category === 'warning-issued' || c.category === 'measured-presalt');
+    const hasUrgent = maxLv >= 2 || cards.some(c => c.tone === 'crit' || c.category === 'kec-ice-escalation' || c.category === 'warning-issued' || c.category === 'measured-presalt');
     tvGuard.setAlertActive(hasUrgent);
   }
 }
@@ -1811,7 +1903,7 @@ async function loadAllData({ force = false, hard = false, silent = false } = {})
             .catch(() => {});
         })
       ] : []),
-      fetchJsonSafe(`/api/road-risk?roadNum=012${hard ? forceQs : ''}`, 12000)
+      fetchJsonSafe(`/api/road-risk?roadNum=012${forceQs}`, 12000)
         .then(v => { if (gen === rwisLoadGen && v?.ok) { state.roadRisk = v; markAuxLive(); } })
         .catch(e => { errors.push(`도로위험(${e?.message || 'err'})`); }),
       fetchJsonSafe(`/api/warnings?places=${warnQuery}${forceQs}`, 12000)
@@ -1846,9 +1938,14 @@ async function loadAllData({ force = false, hard = false, silent = false } = {})
         .then(v => {
           if (gen !== rwisLoadGen) return;
           if (v?.ok && Array.isArray(v.regions)) {
+            const curShortMs = Date.parse(state.shortTerm13?.sources?.shortBase || '');
+            const inShortMs = Date.parse(v?.sources?.shortBase || '');
+            if (!hard && Number.isFinite(curShortMs) && Number.isFinite(inShortMs) && inShortMs < curShortMs && countCompleteShort13Regions() >= 13) {
+              return;
+            }
             state.shortTerm13 = v;
-            // hourly.html과 5분 탭 캐시 양방향 공유 (13개소 완전본일 때만)
-            if (countCompleteShort13Regions(v) >= 13 && v.regions.some(r => r.id === 'gaya')) {
+            // hourly.html과 5분 탭 캐시 양방향 공유 (13개소 완전본 + 단일 세대일 때만)
+            if (countCompleteShort13Regions(v) >= 13 && v.regions.some(r => r.id === 'gaya') && !v?.sources?.mixedGeneration) {
               writePageCache(HOURLY_CACHE_KEY, { scope: rwisCacheScope(), data: v });
             }
             markAuxLive();
@@ -2067,6 +2164,13 @@ document.addEventListener('keydown', e => {
 mountNetHealthMonitor({
   onRetry: () => loadAllData({ force: true, silent: false })
 });
+
+iceAlertModal = mountIceAlertModal({
+  onAcknowledge: () => renderAll()
+});
+if (typeof window !== 'undefined') {
+  window.__biondaIceAlertModal = iceAlertModal;
+}
 
 tvGuard = mountTvGuard({
   onStateChange: updateBurnInBtnUI

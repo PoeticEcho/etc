@@ -122,25 +122,60 @@ export const SHORT13_ROUTE_ORDER = [
 ];
 
 export function extractRwisZoneSuffix(zoneId) {
-  const m = String(zoneId || '').match(/(d{3})$/);
+  const m = String(zoneId || '').match(/(\d{3})$/);
   return m ? m[1] : '';
+}
+
+export function normalizeZoneGrade(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return Number.isInteger(v) && v >= 0 && v <= 3 ? v : null;
+  const s = String(v).trim();
+  return /^[0-3]$/.test(s) ? Number(s) : null;
+}
+
+/**
+ * /api/road-risk 응답의 stationRisks(배열 또는 객체)를 stnId 기준 Map으로 정규화
+ */
+export function indexStationRisks(roadRisk) {
+  const map = new Map();
+  const raw = roadRisk?.stationRisks;
+  if (!raw) return map;
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (item && item.stnId != null) {
+        map.set(String(item.stnId), item);
+      }
+    }
+    return map;
+  }
+  if (typeof raw === 'object') {
+    for (const [k, v] of Object.entries(raw)) {
+      if (v && typeof v === 'object') {
+        map.set(String(v.stnId ?? k), v);
+      }
+    }
+  }
+  return map;
 }
 
 /**
  * RWIS 16개(양방향) 구간이 응답 실패일 때 기존 기상청 012 도로위험(/api/road-risk)으로 8개 구간 등급 폴백 구성
+ * - 결측(null)을 0('안전')으로 허위 강등하지 않음 (No False Safety)
  */
 export function buildFallbackZonesFromRoadRisk(roadRisk) {
-  const stnRisks = roadRisk?.stationRisks || {};
+  const stnMap = indexStationRisks(roadRisk);
   const zones = [];
   for (const z of RWIS_MASTER.zones) {
     const mapInfo = ZONE_INTEGRATION_MAP[z.suffix] || { stnIds: [] };
-    let maxIce = 0;
-    let maxFog = 0;
+    let maxIce = null;
+    let maxFog = null;
     for (const stnId of mapInfo.stnIds) {
-      const sr = stnRisks[stnId];
+      const sr = stnMap.get(String(stnId));
       if (!sr) continue;
-      if (Number.isFinite(sr.iceLevel) && sr.iceLevel > maxIce) maxIce = sr.iceLevel;
-      if (Number.isFinite(sr.fogLevel) && sr.fogLevel > maxFog) maxFog = sr.fogLevel;
+      const ice = normalizeZoneGrade(sr.iceLevel);
+      const fog = normalizeZoneGrade(sr.fogLevel);
+      if (ice !== null) maxIce = maxIce === null ? ice : Math.max(maxIce, ice);
+      if (fog !== null) maxFog = maxFog === null ? fog : Math.max(maxFog, fog);
     }
     for (const dir of ['E', 'S']) {
       zones.push({
@@ -148,8 +183,16 @@ export function buildFallbackZonesFromRoadRisk(roadRisk) {
         suffix: z.suffix,
         name: z.name,
         dir,
-        fsm: { level: maxIce, label: LEVEL_NAME[maxIce] || '안전', levelDetail: LEVEL_DETAIL[maxIce] || LEVEL_DETAIL[0] },
-        vir: { level: maxFog, label: LEVEL_NAME[maxFog] || '안전', levelDetail: LEVEL_DETAIL[maxFog] || LEVEL_DETAIL[0] },
+        fsm: {
+          level: maxIce,
+          label: maxIce === null ? '정보 없음' : (LEVEL_NAME[maxIce] || '안전'),
+          levelDetail: maxIce === null ? '미수신 · 정보 없음' : (LEVEL_DETAIL[maxIce] || LEVEL_DETAIL[0])
+        },
+        vir: {
+          level: maxFog,
+          label: maxFog === null ? '정보 없음' : (LEVEL_NAME[maxFog] || '안전'),
+          levelDetail: maxFog === null ? '미수신 · 정보 없음' : (LEVEL_DETAIL[maxFog] || LEVEL_DETAIL[0])
+        },
         fromRoadRiskFallback: true
       });
     }
@@ -230,7 +273,7 @@ export function summarizeShortRegion12h(region) {
 /**
  * 8개 RWIS 구간에 기존 기상청 도로기상관측(/api/road-obs), 012 도로위험(/api/road-risk), 13개 단기예보(/api/short-term-12)를 통합 매핑
  */
-export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadRisk = null, shortTerm13 = null } = {}) {
+export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadRisk = null, shortTerm13 = null, rwisTm = null } = {}) {
   const stnById = new Map();
   for (const s of roadStations || []) {
     if (s && s.stnId) stnById.set(String(s.stnId), s);
@@ -239,6 +282,11 @@ export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadR
   for (const r of shortTerm13?.regions || []) {
     if (r && r.id) regionById.set(String(r.id), summarizeShortRegion12h(r));
   }
+  const stnMap = indexStationRisks(roadRisk);
+
+  const rwisFrDigits = String(typeof rwisTm === 'string' ? rwisTm : (rwisTm?.FR || '')).replace(/\D/g, '').slice(0, 12);
+  const roadRiskFrgDigits = String(roadRisk?.sources?.frgTmKst || roadRisk?.tmKst || '').replace(/\D/g, '').slice(0, 12);
+  const apiHubNotOlder = !rwisFrDigits || !roadRiskFrgDigits || roadRiskFrgDigits >= rwisFrDigits;
 
   const effectiveZones = (rwisZones && rwisZones.length)
     ? rwisZones
@@ -256,26 +304,44 @@ export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadR
     const eZone = rwisByKey.get(`${zone.suffix}:E`) || null;
     const sZone = rwisByKey.get(`${zone.suffix}:S`) || null;
 
-    const fsmE = Number.isFinite(eZone?.fsm?.level) ? eZone.fsm.level : null;
-    const fsmS = Number.isFinite(sZone?.fsm?.level) ? sZone.fsm.level : null;
-    const virE = Number.isFinite(eZone?.vir?.level) ? eZone.vir.level : null;
-    const virS = Number.isFinite(sZone?.vir?.level) ? sZone.vir.level : null;
+    const fsmE = normalizeZoneGrade(eZone?.fsm?.level);
+    const fsmS = normalizeZoneGrade(sZone?.fsm?.level);
+    const virE = normalizeZoneGrade(eZone?.vir?.level);
+    const virS = normalizeZoneGrade(sZone?.vir?.level);
 
-    // 012 도로위험정보 보조 확인 (RWIS가 비어 있을 때 보완)
-    const stnRisks = roadRisk?.stationRisks || {};
+    // 012 도로위험정보(5분 주기 API허브) 보조 확인 및 주의(2)·위험(3) 상향 즉시 반영
     let fallbackIce = null;
     let fallbackFog = null;
     for (const stnId of mapInfo.stnIds) {
-      const sr = stnRisks[stnId];
+      const sr = stnMap.get(String(stnId));
       if (!sr) continue;
-      if (Number.isFinite(sr.iceLevel)) fallbackIce = fallbackIce === null ? sr.iceLevel : Math.max(fallbackIce, sr.iceLevel);
-      if (Number.isFinite(sr.fogLevel)) fallbackFog = fallbackFog === null ? sr.fogLevel : Math.max(fallbackFog, sr.fogLevel);
+      const ice = normalizeZoneGrade(sr.iceLevel);
+      const fog = normalizeZoneGrade(sr.fogLevel);
+      if (ice !== null) fallbackIce = fallbackIce === null ? ice : Math.max(fallbackIce, ice);
+      if (fog !== null) fallbackFog = fallbackFog === null ? fog : Math.max(fallbackFog, fog);
     }
 
-    const levelFsmE = fsmE ?? fallbackIce ?? 0;
-    const levelFsmS = fsmS ?? fallbackIce ?? 0;
-    const levelVirE = virE ?? fallbackFog ?? 0;
-    const levelVirS = virS ?? fallbackFog ?? 0;
+    const mergeIce = (rwisVal) => {
+      if (rwisVal === null) return fallbackIce;
+      if (fallbackIce !== null && fallbackIce >= 2 && apiHubNotOlder) return Math.max(rwisVal, fallbackIce);
+      return rwisVal;
+    };
+    const rawFsmE = mergeIce(fsmE);
+    const rawFsmS = mergeIce(fsmS);
+    const rawFsmMax = (rawFsmE === null && rawFsmS === null)
+      ? null
+      : Math.max(rawFsmE ?? 0, rawFsmS ?? 0);
+
+    const rawVirE = virE ?? fallbackFog;
+    const rawVirS = virS ?? fallbackFog;
+    const rawVirMax = (rawVirE === null && rawVirS === null)
+      ? null
+      : Math.max(rawVirE ?? 0, rawVirS ?? 0);
+
+    const levelFsmE = rawFsmE ?? 0;
+    const levelFsmS = rawFsmS ?? 0;
+    const levelVirE = rawVirE ?? 0;
+    const levelVirS = rawVirS ?? 0;
 
     // 도로기상관측소 실측 노면온도(TR1) / 대기온도 / 노면상태 (보수적으로 최저 노면온도 우선)
     const matchedStations = mapInfo.stnIds.map(id => stnById.get(id)).filter(Boolean);
@@ -317,8 +383,28 @@ export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadR
     return {
       ...zone,
       county: mapInfo.county,
-      fsm: { E: levelFsmE, S: levelFsmS, max: Math.max(levelFsmE, levelFsmS), hasLive: fsmE !== null || fsmS !== null },
-      vir: { E: levelVirE, S: levelVirS, max: Math.max(levelVirE, levelVirS), hasLive: virE !== null || virS !== null },
+      fsm: {
+        E: levelFsmE,
+        S: levelFsmS,
+        max: Math.max(levelFsmE, levelFsmS),
+        rawE: rawFsmE,
+        rawS: rawFsmS,
+        rawMax: rawFsmMax,
+        missing: rawFsmMax === null,
+        statusLabel: rawFsmMax === null ? '정보 없음' : (LEVEL_NAME[rawFsmMax] || '안전'),
+        hasLive: fsmE !== null || fsmS !== null
+      },
+      vir: {
+        E: levelVirE,
+        S: levelVirS,
+        max: Math.max(levelVirE, levelVirS),
+        rawE: rawVirE,
+        rawS: rawVirS,
+        rawMax: rawVirMax,
+        missing: rawVirMax === null,
+        statusLabel: rawVirMax === null ? '정보 없음' : (LEVEL_NAME[rawVirMax] || '안전'),
+        hasLive: virE !== null || virS !== null
+      },
       roadObs: {
         stationId: primaryStation?.stnId ? String(primaryStation.stnId) : (mapInfo.stnIds[0] || ''),
         stationName: primaryStation?.name || '',
@@ -630,7 +716,7 @@ export function evaluateMeasuredPresaltAlerts({ roadStations = [], roadRisk = nu
 
   const kstHour = new Date(nowMs + 9 * 3600000).getUTCHours();
   const isDawnWindow = kstHour >= 0 && kstHour <= 8;
-  const stnRisks = roadRisk?.stationRisks || {};
+  const stnMap = indexStationRisks(roadRisk);
   const regionMap = new Map((shortTerm13?.regions || []).map(r => [String(r.id), r]));
 
   for (const s of roadStations) {
@@ -643,9 +729,9 @@ export function evaluateMeasuredPresaltAlerts({ roadStations = [], roadRisk = nu
     const tr = Number.isFinite(s.roadTemp) ? s.roadTemp : null;
     const ta = Number.isFinite(s.temp) ? s.temp : null;
     const sc = Number.isFinite(s.surfaceCode) ? s.surfaceCode : Number(s.surfaceCode || 0);
-    const sr = stnRisks[id] || null;
-    const iceLv = Number(sr?.iceLevel || 0);
-    const fogLv = Number(sr?.fogLevel || 0);
+    const sr = stnMap.get(id) || null;
+    const iceLv = normalizeZoneGrade(sr?.iceLevel) ?? 0;
+    const fogLv = normalizeZoneGrade(sr?.fogLevel) ?? 0;
 
     // 인접 13개소 예보에서 향후 2시간 내 강수 시작 / 새벽 영하→0℃ 어는비 여부 확인
     const nearRegions = (STN_TO_REGION_IDS[id] || []).map(rid => regionMap.get(rid)).filter(Boolean);
@@ -720,9 +806,82 @@ export function buildSpecialBulletinCards({
   warningHistory = null,
   roadStations = [],
   roadRisk = null,
+  enrichedZones = [],
   nowMs = Date.now()
 } = {}) {
   const cards = [];
+
+  // 0-A. 한국도로공사 공식 대응기준: 고령지사 감시구간(95.0~176.0k) 도로살얼음 주의(2)·위험(3) 격상 최우선 속보
+  const stnMap = indexStationRisks(roadRisk);
+  const stnObsById = new Map((roadStations || []).map(s => [String(s?.stnId || ''), s]));
+  const escalatedZones = [];
+  if (Array.isArray(enrichedZones) && enrichedZones.length) {
+    for (const z of enrichedZones) {
+      const lv = normalizeZoneGrade(z?.fsm?.rawMax ?? z?.fsm?.max);
+      if (lv !== null && lv >= 2) {
+        escalatedZones.push({
+          name: String(z.name || '').replace('–', '↔'),
+          level: lv,
+          roadTemp: Number.isFinite(z.roadObs?.minRoadTemp) ? z.roadObs.minRoadTemp : null,
+          airTemp: Number.isFinite(z.roadObs?.minAirTemp) ? z.roadObs.minAirTemp : null,
+          surfaceState: z.roadObs?.surfaceState || ''
+        });
+      }
+    }
+  } else {
+    for (const stnId of CORRIDOR_STN_IDS) {
+      const sr = stnMap.get(stnId);
+      const lv = normalizeZoneGrade(sr?.iceLevel);
+      if (lv !== null && lv >= 2) {
+        const obs = stnObsById.get(stnId);
+        escalatedZones.push({
+          name: String(sr?.name || obs?.name || stnId).replace(/\(도\)$/, ''),
+          level: lv,
+          roadTemp: Number.isFinite(obs?.roadTemp) ? obs.roadTemp : null,
+          airTemp: Number.isFinite(obs?.temp) ? obs.temp : null,
+          surfaceState: obs?.surfaceState && obs.surfaceState !== '관측중' ? obs.surfaceState : ''
+        });
+      }
+    }
+  }
+  if (escalatedZones.length) {
+    escalatedZones.sort((a, b) => (b.level - a.level) || ((a.roadTemp ?? 99) - (b.roadTemp ?? 99)));
+    const maxEscLv = escalatedZones[0].level;
+    const topZ = escalatedZones[0];
+    const names = summarizeRegionNames(escalatedZones.map(z => z.name), 3);
+    const metaBits = [];
+    if (topZ.airTemp !== null) metaBits.push(`대기 ${topZ.airTemp.toFixed(1)}°C`);
+    if (topZ.roadTemp !== null) metaBits.push(`노면 ${topZ.roadTemp.toFixed(1)}°C`);
+    if (topZ.surfaceState) metaBits.push(topZ.surfaceState);
+    const metaStr = metaBits.length ? ` (${metaBits.join(' · ')})` : '';
+    if (maxEscLv >= 3) {
+      cards.push({
+        id: 'kec-ice-escalation-danger',
+        category: 'kec-ice-escalation',
+        priority: 1,
+        tone: 'crit',
+        icon: '🚨',
+        badge: '도로살얼음 위험 격상',
+        title: `도로살얼음 위험정보 위험 격상 · 예비살포 실시`,
+        detail: `${names}${metaStr} · 선(先)예비살포, 후(後)상황판단회의`,
+        count: escalatedZones.length,
+        regions: escalatedZones.map(z => z.name)
+      });
+    } else {
+      cards.push({
+        id: 'kec-ice-escalation-caution',
+        category: 'kec-ice-escalation',
+        priority: 2,
+        tone: 'warn',
+        icon: '⬆',
+        badge: '도로살얼음 주의 격상',
+        title: `도로살얼음 위험정보 주의 격상 · 온도·노면 확인 후 예비살포`,
+        detail: `${names}${metaStr} · 고정식 기상정보 확인 후 예비살포 실시`,
+        count: escalatedZones.length,
+        regions: escalatedZones.map(z => z.name)
+      });
+    }
+  }
 
   // 0. 실측 도로기상관측소 기반 [예비살포 조건 도달] 카드 (관할 95~176k + 서쪽 선행 50~86k)
   const presalt = evaluateMeasuredPresaltAlerts({ roadStations, roadRisk, shortTerm13, nowMs });

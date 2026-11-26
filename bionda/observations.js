@@ -79,7 +79,7 @@ export function seedOverviewCache({ line = 14, roadNum = '012', roadStations = n
     roadStationsMemCache.set(String(line), { expires: now + 45000, data: synced?.stations || roadStations });
   }
   if (roadRisk?.ok) {
-    roadRiskMemCache.set(String(roadNum), { expires: now + 5 * 60000, data: roadRisk });
+    roadRiskMemCache.set(String(roadNum), { expires: now + 4 * 60000, data: roadRisk });
   }
   if (obsByCoord && typeof obsByCoord === 'object') {
     for (const [k, obs] of Object.entries(obsByCoord)) {
@@ -133,7 +133,7 @@ export async function loadOverviewBundle(placesList = [], { line = 14, roadNum =
       roadStationsMemCache.set(String(line), { expires: Date.now() + 45000, data: bundle.roadStations });
     }
     if (bundle.roadRisk?.ok) {
-      roadRiskMemCache.set(String(roadNum), { expires: Date.now() + 9 * 60000, data: { ...bundle.roadRisk, _fromSnapshot: false } });
+      roadRiskMemCache.set(String(roadNum), { expires: Date.now() + 4 * 60000, data: { ...bundle.roadRisk, _fromSnapshot: false } });
     }
     if (bundle.items) {
       for (const [key, entry] of Object.entries(bundle.items)) {
@@ -242,7 +242,7 @@ export async function loadRoadRisk(roadNum = '012', force = false, hard = false)
         const data = await response.json();
         if (data?.ok) {
           const out = { ...data, _fromSnapshot: false };
-          roadRiskMemCache.set(key, { expires: Date.now() + 9 * 60000, data: out });
+          roadRiskMemCache.set(key, { expires: Date.now() + 4 * 60000, data: out });
           return out;
         }
       }

@@ -7,8 +7,10 @@ import {
   isRoadRiskEscalated,
   ROAD_RISK_LABELS,
   FOG_RISK_LABELS,
+  normalizeRiskGrade,
   evaluateStandbyReturnDirective
 } from './ice.js';
+import { mountIceAlertModal } from './ice-alert-modal.js';
 import {
   ACTION_STAGE_META,
   formatKstClock,
@@ -258,7 +260,7 @@ export function record(p) {
 function findPlaceRoadRisk(p) {
   if (!roadRiskData?.ok) return null;
   const direct = roadRiskData.placeRisks?.[coord(p)];
-  if (direct) return { ...direct, tmKst: roadRiskData.tmKst, tmUtc: roadRiskData.tmUtc };
+  if (direct) return { ...direct, tmKst: roadRiskData.tmKst, tmUtc: roadRiskData.tmUtc, sources: roadRiskData.sources || null };
   const stns = roadRiskData.stationRisks || [];
   if (!stns.length) return null;
   let best = stns[0], bestD = Infinity;
@@ -277,10 +279,12 @@ function findPlaceRoadRisk(p) {
     iceLabel: best.iceLabel,
     fogLevel: best.fogLevel,
     fogLabel: best.fogLabel,
+    dataStatus: best.dataStatus || (best.iceLevel === null ? 'missing' : 'ok'),
     flagLabel: best.flagLabel,
     segmentCount: best.segmentCount,
     tmKst: roadRiskData.tmKst,
-    tmUtc: roadRiskData.tmUtc
+    tmUtc: roadRiskData.tmUtc,
+    sources: roadRiskData.sources || null
   };
 }
 
@@ -479,26 +483,58 @@ function sendDesktopEscalationNotify(title, body, targetPlace) {
   } catch {}
 }
 
+const iceAlertModal = mountIceAlertModal({
+  soundEnabled: () => settings.sound
+});
+
 function checkRoadRiskEscalations(payload) {
   if (!payload?.ok) return;
+
+  // 한국도로공사 공식 도로살얼음 주의(2)·위험(3) 격상 팝업 (고령지사 관할 95.0~176.0k 구간)
+  if (!payload._fromSnapshot && Array.isArray(payload.stationRisks)) {
+    const branchItems = payload.stationRisks
+      .filter(s => (Number.isFinite(s?.km) ? s.km >= 95.0 && s.km <= 176.0 : s?.inBranch !== false))
+      .map(s => ({
+        id: `stn:${s.stnId}`,
+        label: String(s.name || '').replace(/\(도\)$/, ''),
+        kmLabel: Number.isFinite(s.km) ? `${s.km.toFixed(1)}km` : '',
+        stnIds: [String(s.stnId)],
+        inBranch: true,
+        iceLevel: s.iceLevel
+      }));
+    iceAlertModal.update({
+      items: branchItems,
+      roadStations,
+      tmKst: payload.sources?.frgTmKst || payload.tmKst || ''
+    });
+  }
+
   const targetsList = [];
   for (const s of payload.stationRisks || []) {
+    const iceLv = normalizeRiskGrade(s.iceLevel);
+    const fogLv = normalizeRiskGrade(s.fogLevel);
+    if (iceLv === null && fogLv === null) continue;
     targetsList.push({
       id: `stn:${s.stnId}`,
       label: `${s.name}(${s.km}k)`,
-      iceLevel: s.iceLevel || 0,
-      fogLevel: s.fogLevel || 0,
+      inBranch: Number.isFinite(s.km) ? s.km >= 95.0 && s.km <= 176.0 : true,
+      iceLevel: iceLv ?? 0,
+      fogLevel: fogLv ?? 0,
       linkedPlace: findNearestPlace(s.lat, s.lon)
     });
   }
   for (const p of places) {
     const pr = findPlaceRoadRisk(p);
     if (!pr) continue;
+    const iceLv = normalizeRiskGrade(pr.iceLevel);
+    const fogLv = normalizeRiskGrade(pr.fogLevel);
+    if (iceLv === null && fogLv === null) continue;
     targetsList.push({
       id: `place:${coord(p)}`,
       label: `${p.name}${pr.stationName ? ` · ${pr.stationName}` : ''}`,
-      iceLevel: pr.iceLevel || 0,
-      fogLevel: pr.fogLevel || 0,
+      inBranch: Number.isFinite(pr.stationKm) ? pr.stationKm >= 95.0 && pr.stationKm <= 176.0 : true,
+      iceLevel: iceLv ?? 0,
+      fogLevel: fogLv ?? 0,
       linkedPlace: p
     });
   }
@@ -518,9 +554,11 @@ function checkRoadRiskEscalations(payload) {
       if (recentEscalations.length > 4) recentEscalations.pop();
       if (!notified) {
         const badge = item.iceLevel === 3 ? '🚨 살얼음 위험(3단계) 격상' : '⚠️ 살얼음 주의(2단계) 격상';
-        showAlertToast(item.linkedPlace, badge, `${item.label} · ${prev.iceLevel}단계(${fromLbl}) → ${item.iceLevel}단계 [${toLbl}] 격상`, false);
+        if (!item.inBranch) {
+          showAlertToast(item.linkedPlace, `[선행감시] ${badge}`, `${item.label} · ${prev.iceLevel}단계(${fromLbl}) → ${item.iceLevel}단계 [${toLbl}] 격상`, false);
+          playAlertTone('warning');
+        }
         sendDesktopEscalationNotify(badge, `${item.label} 구간 살얼음 ${prev.iceLevel}→${item.iceLevel}단계 [${toLbl}]`, item.linkedPlace);
-        playAlertTone('warning');
         notified = true;
       }
     }
@@ -1513,18 +1551,28 @@ function renderDetail() {
     if (stnName || rr) {
       const leftDiv = el('div', '', 'detail-road-station');
       const stnLabel = stnName ? `${stnName}${stnKm != null ? `(${stnKm}k)` : ''}${stnDist != null ? ` · ${n(stnDist, 1)}km` : ''}` : '고속국도 12호선 연계';
+      const frgStamp = rr?.sources?.frgTmKst ? fmt(rr.sources.frgTmKst) : (rr?.tmKst ? fmt(rr.tmKst) : '');
+      const fogStamp = rr?.sources?.fogTmKst ? fmt(rr.sources.fogTmKst) : '';
+      const fogStampDiff = fogStamp && fogStamp !== frgStamp ? ` · 안개 ${fogStamp}` : '';
       leftDiv.append(
         el('strong', `🛣️ 모니터링 개소: ${stnLabel} · ${trTxt}`),
-        el('small', `광주대구선 도로위험기상${rr?.tmKst ? ` · ${fmt(rr.tmKst)} (${rr.flagLabel || '분석'})` : ''}${bridgeTxt}`)
+        el('small', `광주대구선 도로위험기상(5분주기)${frgStamp ? ` · 살얼음 ${frgStamp}${fogStampDiff} (${rr.flagLabel || '분석'})` : ''}${bridgeTxt}`)
       );
       const rightDiv = el('div', '', 'detail-road-pills');
-      const iceLv = rr?.iceLevel ?? 0;
-      const fogLv = rr?.fogLevel ?? 0;
-      const iceLbl = ROAD_RISK_LABELS[iceLv] || '정보없음';
-      const fogLbl = FOG_RISK_LABELS[fogLv] || '안개없음';
-      const iceBadge = el('span', `${iceLv === 3 ? '🚨' : '❄'} 살얼음 ${iceLbl} (${iceLv}단계)`, `badge-ice rank-${iceLv}`);
-      iceBadge.title = '기상청 012선 도로살얼음 위험수준: 0 정보없음 / 1 관심 / 2 주의 / 3 위험';
-      const fogBadge = el('span', `🌫️ 안개 ${fogLbl} (${fogLv}단계)`, `badge-ice rank-${fogLv}`);
+      const iceLv = normalizeRiskGrade(rr?.iceLevel);
+      const fogLv = normalizeRiskGrade(rr?.fogLevel);
+      const iceTxt = iceLv === null
+        ? '❄ 살얼음 정보 없음'
+        : `${iceLv === 3 ? '🚨' : iceLv === 2 ? '⬆' : '❄'} 살얼음 ${ROAD_RISK_LABELS[iceLv]} (${iceLv}단계)`;
+      const iceCls = `badge-ice rank-${iceLv ?? 0}` + (iceLv === 3 ? ' is-ice-alert-danger' : iceLv === 2 ? ' is-ice-alert-caution' : '');
+      const iceBadge = el('span', iceTxt, iceCls);
+      iceBadge.title = '기상청 012선 도로살얼음 위험수준(5분주기): 0 안전 / 1 관심 / 2 주의(온도·노면 확인 후 예비살포) / 3 위험(예비살포 실시)';
+      const fogTxt = fogLv === null
+        ? '🌫️ 가시거리 정보 없음'
+        : fogLv === 0
+          ? '🌫️ 안개없음 (0단계)'
+          : `🌫️ 안개 ${FOG_RISK_LABELS[fogLv]} (${fogLv}단계)`;
+      const fogBadge = el('span', fogTxt, `badge-ice rank-${fogLv ?? 0}`);
       fogBadge.title = '기상청 012선 도로 가시거리 위험수준: 0 안개없음 / 1 관심 / 2 주의 / 3 위험';
       rightDiv.append(iceBadge, fogBadge);
       riskBar.replaceChildren(leftDiv, rightDiv);

@@ -411,7 +411,10 @@ function renderSheet() {
 
       const cell = renderCellContent(h, iconInfo);
       const popPct = Math.max(0, Math.min(100, Number(h.pop) || 0));
-      html += `<div class="${cellCls}" data-hour-index="${j}" title="${esc(r.name)} ${esc(h.dateLabel)} ${String(h.hourKst).padStart(2, '0')}:00 · ${esc(iconInfo.label)} ${h.temp ?? '-'}℃ · 강수확률 ${popPct}%"><div class="hr-c1">${cell.c1}</div><div class="hr-c2 ${cell.hasAmt ? 'has-amt' : ''}">${cell.c2}</div><div class="hr-rainbar"><b style="width:${popPct}%"></b></div></div>`;
+      const srcNote = h.source === '초단기예보' && h.popSource === '단기예보'
+        ? ' · 초단기예보(강수확률: 단기)'
+        : (h.source ? ` · ${h.source}` : '');
+      html += `<div class="${cellCls}" data-hour-index="${j}" title="${esc(r.name)} ${esc(h.dateLabel)} ${String(h.hourKst).padStart(2, '0')}:00 · ${esc(iconInfo.label)} ${h.temp ?? '-'}℃ · 강수확률 ${popPct}%${esc(srcNote)}"><div class="hr-c1">${cell.c1}</div><div class="hr-c2 ${cell.hasAmt ? 'has-amt' : ''}">${cell.c2}</div><div class="hr-rainbar"><b style="width:${popPct}%"></b></div></div>`;
     }
     html += '</div>';
   }
@@ -558,6 +561,11 @@ function updateSourceStatus() {
     pill.textContent = '저장 자료';
     pill.className = 'hr-status-pill is-snapshot';
     if (apiBtnLabel) apiBtnLabel.textContent = '스냅샷';
+  } else if (p.sources?.mixedGeneration || p.sources?.isFallback) {
+    pill.hidden = false;
+    pill.textContent = p.sources?.mixedGeneration ? '일부 직전발표' : '직전발표 유지';
+    pill.className = 'hr-status-pill is-snapshot';
+    if (apiBtnLabel) apiBtnLabel.textContent = 'API 연결됨';
   } else {
     pill.hidden = true;
     pill.textContent = '';
@@ -568,7 +576,10 @@ function updateSourceStatus() {
   $('regionCount').textContent = received;
   $('regionCoverage').textContent = `${new Set(p.regions.map(r => r.county)).size}개 시·군`;
   const ultraDate = shortDay && ultraDay !== shortDay ? dayLabel(ultraDay) : '';
-  const stampText = `${dayLabel(shortDay || ultraDay)}단기예보 ${shortTime || '—'} · ${ultraDate}초단기 ${ultraTime || '—'} · ${received}곳 수신`;
+  const genNote = !state.fromSnapshot && p.sources?.mixedGeneration
+    ? ' · 일부 직전발표 보완'
+    : (!state.fromSnapshot && p.sources?.isFallback ? ' · 직전발표 유지' : '');
+  const stampText = `${dayLabel(shortDay || ultraDay)}단기예보 ${shortTime || '—'} · ${ultraDate}초단기 ${ultraTime || '—'} · ${received}곳 수신${genNote}`;
   stamp.textContent = stampText;
   if (footerStamp) {
     const label = state.fromSnapshot ? '저장 자료' : '갱신';
@@ -761,6 +772,15 @@ async function fetchShortTerm12Data(optsOrForce = false) {
           clearTimeout(dwellRefreshTimer);
           dwellRefreshTimer = null;
           const nowMs = Date.now();
+          const prevShortMs = Date.parse(state.payload?.sources?.shortBase || '');
+          const nextShortMs = Date.parse(data?.sources?.shortBase || '');
+          const prevComplete = !state.fromSnapshot && (state.payload?.regions || []).filter(reg => reg.hours?.length).length >= 13;
+          if (!hard && prevComplete && Number.isFinite(prevShortMs) && Number.isFinite(nextShortMs) && nextShortMs < prevShortMs) {
+            state.isRevalidating = false;
+            reportApiSuccess('hourly', nowMs);
+            updateSourceStatus();
+            return;
+          }
           state.payload = data;
           state.fromSnapshot = false;
           state.fromCache = false;
@@ -773,7 +793,9 @@ async function fetchShortTerm12Data(optsOrForce = false) {
             hourlyHardBannerUntil = nowMs + 4500;
             setTimeout(() => updateSourceStatus(), 4600);
           }
-          writePageCache(HOURLY_CACHE_KEY, { scope: hourlyCacheScope(), data, nowMs });
+          if (!data?.sources?.mixedGeneration) {
+            writePageCache(HOURLY_CACHE_KEY, { scope: hourlyCacheScope(), data, nowMs });
+          }
           reportApiSuccess('hourly', nowMs);
           updateSourceStatus();
           renderSheet();

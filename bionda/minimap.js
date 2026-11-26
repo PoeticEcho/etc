@@ -197,13 +197,15 @@ export function renderCorridorMiniMap({
     const kmTxt = stn.resolvedKm !== null ? `${stn.resolvedKm.toFixed(1)}k ` : '';
     const trTxt = stn.roadTemp !== null ? `노면 ${stn.roadTemp.toFixed(1)}°C` : '';
     const stnRisk = findStationRoadRisk(stn);
-    const riskTxt = stnRisk?.iceLevel ? ` · 012선 살얼음 ${stnRisk.iceLevel}단계(${stnRisk.iceLabel})` : '';
+    const stnIceLv = Number.isInteger(stnRisk?.iceLevel) ? stnRisk.iceLevel : null;
+    const riskTxt = stnIceLv ? ` · 012선 살얼음 ${stnIceLv}단계(${stnRisk.iceLabel})` : '';
     const dotCol = classifyStnCol(stn);
     const isSel = selectedWindyKey === `stn:${stn.stnId}`;
-    svg += `<g class="stn-dot" data-stnid="${escHtml(stn.stnId)}" role="button" tabindex="0" transform="translate(${sx},${sy})" style="cursor:pointer">
+    const blinkCls = stnIceLv >= 3 ? ' rwis-zone-blink-danger' : stnIceLv === 2 ? ' rwis-zone-blink-caution' : '';
+    svg += `<g class="stn-dot${blinkCls}" data-stnid="${escHtml(stn.stnId)}" role="button" tabindex="0" transform="translate(${sx},${sy})" style="cursor:pointer">
       <title>[도로기상 ${escHtml(kmTxt)}] ${escHtml(stn.name)} (${escHtml(stn.stationType)}, 고도 ${escHtml(stn.elevation ?? '—')}m) ${escHtml(trTxt)}${escHtml(riskTxt)} · 윈디 또는 CCTV 선택</title>
       <circle cx="0" cy="0" r="10.5" fill="transparent"/>
-      ${isSel ? '<circle cx="0" cy="0" r="9.5" fill="rgba(56,189,248,0.28)" stroke="#38bdf8" stroke-width="1.3"/>' : ''}
+      ${(isSel || stnIceLv >= 2) ? `<circle cx="0" cy="0" r="${stnIceLv >= 2 ? 11.5 : 9.5}" fill="${stnIceLv >= 3 ? 'rgba(244,63,94,0.32)' : stnIceLv === 2 ? 'rgba(251,146,60,0.30)' : 'rgba(56,189,248,0.28)'}" stroke="${stnIceLv >= 3 ? '#f43f5e' : stnIceLv === 2 ? '#fb923c' : '#38bdf8'}" stroke-width="1.5"/>` : ''}
       <circle class="stn-marker-core" cx="0" cy="0" r="4.3" fill="${dotCol}" stroke="#041418" stroke-width="1.4"/>
     </g>`;
   }
@@ -233,15 +235,17 @@ export function renderCorridorMiniMap({
       const sum = roadRiskData.branchSummary || roadRiskData.corridorSummary || {};
       const cnt = sum.iceCounts || [0, 0, 0, 0];
       const fogCnt = sum.fogCounts || [0, 0, 0, 0];
-      const tmLabel = roadRiskData.tmKst ? fmt(roadRiskData.tmKst) : roadRiskData.tmUtc || '';
+      const frgTmLabel = roadRiskData.sources?.frgTmKst ? fmt(roadRiskData.sources.frgTmKst) : (roadRiskData.tmKst ? fmt(roadRiskData.tmKst) : roadRiskData.tmUtc || '');
+      const fogTmLabel = roadRiskData.sources?.fogTmKst ? fmt(roadRiskData.sources.fogTmKst) : '';
+      const fogDiff = fogTmLabel && fogTmLabel !== frgTmLabel ? ` · 안개기준 ${fogTmLabel}` : '';
       const areaTitle = roadRiskData.branchSummary?.rangeLabel
         ? `🛣️ 고령지사[${roadRiskData.branchSummary.rangeLabel}]`
         : '🛣️ 012선 도로살얼음';
-      const infoSpan = el(
-        'span',
-        `${areaTitle}(${tmLabel} · 10분갱신): 위험 ${cnt[3] || 0} · 주의 ${cnt[2] || 0} · 관심 ${cnt[1] || 0}` +
-          (fogCnt[1] + fogCnt[2] + fogCnt[3] > 0 ? ` | 🌫️ 안개 위험 ${fogCnt[3] || 0} · 주의 ${fogCnt[2] || 0} · 관심 ${fogCnt[1] || 0}` : '')
-      );
+      const statusTxt = sum.dataStatus === 'missing'
+        ? `${areaTitle}: 위험정보 수신 대기`
+        : `${areaTitle}(${frgTmLabel}${fogDiff} · 5분갱신): 위험 ${cnt[3] || 0} · 주의 ${cnt[2] || 0} · 관심 ${cnt[1] || 0} · 안전 ${cnt[0] || 0}` +
+          (fogCnt[1] + fogCnt[2] + fogCnt[3] > 0 ? ` | 🌫️ 안개 위험 ${fogCnt[3] || 0} · 주의 ${fogCnt[2] || 0} · 관심 ${fogCnt[1] || 0}` : '');
+      const infoSpan = el('span', statusTxt);
       const children = [infoSpan];
       if (recentEscalations.length) {
         const latestEsc = recentEscalations[0];
@@ -258,7 +262,10 @@ export function renderCorridorMiniMap({
     strip.replaceChildren();
     for (const s of corridorStns) {
       const stnKey = `stn:${s.stnId}`;
-      const chip = el('button', '', 'road-stn-chip' + (selectedWindyKey === stnKey ? ' is-selected' : ''));
+      const stnRisk = findStationRoadRisk(s);
+      const stnIceLv = Number.isInteger(stnRisk?.iceLevel) ? stnRisk.iceLevel : null;
+      const alertCls = stnIceLv >= 3 ? ' is-ice-alert-danger' : stnIceLv === 2 ? ' is-ice-alert-caution' : '';
+      const chip = el('button', '', 'road-stn-chip' + (selectedWindyKey === stnKey ? ' is-selected' : '') + alertCls);
       chip.type = 'button';
       chip.dataset.stnid = s.stnId;
 
@@ -280,13 +287,12 @@ export function renderCorridorMiniMap({
       valRow.append(roadSpan, document.createTextNode(airTxt));
 
       chip.append(topRow, valRow);
-      const stnRisk = findStationRoadRisk(s);
-      if (stnRisk && (stnRisk.iceLevel >= 1 || stnRisk.fogLevel >= 1)) {
+      if (stnRisk && ((stnIceLv ?? 0) >= 1 || (stnRisk.fogLevel ?? 0) >= 1)) {
         const riskRow = el('div', '', 'road-stn-risk-row');
-        if (stnRisk.iceLevel >= 1) {
-          riskRow.append(el('span', `${stnRisk.iceLevel === 3 ? '🚨' : '❄'} 살얼음 ${stnRisk.iceLabel}`, `badge-ice rank-${stnRisk.iceLevel}`));
+        if ((stnIceLv ?? 0) >= 1) {
+          riskRow.append(el('span', `${stnIceLv === 3 ? '🚨' : stnIceLv === 2 ? '⬆' : '❄'} 살얼음 ${stnRisk.iceLabel}`, `badge-ice rank-${stnIceLv}`));
         }
-        if (stnRisk.fogLevel >= 1) {
+        if ((stnRisk.fogLevel ?? 0) >= 1) {
           riskRow.append(el('span', `🌫️ 안개 ${stnRisk.fogLabel}`, `badge-ice rank-${stnRisk.fogLevel}`));
         }
         chip.append(riskRow);
