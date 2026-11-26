@@ -507,7 +507,7 @@ export function mountIceAlertModal({ soundEnabled = () => true, onAcknowledge = 
     }
   });
 
-  function renderPopup(ev) {
+  function renderPopup(ev, { silent = false } = {}) {
     activeEvaluation = ev;
     modalEl.classList.toggle('is-level-3', ev.popupLevel >= 3);
     modalEl.classList.toggle('is-level-2', ev.popupLevel === 2);
@@ -552,8 +552,10 @@ export function mountIceAlertModal({ soundEnabled = () => true, onAcknowledge = 
     );
 
     backdrop.hidden = false;
-    backdrop.querySelector('#kecIceConfirmBtn')?.focus({ preventScroll: true });
-    if (soundEnabled()) playIceEscalationChime(ev.popupLevel);
+    if (!silent) {
+      backdrop.querySelector('#kecIceConfirmBtn')?.focus({ preventScroll: true });
+      if (soundEnabled()) playIceEscalationChime(ev.popupLevel);
+    }
   }
 
   return {
@@ -571,7 +573,17 @@ export function mountIceAlertModal({ soundEnabled = () => true, onAcknowledge = 
       initialized = ev.initialized;
       writeAckStorage(ev.nextAckMap);
       if (ev.shouldPopup) {
-        renderPopup(ev);
+        renderPopup(ev, { silent: false });
+      } else if (!backdrop.hidden && activeEvaluation?.triggeredItems?.length && roadStations?.length) {
+        const itemById = new Map(items.map(it => [String(it?.id || ''), it]));
+        const needsHydration = activeEvaluation.triggeredItems.some(t => t.roadTemp === null);
+        if (needsHydration) {
+          const refreshed = activeEvaluation.triggeredItems.map(t => {
+            const src = itemById.get(String(t.id));
+            return src ? { ...t, ...summarizeStationWeather(src.stnIds || [], roadStations) } : t;
+          });
+          renderPopup({ ...activeEvaluation, triggeredItems: refreshed }, { silent: true });
+        }
       }
       return ev;
     },
