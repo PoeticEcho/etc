@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07111e">
+  <title>데이터 건전성 진단 · 알림 점검 | 날씨봇 × 비온다?</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./ops-tools.css">
+  <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png">
+</head>
+<body class="ops-page dark-mode">
+  <header class="top-header">
+    <div class="wrap bar">
+      <a class="brandhome" href="./index.html">
+        <b class="brand"><img src="./favicon.png" alt="날씨봇" class="brand-favicon"> 날씨봇</b>
+        <span class="tag"><img src="./route12.svg" alt="12" class="route12-badge-sm"> 광주대구선 데이터 건전성 진단</span>
+      </a>
+      <nav class="page-tabs" aria-label="대시보드 메뉴 전환">
+        <a class="page-tab" href="./index.html"><span class="pt-ico">🛣️</span><span class="pt-txt">도로기상 상황판</span></a>
+        <a class="page-tab" href="./hourly.html"><span class="pt-ico">🕒</span><span class="pt-txt">1시간 단기예보</span><span class="pt-badge">13개소</span></a>
+        <a class="page-tab" href="./rwis.html"><span class="pt-ico">❄️</span><span class="pt-txt">도로살얼음상황판</span></a>
+      </nav>
+      <div class="header-actions">
+        <a class="ops-btn is-primary" href="./history-72h.html">📊 72h 제설분석·CSV</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="ops-wrap">
+    <section class="ops-hero">
+      <div class="ops-hero-title">
+        <h1>🔍 실시간 데이터 파이프라인 건전성 진단</h1>
+        <p>기상청 도로관측(1분) · 012선 위험기상 ZIP(5분) · RWIS(FR/VR) · 13개소 단기·초단기예보 · 특보 · 08/18시 브리핑 채널의 시각 정합성과 불변식을 점검합니다.</p>
+      </div>
+      <div class="ops-btn-row">
+        <button type="button" id="btnDiagRefresh" class="ops-btn is-primary">↻ 건전성 점검</button>
+        <button type="button" id="btnDiagForce" class="ops-btn">⚡ 원천 강제 점검 (캐시 우회)</button>
+      </div>
+    </section>
+
+    <div id="diagOverallBanner" class="ops-banner">
+      <span id="diagOverallText">데이터 파이프라인 상태를 확인하는 중입니다…</span>
+      <small id="diagCheckedAt">—</small>
+    </div>
+
+    <section id="diagCardsGrid" class="ops-grid-3" aria-live="polite"></section>
+
+    <section class="ops-card">
+      <div class="ops-card-head">
+        <h2>🔔 한국도로공사 도로살얼음 위험정보 격상 알림·차임벨 사전 점검</h2>
+        <span class="ops-pill st-healthy">실운영 데이터 무영향 시뮬레이션</span>
+      </div>
+      <p style="margin:0;font-size:13px;color:#8fb2d4;">
+        상황실 TV·PC 스피커 볼륨 및 「도로살얼음 위험정보 대응방법 변경알림」 공식 팝업 문구(주의 2단계 · 위험 3단계) 표출 상태를 겨울철 제설 대책기간 전·중 언제든 즉시 테스트할 수 있습니다.
+      </p>
+      <div class="ops-btn-row">
+        <button type="button" id="btnTestCautionModal" class="ops-btn is-warn">🟠 주의(2단계) 격상 알림 테스트</button>
+        <button type="button" id="btnTestDangerModal" class="ops-btn is-danger">🔴 위험(3단계) 격상 알림 테스트</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./diagnostics.js"></script>
+</body>
+</html>

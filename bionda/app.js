@@ -1314,16 +1314,26 @@ export function board() {
       }
       a.append(siteLine);
 
-      // 3. 현재 기온 + 현상(적설) + 상대습도
+      // 3. 현재 기온 + 원천 배지(실측/모델) + 현상(적설) + 상대습도
       const conditions = el('div', '', 'cardweather');
+      const hasObsTemp = Number.isFinite(o?.temp);
       const tempVal = o?.temp ?? w?.current?.temp;
       const humVal = o?.humidity ?? w?.current?.humidity;
       let condStr = o?.description || summary(w?.current?.code);
       if (Number.isFinite(o?.snowDepth) && o.snowDepth > 0 && !condStr.includes('적설')) {
         condStr += ` (적설 ${n(o.snowDepth, 1)}cm)`;
       }
+      const srcTag = Number.isFinite(tempVal)
+        ? el('span', hasObsTemp ? (o?._fromSnapshot ? '저장실측' : '실측') : '모델', `src-micro-tag ${hasObsTemp ? 'is-obs' : 'is-model'}`)
+        : null;
+      if (srcTag) {
+        srcTag.title = hasObsTemp
+          ? `기상청 도로기상관측소 실측 (${o?.name || o?.roadStationName || '광주대구선'})`
+          : 'Open-Meteo 수치모델 추정값 (기상청 관측 대기 중)';
+      }
       conditions.append(
         el('strong', `${n(tempVal, 1)}°`),
+        ...(srcTag ? [srcTag] : []),
         el('span', condStr, 'cond-text'),
         el('small', Number.isFinite(humVal) ? `습도 ${n(humVal, 0)}%` : '', 'hum-text')
       );
@@ -1339,7 +1349,7 @@ export function board() {
       );
       a.append(timingEl);
 
-      // 5. 오늘 강수 & 6시간 최대 강수확률 + 미니 바 차트
+      // 5. 오늘 강수 & 6시간 최대 강수확률 + 미니 바 차트 (보조모델 원천 명시)
       const nums = el('div', '', 'readings');
       const maxPop =
         w?.rows?.length && w.rows.some(x => Number.isFinite(x.pop))
@@ -1347,11 +1357,13 @@ export function board() {
           : null;
 
       const leftMetric = el('div');
-      leftMetric.append(el('small', window.innerWidth <= 768 ? '오늘강수' : '오늘 강수'), el('b', amount(o?.dayPrecip ?? w?.today?.precip, 'mm')));
+      leftMetric.append(el('small', window.innerWidth <= 768 ? '오늘강수(실측)' : '오늘 강수 (실측)'), el('b', amount(o?.dayPrecip ?? w?.today?.precip, 'mm')));
 
       const rightMetric = el('div', '', 'popmetric');
+      const popLabel = el('small', window.innerWidth <= 768 ? '6h확률(모델)' : '6시간 최대 강수확률 (모델)');
+      popLabel.title = 'Open-Meteo 시간별 보조모델 강수확률 (기상청 공식 시간별 강수확률은 상단 [1시간 단기예보] 탭 참조)';
       rightMetric.append(
-        el('small', window.innerWidth <= 768 ? '6h 강수확률' : '6시간 최대 강수확률'),
+        popLabel,
         el('b', Number.isFinite(maxPop) ? `${n(maxPop, 0)}%` : '—'),
         precipitationStrip(w?.rows)
       );

@@ -140,7 +140,11 @@
             <div>
               <div class="rwis-sec-head">
                 <h2>🛣️ 기상청 도로기상관측소 실측 (TR1 노면온도)</h2>
-                <button type="button" id="toggleAllStationsBtn" class="rwis-fchip" aria-pressed="false">전구간 11개소</button>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <a class="rwis-sec-link" href="./history-72h.html" title="제설근무 매칭용 과거 72시간 기상·노면 수동 조회 및 CSV 추출">72h·CSV ↗</a>
+                  <a class="rwis-sec-link" href="./diagnostics.html" title="시스템 데이터 건전성 및 파이프라인 진단">진단 ↗</a>
+                  <button type="button" id="toggleAllStationsBtn" class="rwis-fchip" aria-pressed="false">전구간 11개소</button>
+                </div>
               </div>
               <table class="rwis-obs-table" aria-label="광주대구선 도로기상관측소 실측 표">
                 <thead>

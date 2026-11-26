@@ -1,329 +1,172 @@
 {
-  "schema": "bionda-briefing-v1",
-  "generatedAt": "2026-11-18T14:47:04.201Z",
-  "generatedKst": "2026-11-18 23:47 KST",
-  "corridor": "고속국도 제12호선 (광주대구선 · 기상청 도로기상 14번)",
+  "schema": "bionda-briefing-v2",
+  "edition_id": "2026-11-26-morning",
+  "slot": "morning",
+  "generatedAt": "2026-11-26T08:12:28.270Z",
+  "generatedKst": "2026-11-26T13:44:32+09:00",
+  "corridor": "고속국도 제12호선 광주대구선 (고령지사 관할 함양IC 95.0k ~ 옥포JC 176.0k)",
+  "shareStatusUrl": "https://bionda.pages.dev/share/status.json",
+  "liveBriefingUrl": "https://bionda.pages.dev/api/briefing",
   "latestImage": {
-    "slot": "2026-11-18-1800",
-    "slotLabelKst": "2026-11-18 18:00 KST",
-    "url": "./api/briefing/goryeong-2026-11-18-1800.jpg",
-    "latestAliasUrl": "./api/briefing/latest.jpg",
-    "sizeBytes": 125024,
-    "quality": 0.72
+    "slot": "2026-11-26-morning",
+    "slotLabelKst": "2026-11-26-morning (08:00 KST)",
+    "url": "https://bionda.pages.dev/share/morning.png?v=7f68e215effe68be6b7c057598ef31afdb8141fbd802334982388339ed609184",
+    "sizeBytes": 90815,
+    "sha256": "7f68e215effe68be6b7c057598ef31afdb8141fbd802334982388339ed609184"
   },
-  "archiveIndexUrl": "./api/briefing/index.json",
-  "summary": {
-    "total": 8,
-    "danger": 0,
-    "directive": 6,
-    "watch": 1,
-    "calm": 1,
-    "headline": "긴급(빨강) 0 · 제설지시(주황) 6 · 관심·비(노랑) 1 · 평온 1"
+  "forecastSources": {
+    "shortBase": "2026-11-26T17:00:00+09:00",
+    "latestShortBase": "2026-11-26T17:00:00+09:00",
+    "ultraBase": "2026-11-26T16:30:00+09:00",
+    "latestUltraBase": "2026-11-26T16:30:00+09:00",
+    "shortBases": [
+      "2026-11-26T17:00:00+09:00"
+    ],
+    "ultraBases": [
+      "2026-11-26T16:30:00+09:00"
+    ],
+    "mixedGeneration": false,
+    "isFallback": false,
+    "status": "fresh"
+  },
+  "windowKPIs": {
+    "h6": {
+      "wetRegions": 0,
+      "freezingRegions": 0,
+      "overlapRegions": 0,
+      "earliestWetTime": null,
+      "earliestFreezingTime": null,
+      "earliestOverlapTime": null,
+      "minTemp": 6
+    },
+    "h12": {
+      "wetRegions": 0,
+      "freezingRegions": 0,
+      "overlapRegions": 0,
+      "earliestWetTime": null,
+      "earliestFreezingTime": null,
+      "earliestOverlapTime": null,
+      "minTemp": 5
+    },
+    "h24": {
+      "wetRegions": 0,
+      "freezingRegions": 0,
+      "overlapRegions": 0,
+      "earliestWetTime": null,
+      "earliestFreezingTime": null,
+      "earliestOverlapTime": null,
+      "minTemp": 3
+    },
+    "tomorrow": {
+      "wetRegions": 0,
+      "freezingRegions": 0,
+      "overlapRegions": 0,
+      "earliestWetTime": null,
+      "earliestFreezingTime": null,
+      "earliestOverlapTime": null,
+      "minTemp": 3
+    }
+  },
+  "branchRoadRisk": {
+    "rangeLabel": "함양IC(95.0k)~옥포JC(176.0k)",
+    "maxIce": 0,
+    "iceLabel": "안전",
+    "iceCounts": [
+      609,
+      0,
+      0,
+      0
+    ],
+    "missingIceCount": 0
   },
   "regions": [
     {
-      "name": "대구 달성군남부",
-      "site": "현풍읍",
-      "lat": 35.697,
-      "lon": 128.447,
-      "tier": 1,
-      "tierLabel": "관심",
-      "tempC": 8.4,
-      "roadTempC": 9.6,
-      "surfaceState": "건조",
-      "roadStation": "논공교(도)",
-      "condition": "대체로 맑음",
-      "humidityPct": 65.3,
-      "todayPrecipMm": 0,
-      "maxPop6hPct": 30,
-      "rainTiming": "12h 무강수 예보",
-      "horizons": [
-        {
-          "window": "향후 3시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "3~6시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "향후 6~12시간",
-          "status": "신호 없음"
-        }
-      ],
-      "ice": {
-        "level": "뚜렷한 신호 없음",
-        "rank": 0,
-        "shortReason": "향후 6시간 결빙 위험 조건 없음 (정상)"
-      },
-      "warnings": [],
-      "milepostKm": 171.6
-    },
-    {
-      "name": "함양중부",
-      "site": "지곡면",
-      "lat": 35.566,
-      "lon": 127.774,
-      "tier": 2,
-      "tierLabel": "지시·주의",
-      "tempC": 6.7,
-      "roadTempC": 5.9,
-      "surfaceState": "습윤",
-      "roadStation": "함양(도)",
-      "condition": "대체로 맑음",
-      "humidityPct": 64.1,
-      "todayPrecipMm": 1,
-      "maxPop6hPct": 30,
-      "rainTiming": "12h 무강수 예보",
-      "horizons": [
-        {
-          "window": "향후 3시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "3~6시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "향후 6~12시간",
-          "status": "신호 없음"
-        }
-      ],
-      "ice": {
-        "level": "관심",
-        "rank": 1,
-        "shortReason": "02:00 최근 강수와 저온(교량 결빙 관심)"
-      },
-      "warnings": [],
-      "milepostKm": 99.2
-    },
-    {
-      "name": "거창군남부",
-      "site": "남상면",
-      "lat": 35.644,
-      "lon": 127.91,
-      "tier": 2,
-      "tierLabel": "지시·주의",
-      "tempC": 6.8,
-      "roadTempC": 7,
-      "surfaceState": "관측중",
-      "roadStation": "남상졸음(도)",
-      "condition": "노면 관측중",
-      "humidityPct": 63.1,
-      "todayPrecipMm": 0.5,
-      "maxPop6hPct": 30,
-      "rainTiming": "12h 무강수 예보",
-      "horizons": [
-        {
-          "window": "향후 3시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "3~6시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "향후 6~12시간",
-          "status": "신호 없음"
-        }
-      ],
-      "ice": {
-        "level": "관심",
-        "rank": 1,
-        "shortReason": "02:00 최근 강수와 저온(교량 결빙 관심)"
-      },
-      "warnings": [],
-      "milepostKm": 115.9
-    },
-    {
-      "name": "합천군서북부",
-      "site": "야로면",
-      "lat": 35.706,
-      "lon": 128.168,
-      "tier": 2,
-      "tierLabel": "지시·주의",
-      "tempC": 5.2,
-      "roadTempC": 6.9,
-      "surfaceState": "건조",
-      "roadStation": "거창휴(도)",
-      "condition": "대체로 맑음",
-      "humidityPct": 62.4,
-      "todayPrecipMm": 0,
-      "maxPop6hPct": 30,
-      "rainTiming": "12h 무강수 예보",
-      "horizons": [
-        {
-          "window": "향후 3시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "3~6시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "향후 6~12시간",
-          "status": "신호 없음"
-        }
-      ],
-      "ice": {
-        "level": "뚜렷한 신호 없음",
-        "rank": 0,
-        "shortReason": "향후 6시간 결빙 위험 조건 없음 (정상)"
-      },
-      "warnings": [],
-      "milepostKm": 145.5
-    },
-    {
-      "name": "고령군",
-      "site": "대가야읍",
-      "lat": 35.728,
-      "lon": 128.263,
-      "tier": 0,
-      "tierLabel": "평온",
-      "tempC": 8.3,
-      "roadTempC": 10,
-      "surfaceState": "건조",
-      "roadStation": "양전교(도)",
-      "condition": "대체로 맑음",
-      "humidityPct": 61.6,
-      "todayPrecipMm": 0,
-      "maxPop6hPct": 30,
-      "rainTiming": "12h 무강수 예보",
-      "horizons": [
-        {
-          "window": "향후 3시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "3~6시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "향후 6~12시간",
-          "status": "신호 없음"
-        }
-      ],
-      "ice": {
-        "level": "뚜렷한 신호 없음",
-        "rank": 0,
-        "shortReason": "향후 6시간 결빙 위험 조건 없음 (정상)"
-      },
-      "warnings": [],
-      "milepostKm": 154.6
-    },
-    {
       "name": "남원",
-      "site": "남원시청",
-      "lat": 35.416,
-      "lon": 127.39,
-      "tier": 2,
-      "tierLabel": "지시·주의",
-      "tempC": 5.2,
-      "roadTempC": 6.3,
-      "surfaceState": "습윤",
+      "coord": "35.416,127.390",
+      "tempC": 14.4,
+      "roadTempC": 12.7,
+      "surfaceState": "건조",
       "roadStation": "남원주차장(도)",
-      "condition": "이슬비",
-      "humidityPct": 82.2,
-      "todayPrecipMm": 6,
-      "maxPop6hPct": 94,
-      "rainTiming": "현재~01:00 비중",
-      "horizons": [
-        {
-          "window": "향후 3시간",
-          "status": "비 예상"
-        },
-        {
-          "window": "3~6시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "향후 6~12시간",
-          "status": "신호 없음"
-        }
-      ],
-      "ice": {
-        "level": "관심",
-        "rank": 1,
-        "shortReason": "05:00 최근 강수와 저온(교량 결빙 관심)"
-      },
-      "warnings": [],
-      "milepostKm": 55.5
+      "humidityPct": 60,
+      "todayPrecipMm": 0,
+      "warnings": []
     },
     {
       "name": "함양",
-      "site": "함양읍",
-      "lat": 35.52,
-      "lon": 127.725,
-      "tier": 2,
-      "tierLabel": "지시·주의",
-      "tempC": 6.7,
-      "roadTempC": 5.9,
-      "surfaceState": "습윤",
+      "coord": "35.520,127.725",
+      "tempC": 14.4,
+      "roadTempC": 12.6,
+      "surfaceState": "건조",
       "roadStation": "함양(도)",
-      "condition": "대체로 맑음",
-      "humidityPct": 64.1,
-      "todayPrecipMm": 1,
-      "maxPop6hPct": 30,
-      "rainTiming": "12h 무강수 예보",
-      "horizons": [
-        {
-          "window": "향후 3시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "3~6시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "향후 6~12시간",
-          "status": "신호 없음"
-        }
-      ],
-      "ice": {
-        "level": "관심",
-        "rank": 1,
-        "shortReason": "03:00 최근 강수와 저온(교량 결빙 관심)"
-      },
-      "warnings": [],
-      "milepostKm": 93.5
+      "humidityPct": 54.6,
+      "todayPrecipMm": 0,
+      "warnings": []
+    },
+    {
+      "name": "함양중부",
+      "coord": "35.566,127.774",
+      "tempC": 14.4,
+      "roadTempC": 12.6,
+      "surfaceState": "건조",
+      "roadStation": "함양(도)",
+      "humidityPct": 54.6,
+      "todayPrecipMm": 0,
+      "warnings": []
+    },
+    {
+      "name": "거창군남부",
+      "coord": "35.644,127.910",
+      "tempC": 11,
+      "roadTempC": 8.5,
+      "surfaceState": "건조",
+      "roadStation": "남상졸음(도)",
+      "humidityPct": 64.8,
+      "todayPrecipMm": 0,
+      "warnings": []
     },
     {
       "name": "거창",
-      "site": "거창읍",
-      "lat": 35.687,
-      "lon": 127.91,
-      "tier": 2,
-      "tierLabel": "지시·주의",
-      "tempC": 6.8,
-      "roadTempC": 7,
-      "surfaceState": "관측중",
+      "coord": "35.687,127.910",
+      "tempC": 11,
+      "roadTempC": 8.5,
+      "surfaceState": "건조",
       "roadStation": "남상졸음(도)",
-      "condition": "노면 관측중",
-      "humidityPct": 63.1,
-      "todayPrecipMm": 0.5,
-      "maxPop6hPct": 30,
-      "rainTiming": "12h 무강수 예보",
-      "horizons": [
-        {
-          "window": "향후 3시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "3~6시간",
-          "status": "신호 없음"
-        },
-        {
-          "window": "향후 6~12시간",
-          "status": "신호 없음"
-        }
-      ],
-      "ice": {
-        "level": "관심",
-        "rank": 1,
-        "shortReason": "00:00 최근 강수와 저온(교량 결빙 관심)"
-      },
-      "warnings": [],
-      "milepostKm": 120.5
+      "humidityPct": 64.8,
+      "todayPrecipMm": 0,
+      "warnings": []
+    },
+    {
+      "name": "합천군서북부",
+      "coord": "35.706,128.168",
+      "tempC": 10.6,
+      "roadTempC": 11.3,
+      "surfaceState": "건조",
+      "roadStation": "거창휴(도)",
+      "humidityPct": 60,
+      "todayPrecipMm": 0,
+      "warnings": []
+    },
+    {
+      "name": "고령군",
+      "coord": "35.728,128.263",
+      "tempC": 10.7,
+      "roadTempC": 10.3,
+      "surfaceState": "건조",
+      "roadStation": "양전교(도)",
+      "humidityPct": 71.8,
+      "todayPrecipMm": 0,
+      "warnings": []
+    },
+    {
+      "name": "대구 달성군남부",
+      "coord": "35.697,128.447",
+      "tempC": 11.8,
+      "roadTempC": 10.3,
+      "surfaceState": "건조",
+      "roadStation": "논공교(도)",
+      "humidityPct": 66.2,
+      "todayPrecipMm": 0,
+      "warnings": []
     }
   ]
 }

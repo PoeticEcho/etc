@@ -2843,3 +2843,50 @@ body.dark-mode .backend-pill.is-snapshot { background: #3b2a10; color: #fcd34d; 
   box-shadow: inset 3px 0 var(--action-text);
 }
 .camera-list button:focus-visible { outline-offset: -3px; }
+
+/* STEP 4: 데이터 원천(실측 vs 수치모델) 미니 구분 배지 및 운영도구 푸터 링크 */
+.src-micro-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  line-height: 1.35;
+  vertical-align: middle;
+  margin-right: 2px;
+}
+.src-micro-tag.is-obs {
+  background: rgba(56, 219, 248, 0.14);
+  color: #0284c7;
+  border: 1px solid rgba(56, 219, 248, 0.36);
+}
+body.dark-mode .src-micro-tag.is-obs {
+  background: rgba(56, 219, 248, 0.16);
+  color: #7dd3fc;
+  border-color: rgba(56, 219, 248, 0.35);
+}
+.src-micro-tag.is-model {
+  background: rgba(148, 163, 184, 0.16);
+  color: #64748b;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+}
+body.dark-mode .src-micro-tag.is-model {
+  background: rgba(148, 163, 184, 0.14);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+.footer-ops-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.footer-ops-links a {
+  font-weight: 700;
+  text-decoration: none;
+}
+.footer-ops-links a:hover {
+  text-decoration: underline;
+}
