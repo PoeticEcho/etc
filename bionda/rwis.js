@@ -44,7 +44,8 @@ import {
   buildZoneTempTrendSeries,
   renderMicroSparklineSvg,
   formatStationBasisLabel,
-  formatRwisCalloutLines
+  formatRwisCalloutLines,
+  computeMobileBigMapLayout
 } from './rwis-data.js';
 
 const RWIS_CACHE_KEY = 'weather-watch:cache:rwis:v1';
@@ -111,6 +112,12 @@ const state = {
   showRoadTemps: initialUi.showRoadTemps,
   showShort13Map: initialUi.showShort13Map,
   mapBig: false,
+  mapZoom: null,
+  mapRotZoom: 1.0,
+  mapRotated: false,
+  pushedMapBigHistory: false,
+  suppressNextPopState: false,
+  lastEnriched: null,
   sideTab: 'short6',      // 'short6' (기본 TV 메인) | 'telemetry' | 'cctv'
   showAllStations: false,
   selectedZoneSuffix: null,
@@ -331,6 +338,9 @@ function getEnriched() {
 function renderCorridorMap(enriched) {
   const stage = $('rwisMapStage');
   if (!stage) return;
+  state.lastEnriched = enriched;
+  const prevScrollLeft = stage.scrollLeft;
+  const prevScrollTop = stage.scrollTop;
   const G = buildSceneTransform();
   const metricLabel = state.metric === 'vir' ? '가시거리(VIR)' : '도로살얼음(FSM)';
   const dirLabel = state.dir === 'E' ? '대구방향(상행)' : state.dir === 'S' ? '광주방향(하행)' : '양방향';
@@ -380,6 +390,7 @@ function renderCorridorMap(enriched) {
     : (state.roadRisk?.ok ? '기상청 012 도로위험 연동' : '기상청 도로기상');
 
   const out = [];
+  out.push('<div id="rwisSvgSizer" class="rwis-svg-sizer">');
   out.push(`<svg id="rwisCorridorSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${G.w} ${G.h}" role="img" aria-label="광주대구선 ${metricLabel} 노선 지도">`);
   out.push(`<defs>
     <linearGradient id="rwPaper" x1="0" y1="0" x2="0" y2="1">
@@ -784,7 +795,9 @@ function renderCorridorMap(enriched) {
   out.push(`<text x="${G.w - 28}" y="${footY + 48}" text-anchor="end" fill="#6f91b4" font-size="13.5" font-weight="600">구간 클릭: 필터 · IC/터널 클릭: 인근 실시간 CCTV 재생</text>`);
 
   out.push('</svg>');
+  out.push('</div>');
   stage.innerHTML = out.join('');
+  syncMobileBigMapLayout({ centerInitial: false, prevScrollLeft, prevScrollTop });
 
   // Wire map interactive clicks
   stage.querySelectorAll('.zone-hit').forEach(el => {
@@ -810,6 +823,12 @@ function renderCorridorMap(enriched) {
   });
   stage.querySelectorAll('.short13-hit').forEach(el => {
     el.addEventListener('click', () => {
+      if (state.mapBig && isCompactMapBigViewport()) {
+        setMapBig(false);
+        setSideTab('short6');
+        $('sidePanelShort6')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
       setSideTab('short6');
     });
   });
@@ -1506,7 +1525,9 @@ function closeCctvModal() {
 function exportMapPng() {
   const svg = $('rwisCorridorSvg');
   if (!svg) return;
-  const xml = new XMLSerializer().serializeToString(svg);
+  const cloned = svg.cloneNode(true);
+  cloned.removeAttribute('style');
+  const xml = new XMLSerializer().serializeToString(cloned);
   const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const img = new Image();
@@ -2071,11 +2092,237 @@ $('toggleShort13Overlay')?.addEventListener('click', () => {
   renderAll();
 });
 
-$('toggleMapBigBtn')?.addEventListener('click', () => {
-  state.mapBig = !state.mapBig;
+function isCompactMapBigViewport() {
+  return typeof window !== 'undefined' && window.innerWidth <= 1320;
+}
+
+function resolveInitialBigMapFocusRatio() {
+  let targetKm = 131.1;
+  if (state.selectedZoneSuffix) {
+    const sel = RWIS_MASTER.zones.find(z => z.suffix === state.selectedZoneSuffix);
+    if (sel) targetKm = (sel.startKm + sel.endKm) / 2;
+  } else if (state.lastEnriched?.zones?.length) {
+    let bestLv = 0;
+    let bestZone = null;
+    for (const z of state.lastEnriched.zones) {
+      const lv = getZoneRawLevel(z) ?? 0;
+      if (lv > bestLv) {
+        bestLv = lv;
+        bestZone = z;
+      }
+    }
+    if (bestZone && bestLv >= 1) {
+      targetKm = (bestZone.startKm + bestZone.endKm) / 2;
+    }
+  }
+  const G = buildSceneTransform();
+  const pt = pointAtKm(targetKm, G.base);
+  const q = G.map(pt.x, pt.y);
+  return Math.min(0.92, Math.max(0.08, q.x / G.w));
+}
+
+function syncMobileBigMapLayout({ centerInitial = false, prevScrollLeft = null, prevScrollTop = null } = {}) {
+  const stage = $('rwisMapStage');
+  const sizer = $('rwisSvgSizer');
+  const svg = $('rwisCorridorSvg');
+  const zoomBar = $('rwisMapZoomBar');
+  const compactActive = state.mapBig && isCompactMapBigViewport();
+
+  if (zoomBar) zoomBar.hidden = !compactActive;
+  if (!stage || !sizer || !svg) return;
+
+  if (!compactActive) {
+    sizer.removeAttribute('style');
+    svg.removeAttribute('style');
+    stage.scrollLeft = 0;
+    stage.scrollTop = 0;
+    return;
+  }
+
+  const stageW = stage.clientWidth || window.innerWidth || 390;
+  const stageH = stage.clientHeight || Math.max(260, (window.innerHeight || 760) - 130);
+  const layout = computeMobileBigMapLayout({
+    stageW,
+    stageH,
+    zoom: state.mapZoom,
+    rotZoom: state.mapRotZoom,
+    rotated: state.mapRotated,
+    svgW: 1600,
+    svgH: 745
+  });
+
+  if (!state.mapRotated && state.mapZoom === null) {
+    state.mapZoom = layout.activeZoom;
+  }
+
+  sizer.style.cssText = `width:${layout.sizerW}px;height:${layout.sizerH}px;margin:${layout.padY}px ${layout.padX}px;position:relative;flex-shrink:0;`;
+  if (layout.rotated) {
+    svg.style.cssText = `position:absolute;width:${layout.renderW}px;height:${layout.renderH}px;left:50%;top:50%;transform:translate(-50%,-50%) rotate(90deg);display:block;`;
+  } else {
+    svg.style.cssText = `width:${layout.renderW}px;height:${layout.renderH}px;display:block;`;
+  }
+
+  const resetBtn = $('rwisZoomResetBtn');
+  if (resetBtn) {
+    resetBtn.textContent = layout.activeZoom <= 1.05 ? '맞춤' : `${layout.scalePct}%`;
+  }
+  const rotBtn = $('rwisRotateMapBtn');
+  if (rotBtn) {
+    rotBtn.setAttribute('aria-pressed', String(state.mapRotated));
+    rotBtn.textContent = state.mapRotated ? '↻ 세로슬라이드' : '↻ 가로한눈에';
+  }
+
+  if (centerInitial) {
+    if (layout.rotated) {
+      stage.scrollLeft = Math.max(0, Math.round((layout.sizerW - stageW) / 2));
+      stage.scrollTop = Math.max(0, Math.round((layout.sizerH - stageH) / 2));
+    } else {
+      const focusRatio = resolveInitialBigMapFocusRatio();
+      stage.scrollLeft = Math.max(0, Math.round(layout.renderW * focusRatio - stageW / 2));
+      stage.scrollTop = Math.max(0, Math.round((layout.renderH - stageH) / 2));
+    }
+  } else if (typeof prevScrollLeft === 'number') {
+    stage.scrollLeft = prevScrollLeft;
+    stage.scrollTop = prevScrollTop || 0;
+  }
+}
+
+function setMapBig(nextOn, { fromPopState = false } = {}) {
+  const on = Boolean(nextOn);
+  if (state.mapBig === on) return;
+  state.mapBig = on;
+  if (on) {
+    state.mapZoom = null;
+    state.mapRotZoom = 1.0;
+    state.mapRotated = false;
+    if (isCompactMapBigViewport() && typeof history !== 'undefined' && typeof history.pushState === 'function') {
+      try {
+        history.pushState({ rwisMapBig: true }, '');
+        state.pushedMapBigHistory = true;
+      } catch {}
+    }
+  } else if (!fromPopState && state.pushedMapBigHistory) {
+    state.pushedMapBigHistory = false;
+    state.suppressNextPopState = true;
+    try { history.back(); } catch { state.suppressNextPopState = false; }
+  } else {
+    state.pushedMapBigHistory = false;
+  }
+
   document.body.classList.toggle('rwis-map-big', state.mapBig);
-  $('toggleMapBigBtn').setAttribute('aria-pressed', String(state.mapBig));
-  $('toggleMapBigBtn').textContent = state.mapBig ? '⤡ 기본 보기' : '⛶ 지도 크게';
+  if ($('toggleMapBigBtn')) {
+    $('toggleMapBigBtn').setAttribute('aria-pressed', String(state.mapBig));
+    $('toggleMapBigBtn').textContent = state.mapBig ? '⤡ 기본 보기' : '⛶ 지도 크게';
+  }
+
+  if (state.mapBig) {
+    requestAnimationFrame(() => {
+      syncMobileBigMapLayout({ centerInitial: true });
+    });
+  } else {
+    syncMobileBigMapLayout({ centerInitial: false });
+  }
+}
+
+function setBigMapZoomAnchored(nextVal) {
+  const stage = $('rwisMapStage');
+  const sizer = $('rwisSvgSizer');
+  if (!stage || !sizer || !state.mapBig || !isCompactMapBigViewport()) return;
+  const oldW = Math.max(1, sizer.offsetWidth);
+  const oldH = Math.max(1, sizer.offsetHeight);
+  const ratioX = (stage.scrollLeft + stage.clientWidth / 2) / oldW;
+  const ratioY = (stage.scrollTop + stage.clientHeight / 2) / oldH;
+
+  if (state.mapRotated) {
+    state.mapRotZoom = Math.round(Math.min(3.0, Math.max(1.0, nextVal)) * 100) / 100;
+  } else {
+    state.mapZoom = Math.round(Math.min(4.5, Math.max(1.0, nextVal)) * 100) / 100;
+  }
+  syncMobileBigMapLayout({ centerInitial: false });
+  stage.scrollLeft = Math.max(0, Math.round(sizer.offsetWidth * ratioX - stage.clientWidth / 2));
+  stage.scrollTop = Math.max(0, Math.round(sizer.offsetHeight * ratioY - stage.clientHeight / 2));
+}
+
+$('toggleMapBigBtn')?.addEventListener('click', () => {
+  setMapBig(!state.mapBig);
+});
+
+$('rwisCloseBigMapBtn')?.addEventListener('click', () => {
+  setMapBig(false);
+});
+
+$('rwisZoomInBtn')?.addEventListener('click', () => {
+  const cur = state.mapRotated ? (state.mapRotZoom || 1.0) : (state.mapZoom || 2.6);
+  setBigMapZoomAnchored(cur + 0.5);
+});
+
+$('rwisZoomOutBtn')?.addEventListener('click', () => {
+  const cur = state.mapRotated ? (state.mapRotZoom || 1.0) : (state.mapZoom || 2.6);
+  setBigMapZoomAnchored(cur - 0.5);
+});
+
+$('rwisZoomResetBtn')?.addEventListener('click', () => {
+  if (state.mapRotated) {
+    setBigMapZoomAnchored(state.mapRotZoom > 1.05 ? 1.0 : 1.8);
+  } else if ((state.mapZoom || 1.0) > 1.05) {
+    setBigMapZoomAnchored(1.0);
+  } else {
+    state.mapZoom = null;
+    syncMobileBigMapLayout({ centerInitial: true });
+  }
+});
+
+$('rwisRotateMapBtn')?.addEventListener('click', () => {
+  state.mapRotated = !state.mapRotated;
+  state.mapRotZoom = 1.0;
+  syncMobileBigMapLayout({ centerInitial: true });
+});
+
+// 모바일 두 손가락 핀치줌 지원 (1손가락은 브라우저 네이티브 관성 스크롤 유지)
+let pinchStartDist = 0;
+let pinchStartZoom = 1;
+$('rwisMapStage')?.addEventListener('touchstart', e => {
+  if (!state.mapBig || !isCompactMapBigViewport() || e.touches.length !== 2) return;
+  const dx = e.touches[0].clientX - e.touches[1].clientX;
+  const dy = e.touches[0].clientY - e.touches[1].clientY;
+  pinchStartDist = Math.hypot(dx, dy);
+  pinchStartZoom = state.mapRotated ? (state.mapRotZoom || 1.0) : (state.mapZoom || 2.6);
+}, { passive: true });
+
+$('rwisMapStage')?.addEventListener('touchmove', e => {
+  if (!state.mapBig || !isCompactMapBigViewport() || e.touches.length !== 2 || pinchStartDist <= 0) return;
+  e.preventDefault();
+  const dx = e.touches[0].clientX - e.touches[1].clientX;
+  const dy = e.touches[0].clientY - e.touches[1].clientY;
+  const dist = Math.hypot(dx, dy);
+  if (dist > 8) {
+    setBigMapZoomAnchored(pinchStartZoom * (dist / pinchStartDist));
+  }
+}, { passive: false });
+
+$('rwisMapStage')?.addEventListener('touchend', e => {
+  if (e.touches.length < 2) pinchStartDist = 0;
+}, { passive: true });
+
+window.addEventListener('resize', () => {
+  if (state.mapBig) {
+    if (window.innerWidth > window.innerHeight && state.mapRotated) {
+      // 실제 기기를 가로로 돌린 경우 수동 90° 회전을 해제하고 자연 가로 뷰포트로 맞춤
+      state.mapRotated = false;
+      state.mapZoom = null;
+    }
+    syncMobileBigMapLayout({ centerInitial: false, prevScrollLeft: $('rwisMapStage')?.scrollLeft, prevScrollTop: $('rwisMapStage')?.scrollTop });
+  }
+});
+
+window.addEventListener('popstate', () => {
+  if (state.suppressNextPopState) {
+    state.suppressNextPopState = false;
+    return;
+  }
+  if (state.mapBig) {
+    setMapBig(false, { fromPopState: true });
+  }
 });
 
 document.querySelectorAll('.rwis-side-tab').forEach(btn => {
@@ -2149,7 +2396,10 @@ $('rwisModalRetry')?.addEventListener('click', () => {
   refreshActiveModalCctv();
 });
 document.addEventListener('keydown', e => {
-  if ($('rwisCctvModal').hidden) return;
+  if ($('rwisCctvModal').hidden) {
+    if (e.key === 'Escape' && state.mapBig) setMapBig(false);
+    return;
+  }
   if (e.key === 'Escape') closeCctvModal();
   else if (e.key === 'ArrowLeft' && state.activeCamIndex > 0) openMainCctvByIndex(state.activeCamIndex - 1);
   else if (e.key === 'ArrowRight') {

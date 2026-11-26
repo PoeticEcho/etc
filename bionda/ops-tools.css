@@ -165,6 +165,7 @@ body.ops-page {
 .ops-pill.st-healthy { background: rgba(56, 219, 248, 0.18); color: #7dd3fc; border: 1px solid rgba(56, 219, 248, 0.42); }
 .ops-pill.st-degraded { background: rgba(250, 204, 21, 0.18); color: #fde047; border: 1px solid rgba(250, 204, 21, 0.45); }
 .ops-pill.st-critical { background: rgba(244, 63, 94, 0.22); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.5); }
+.ops-pill.st-checking { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.38); }
 
 .ops-kv-list {
   display: flex;

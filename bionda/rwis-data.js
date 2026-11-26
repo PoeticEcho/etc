@@ -1497,3 +1497,68 @@ export function renderMicroSparklineSvg(series, { kind = 'road', uid = 'sp' } = 
 
   return `<svg class="rzc-spark-svg" viewBox="0 0 ${W} ${H}" aria-hidden="true">${parts.join('')}</svg>`;
 }
+
+/**
+ * 모바일·태블릿(<= 1320px) [지도 크게] 전체화면 모드의 SVG 확대·슬라이드 및 90° 가로회전 레이아웃 계산
+ */
+export function computeMobileBigMapLayout({
+  stageW = 390,
+  stageH = 640,
+  zoom = null,
+  rotZoom = 1,
+  rotated = false,
+  svgW = 1600,
+  svgH = 745
+} = {}) {
+  const ar = svgW / svgH;
+  const sw = Math.max(240, Number(stageW) || 390);
+  const sh = Math.max(200, Number(stageH) || 640);
+
+  if (rotated) {
+    const rotFitW = Math.max(260, Math.floor(Math.min(sh - 12, (sw - 8) * ar)));
+    const activeZoom = Math.min(3.0, Math.max(1.0, Number.isFinite(rotZoom) && rotZoom > 0 ? rotZoom : 1.0));
+    const renderW = Math.round(rotFitW * activeZoom);
+    const renderH = Math.round(renderW / ar);
+    const sizerW = renderH;
+    const sizerH = renderW;
+    const padY = Math.max(0, Math.floor((sh - sizerH) / 2));
+    const padX = Math.max(0, Math.floor((sw - sizerW) / 2));
+    return {
+      rotated: true,
+      defaultZoom: 1.0,
+      activeZoom,
+      scalePct: Math.round(activeZoom * 100),
+      renderW,
+      renderH,
+      sizerW,
+      sizerH,
+      padX,
+      padY
+    };
+  }
+
+  const fitW = Math.max(240, Math.floor(Math.min(sw, (sh - 8) * ar)));
+  const isPortrait = sw < sh;
+  const heightFillZoom = ((sh - 16) * ar * 0.94) / fitW;
+  const defaultZoom = isPortrait
+    ? Math.round(Math.min(3.4, Math.max(2.2, heightFillZoom)) * 10) / 10
+    : 1.4;
+  const activeZoom = Math.min(4.5, Math.max(1.0, Number.isFinite(zoom) && zoom > 0 ? zoom : defaultZoom));
+  const renderW = Math.round(fitW * activeZoom);
+  const renderH = Math.round(renderW / ar);
+  const padY = Math.max(0, Math.floor((sh - renderH) / 2));
+  const padX = Math.max(0, Math.floor((sw - renderW) / 2));
+
+  return {
+    rotated: false,
+    defaultZoom,
+    activeZoom,
+    scalePct: Math.round(activeZoom * 100),
+    renderW,
+    renderH,
+    sizerW: renderW,
+    sizerH: renderH,
+    padX,
+    padY
+  };
+}

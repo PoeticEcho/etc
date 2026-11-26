@@ -199,6 +199,11 @@ body.rwis-page .top-header {
   aspect-ratio: 16 / 6.75;
   overflow: hidden;
 }
+.rwis-svg-sizer {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
 .rwis-map-stage svg {
   width: 100%;
   height: 100%;
@@ -1027,15 +1032,112 @@ body.rwis-page .top-header {
   filter: none;
 }
 
-/* Fullscreen map mode */
-body.rwis-map-big .rwis-grid {
-  grid-template-columns: 1fr;
+/* Fullscreen map mode (PC widescreen vs Mobile/Tablet fullscreen interactive pan·zoom·rotate) */
+.rwis-map-zoom-bar[hidden] {
+  display: none !important;
 }
-body.rwis-map-big .rwis-side-col {
-  display: none;
+.rwis-map-zoom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: #091525;
+  border-top: 1px solid #1e3756;
+  flex-shrink: 0;
 }
-body.rwis-map-big .rwis-map-stage {
-  aspect-ratio: 16 / 8.2;
+.rzb-btn {
+  border: 1px solid #2b4a6e;
+  background: #12263f;
+  color: #e2effb;
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.rzb-btn:active {
+  background: #1d3c63;
+}
+.rzb-scale {
+  min-width: 56px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.45);
+}
+.rzb-rotate[aria-pressed="true"] {
+  background: #124d4a;
+  border-color: #2dd4bf;
+  color: #ccfbf1;
+}
+.rzb-close {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(251, 113, 133, 0.65);
+  color: #fecdd3;
+}
+
+@media (min-width: 1321px) {
+  body.rwis-map-big .rwis-grid {
+    grid-template-columns: 1fr;
+  }
+  body.rwis-map-big .rwis-side-col {
+    display: none;
+  }
+  body.rwis-map-big .rwis-map-stage {
+    aspect-ratio: 16 / 8.2;
+  }
+}
+
+@media (max-width: 1320px) {
+  body.rwis-map-big {
+    overflow: hidden;
+  }
+  body.rwis-map-big .rwis-main-col > .rwis-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 940;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    background: #06101d;
+    box-shadow: none;
+  }
+  body.rwis-map-big .rwis-map-toolbar {
+    padding: 8px 10px 7px;
+    gap: 6px;
+    flex-shrink: 0;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+  body.rwis-map-big .rwis-map-sub {
+    display: none;
+  }
+  body.rwis-map-big .rwis-map-heading h1 {
+    font-size: 15px;
+  }
+  body.rwis-map-big .rwis-seg button,
+  body.rwis-map-big .rwis-tool-btn {
+    padding: 5px 9px;
+    font-size: 12px;
+  }
+  body.rwis-map-big .rwis-map-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    aspect-ratio: auto !important;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    overscroll-behavior: contain;
+    background: #071322;
+  }
 }
 
 /* CCTV Video Modal */
