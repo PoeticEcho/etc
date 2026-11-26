@@ -77,6 +77,16 @@ body.rwis-page .top-header {
   background: #f87171;
   box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.26);
 }
+.rwis-stamp-pill.is-hard-refresh {
+  border-color: #38dbf8;
+  background: rgba(12, 52, 74, 0.96);
+  color: #f0f9ff;
+  box-shadow: 0 0 0 2px rgba(56, 219, 248, 0.28);
+}
+.rwis-stamp-pill.is-hard-refresh .dot-live {
+  background: #38dbf8;
+  box-shadow: 0 0 0 3px rgba(56, 219, 248, 0.34);
+}
 
 /* Main 2-column 50-inch TV grid */
 .rwis-grid {

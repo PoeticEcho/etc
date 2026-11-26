@@ -20,10 +20,17 @@ export function seedKmaForecast(place, data) {
   const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
   kmaForecastCache.set(key, { expires: Date.now() + 4 * 60000, data: { ...data, _fromSnapshot: false } });
 }
+
+export function clearWeatherMemCache({ includeEnsemble = false } = {}) {
+  omForecastCache.clear();
+  kmaForecastCache.clear();
+  if (includeEnsemble) omEnsembleCache.clear();
+}
+
 let forecastPrefetchPromise = null;
 let ensemblePrefetchPromise = null;
 
-async function requestOpenMeteo(endpoint, query) {
+async function requestOpenMeteo(endpoint, query, { force = false, hard = false } = {}) {
   if (endpoint === 'ensemble' && Date.now() < ensembleCooldownUntil) {
     throw Error('앙상블 API 일일 요청 한도 쿨다운 중');
   }
@@ -31,15 +38,20 @@ async function requestOpenMeteo(endpoint, query) {
   const direct = endpoint === 'ensemble'
     ? 'https://ensemble-api.open-meteo.com/v1/ensemble'
     : 'https://api.open-meteo.com/v1/forecast';
+  const bypass = Boolean(force || hard);
   const urls = [];
   if (await isBackendAvailable()) {
-    urls.push(apiUrl(`/api/open-meteo?endpoint=${endpoint}&` + params.toString()));
+    const workerExtra = `${bypass ? '&force=1' : ''}${hard ? '&hard=1' : ''}`;
+    urls.push(apiUrl(`/api/open-meteo?endpoint=${endpoint}${workerExtra}&` + params.toString()));
   }
   urls.push(direct + '?' + params.toString());
 
   for (const url of urls) {
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(5000),
+        ...(bypass ? { cache: 'no-store' } : {})
+      });
       if (response.status === 429) {
         if (endpoint === 'ensemble') ensembleCooldownUntil = Date.now() + 15 * 60000;
         continue;
@@ -68,13 +80,17 @@ function dedupePlaces(placesList) {
 /**
  * 복수 관심지역의 Open-Meteo 예보(forecast) 및 앙상블(ensemble)을 콤마 일괄 쿼리(각 1회 호출)로 미리 조회합니다.
  */
-export async function prefetchOpenMeteo(placesList, { force = false } = {}) {
+export async function prefetchOpenMeteo(placesList, { force = false, hard = false } = {}) {
   const unique = dedupePlaces(placesList);
   if (!unique.length) return;
   const now = Date.now();
+  const bypass = Boolean(force || hard);
 
-  if (force) {
+  if (bypass) {
     omForecastCache.clear();
+  }
+  if (hard) {
+    kmaForecastCache.clear();
   }
 
   const needFcst = unique.filter(p => {
@@ -93,7 +109,7 @@ export async function prefetchOpenMeteo(placesList, { force = false } = {}) {
           hourly: hourlyFields,
           past_days: 1,
           forecast_days: 2
-        });
+        }, { force: bypass, hard });
         const items = Array.isArray(raw) ? raw : [raw];
         needFcst.forEach((p, idx) => {
           const item = items[idx];
@@ -111,6 +127,7 @@ export async function prefetchOpenMeteo(placesList, { force = false } = {}) {
     ? unique.filter(p => {
         const hit = omEnsembleCache.get(coordKey(p));
         if (!hit || hit.expires <= now) return true;
+        if (hard) return true;
         if (force && now - hit.fetchedAt > 5 * 60000) return true;
         return false;
       })
@@ -126,7 +143,7 @@ export async function prefetchOpenMeteo(placesList, { force = false } = {}) {
           hourly: 'rain,snowfall',
           models: 'icon_seamless',
           forecast_hours: 8
-        });
+        }, { force: bypass, hard });
         const items = Array.isArray(raw) ? raw : [raw];
         needEns.forEach((p, idx) => {
           const item = items[idx];
@@ -144,17 +161,23 @@ export async function prefetchOpenMeteo(placesList, { force = false } = {}) {
   await forecastPrefetchPromise;
 }
 
-export async function loadKmaForecast(place, { cacheOnly = false } = {}) {
+export async function loadKmaForecast(place, { cacheOnly = false, force = false, hard = false } = {}) {
   const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
-  const cached = kmaForecastCache.get(key);
+  const bypass = Boolean(force || hard);
+  const cached = !bypass ? kmaForecastCache.get(key) : null;
   if (cached && cached.expires > Date.now()) {
     return cached.data;
   }
   if (cacheOnly) return null;
   const params = new URLSearchParams({ lat: place.lat, lon: place.lon });
+  if (bypass) params.set('force', '1');
+  if (hard) params.set('hard', '1');
   if (await isBackendAvailable()) {
     try {
-      const r = await fetch(apiUrl('/api/forecast?' + params.toString()), { signal: AbortSignal.timeout(12000) });
+      const r = await fetch(apiUrl('/api/forecast?' + params.toString()), {
+        signal: AbortSignal.timeout(12000),
+        ...(bypass ? { cache: 'no-store' } : {})
+      });
       if (r.ok) {
         const d = await r.json();
         if (d?.ok) {

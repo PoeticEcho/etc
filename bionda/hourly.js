@@ -9,6 +9,7 @@ import {
   clearPageCache,
   evaluateCachePolicy,
   currentKstHourKey as cacheHourKey,
+  registerManualRefreshClick,
   DEFAULT_FRESH_MS,
   DEFAULT_DWELL_MS,
   HOURLY_REFRESH_MS
@@ -575,9 +576,15 @@ function updateSourceStatus() {
   }
   if (hdrPill && hdrTxt) {
     const hm = formatMdHm(state.fromCache ? (state.cacheSavedAt || p.updatedAt) : (state.lastLoadedAt || p.updatedAt));
-    hdrPill.classList.toggle('is-cached', Boolean(state.fromCache && !state.fromSnapshot));
+    const showHard = hourlyHardRefreshActive || Date.now() < hourlyHardBannerUntil;
+    hdrPill.classList.toggle('is-cached', Boolean(state.fromCache && !state.fromSnapshot && !showHard));
+    hdrPill.classList.toggle('is-hard-refresh', showHard);
     hdrPill.classList.remove('is-error');
-    if (state.fromSnapshot) {
+    if (hourlyHardRefreshActive) {
+      hdrTxt.textContent = '⚡ 강제 실시간 수신 중…';
+    } else if (Date.now() < hourlyHardBannerUntil) {
+      hdrTxt.textContent = `⚡ 강제갱신 ${hm}`;
+    } else if (state.fromSnapshot) {
       hdrTxt.textContent = `저장 자료 · ${hm}`;
     } else if (state.fromCache) {
       hdrTxt.textContent = `캐시 즉시표출 · ${hm}`;
@@ -643,6 +650,9 @@ function flashKpiCells(kind, cardEl) {
 }
 
 let hourlyFetchInFlight = null;
+let hourlyFetchGen = 0;
+let hourlyHardRefreshActive = false;
+let hourlyHardBannerUntil = 0;
 let lastLoadedHourKst = null;
 let topOfHourTimer = null;
 let ultraPickupTimer = null;
@@ -706,26 +716,36 @@ async function completeHourlyView(data, force) {
 }
 
 async function fetchShortTerm12Data(optsOrForce = false) {
-  if (hourlyFetchInFlight) return hourlyFetchInFlight;
   const opts = typeof optsOrForce === 'object' && optsOrForce !== null
     ? optsOrForce
     : { force: Boolean(optsOrForce) };
-  const force = Boolean(opts.force);
-  const silent = Boolean(opts.silent && state.payload);
+  const hard = Boolean(opts.hard);
+  const force = Boolean(opts.force || hard);
+  if (hourlyFetchInFlight && !hard) return hourlyFetchInFlight;
+
+  const gen = ++hourlyFetchGen;
+  const silent = Boolean(opts.silent && state.payload && !hard);
   const btn = $('reloadHourlyBtn');
   if (btn && !silent) btn.classList.add('is-busy');
-  if (silent) {
+  if (hard) {
+    hourlyHardRefreshActive = true;
+    if (state.payload) updateSourceStatus();
+    else if ($('hourlyHeaderStampText')) $('hourlyHeaderStampText').textContent = '⚡ 강제 실시간 수신 중…';
+  } else if (silent) {
     state.isRevalidating = true;
     updateSourceStatus();
   }
 
-  hourlyFetchInFlight = (async () => {
+  const run = (async () => {
     let liveErr = '';
     try {
       const params = new URLSearchParams({ roster: '13' });
       if (force) params.set('force', '1');
-      if (opts.refreshShort !== undefined) params.set('refreshShort', opts.refreshShort ? '1' : '0');
-      if (opts.refreshUltra !== undefined) params.set('refreshUltra', opts.refreshUltra ? '1' : '0');
+      if (hard) params.set('hard', '1');
+      const refreshShort = hard ? true : opts.refreshShort;
+      const refreshUltra = hard ? true : opts.refreshUltra;
+      if (refreshShort !== undefined) params.set('refreshShort', refreshShort ? '1' : '0');
+      if (refreshUltra !== undefined) params.set('refreshUltra', refreshUltra ? '1' : '0');
       const qs = params.toString();
       const endpoint = apiUrl('/api/short-term-12?' + qs);
       const r = await fetch(endpoint, {
@@ -734,8 +754,10 @@ async function fetchShortTerm12Data(optsOrForce = false) {
       });
       if (r.ok) {
         const batch = await r.json();
+        if (gen !== hourlyFetchGen) return;
         if (batch?.ok && Array.isArray(batch.regions)) {
           const data = await completeHourlyView(batch, force);
+          if (gen !== hourlyFetchGen) return;
           clearTimeout(dwellRefreshTimer);
           dwellRefreshTimer = null;
           const nowMs = Date.now();
@@ -746,6 +768,11 @@ async function fetchShortTerm12Data(optsOrForce = false) {
           state.cacheSavedAt = nowMs;
           state.lastLoadedAt = nowMs;
           lastLoadedHourKst = cacheHourKey(nowMs);
+          if (hard) {
+            hourlyHardRefreshActive = false;
+            hourlyHardBannerUntil = nowMs + 4500;
+            setTimeout(() => updateSourceStatus(), 4600);
+          }
           writePageCache(HOURLY_CACHE_KEY, { scope: hourlyCacheScope(), data, nowMs });
           reportApiSuccess('hourly', nowMs);
           updateSourceStatus();
@@ -760,6 +787,7 @@ async function fetchShortTerm12Data(optsOrForce = false) {
       liveErr = String(err?.message || '네트워크 응답 없음');
     }
 
+    if (gen !== hourlyFetchGen) return;
     reportApiFailure('hourly', liveErr || '단기예보 API 응답 실패');
 
     if (silent && state.payload) {
@@ -771,6 +799,7 @@ async function fetchShortTerm12Data(optsOrForce = false) {
     // Fallback to static snapshot JSON generated at build time
     try {
       const snap = await loadHourlySnapshot();
+      if (gen !== hourlyFetchGen) return;
       if (snap?.ok && Array.isArray(snap.regions)) {
         state.payload = snap;
         state.fromSnapshot = true;
@@ -791,10 +820,15 @@ async function fetchShortTerm12Data(optsOrForce = false) {
     updateSourceStatus();
     $('sheet').innerHTML = '<div class="hr-loading">단기예보 API 서버에 연결하지 못했습니다. 상단 [API 연결]에서 Worker 주소를 확인한 뒤 다시 시도해 주세요.</div>';
   })().finally(() => {
-    hourlyFetchInFlight = null;
-    if (btn) btn.classList.remove('is-busy');
+    if (hourlyFetchInFlight === run) {
+      hourlyFetchInFlight = null;
+      if (hard) hourlyHardRefreshActive = false;
+      if (btn) btn.classList.remove('is-busy');
+      if (state.payload) updateSourceStatus();
+    }
   });
-  return hourlyFetchInFlight;
+  hourlyFetchInFlight = run;
+  return run;
 }
 
 export function msUntilNextTopOfHour(nowMs = Date.now(), marginMs = 1500) {
@@ -830,7 +864,13 @@ function triggerSmartManualRefresh() {
   clearTimeout(dwellRefreshTimer);
   dwellRefreshTimer = null;
   state.isRevalidating = false;
-  const flags = computeManualRefreshFlags(state.payload?.sources, Date.now());
+  const nowMs = Date.now();
+  const { isHardForce } = registerManualRefreshClick('hourly', { nowMs });
+  clearPageCache(HOURLY_CACHE_KEY);
+  if (isHardForce) {
+    return fetchShortTerm12Data({ force: true, hard: true, refreshShort: true, refreshUltra: true });
+  }
+  const flags = computeManualRefreshFlags(state.payload?.sources, nowMs);
   return fetchShortTerm12Data(flags);
 }
 

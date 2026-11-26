@@ -355,7 +355,7 @@ function summarizeFromCapDocs(docs, place) {
   };
 }
 
-export async function fetchBatchWarnings(placesList = []) {
+export async function fetchBatchWarnings(placesList = [], { force = false, hard = false } = {}) {
   const deduped = new Map();
   for (const p of (placesList || [])) {
     const lat = Number(p?.lat), lon = Number(p?.lon);
@@ -370,13 +370,15 @@ export async function fetchBatchWarnings(placesList = []) {
   const resultsByKey = new Map();
   if (!targetPlaces.length) return { ok: true, resultsByKey };
 
+  const bypass = Boolean(force || hard);
   let loadedPrimary = false;
   if (await isBackendAvailable()) {
     try {
       const serialized = targetPlaces.map(p => `${p.name}|${p.key}`).join(';');
+      const extra = `${bypass ? '&force=1' : ''}${hard ? '&hard=1' : ''}`;
       const res = await fetch(
-        apiUrl('/api/warnings?places=' + encodeURIComponent(serialized)),
-        { signal: AbortSignal.timeout(10000) }
+        apiUrl('/api/warnings?places=' + encodeURIComponent(serialized) + extra),
+        { signal: AbortSignal.timeout(10000), ...(bypass ? { cache: 'no-store' } : {}) }
       );
       if (res.ok) {
         const data = await res.json();

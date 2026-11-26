@@ -1,6 +1,6 @@
 import { mountCctv } from './cctv-player.js';
-import { loadWeather, loadProbabilities, prefetchOpenMeteo, seedKmaForecast } from './weather.js';
-import { loadOverviewBundle, loadObservation, loadRoadStations, loadRoadRisk, seedOverviewCache, getLastObsError } from './observations.js';
+import { loadWeather, loadProbabilities, prefetchOpenMeteo, seedKmaForecast, clearWeatherMemCache } from './weather.js';
+import { loadOverviewBundle, loadObservation, loadRoadStations, loadRoadRisk, seedOverviewCache, clearObservationsMemCache, getLastObsError } from './observations.js';
 import { fetchBatchWarnings, buildWarningSummary, buildWarningsFromApi } from './warnings.js';
 import {
   classifySeverityTier,
@@ -26,6 +26,7 @@ import {
   clearPageCache,
   evaluateCachePolicy,
   currentKstHourKey,
+  registerManualRefreshClick,
   DEFAULT_FRESH_MS,
   DEFAULT_DWELL_MS,
   OVERVIEW_REFRESH_MS
@@ -231,6 +232,9 @@ let overviewFromCache = false;
 let overviewRevalidating = false;
 let overviewDwellTimer = null;
 let overviewRefreshPromise = null;
+let overviewRefreshGen = 0;
+let overviewHardRefreshActive = false;
+let overviewHardBannerUntil = 0;
 
 export function record(p) {
   const id = coord(p);
@@ -778,9 +782,16 @@ function updateUnifiedGlobalStamp() {
     const p2 = v => String(v).padStart(2, '0');
     const hm = `${p2(d.getUTCMonth() + 1)}-${p2(d.getUTCDate())} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`;
     const hasAny = Boolean(latestObs || latestModel);
-    pill.classList.toggle('is-cached', overviewFromCache && !anyObsSnapshot);
-    pill.classList.toggle('is-error', !hasAny);
-    if (!hasAny) {
+    const showHard = overviewHardRefreshActive || Date.now() < overviewHardBannerUntil;
+    pill.classList.toggle('is-cached', overviewFromCache && !anyObsSnapshot && !showHard);
+    pill.classList.toggle('is-error', !hasAny && !overviewHardRefreshActive);
+    pill.classList.toggle('is-hard-refresh', showHard);
+    pill.classList.toggle('loading', Boolean(overviewRefreshPromise && !overviewRevalidating));
+    if (overviewHardRefreshActive) {
+      pillTxt.textContent = '⚡ 강제 실시간 수신 중…';
+    } else if (Date.now() < overviewHardBannerUntil && hasAny) {
+      pillTxt.textContent = `⚡ 강제갱신 ${hm}`;
+    } else if (!hasAny) {
       pillTxt.textContent = '수신 중…';
     } else if (overviewFromCache) {
       pillTxt.textContent = `캐시 즉시표출 · ${hm}`;
@@ -930,11 +941,11 @@ function updateWindyIframe() {
 }
 
 // 기상청 공식 전국 HSR 레이더 이미지 로드
-async function loadKmaRadarImage(force = false) {
+async function loadKmaRadarImage(force = false, hard = false) {
   const box = $('kmaRadarContainer');
   if (!box) return;
   box.innerHTML = '<div class="radar-placeholder">기상청 API허브 전국 레이더 HSR 합성영상을 불러오는 중…</div>';
-  const hasBackend = await isBackendAvailable(force);
+  const hasBackend = await isBackendAvailable(force || hard);
   const img = new Image();
   img.alt = '기상청 공식 전국 강수 레이더 HSR 합성 영상';
   img.onload = () => box.replaceChildren(img);
@@ -948,7 +959,8 @@ async function loadKmaRadarImage(force = false) {
       };
       fallback.src = './api/radar.png';
     };
-    img.src = apiUrl('/api/radar?t=' + (force ? Date.now() : Math.floor(Date.now() / 180000)));
+    const bypass = force || hard;
+    img.src = apiUrl('/api/radar?t=' + (bypass ? Date.now() : Math.floor(Date.now() / 180000)) + (bypass ? '&force=1' : '') + (hard ? '&hard=1' : ''));
   } else {
     img.onerror = () => {
       box.innerHTML = '<div class="radar-placeholder">정적 호스팅 모드에서는 실시간 HSR 레이더 대신 배포 스냅샷 또는 Windy 위성·레이더를 이용하세요.</div>';
@@ -1870,19 +1882,19 @@ function targets() {
 
 let warningsPollInFlight = null;
 
-async function pollWarnings(force = false) {
-  if (warningsPollInFlight) return warningsPollInFlight;
+async function pollWarnings(force = false, hard = false) {
+  if (warningsPollInFlight && !hard) return warningsPollInFlight;
   const now = Date.now();
   const list = targets().filter(p => {
     const r = record(p);
-    return !r.checking && (force || now - r.checked >= 105000);
+    return (!r.checking || hard) && (force || hard || now - r.checked >= 105000);
   });
   if (!list.length) return;
 
   for (const p of list) record(p).checking = true;
   warningsPollInFlight = (async () => {
     try {
-      const batch = await fetchBatchWarnings(list);
+      const batch = await fetchBatchWarnings(list, { force: force || hard, hard });
       if (batch?.resultsByKey) {
         for (const p of list) {
           const wrn = batch.resultsByKey.get(coord(p));
@@ -2027,8 +2039,9 @@ export async function refresh(forceOrOpts = false) {
   const opts = typeof forceOrOpts === 'object' && forceOrOpts !== null
     ? forceOrOpts
     : { force: Boolean(forceOrOpts) };
-  const force = Boolean(opts.force);
-  const silent = Boolean(opts.silent && lastLiveOverviewSyncAt > 0);
+  const hard = Boolean(opts.hard);
+  const force = Boolean(opts.force || hard);
+  const silent = Boolean(opts.silent && lastLiveOverviewSyncAt > 0 && !hard);
   const fromDwell = Boolean(opts.fromDwell);
 
   if (force) {
@@ -2036,6 +2049,21 @@ export async function refresh(forceOrOpts = false) {
     overviewDwellTimer = null;
   } else if (overviewRefreshPromise) {
     return overviewRefreshPromise;
+  }
+
+  if (overviewRefreshPromise && !hard) {
+    return overviewRefreshPromise;
+  }
+
+  const runGen = ++overviewRefreshGen;
+  if (hard) {
+    overviewHardRefreshActive = true;
+    clearPageCache(OVERVIEW_CACHE_KEY);
+    clearObservationsMemCache();
+    clearWeatherMemCache({ includeEnsemble: true });
+    if ($('kmaRadarBox') && !$('kmaRadarBox').hidden) {
+      loadKmaRadarImage(true, true);
+    }
   }
 
   if (silent) {
@@ -2053,8 +2081,8 @@ export async function refresh(forceOrOpts = false) {
 
     const probeTask = probeBackend(force).then(updateMonitorStatusBar).catch(() => {});
     // Open-Meteo 8개 지역 다중 좌표 일괄 선행 조회 + 백엔드 KMA 통합 번들(관측·단기·특보·도로·012위험) 동시 출발
-    const omBatchTask = prefetchOpenMeteo(queue, { force });
-    const bundleTask = loadOverviewBundle(queue, { line: 14, roadNum: '012', force });
+    const omBatchTask = prefetchOpenMeteo(queue, { force, hard });
+    const bundleTask = loadOverviewBundle(queue, { line: 14, roadNum: '012', force, hard });
 
     const bundledKeys = new Set();
     let anyLiveFetched = false;
@@ -2130,13 +2158,13 @@ export async function refresh(forceOrOpts = false) {
     const bundleOk = applyBundlePayload(bundle);
 
     if (!bundleOk) {
-      loadRoadStations(14).then(stns => {
+      loadRoadStations(14, { force, hard }).then(stns => {
         if (stns?.length) {
           roadStations = stns;
           if (!detailPlace) renderMiniMap();
         }
       }).catch(() => {});
-      loadRoadRisk('012', force).then(riskPayload => {
+      loadRoadRisk('012', force, hard).then(riskPayload => {
         if (riskPayload?.ok) {
           roadRiskData = riskPayload;
           checkRoadRiskEscalations(riskPayload);
@@ -2151,7 +2179,7 @@ export async function refresh(forceOrOpts = false) {
     // 번들에 포함되지 않은 지점(또는 번들 실패 시)만 보조 특보 조회 수행
     const missingWarnings = queue.filter(p => !bundledKeys.has(coord(p)));
     if (missingWarnings.length) {
-      pollWarnings(force);
+      pollWarnings(force, hard);
     }
 
     const workList = [...queue];
@@ -2163,9 +2191,9 @@ export async function refresh(forceOrOpts = false) {
         if (!bundledKeys.has(coord(p)) && isFreshObs) continue;
         if (!silent) r.busy = true;
         try {
-          if (!r.o || r.o._fromSnapshot || force || !bundledKeys.has(coord(p))) {
+          if (!r.o || r.o._fromSnapshot || hard || (!bundledKeys.has(coord(p)) && force)) {
             try {
-              const nextObs = await loadObservation(p);
+              const nextObs = await loadObservation(p, { force, hard });
               if (nextObs && (!nextObs._fromSnapshot || !r.o)) {
                 r.o = nextObs;
                 if (!nextObs._fromSnapshot) anyLiveFetched = true;
@@ -2192,11 +2220,17 @@ export async function refresh(forceOrOpts = false) {
     }
 
     await Promise.all([worker(), worker(), worker()]);
+    if (runGen !== overviewRefreshGen) return;
     checkRiskDiffs();
 
     clearTimeout(overviewDwellTimer);
     overviewDwellTimer = null;
     overviewRevalidating = false;
+    if (hard) {
+      overviewHardRefreshActive = false;
+      overviewHardBannerUntil = Date.now() + 4500;
+      setTimeout(() => updateUnifiedGlobalStamp(), 4600);
+    }
     if (anyLiveFetched) {
       overviewFromCache = false;
       lastLiveOverviewSyncAt = Date.now();
@@ -2215,10 +2249,15 @@ export async function refresh(forceOrOpts = false) {
   })();
 
   overviewRefreshPromise = run;
+  updateUnifiedGlobalStamp();
   try {
     return await run;
   } finally {
-    if (overviewRefreshPromise === run) overviewRefreshPromise = null;
+    if (overviewRefreshPromise === run) {
+      overviewRefreshPromise = null;
+      if (hard) overviewHardRefreshActive = false;
+      updateUnifiedGlobalStamp();
+    }
   }
 }
 
@@ -2623,7 +2662,12 @@ $('restorePresetsBtn').onclick = () => {
 $('jump').onchange = e => {
   location.hash = e.target.value;
 };
-$('refresh').onclick = $('reloadAll').onclick = () => refresh(true);
+function triggerManualOverviewRefresh() {
+  const { isHardForce } = registerManualRefreshClick('overview');
+  clearPageCache(OVERVIEW_CACHE_KEY);
+  return refresh({ force: true, hard: isHardForce });
+}
+$('refresh').onclick = $('reloadAll').onclick = triggerManualOverviewRefresh;
 $('period').onchange = renderDetail;
 window.addEventListener('hashchange', route);
 window.addEventListener('resize', () => {

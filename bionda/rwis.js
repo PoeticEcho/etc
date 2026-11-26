@@ -8,6 +8,7 @@ import {
   clearPageCache,
   evaluateCachePolicy,
   currentKstHourKey,
+  registerManualRefreshClick,
   DEFAULT_FRESH_MS,
   DEFAULT_DWELL_MS,
   OVERVIEW_REFRESH_MS
@@ -1448,11 +1449,17 @@ function updateStampUI(isError = false) {
   const pill = $('rwisReloadBtn');
   const txt = $('rwisStampText');
   if (!pill || !txt) return;
-  pill.classList.toggle('is-cached', state.fromCache && !isError);
+  const showHard = !isError && Boolean(state.hardRefreshActive || (state.hardBannerUntil && Date.now() < state.hardBannerUntil));
+  pill.classList.toggle('is-cached', state.fromCache && !isError && !showHard);
   pill.classList.toggle('is-error', isError);
+  pill.classList.toggle('is-hard-refresh', showHard);
   const hm = formatKstHm(state.lastSyncedAt) || '대기';
-  if (isError) {
+  if (state.hardRefreshActive) {
+    txt.textContent = '⚡ 강제 실시간 수신 중…';
+  } else if (isError) {
     txt.textContent = `연결 지연 · 마지막 ${hm}`;
+  } else if (state.hardBannerUntil && Date.now() < state.hardBannerUntil) {
+    txt.textContent = `⚡ 강제갱신 ${hm}`;
   } else if (state.fromCache) {
     txt.textContent = `캐시 즉시표출 · ${hm}`;
   } else {
@@ -1595,20 +1602,30 @@ function buildFiveCountyWarningsQuery() {
     .join(';');
 }
 
-async function loadAllData({ force = false, silent = false } = {}) {
-  if (state.loadPromise) return state.loadPromise;
+let rwisLoadGen = 0;
+
+async function loadAllData({ force = false, hard = false, silent = false } = {}) {
+  const bypass = Boolean(force || hard);
+  if (state.loadPromise && !hard) return state.loadPromise;
+  const gen = ++rwisLoadGen;
   clearTimeout(state.dwellTimer);
   state.dwellTimer = null;
 
   const btn = $('rwisReloadBtn');
-  if (btn && !silent) btn.classList.add('loading');
+  if (btn && (!silent || hard)) btn.classList.add('loading');
+  if (hard) {
+    state.hardRefreshActive = true;
+    updateStampUI(false);
+  }
 
-  state.loadPromise = (async () => {
-    const refreshParam = force ? '?refresh=1' : '';
+  const run = (async () => {
+    const refreshParam = bypass ? '?refresh=1' : '';
+    const forceQs = `${bypass ? '&force=1' : ''}${hard ? '&hard=1' : ''}`;
     let okCount = 0;
     const errors = [];
 
     const markLive = () => {
+      if (gen !== rwisLoadGen) return;
       okCount++;
       state.fromCache = false;
       state.lastSyncedAt = Date.now();
@@ -1619,18 +1636,19 @@ async function loadAllData({ force = false, silent = false } = {}) {
     };
 
     const warnQuery = encodeURIComponent(buildFiveCountyWarningsQuery());
-    const needCctv = force || !state.cctvPayload?.cctvs?.length || (Date.now() - state.cctvFetchedAt >= CCTV_CLIENT_TTL_MS);
-    const needTrend = force || !state.roadTrend?.times?.length || (Date.now() - state.roadTrendFetchedAt >= ROAD_TREND_CLIENT_TTL_MS);
+    const needCctv = hard || force || !state.cctvPayload?.cctvs?.length || (Date.now() - state.cctvFetchedAt >= CCTV_CLIENT_TTL_MS);
+    const needTrend = hard || force || !state.roadTrend?.times?.length || (Date.now() - state.roadTrendFetchedAt >= ROAD_TREND_CLIENT_TTL_MS);
 
     const tasks = [
       // P0-1 경량화: 188KB /api/status 대신 13KB /api/rwis 단독 호출 (중복 ITS CCTV 수신 및 파싱 제거)
       fetchJsonSafe(`/api/rwis/api/rwis${refreshParam}`, 14000)
         .then(async v => {
+          if (gen !== rwisLoadGen) return;
           if (v?.ok) {
             state.rwisStatus = v.kind === 'rwis' ? { ok: true, rwis: v } : v;
             markLive();
             // RWIS 관측 슬롯이 현재 시각보다 12분 이상 뒤처진 캐시본이면 백그라운드로 1회 즉시 최신화 시도
-            if (!force) {
+            if (!bypass) {
               const core = getRwisCore();
               const tmStr = core?.tm?.FR || core?.tm?.VR || (typeof core?.tm === 'string' ? core.tm : '');
               if (/^\d{12}$/.test(tmStr)) {
@@ -1638,7 +1656,7 @@ async function loadAllData({ force = false, silent = false } = {}) {
                 if (Number.isFinite(slotMs) && (Date.now() - slotMs) >= 12 * 60000) {
                   try {
                     const fresh = await fetchJsonSafe('/api/rwis/api/rwis?refresh=1', 14000, 0);
-                    if (fresh?.ok) {
+                    if (gen === rwisLoadGen && fresh?.ok) {
                       state.rwisStatus = fresh.kind === 'rwis' ? { ok: true, rwis: fresh } : fresh;
                       persistCache();
                       renderAll();
@@ -1650,8 +1668,9 @@ async function loadAllData({ force = false, silent = false } = {}) {
           }
         })
         .catch(e => { errors.push(`RWIS(${e?.message || 'err'})`); }),
-      fetchJsonSafe('/api/road-obs?line=14', 12000)
+      fetchJsonSafe(`/api/road-obs?line=14${forceQs}`, 12000)
         .then(v => {
+          if (gen !== rwisLoadGen) return;
           const list = Array.isArray(v) ? v : (Array.isArray(v?.stations) ? v.stations : []);
           if (list.length) {
             state.roadStations = list;
@@ -1662,8 +1681,9 @@ async function loadAllData({ force = false, silent = false } = {}) {
         .catch(e => { errors.push(`도로관측(${e?.message || 'err'})`); }),
       ...(needTrend ? [
         // P2.5: 6시간 노면·기온 추세 스파크라인 (비차단 보조 조회 · 실패 시에도 주 상황판 동작 유지)
-        fetchJsonSafe(`/api/road-obs-trend?line=14&hours=6${force ? '&force=1' : ''}`, 14000, 0)
+        fetchJsonSafe(`/api/road-obs-trend?line=14&hours=6${forceQs}`, 14000, 0)
           .then(v => {
+            if (gen !== rwisLoadGen) return;
             if (v?.ok && Array.isArray(v.times) && v.times.length) {
               state.roadTrend = v;
               state.roadTrendFetchedAt = Date.now();
@@ -1673,11 +1693,12 @@ async function loadAllData({ force = false, silent = false } = {}) {
           })
           .catch(() => {})
       ] : []),
-      fetchJsonSafe('/api/road-risk?roadNum=012', 12000)
-        .then(v => { if (v?.ok) { state.roadRisk = v; markLive(); } })
+      fetchJsonSafe(`/api/road-risk?roadNum=012${hard ? forceQs : ''}`, 12000)
+        .then(v => { if (gen === rwisLoadGen && v?.ok) { state.roadRisk = v; markLive(); } })
         .catch(e => { errors.push(`도로위험(${e?.message || 'err'})`); }),
-      fetchJsonSafe(`/api/warnings?places=${warnQuery}`, 12000)
+      fetchJsonSafe(`/api/warnings?places=${warnQuery}${forceQs}`, 12000)
         .then(v => {
+          if (gen !== rwisLoadGen) return;
           if (v?.ok && v?.items) {
             state.warningsPayload = v;
             state.warningHistory = updateWarningHistory(state.warningHistory, v, Date.now());
@@ -1688,12 +1709,13 @@ async function loadAllData({ force = false, silent = false } = {}) {
         .catch(e => { errors.push(`기상특보(${e?.message || 'err'})`); }),
       ...(needCctv ? [
         fetchCctvDirectory(apiUrl(`/api/cctv${refreshParam}`), {
-          cache: force ? 'no-store' : 'default',
+          cache: bypass ? 'no-store' : 'default',
           onRetry: () => {}
         })
           .then(async res => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const v = await res.json();
+            if (gen !== rwisLoadGen) return;
             if (Array.isArray(v?.cctvs) && v.cctvs.length) {
               state.cctvPayload = v;
               state.cctvFetchedAt = Date.now();
@@ -1702,8 +1724,9 @@ async function loadAllData({ force = false, silent = false } = {}) {
           })
           .catch(e => { errors.push(`CCTV(${e?.message || 'err'})`); })
       ] : []),
-      fetchJsonSafe(`/api/short-term-12?roster=13${force ? '&force=1' : ''}`, 30000)
+      fetchJsonSafe(`/api/short-term-12?roster=13${forceQs}${hard ? '&refreshShort=1&refreshUltra=1' : ''}`, 30000)
         .then(v => {
+          if (gen !== rwisLoadGen) return;
           if (v?.ok && Array.isArray(v.regions)) {
             state.shortTerm13 = v;
             // hourly.html과 5분 탭 캐시 양방향 공유 (13개소 완전본일 때만)
@@ -1716,12 +1739,12 @@ async function loadAllData({ force = false, silent = false } = {}) {
         .catch(async e => {
           errors.push(`13개소예보(${e?.message || 'err'})`);
           // 정적 스냅샷 보조 폴백 (단, reportApiSuccess는 호출하지 않아 실제 단절 감지를 방해하지 않음)
-          if (!state.shortTerm13) {
+          if (gen === rwisLoadGen && !state.shortTerm13) {
             try {
               const snapRes = await fetch('./api/short-term-12.json?roster=13', { signal: AbortSignal.timeout(5000) });
               if (snapRes.ok) {
                 const snap = await snapRes.json();
-                if (snap?.ok && Array.isArray(snap.regions)) {
+                if (gen === rwisLoadGen && snap?.ok && Array.isArray(snap.regions)) {
                   state.shortTerm13 = snap;
                   renderAll();
                 }
@@ -1732,17 +1755,32 @@ async function loadAllData({ force = false, silent = false } = {}) {
     ];
 
     await Promise.allSettled(tasks);
+    if (gen !== rwisLoadGen) return;
+
+    if (hard) {
+      state.hardRefreshActive = false;
+      if (okCount > 0) {
+        state.hardBannerUntil = Date.now() + 4500;
+        setTimeout(() => updateStampUI(false), 4600);
+      }
+      updateStampUI(okCount === 0);
+    }
 
     if (okCount === 0) {
       reportApiFailure('rwis', errors.join(', ') || 'API 연결 실패');
       updateStampUI(true);
     }
   })().finally(() => {
-    if (btn) btn.classList.remove('loading');
-    state.loadPromise = null;
+    if (state.loadPromise === run) {
+      state.loadPromise = null;
+      if (hard) state.hardRefreshActive = false;
+      if (btn) btn.classList.remove('loading');
+      updateStampUI(false);
+    }
   });
 
-  return state.loadPromise;
+  state.loadPromise = run;
+  return run;
 }
 
 /* ───────────────────── UI 이벤트 바인딩 ───────────────────── */
@@ -1829,8 +1867,15 @@ $('clearZoneFilterBtn')?.addEventListener('click', () => {
 });
 
 $('rwisReloadBtn')?.addEventListener('click', () => {
+  const { isHardForce } = registerManualRefreshClick('rwis');
   clearPageCache(RWIS_CACHE_KEY);
-  loadAllData({ force: true, silent: false });
+  if (isHardForce) {
+    clearPageCache(HOURLY_CACHE_KEY);
+    if ($('rwisCctvModal') && !$('rwisCctvModal').hidden) {
+      refreshActiveModalCctv();
+    }
+  }
+  loadAllData({ force: true, hard: isHardForce, silent: false });
 });
 
 $('rwisPngBtn')?.addEventListener('click', exportMapPng);

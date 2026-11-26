@@ -33,6 +33,12 @@ const obsMemCache = new Map();
 const roadStationsMemCache = new Map();
 const roadRiskMemCache = new Map();
 
+export function clearObservationsMemCache() {
+  obsMemCache.clear();
+  roadStationsMemCache.clear();
+  roadRiskMemCache.clear();
+}
+
 export function seedOverviewCache({ line = 14, roadNum = '012', roadStations = null, roadRisk = null, obsByCoord = null } = {}) {
   const now = Date.now();
   if (Array.isArray(roadStations) && roadStations.length) {
@@ -50,7 +56,7 @@ export function seedOverviewCache({ line = 14, roadNum = '012', roadStations = n
   }
 }
 
-export async function loadOverviewBundle(placesList = [], { line = 14, roadNum = '012', force = false } = {}) {
+export async function loadOverviewBundle(placesList = [], { line = 14, roadNum = '012', force = false, hard = false } = {}) {
   if (!(await isBackendAvailable())) return null;
   const deduped = new Map();
   for (const p of (placesList || [])) {
@@ -66,14 +72,16 @@ export async function loadOverviewBundle(placesList = [], { line = 14, roadNum =
     .sort((a, b) => a.key.localeCompare(b.key))
     .map(p => `${p.name}|${p.key}`)
     .join(';');
+  const bypass = Boolean(force || hard);
   try {
     const u = apiUrl(
       '/api/overview-bundle?line=' + encodeURIComponent(line) +
       '&roadNum=' + encodeURIComponent(roadNum) +
       (serialized ? '&places=' + encodeURIComponent(serialized) : '') +
-      (force ? '&force=1' : '')
+      (bypass ? '&force=1' : '') +
+      (hard ? '&hard=1' : '')
     );
-    const r = await fetch(u, { signal: AbortSignal.timeout(26000), ...(force ? { cache: 'no-store' } : {}) });
+    const r = await fetch(u, { signal: AbortSignal.timeout(26000), ...(bypass ? { cache: 'no-store' } : {}) });
     if (!r.ok) return null;
     const bundle = await r.json();
     if (!bundle?.ok) return null;
@@ -97,17 +105,23 @@ export async function loadOverviewBundle(placesList = [], { line = 14, roadNum =
   }
 }
 
-export async function loadObservation(place) {
+export async function loadObservation(place, { force = false, hard = false } = {}) {
   const key = `${Number(place.lat).toFixed(3)},${Number(place.lon).toFixed(3)}`;
-  const cached = obsMemCache.get(key);
+  const bypass = Boolean(force || hard);
+  const cached = !bypass ? obsMemCache.get(key) : null;
   if (cached && Date.now() < cached.expires) {
     lastObsError = '';
     return cached.data;
   }
   const params = new URLSearchParams({ lat: place.lat, lon: place.lon });
+  if (bypass) params.set('force', '1');
+  if (hard) params.set('hard', '1');
   if (await isBackendAvailable()) {
     try {
-      const response = await fetch(apiUrl('/api/observation?' + params), { signal: AbortSignal.timeout(15000) });
+      const response = await fetch(apiUrl('/api/observation?' + params), {
+        signal: AbortSignal.timeout(15000),
+        ...(bypass ? { cache: 'no-store' } : {})
+      });
       if (response.ok) {
         const data = await response.json();
         lastObsError = '';
@@ -127,12 +141,17 @@ export async function loadObservation(place) {
   throw Error('기상청 관측 자료 확인 대기');
 }
 
-export async function loadRoadStations(line = 14) {
-  const cached = roadStationsMemCache.get(String(line));
+export async function loadRoadStations(line = 14, { force = false, hard = false } = {}) {
+  const bypass = Boolean(force || hard);
+  const cached = !bypass ? roadStationsMemCache.get(String(line)) : null;
   if (cached && Date.now() < cached.expires) return cached.data;
   if (await isBackendAvailable()) {
     try {
-      const response = await fetch(apiUrl('/api/road-obs?line=' + encodeURIComponent(line)), { signal: AbortSignal.timeout(10000) });
+      const qs = `?line=${encodeURIComponent(line)}${bypass ? '&force=1' : ''}${hard ? '&hard=1' : ''}`;
+      const response = await fetch(apiUrl('/api/road-obs' + qs), {
+        signal: AbortSignal.timeout(10000),
+        ...(bypass ? { cache: 'no-store' } : {})
+      });
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data.stations)) {
@@ -147,16 +166,19 @@ export async function loadRoadStations(line = 14) {
   return [];
 }
 
-export async function loadRoadRisk(roadNum = '012', force = false) {
+export async function loadRoadRisk(roadNum = '012', force = false, hard = false) {
   const key = String(roadNum || '012');
+  const bypass = Boolean(force || hard);
   const cached = roadRiskMemCache.get(key);
-  if (!force && cached && Date.now() < cached.expires) {
+  if (!bypass && cached && Date.now() < cached.expires) {
     return cached.data;
   }
   if (await isBackendAvailable()) {
     try {
-      const response = await fetch(apiUrl('/api/road-risk?roadNum=' + encodeURIComponent(roadNum)), {
-        signal: AbortSignal.timeout(12000)
+      const qs = `?roadNum=${encodeURIComponent(roadNum)}${bypass ? '&force=1' : ''}${hard ? '&hard=1' : ''}`;
+      const response = await fetch(apiUrl('/api/road-risk' + qs), {
+        signal: AbortSignal.timeout(12000),
+        ...(bypass ? { cache: 'no-store' } : {})
       });
       if (response.ok) {
         const data = await response.json();

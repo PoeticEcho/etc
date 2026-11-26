@@ -9,6 +9,67 @@ export const DEFAULT_STALE_MAX_MS = 20 * 60000; // 20분: 초과 시 폐기, 5~2
 export const DEFAULT_DWELL_MS = 3 * 60000;      // 3분: 캐시 화면에 3분 이상 머무르면 조용히 백그라운드 갱신
 export const OVERVIEW_REFRESH_MS = 5 * 60000;   // 도로기상 상황판 정기 자동 갱신 주기 (5분)
 export const HOURLY_REFRESH_MS = 10 * 60000;    // 1시간 단기예보 정기 자동 갱신 주기 (10분 · 정시·36분 별도)
+export const RAPID_REFRESH_WINDOW_MS = 5 * 60000; // 5분 내 2회 이상 수동 새로고침 시 서버·엣지 캐시 우회 강제 갱신
+export const REFRESH_CLICK_PREFIX = 'weather-watch:refresh-clicks:';
+
+const fallbackRefreshClicks = new Map();
+
+/**
+ * 수동 [새로고침] 클릭 이력을 기록하고 5분 내 2회 이상 클릭 여부를 판정합니다.
+ * - 1회차: 일반 스마트 새로고침 (로컬 페이지 캐시 갱신 + 중량 상류 캐시 보호)
+ * - 5분 내 2회차 이상(isHardForce = true): 브라우저·Edge·Worker 메모리 캐시를 모두 우회해 즉시 원천 API 재수신
+ */
+export function registerManualRefreshClick(
+  pageScope = 'default',
+  { nowMs = Date.now(), windowMs = RAPID_REFRESH_WINDOW_MS, storage = getDefaultStorage() } = {}
+) {
+  const scope = String(pageScope || 'default');
+  const key = REFRESH_CLICK_PREFIX + scope;
+  let prev = [];
+  if (storage) {
+    try {
+      const raw = storage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) prev = parsed;
+      }
+    } catch {
+      prev = fallbackRefreshClicks.get(scope) || [];
+    }
+  } else {
+    prev = fallbackRefreshClicks.get(scope) || [];
+  }
+
+  const cutoff = nowMs - windowMs;
+  const recent = prev
+    .map(Number)
+    .filter(ts => Number.isFinite(ts) && ts > cutoff && ts <= nowMs + 5000);
+  recent.push(nowMs);
+  const trimmed = recent.slice(-10);
+
+  fallbackRefreshClicks.set(scope, trimmed);
+  if (storage) {
+    try {
+      storage.setItem(key, JSON.stringify(trimmed));
+    } catch {}
+  }
+
+  return {
+    count: trimmed.length,
+    isHardForce: trimmed.length >= 2,
+    timestamps: trimmed
+  };
+}
+
+export function resetManualRefreshClicks(pageScope = 'default', storage = getDefaultStorage()) {
+  const scope = String(pageScope || 'default');
+  fallbackRefreshClicks.delete(scope);
+  if (storage) {
+    try {
+      storage.removeItem(REFRESH_CLICK_PREFIX + scope);
+    } catch {}
+  }
+}
 
 export function currentKstHourKey(nowMs = Date.now()) {
   return new Date(nowMs + 9 * 3600000).toISOString().slice(0, 13);
