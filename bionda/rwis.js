@@ -9,6 +9,10 @@ import {
   evaluateCachePolicy,
   currentKstHourKey,
   registerManualRefreshClick,
+  extractRoadObsTm,
+  readSharedRoadObs,
+  writeSharedRoadObs,
+  SHARED_ROAD_OBS_KEY,
   DEFAULT_FRESH_MS,
   DEFAULT_DWELL_MS,
   OVERVIEW_REFRESH_MS
@@ -111,6 +115,7 @@ const state = {
   rwisStatus: null,
   roadStations: [],
   roadObsTm: '',
+  lastRoadObsSyncAt: 0,
   roadTrend: null,
   roadTrendFetchedAt: 0,
   roadRisk: null,
@@ -246,6 +251,32 @@ function polyPath(pts) {
   return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${n1(p.x)} ${n1(p.y)}`).join('');
 }
 
+function parseTm12ToMs(tmStr) {
+  const clean = String(tmStr || '').replace(/\D/g, '').slice(0, 12);
+  if (clean.length !== 12) return NaN;
+  return Date.parse(`${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}T${clean.slice(8, 10)}:${clean.slice(10, 12)}:00+09:00`);
+}
+
+function getRoadObsAgeMs(nowMs = Date.now()) {
+  const tm = state.roadObsTm || extractRoadObsTm(state.roadStations);
+  const ms = parseTm12ToMs(tm);
+  return Number.isFinite(ms) ? Math.max(0, nowMs - ms) : Infinity;
+}
+
+function applyIncomingRoadObs(list, explicitTm = '', { isLive = true } = {}) {
+  if (!Array.isArray(list) || !list.length) return false;
+  const synced = writeSharedRoadObs({ line: '14', tm1: explicitTm, stations: list });
+  const bestStations = synced?.stations?.length ? synced.stations : list;
+  const bestTm = synced?.tm1 || extractRoadObsTm(bestStations, explicitTm);
+  const curTm = state.roadObsTm || extractRoadObsTm(state.roadStations);
+  if (curTm && bestTm && bestTm < curTm) return false;
+  const changed = !state.roadStations.length || bestTm !== curTm || bestStations !== state.roadStations;
+  state.roadStations = bestStations;
+  if (bestTm) state.roadObsTm = bestTm;
+  if (isLive) state.lastRoadObsSyncAt = Date.now();
+  return changed;
+}
+
 function formatKstHm(msOrIso) {
   if (!msOrIso) return '';
   if (typeof msOrIso === 'string' && /^\d{12}$/.test(msOrIso)) {
@@ -303,11 +334,13 @@ function renderCorridorMap(enriched) {
   const rwisTmRaw = typeof rwisTmObj === 'string'
     ? rwisTmObj
     : (state.metric === 'vir' ? (rwisTmObj?.VR || rwisTmObj?.FR) : (rwisTmObj?.FR || rwisTmObj?.VR));
-  const syncStamp = formatKstHm(state.lastSyncedAt) || formatKstHm(state.roadObsTm) || formatKstHm(rwisTmRaw);
-  const roadHm = state.roadObsTm ? formatKstHm(state.roadObsTm).slice(6) : '';
+  const effectiveRoadTm = state.roadObsTm || extractRoadObsTm(state.roadStations);
+  const syncStamp = formatKstHm(state.lastSyncedAt) || formatKstHm(effectiveRoadTm) || formatKstHm(rwisTmRaw);
+  const roadHm = effectiveRoadTm ? formatKstHm(effectiveRoadTm).slice(6) : '';
   const rwisHm = rwisTmRaw ? formatKstHm(rwisTmRaw).slice(6) : '';
+  const roadAgeMin = Math.floor(getRoadObsAgeMs() / 60000);
   const baseBits = [];
-  if (roadHm) baseBits.push(`노면실측 ${roadHm}`);
+  if (roadHm) baseBits.push(roadAgeMin >= 10 && Number.isFinite(roadAgeMin) ? `노면실측 ${roadHm} ⚠${roadAgeMin}분전` : `노면실측 ${roadHm}`);
   if (rwisHm) baseBits.push(`RWIS ${rwisHm}`);
   const stampHeadline = syncStamp
     ? `갱신 ${syncStamp}${baseBits.length ? ` (${baseBits.join(' · ')})` : ''}`
@@ -433,7 +466,7 @@ function renderCorridorMap(enriched) {
     for (const loc of SHORT13_MAP_LOCATIONS) {
       const reg = regMap.get(loc.id);
       const curH = reg ? pickCurHour(reg.hours) : null;
-      if (!curH || !Number.isFinite(Number(curH.temp))) continue;
+      if (!curH || curH.temp === null || curH.temp === undefined || curH.temp === '' || !Number.isFinite(Number(curH.temp))) continue;
 
       const tVal = Math.round(Number(curH.temp));
       const iconInfo = getKmaIconInfo(curH);
@@ -1492,30 +1525,52 @@ function renderAll() {
 
 function seedSharedCrossTabCaches(scope) {
   let seeded = false;
-  if (!state.shortTerm13) {
+  if (!state.shortTerm13 || (state.shortTerm13.regions || []).filter(r => Array.isArray(r.hours) && r.hours.length > 0).length < 13) {
     const hourlyHit = readPageCache(HOURLY_CACHE_KEY, { expectedScope: scope });
-    if (hourlyHit?.entry?.data?.regions) {
+    const hourlyRegions = hourlyHit?.entry?.data?.regions;
+    if (Array.isArray(hourlyRegions) && hourlyRegions.filter(r => Array.isArray(r.hours) && r.hours.length > 0).length >= 13) {
+      state.shortTerm13 = hourlyHit.entry.data;
+      seeded = true;
+    } else if (!state.shortTerm13 && Array.isArray(hourlyRegions) && hourlyRegions.length) {
       state.shortTerm13 = hourlyHit.entry.data;
       seeded = true;
     }
   }
-  if (!state.roadStations.length || !state.roadRisk) {
-    // overview 캐시는 scope가 `${apiBase}|coords...` 형식이므로 prefix 일치 시 안전하게 재사용
-    const ovHit = readPageCache(OVERVIEW_CACHE_KEY, { expectedScope: null });
-    const ovScope = String(ovHit?.entry?.scope || '');
-    const ovData = ovHit?.entry?.data;
-    if (ovData && (ovScope === scope || ovScope.startsWith(`${scope}|`))) {
-      if (!state.roadStations.length && Array.isArray(ovData.roadStations) && ovData.roadStations.length) {
-        state.roadStations = ovData.roadStations;
-        seeded = true;
-      }
-      if (!state.roadRisk && ovData.roadRiskData?.ok) {
-        state.roadRisk = ovData.roadRiskData;
+
+  // 1) 단일 진실 공급원(SHARED_ROAD_OBS_KEY): 기존 배열이 있더라도 tm1이 더 최신이면 무조건 채택해 페이지 간 수치 불일치 원천 제거
+  const sharedRoad = readSharedRoadObs({ line: '14' });
+  if (sharedRoad?.stations?.length) {
+    const curTm = state.roadObsTm || extractRoadObsTm(state.roadStations);
+    if (!state.roadStations.length || (sharedRoad.tm1 && sharedRoad.tm1 > curTm)) {
+      state.roadStations = sharedRoad.stations;
+      state.roadObsTm = sharedRoad.tm1 || curTm;
+      seeded = true;
+    }
+  }
+
+  // 2) overview 캐시 보완: roadStations(더 최신 tm1일 때) 및 roadRisk 시딩
+  const ovHit = readPageCache(OVERVIEW_CACHE_KEY, { expectedScope: null });
+  const ovScope = String(ovHit?.entry?.scope || '');
+  const ovData = ovHit?.entry?.data;
+  if (ovData && (ovScope === scope || ovScope.startsWith(`${scope}|`))) {
+    if (Array.isArray(ovData.roadStations) && ovData.roadStations.length) {
+      const ovTm = extractRoadObsTm(ovData.roadStations);
+      const curTm = state.roadObsTm || extractRoadObsTm(state.roadStations);
+      if (!state.roadStations.length || (ovTm && ovTm > curTm)) {
+        applyIncomingRoadObs(ovData.roadStations, ovTm, { isLive: false });
         seeded = true;
       }
     }
+    if (!state.roadRisk && ovData.roadRiskData?.ok) {
+      state.roadRisk = ovData.roadRiskData;
+      seeded = true;
+    }
   }
   return seeded;
+}
+
+function countCompleteShort13Regions(payload = state.shortTerm13) {
+  return (payload?.regions || []).filter(r => Array.isArray(r.hours) && r.hours.length > 0).length;
 }
 
 function hydrateFromCache() {
@@ -1525,7 +1580,7 @@ function hydrateFromCache() {
     const d = rwisHit.entry.data;
     state.rwisStatus = d.rwisStatus || null;
     state.roadStations = Array.isArray(d.roadStations) ? d.roadStations : [];
-    state.roadObsTm = d.roadObsTm || '';
+    state.roadObsTm = d.roadObsTm || extractRoadObsTm(state.roadStations);
     state.roadTrend = d.roadTrend || null;
     state.roadTrendFetchedAt = Number.isFinite(d.roadTrendFetchedAt) ? d.roadTrendFetchedAt : (d.roadTrend ? (rwisHit.entry.savedAt || 0) : 0);
     state.roadRisk = d.roadRisk || null;
@@ -1539,14 +1594,20 @@ function hydrateFromCache() {
     state.lastSyncHourKey = rwisHit.entry.hourKey || null;
     renderAll();
     const policy = evaluateCachePolicy({ cacheHit: rwisHit, freshMs: DEFAULT_FRESH_MS, dwellMs: DEFAULT_DWELL_MS });
-    // 핵심 소스 중 누락된 항목이 있으면 백그라운드 즉시 보완
-    if (!state.roadStations.length || !state.shortTerm13?.regions?.length || !state.warningsPayload?.ok || !state.cctvPayload?.cctvs?.length) {
+    // 핵심 소스 누락, 13개소 불완전, 또는 도로관측(tm1)이 3분 이상 경과한 경우 즉시 백그라운드 재수신!
+    if (
+      !state.roadStations.length ||
+      getRoadObsAgeMs() >= 3 * 60000 ||
+      countCompleteShort13Regions() < 13 ||
+      !state.warningsPayload?.ok ||
+      !state.cctvPayload?.cctvs?.length
+    ) {
       return { ...policy, shouldFetchNow: true };
     }
     return policy;
   }
 
-  // Fallback: seed 13-region forecast & road-obs instantly from hourly/overview shared 5-min caches!
+  // Fallback: seed 13-region forecast & road-obs instantly from shared caches!
   if (seedSharedCrossTabCaches(scope)) {
     renderAll();
   }
@@ -1603,6 +1664,40 @@ function buildFiveCountyWarningsQuery() {
 }
 
 let rwisLoadGen = 0;
+let roadObsRealtimeInFlight = null;
+let roadObsRetryTimer = null;
+let short13RetryTimer = null;
+
+async function pollRoadObsRealtime({ force = false } = {}) {
+  if (roadObsRealtimeInFlight) return roadObsRealtimeInFlight;
+  clearTimeout(roadObsRetryTimer);
+  roadObsRetryTimer = null;
+  roadObsRealtimeInFlight = (async () => {
+    try {
+      const qs = force ? '&force=1' : '';
+      const v = await fetchJsonSafe(`/api/road-obs?line=14${qs}`, 10000, 1);
+      const list = Array.isArray(v) ? v : (Array.isArray(v?.stations) ? v.stations : []);
+      if (list.length) {
+        const changed = applyIncomingRoadObs(list, v?.tm1 || '', { isLive: true });
+        if (changed || !v?.stale) {
+          state.fromCache = false;
+          if (!v?.stale && getRoadObsAgeMs() < 10 * 60000) {
+            state.lastSyncedAt = Date.now();
+            state.lastSyncHourKey = currentKstHourKey();
+            reportApiSuccess('rwis');
+          }
+          persistCache();
+          renderAll();
+        }
+        return true;
+      }
+    } catch {}
+    return false;
+  })().finally(() => {
+    roadObsRealtimeInFlight = null;
+  });
+  return roadObsRealtimeInFlight;
+}
 
 async function loadAllData({ force = false, hard = false, silent = false } = {}) {
   const bypass = Boolean(force || hard);
@@ -1610,6 +1705,10 @@ async function loadAllData({ force = false, hard = false, silent = false } = {})
   const gen = ++rwisLoadGen;
   clearTimeout(state.dwellTimer);
   state.dwellTimer = null;
+  clearTimeout(roadObsRetryTimer);
+  roadObsRetryTimer = null;
+  clearTimeout(short13RetryTimer);
+  short13RetryTimer = null;
 
   const btn = $('rwisReloadBtn');
   if (btn && (!silent || hard)) btn.classList.add('loading');
@@ -1622,22 +1721,48 @@ async function loadAllData({ force = false, hard = false, silent = false } = {})
     const refreshParam = bypass ? '?refresh=1' : '';
     const forceQs = `${bypass ? '&force=1' : ''}${hard ? '&hard=1' : ''}`;
     let okCount = 0;
+    let roadObsSucceeded = false;
     const errors = [];
 
-    const markLive = () => {
+    // 핵심 노면·도로관측 수신 성공 시에만 스탬프 및 캐시 시각을 전진시켜 과거 데이터 위장(Stale Masking) 방지
+    const markCoreLive = ({ fromRoadObs = false, isStale = false } = {}) => {
       if (gen !== rwisLoadGen) return;
       okCount++;
       state.fromCache = false;
-      state.lastSyncedAt = Date.now();
-      state.lastSyncHourKey = currentKstHourKey();
-      persistCache();
-      reportApiSuccess('rwis');
+      const roadFreshEnough = getRoadObsAgeMs() < 10 * 60000;
+      if ((fromRoadObs && !isStale) || roadFreshEnough) {
+        state.lastSyncedAt = Date.now();
+        state.lastSyncHourKey = currentKstHourKey();
+        persistCache();
+        reportApiSuccess('rwis');
+      }
+      renderAll();
+    };
+
+    const markAuxLive = () => {
+      if (gen !== rwisLoadGen) return;
+      okCount++;
+      if (getRoadObsAgeMs() < 10 * 60000) {
+        persistCache();
+      }
       renderAll();
     };
 
     const warnQuery = encodeURIComponent(buildFiveCountyWarningsQuery());
     const needCctv = hard || force || !state.cctvPayload?.cctvs?.length || (Date.now() - state.cctvFetchedAt >= CCTV_CLIENT_TTL_MS);
     const needTrend = hard || force || !state.roadTrend?.times?.length || (Date.now() - state.roadTrendFetchedAt >= ROAD_TREND_CLIENT_TTL_MS);
+
+    const roadObsTask = fetchJsonSafe(`/api/road-obs?line=14${forceQs}`, 12000, 1)
+      .then(v => {
+        if (gen !== rwisLoadGen) return;
+        const list = Array.isArray(v) ? v : (Array.isArray(v?.stations) ? v.stations : []);
+        if (list.length) {
+          roadObsSucceeded = !v?.stale;
+          applyIncomingRoadObs(list, v?.tm1 || '', { isLive: !v?.stale });
+          markCoreLive({ fromRoadObs: true, isStale: Boolean(v?.stale) });
+        }
+      })
+      .catch(e => { errors.push(`도로관측(${e?.message || 'err'})`); });
 
     const tasks = [
       // P0-1 경량화: 188KB /api/status 대신 13KB /api/rwis 단독 호출 (중복 ITS CCTV 수신 및 파싱 제거)
@@ -1646,19 +1771,19 @@ async function loadAllData({ force = false, hard = false, silent = false } = {})
           if (gen !== rwisLoadGen) return;
           if (v?.ok) {
             state.rwisStatus = v.kind === 'rwis' ? { ok: true, rwis: v } : v;
-            markLive();
+            markCoreLive({ fromRoadObs: false });
             // RWIS 관측 슬롯이 현재 시각보다 12분 이상 뒤처진 캐시본이면 백그라운드로 1회 즉시 최신화 시도
             if (!bypass) {
               const core = getRwisCore();
               const tmStr = core?.tm?.FR || core?.tm?.VR || (typeof core?.tm === 'string' ? core.tm : '');
               if (/^\d{12}$/.test(tmStr)) {
-                const slotMs = Date.parse(`${tmStr.slice(0, 4)}-${tmStr.slice(4, 6)}-${tmStr.slice(6, 8)}T${tmStr.slice(8, 10)}:${tmStr.slice(10, 12)}:00+09:00`);
+                const slotMs = parseTm12ToMs(tmStr);
                 if (Number.isFinite(slotMs) && (Date.now() - slotMs) >= 12 * 60000) {
                   try {
                     const fresh = await fetchJsonSafe('/api/rwis/api/rwis?refresh=1', 14000, 0);
                     if (gen === rwisLoadGen && fresh?.ok) {
                       state.rwisStatus = fresh.kind === 'rwis' ? { ok: true, rwis: fresh } : fresh;
-                      persistCache();
+                      if (getRoadObsAgeMs() < 10 * 60000) persistCache();
                       renderAll();
                     }
                   } catch {}
@@ -1668,33 +1793,26 @@ async function loadAllData({ force = false, hard = false, silent = false } = {})
           }
         })
         .catch(e => { errors.push(`RWIS(${e?.message || 'err'})`); }),
-      fetchJsonSafe(`/api/road-obs?line=14${forceQs}`, 12000)
-        .then(v => {
-          if (gen !== rwisLoadGen) return;
-          const list = Array.isArray(v) ? v : (Array.isArray(v?.stations) ? v.stations : []);
-          if (list.length) {
-            state.roadStations = list;
-            if (v?.tm1) state.roadObsTm = String(v.tm1);
-            markLive();
-          }
-        })
-        .catch(e => { errors.push(`도로관측(${e?.message || 'err'})`); }),
+      roadObsTask,
       ...(needTrend ? [
-        // P2.5: 6시간 노면·기온 추세 스파크라인 (비차단 보조 조회 · 실패 시에도 주 상황판 동작 유지)
-        fetchJsonSafe(`/api/road-obs-trend?line=14&hours=6${forceQs}`, 14000, 0)
-          .then(v => {
-            if (gen !== rwisLoadGen) return;
-            if (v?.ok && Array.isArray(v.times) && v.times.length) {
-              state.roadTrend = v;
-              state.roadTrendFetchedAt = Date.now();
-              persistCache();
-              renderAll();
-            }
-          })
-          .catch(() => {})
+        // P2.5: 6시간 노면·기온 추세 스파크라인 — 실시간 road-obs 완료 직후 출발하여 KMA 연결 경합 방지 및 최신 슬롯 캐시 재사용!
+        roadObsTask.finally(() => {
+          if (gen !== rwisLoadGen) return null;
+          return fetchJsonSafe(`/api/road-obs-trend?line=14&hours=6${forceQs}`, 14000, 0)
+            .then(v => {
+              if (gen !== rwisLoadGen) return;
+              if (v?.ok && Array.isArray(v.times) && v.times.length) {
+                state.roadTrend = v;
+                state.roadTrendFetchedAt = Date.now();
+                if (getRoadObsAgeMs() < 10 * 60000) persistCache();
+                renderAll();
+              }
+            })
+            .catch(() => {});
+        })
       ] : []),
       fetchJsonSafe(`/api/road-risk?roadNum=012${hard ? forceQs : ''}`, 12000)
-        .then(v => { if (gen === rwisLoadGen && v?.ok) { state.roadRisk = v; markLive(); } })
+        .then(v => { if (gen === rwisLoadGen && v?.ok) { state.roadRisk = v; markAuxLive(); } })
         .catch(e => { errors.push(`도로위험(${e?.message || 'err'})`); }),
       fetchJsonSafe(`/api/warnings?places=${warnQuery}${forceQs}`, 12000)
         .then(v => {
@@ -1703,7 +1821,7 @@ async function loadAllData({ force = false, hard = false, silent = false } = {})
             state.warningsPayload = v;
             state.warningHistory = updateWarningHistory(state.warningHistory, v, Date.now());
             saveWarnHistory(state.warningHistory);
-            markLive();
+            markAuxLive();
           }
         })
         .catch(e => { errors.push(`기상특보(${e?.message || 'err'})`); }),
@@ -1719,7 +1837,7 @@ async function loadAllData({ force = false, hard = false, silent = false } = {})
             if (Array.isArray(v?.cctvs) && v.cctvs.length) {
               state.cctvPayload = v;
               state.cctvFetchedAt = Date.now();
-              markLive();
+              markAuxLive();
             }
           })
           .catch(e => { errors.push(`CCTV(${e?.message || 'err'})`); })
@@ -1730,10 +1848,10 @@ async function loadAllData({ force = false, hard = false, silent = false } = {})
           if (v?.ok && Array.isArray(v.regions)) {
             state.shortTerm13 = v;
             // hourly.html과 5분 탭 캐시 양방향 공유 (13개소 완전본일 때만)
-            if (v.regions.some(r => r.id === 'gaya')) {
+            if (countCompleteShort13Regions(v) >= 13 && v.regions.some(r => r.id === 'gaya')) {
               writePageCache(HOURLY_CACHE_KEY, { scope: rwisCacheScope(), data: v });
             }
-            markLive();
+            markAuxLive();
           }
         })
         .catch(async e => {
@@ -1756,6 +1874,31 @@ async function loadAllData({ force = false, hard = false, silent = false } = {})
 
     await Promise.allSettled(tasks);
     if (gen !== rwisLoadGen) return;
+
+    // 도로관측이 실패했거나 관측시각(tm1)이 6분 이상 지연된 경우 12초 후 단독 강제 재수신으로 즉시 정합성 회복
+    if (!roadObsSucceeded || getRoadObsAgeMs() >= 6 * 60000) {
+      roadObsRetryTimer = setTimeout(() => {
+        if (!document.hidden) pollRoadObsRealtime({ force: true });
+      }, 12000);
+    }
+
+    // 13개 지역 단기예보 중 일부 격자가 일시 결측된 경우 10초 후 1회 보완 조회
+    if (countCompleteShort13Regions() < 13) {
+      short13RetryTimer = setTimeout(async () => {
+        if (document.hidden) return;
+        try {
+          const retryV = await fetchJsonSafe('/api/short-term-12?roster=13&force=1&refreshUltra=1', 28000, 0);
+          if (retryV?.ok && countCompleteShort13Regions(retryV) > countCompleteShort13Regions()) {
+            state.shortTerm13 = retryV;
+            if (countCompleteShort13Regions(retryV) >= 13 && retryV.regions.some(r => r.id === 'gaya')) {
+              writePageCache(HOURLY_CACHE_KEY, { scope: rwisCacheScope(), data: retryV });
+            }
+            if (getRoadObsAgeMs() < 10 * 60000) persistCache();
+            renderAll();
+          }
+        } catch {}
+      }, 10000);
+    }
 
     if (hard) {
       state.hardRefreshActive = false;
@@ -1944,6 +2087,33 @@ if (policy.shouldFetchNow) {
   }, policy.backgroundDwellDelayMs);
 }
 
+// 타 탭(도로기상 상황판 index.html)에서 더 최신 분(tm1) 도로관측 수신 시 0ms 실시간 미러링
+window.addEventListener('storage', e => {
+  if (e.key === SHARED_ROAD_OBS_KEY) {
+    const shared = readSharedRoadObs({ line: '14' });
+    const curTm = state.roadObsTm || extractRoadObsTm(state.roadStations);
+    if (shared?.stations?.length && (!state.roadStations.length || (shared.tm1 && shared.tm1 > curTm))) {
+      state.roadStations = shared.stations;
+      state.roadObsTm = shared.tm1 || curTm;
+      persistCache();
+      renderAll();
+    }
+  } else if (e.key === HOURLY_CACHE_KEY && countCompleteShort13Regions() < 13) {
+    const hourlyHit = readPageCache(HOURLY_CACHE_KEY, { expectedScope: rwisCacheScope() });
+    if (hourlyHit?.entry?.data?.regions && countCompleteShort13Regions(hourlyHit.entry.data) > countCompleteShort13Regions()) {
+      state.shortTerm13 = hourlyHit.entry.data;
+      renderAll();
+    }
+  }
+});
+
+// KMA 1분 단위 도로기상관측(노면온도·기온) 실시간 하트비트 (2분 주기 — rwis.kma.go.kr 및 도로기상 상황판과 상시 정합성 유지)
+setInterval(() => {
+  if (!document.hidden && !state.loadPromise) {
+    pollRoadObsRealtime({ force: false });
+  }
+}, 2 * 60000);
+
 // 50인치 TV 24시간 무인 표출용 정각 5분 슬롯(:01, :06, :11...) 동기화 갱신 + 백업 인터벌
 function scheduleAlignedFiveMinRefresh() {
   const now = Date.now();
@@ -1960,7 +2130,7 @@ function scheduleAlignedFiveMinRefresh() {
 scheduleAlignedFiveMinRefresh();
 
 setInterval(() => {
-  if (!document.hidden && (!state.lastSyncedAt || Date.now() - state.lastSyncedAt >= OVERVIEW_REFRESH_MS + 30000)) {
+  if (!document.hidden && (!state.lastSyncedAt || Date.now() - state.lastSyncedAt >= OVERVIEW_REFRESH_MS + 30000 || getRoadObsAgeMs() >= 5 * 60000)) {
     loadAllData({ force: false, silent: true });
   }
 }, OVERVIEW_REFRESH_MS);
@@ -1968,7 +2138,16 @@ setInterval(() => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     const now = Date.now();
-    const stale = !state.lastSyncedAt || (now - state.lastSyncedAt >= DEFAULT_FRESH_MS) || (state.lastSyncHourKey !== currentKstHourKey(now));
-    if (stale) loadAllData({ force: false, silent: state.lastSyncedAt > 0 });
+    // 백그라운드에 있는 동안 타 탭에서 갱신된 도로관측이 있으면 즉시 반영
+    if (seedSharedCrossTabCaches(rwisCacheScope())) {
+      renderAll();
+    }
+    const fullStale = !state.lastSyncedAt || (now - state.lastSyncedAt >= DEFAULT_FRESH_MS) || (state.lastSyncHourKey !== currentKstHourKey(now));
+    const roadStale = getRoadObsAgeMs(now) >= 3 * 60000;
+    if (fullStale) {
+      loadAllData({ force: false, silent: state.lastSyncedAt > 0 });
+    } else if (roadStale) {
+      pollRoadObsRealtime({ force: true });
+    }
   }
 });

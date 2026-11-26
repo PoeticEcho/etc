@@ -1,5 +1,38 @@
 // 기상청 도로기상관측망(광주대구선 14번 노선) 및 초단기실황 연동 모듈
 import { apiUrl, isBackendAvailable } from './config.js';
+import { extractRoadObsTm, readSharedRoadObs, writeSharedRoadObs } from './page-cache.js';
+
+export function refreshObservationWithStations(obs, stations) {
+  if (!obs || obs._fromSnapshot || !Array.isArray(stations) || !stations.length) return obs;
+  const primary = stations.find(s =>
+    (obs.stnId != null && String(s.stnId) === String(obs.stnId)) ||
+    (obs.name && s.name === obs.name)
+  );
+  const nearestRoad = (obs.roadStationName && stations.find(s => s.name === obs.roadStationName)) || primary || null;
+  const nearestBridge = obs.bridgeStationName ? stations.find(s => s.name === obs.bridgeStationName) : null;
+  if (!primary && !nearestRoad) return obs;
+
+  const incomingTm = extractRoadObsTm([primary, nearestRoad].filter(Boolean));
+  const curTm = extractRoadObsTm([obs]);
+  if (curTm && incomingTm && incomingTm < curTm) return obs;
+
+  return {
+    ...obs,
+    time: primary?.time || nearestRoad?.time || obs.time,
+    temp: primary?.temp ?? obs.temp,
+    humidity: primary?.humidity ?? obs.humidity,
+    dayPrecip: primary?.dayPrecip ?? obs.dayPrecip,
+    snowDepth: primary?.snowDepth ?? obs.snowDepth,
+    windSpeed: primary?.windSpeed ?? obs.windSpeed,
+    gustSpeed: primary?.gustSpeed ?? obs.gustSpeed,
+    visibility: primary?.visibility ?? obs.visibility,
+    roadTemp: nearestRoad ? nearestRoad.roadTemp : obs.roadTemp,
+    surfaceCode: nearestRoad ? nearestRoad.surfaceCode : obs.surfaceCode,
+    surfaceState: nearestRoad ? nearestRoad.surfaceState : obs.surfaceState,
+    bridgeRoadTemp: nearestBridge ? nearestBridge.roadTemp : obs.bridgeRoadTemp,
+    bridgeSurfaceState: nearestBridge ? nearestBridge.surfaceState : obs.bridgeSurfaceState
+  };
+}
 
 let snapshotCache = null;
 let snapshotPromise = null;
@@ -42,7 +75,8 @@ export function clearObservationsMemCache() {
 export function seedOverviewCache({ line = 14, roadNum = '012', roadStations = null, roadRisk = null, obsByCoord = null } = {}) {
   const now = Date.now();
   if (Array.isArray(roadStations) && roadStations.length) {
-    roadStationsMemCache.set(String(line), { expires: now + 90000, data: roadStations });
+    const synced = writeSharedRoadObs({ line: String(line), stations: roadStations, nowMs: now });
+    roadStationsMemCache.set(String(line), { expires: now + 45000, data: synced?.stations || roadStations });
   }
   if (roadRisk?.ok) {
     roadRiskMemCache.set(String(roadNum), { expires: now + 5 * 60000, data: roadRisk });
@@ -50,7 +84,7 @@ export function seedOverviewCache({ line = 14, roadNum = '012', roadStations = n
   if (obsByCoord && typeof obsByCoord === 'object') {
     for (const [k, obs] of Object.entries(obsByCoord)) {
       if (obs && !obs._fromSnapshot) {
-        obsMemCache.set(k, { expires: now + 90000, data: obs });
+        obsMemCache.set(k, { expires: now + 45000, data: obs });
       }
     }
   }
@@ -87,7 +121,16 @@ export async function loadOverviewBundle(placesList = [], { line = 14, roadNum =
     if (!bundle?.ok) return null;
 
     if (Array.isArray(bundle.roadStations) && bundle.roadStations.length) {
-      roadStationsMemCache.set(String(line), { expires: Date.now() + 90000, data: bundle.roadStations });
+      const synced = writeSharedRoadObs({
+        line: String(line),
+        tm1: bundle.roadObsTm || '',
+        stations: bundle.roadStations
+      });
+      if (synced?.stations?.length) {
+        bundle.roadStations = synced.stations;
+        bundle.roadObsTm = synced.tm1 || bundle.roadObsTm || null;
+      }
+      roadStationsMemCache.set(String(line), { expires: Date.now() + 45000, data: bundle.roadStations });
     }
     if (bundle.roadRisk?.ok) {
       roadRiskMemCache.set(String(roadNum), { expires: Date.now() + 9 * 60000, data: { ...bundle.roadRisk, _fromSnapshot: false } });
@@ -95,7 +138,11 @@ export async function loadOverviewBundle(placesList = [], { line = 14, roadNum =
     if (bundle.items) {
       for (const [key, entry] of Object.entries(bundle.items)) {
         if (entry?.observation) {
-          obsMemCache.set(key, { expires: Date.now() + 90000, data: { ...entry.observation, _fromSnapshot: false } });
+          const freshObs = bundle.roadStations?.length
+            ? refreshObservationWithStations({ ...entry.observation, _fromSnapshot: false }, bundle.roadStations)
+            : { ...entry.observation, _fromSnapshot: false };
+          entry.observation = freshObs;
+          obsMemCache.set(key, { expires: Date.now() + 45000, data: freshObs });
         }
       }
     }
@@ -144,7 +191,14 @@ export async function loadObservation(place, { force = false, hard = false } = {
 export async function loadRoadStations(line = 14, { force = false, hard = false } = {}) {
   const bypass = Boolean(force || hard);
   const cached = !bypass ? roadStationsMemCache.get(String(line)) : null;
-  if (cached && Date.now() < cached.expires) return cached.data;
+  if (cached && Date.now() < cached.expires) {
+    const shared = readSharedRoadObs({ line: String(line) });
+    if (shared?.stations?.length && shared.tm1 > extractRoadObsTm(cached.data)) {
+      roadStationsMemCache.set(String(line), { expires: Date.now() + 45000, data: shared.stations });
+      return shared.stations;
+    }
+    return cached.data;
+  }
   if (await isBackendAvailable()) {
     try {
       const qs = `?line=${encodeURIComponent(line)}${bypass ? '&force=1' : ''}${hard ? '&hard=1' : ''}`;
@@ -154,13 +208,17 @@ export async function loadRoadStations(line = 14, { force = false, hard = false 
       });
       if (response.ok) {
         const data = await response.json();
-        if (Array.isArray(data.stations)) {
-          roadStationsMemCache.set(String(line), { expires: Date.now() + 90000, data: data.stations });
-          return data.stations;
+        if (Array.isArray(data.stations) && data.stations.length) {
+          const synced = writeSharedRoadObs({ line: String(line), tm1: data.tm1 || '', stations: data.stations });
+          const finalStations = synced?.stations || data.stations;
+          roadStationsMemCache.set(String(line), { expires: Date.now() + 45000, data: finalStations });
+          return finalStations;
         }
       }
     } catch {}
   }
+  const sharedFallback = readSharedRoadObs({ line: String(line) });
+  if (sharedFallback?.stations?.length) return sharedFallback.stations;
   const snap = await getSnapshotFallback();
   if (Array.isArray(snap?.roadStations)) return snap.roadStations;
   return [];

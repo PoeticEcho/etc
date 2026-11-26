@@ -11,6 +11,83 @@ export const OVERVIEW_REFRESH_MS = 5 * 60000;   // 도로기상 상황판 정기
 export const HOURLY_REFRESH_MS = 10 * 60000;    // 1시간 단기예보 정기 자동 갱신 주기 (10분 · 정시·36분 별도)
 export const RAPID_REFRESH_WINDOW_MS = 5 * 60000; // 5분 내 2회 이상 수동 새로고침 시 서버·엣지 캐시 우회 강제 갱신
 export const REFRESH_CLICK_PREFIX = 'weather-watch:refresh-clicks:';
+export const SHARED_ROAD_OBS_KEY = 'weather-watch:shared-road-obs:v1';
+
+/**
+ * 도로기상관측 배열 또는 명시적 tm1에서 12자리 KST 관측시각("YYYYMMDDHHMM") 추출
+ */
+export function extractRoadObsTm(stations = [], explicitTm = '') {
+  const cleanExplicit = String(explicitTm || '').replace(/\D/g, '');
+  if (cleanExplicit.length >= 12) return cleanExplicit.slice(0, 12);
+  let maxTm = '';
+  for (const s of (stations || [])) {
+    const raw = String(s?.tm || '').replace(/\D/g, '').slice(0, 12);
+    if (raw.length === 12 && raw > maxTm) maxTm = raw;
+    else if (!raw && typeof s?.time === 'string') {
+      const isoDigits = s.time.replace(/\D/g, '').slice(0, 12);
+      if (isoDigits.length === 12 && isoDigits > maxTm) maxTm = isoDigits;
+    }
+  }
+  return maxTm;
+}
+
+/**
+ * 3대 대시보드(index.html ↔ rwis.html) 간 도로기상관측(TR1·TA) 단일 진실 공급원(SSOT) 읽기
+ */
+export function readSharedRoadObs({
+  line = '14',
+  maxAgeMs = 15 * 60000,
+  nowMs = Date.now(),
+  storage = getDefaultStorage()
+} = {}) {
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(SHARED_ROAD_OBS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || String(parsed.line) !== String(line) || !Array.isArray(parsed.stations) || !parsed.stations.length) {
+      return null;
+    }
+    const age = nowMs - Number(parsed.savedAt || 0);
+    if (!Number.isFinite(age) || age < -30000 || age > maxAgeMs) return null;
+    const tm1 = extractRoadObsTm(parsed.stations, parsed.tm1);
+    return { line: String(line), tm1, stations: parsed.stations, savedAt: Number(parsed.savedAt) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 단조 증가(Monotonic) 관측시각 규칙으로 최신 도로기상관측만 저장·공유
+ * - 이미 더 최신 tm1이 저장되어 있으면 과거 캐시 응답이 덮어쓰지 못하도록 차단하여 페이지 간 수치 불일치 원천 방지
+ */
+export function writeSharedRoadObs({
+  line = '14',
+  tm1 = '',
+  stations = [],
+  nowMs = Date.now(),
+  storage = getDefaultStorage()
+} = {}) {
+  if (!Array.isArray(stations) || !stations.length) return null;
+  const incomingTm = extractRoadObsTm(stations, tm1);
+  const existing = readSharedRoadObs({ line, maxAgeMs: 60 * 60000, nowMs, storage });
+  if (existing?.tm1 && incomingTm && incomingTm < existing.tm1) {
+    return existing;
+  }
+  const record = {
+    v: 1,
+    line: String(line),
+    tm1: incomingTm || existing?.tm1 || '',
+    savedAt: nowMs,
+    stations
+  };
+  if (storage) {
+    try {
+      storage.setItem(SHARED_ROAD_OBS_KEY, JSON.stringify(record));
+    } catch {}
+  }
+  return record;
+}
 
 const fallbackRefreshClicks = new Map();
 

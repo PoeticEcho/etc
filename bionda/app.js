@@ -1,6 +1,6 @@
 import { mountCctv } from './cctv-player.js';
 import { loadWeather, loadProbabilities, prefetchOpenMeteo, seedKmaForecast, clearWeatherMemCache } from './weather.js';
-import { loadOverviewBundle, loadObservation, loadRoadStations, loadRoadRisk, seedOverviewCache, clearObservationsMemCache, getLastObsError } from './observations.js';
+import { loadOverviewBundle, loadObservation, loadRoadStations, loadRoadRisk, seedOverviewCache, clearObservationsMemCache, getLastObsError, refreshObservationWithStations } from './observations.js';
 import { fetchBatchWarnings, buildWarningSummary, buildWarningsFromApi } from './warnings.js';
 import {
   classifySeverityTier,
@@ -27,6 +27,10 @@ import {
   evaluateCachePolicy,
   currentKstHourKey,
   registerManualRefreshClick,
+  extractRoadObsTm,
+  readSharedRoadObs,
+  writeSharedRoadObs,
+  SHARED_ROAD_OBS_KEY,
   DEFAULT_FRESH_MS,
   DEFAULT_DWELL_MS,
   OVERVIEW_REFRESH_MS
@@ -1965,6 +1969,26 @@ function persistOverviewCache() {
   });
 }
 
+function syncOverviewWithSharedRoadObs(stationsOverride = null, explicitTm = '') {
+  const shared = Array.isArray(stationsOverride) && stationsOverride.length
+    ? writeSharedRoadObs({ line: '14', tm1: explicitTm, stations: stationsOverride })
+    : readSharedRoadObs({ line: '14' });
+  if (!shared?.stations?.length) return false;
+
+  const curTm = extractRoadObsTm(roadStations);
+  if (curTm && shared.tm1 && shared.tm1 < curTm) return false;
+
+  const changed = !roadStations.length || shared.tm1 > curTm || stationsOverride !== null;
+  roadStations = shared.stations;
+  for (const p of targets()) {
+    const r = record(p);
+    if (r.o && !r.o._fromSnapshot) {
+      r.o = refreshObservationWithStations(r.o, shared.stations);
+    }
+  }
+  return changed;
+}
+
 function hydrateOverviewFromCache() {
   const nowMs = Date.now();
   const hit = readPageCache(OVERVIEW_CACHE_KEY, { expectedScope: overviewCacheScope(), nowMs });
@@ -1998,6 +2022,15 @@ function hydrateOverviewFromCache() {
     if (Number.isFinite(entry.last)) r.last = entry.last;
     if (Number.isFinite(entry.checked)) r.checked = entry.checked;
     r.roadRisk = findPlaceRoadRisk(p);
+  }
+
+  // 도로살얼음 상황판(rwis.html) 등 타 탭에서 더 최신 분(tm1) 도로관측을 이미 수신했다면 즉시 동기화해 페이지 간 수치 불일치 원천 차단
+  if (syncOverviewWithSharedRoadObs()) {
+    for (const p of targets()) {
+      const key = coord(p);
+      const r = record(p);
+      if (r.o && !r.o._fromSnapshot) obsByCoord[key] = r.o;
+    }
   }
 
   seedOverviewCache({ line: 14, roadNum: '012', roadStations, roadRisk: roadRiskData, obsByCoord });
@@ -2160,8 +2193,9 @@ export async function refresh(forceOrOpts = false) {
     if (!bundleOk) {
       loadRoadStations(14, { force, hard }).then(stns => {
         if (stns?.length) {
-          roadStations = stns;
+          syncOverviewWithSharedRoadObs(stns);
           if (!detailPlace) renderMiniMap();
+          else renderDetail();
         }
       }).catch(() => {});
       loadRoadRisk('012', force, hard).then(riskPayload => {
@@ -2835,6 +2869,10 @@ window.addEventListener('storage', e => {
         syncSettingsUI();
       }
     } catch {}
+  } else if (e.key === SHARED_ROAD_OBS_KEY) {
+    if (syncOverviewWithSharedRoadObs()) {
+      render();
+    }
   }
 });
 bindSplitterDrag();
@@ -2848,7 +2886,15 @@ setInterval(() => {
   if (!document.hidden) refresh({ silent: true });
 }, OVERVIEW_REFRESH_MS);
 setInterval(() => {
-  if (!document.hidden) pollWarnings();
+  if (!document.hidden) {
+    pollWarnings();
+    loadRoadStations(14, { force: false }).then(stns => {
+      if (stns?.length && syncOverviewWithSharedRoadObs(stns)) {
+        persistOverviewCache();
+        render();
+      }
+    }).catch(() => {});
+  }
 }, 120000);
 setInterval(() => {
   if (!document.hidden && detailPlace && settings.showActionCards && !activeSpreadEditor) {
