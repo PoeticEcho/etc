@@ -1095,6 +1095,15 @@ body.rwis-page .top-header {
   body.rwis-map-big {
     overflow: hidden;
   }
+  body.rwis-map-big .top-header {
+    display: none !important;
+  }
+  body.rwis-map-big main.rwis-wrap {
+    will-change: auto !important;
+    transform: none !important;
+    filter: none !important;
+    padding: 0 !important;
+  }
   body.rwis-map-big .rwis-main-col > .rwis-panel {
     position: fixed;
     inset: 0;
