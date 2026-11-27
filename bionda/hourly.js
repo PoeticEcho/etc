@@ -973,7 +973,7 @@ function bindEvents() {
     if (e.key === SETTINGS_KEY) applyDarkMode(loadDarkMode(), false);
   });
 
-  $('shareHourly').onclick = () => openPngShare('13지역 시간별예보', () =>
+  $('shareHourly').onclick = () => openPngShare('기상청 시간별예보', () =>
     renderForecastBriefing(state.payload, { edition: state.fromSnapshot ? '저장 자료 · 향후 12시간' : '향후 12시간 · 노선 서→동' }));
   $('reloadHourlyBtn').addEventListener('click', triggerSmartManualRefresh);
 

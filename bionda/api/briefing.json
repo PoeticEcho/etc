@@ -2,33 +2,32 @@
   "schema": "bionda-briefing-v2",
   "edition_id": "2026-11-27-morning",
   "slot": "morning",
-  "generatedAt": "2026-11-27T03:16:29.942Z",
-  "generatedKst": "2026-11-27T12:16:29+09:00",
+  "generatedAt": "2026-11-27T04:41:59.110Z",
+  "generatedKst": "2026-11-27T13:41:59+09:00",
   "corridor": "고속국도 제12호선 광주대구선 (고령지사 관할 함양IC 95.0k ~ 옥포JC 176.0k)",
   "shareStatusUrl": "https://bionda.pages.dev/share/status.json",
   "liveBriefingUrl": "https://bionda.pages.dev/api/briefing",
   "latestImage": {
     "slot": "2026-11-27-morning",
     "slotLabelKst": "2026-11-27-morning (08:00 KST)",
-    "url": "https://bionda.pages.dev/share/morning.png?v=4462f4ec8193afec8265859c8ac8db87188a9c84f242dc77e231f13af2e6828d",
-    "sizeBytes": 77381,
-    "sha256": "4462f4ec8193afec8265859c8ac8db87188a9c84f242dc77e231f13af2e6828d"
+    "url": "https://bionda.pages.dev/share/morning.png?v=99dc49560d3094cb6a085a30dd2bd5b41b11dd028c8831aa3a49198470ca5b72",
+    "sizeBytes": 84244,
+    "sha256": "99dc49560d3094cb6a085a30dd2bd5b41b11dd028c8831aa3a49198470ca5b72"
   },
   "forecastSources": {
-    "shortBase": "2026-11-27T08:00:00+09:00",
+    "shortBase": "2026-11-27T11:00:00+09:00",
     "latestShortBase": "2026-11-27T11:00:00+09:00",
-    "ultraBase": "2026-11-27T11:30:00+09:00",
-    "latestUltraBase": "2026-11-27T11:30:00+09:00",
+    "ultraBase": "2026-11-27T13:30:00+09:00",
+    "latestUltraBase": "2026-11-27T13:30:00+09:00",
     "shortBases": [
-      "2026-11-27T08:00:00+09:00",
       "2026-11-27T11:00:00+09:00"
     ],
     "ultraBases": [
-      "2026-11-27T11:30:00+09:00"
+      "2026-11-27T13:30:00+09:00"
     ],
-    "mixedGeneration": true,
-    "isFallback": true,
-    "status": "mixed"
+    "mixedGeneration": false,
+    "isFallback": false,
+    "status": "fresh"
   },
   "windowKPIs": {
     "h6": {
@@ -38,7 +37,7 @@
       "earliestWetTime": null,
       "earliestFreezingTime": null,
       "earliestOverlapTime": null,
-      "minTemp": 12
+      "minTemp": 10
     },
     "h12": {
       "wetRegions": 0,
@@ -47,13 +46,13 @@
       "earliestWetTime": null,
       "earliestFreezingTime": null,
       "earliestOverlapTime": null,
-      "minTemp": 8
+      "minTemp": 7
     },
     "h24": {
-      "wetRegions": 0,
+      "wetRegions": 10,
       "freezingRegions": 0,
       "overlapRegions": 0,
-      "earliestWetTime": null,
+      "earliestWetTime": "2026-11-28T12:00:00+09:00",
       "earliestFreezingTime": null,
       "earliestOverlapTime": null,
       "minTemp": 4
@@ -84,88 +83,88 @@
     {
       "name": "남원",
       "coord": "35.416,127.390",
-      "tempC": 18.6,
-      "roadTempC": 17.8,
+      "tempC": 20,
+      "roadTempC": 20.6,
       "surfaceState": "건조",
       "roadStation": "남원주차장(도)",
-      "humidityPct": 48.9,
+      "humidityPct": 37.2,
       "todayPrecipMm": 0,
       "warnings": []
     },
     {
       "name": "함양",
       "coord": "35.520,127.725",
-      "tempC": 17.8,
-      "roadTempC": 18.6,
+      "tempC": 19.3,
+      "roadTempC": 21.9,
       "surfaceState": "건조",
       "roadStation": "함양(도)",
-      "humidityPct": 43.7,
+      "humidityPct": 41.6,
       "todayPrecipMm": 0,
       "warnings": []
     },
     {
       "name": "함양중부",
       "coord": "35.566,127.774",
-      "tempC": 17.8,
-      "roadTempC": 18.6,
+      "tempC": 19.3,
+      "roadTempC": 21.9,
       "surfaceState": "건조",
       "roadStation": "함양(도)",
-      "humidityPct": 43.7,
+      "humidityPct": 41.6,
       "todayPrecipMm": 0,
       "warnings": []
     },
     {
       "name": "거창군남부",
       "coord": "35.644,127.910",
-      "tempC": 18,
-      "roadTempC": 19,
+      "tempC": 19.1,
+      "roadTempC": 21.1,
       "surfaceState": "건조",
       "roadStation": "남상졸음(도)",
-      "humidityPct": 42,
+      "humidityPct": 37.2,
       "todayPrecipMm": 0,
       "warnings": []
     },
     {
       "name": "거창",
       "coord": "35.687,127.910",
-      "tempC": 18,
-      "roadTempC": 19,
+      "tempC": 19.1,
+      "roadTempC": 21.1,
       "surfaceState": "건조",
       "roadStation": "남상졸음(도)",
-      "humidityPct": 42,
+      "humidityPct": 37.2,
       "todayPrecipMm": 0,
       "warnings": []
     },
     {
       "name": "합천군서북부",
       "coord": "35.706,128.168",
-      "tempC": 17,
-      "roadTempC": 21.9,
+      "tempC": 18.1,
+      "roadTempC": 23.9,
       "surfaceState": "건조",
       "roadStation": "거창휴(도)",
-      "humidityPct": 40.5,
+      "humidityPct": 37.6,
       "todayPrecipMm": 0,
       "warnings": []
     },
     {
       "name": "고령군",
       "coord": "35.728,128.263",
-      "tempC": 18.2,
-      "roadTempC": 18.8,
+      "tempC": 19.6,
+      "roadTempC": 21.3,
       "surfaceState": "건조",
       "roadStation": "양전교(도)",
-      "humidityPct": 59.1,
+      "humidityPct": 49.9,
       "todayPrecipMm": 0,
       "warnings": []
     },
     {
       "name": "대구 달성군남부",
       "coord": "35.697,128.447",
-      "tempC": 18,
-      "roadTempC": 20.5,
+      "tempC": 20,
+      "roadTempC": 21.8,
       "surfaceState": "건조",
       "roadStation": "논공교(도)",
-      "humidityPct": 59.3,
+      "humidityPct": 50.3,
       "todayPrecipMm": 0,
       "warnings": []
     }

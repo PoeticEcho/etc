@@ -648,7 +648,7 @@ export function renderForecastBriefing(payload, { overview, title = '기상청 �
     });
     y += 266;
   }
-  text('13지역 시간별예보', margin, y + 33, 21, '#143e40', 800);
+  text('기상청 시간별예보', margin, y + 33, 21, '#143e40', 800);
   times.forEach((time, i) => {
     const stamp = kstStamp(time), x = margin + labelWidth + (i + 0.5) * cellWidth;
     text(stamp.slice(5, 10), x, y + 22, 13, '#476866', 500, 'center');
