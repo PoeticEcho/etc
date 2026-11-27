@@ -1563,8 +1563,9 @@ function syncBranchIceAlertModal(enriched) {
   const tmKst = typeof rwisTmObj === 'string'
     ? rwisTmObj
     : (rwisTmObj?.FR || state.roadRisk?.sources?.frgTmKst || state.roadRisk?.tmKst || '');
-  const items = (enriched?.zones || []).map(z => ({
+  const items = (enriched?.zones || []).map((z, idx) => ({
     id: `zone:${z.suffix}`,
+    sortOrder: idx,
     label: String(z.name || '').replace('–', ' ↔ '),
     kmLabel: `${z.startKm.toFixed(1)}~${z.endKm.toFixed(1)}k`,
     inBranch: true,

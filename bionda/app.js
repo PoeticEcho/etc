@@ -492,10 +492,12 @@ function checkRoadRiskEscalations(payload) {
 
   // 한국도로공사 공식 도로살얼음 주의(2)·위험(3) 격상 팝업 (고령지사 관할 95.0~176.0k 구간)
   if (!payload._fromSnapshot && Array.isArray(payload.stationRisks)) {
-    const branchItems = payload.stationRisks
+    const branchItems = [...payload.stationRisks]
       .filter(s => (Number.isFinite(s?.km) ? s.km >= 95.0 && s.km <= 176.0 : s?.inBranch !== false))
-      .map(s => ({
+      .sort((a, b) => (a?.km ?? 0) - (b?.km ?? 0))
+      .map((s, idx) => ({
         id: `stn:${s.stnId}`,
+        sortOrder: idx,
         label: String(s.name || '').replace(/\(도\)$/, ''),
         kmLabel: Number.isFinite(s.km) ? `${s.km.toFixed(1)}km` : '',
         stnIds: [String(s.stnId)],

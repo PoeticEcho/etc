@@ -463,53 +463,201 @@ if (typeof document !== 'undefined') {
   $('btnDiagForce')?.addEventListener('click', () => runDiagnostics(true));
 
   $('btnTestCautionModal')?.addEventListener('click', () => {
+    const nowMs = Date.now();
+    const nowRef = fmtTime(new Date(nowMs).toISOString()).replace(' KST', '');
+    const prevRef = fmtTime(new Date(nowMs - 15 * 60000).toISOString()).replace(' KST', '');
+    const nowHm = nowRef.slice(-5);
+    const prevHm = prevRef.slice(-5);
+    const sampleActive = [
+      {
+        id: 'test:160',
+        sortOrder: 0,
+        label: '함양IC ↔ 함양JC',
+        kmLabel: '95.0~97.3k',
+        fromLevel: 0,
+        toLevel: 2,
+        toLabel: '주의',
+        escalatedAt: nowRef,
+        escalatedHm: nowHm,
+        isNewlyTriggered: true,
+        stationName: '함양',
+        airTemp: 1.8,
+        roadTemp: 1.4,
+        surfaceState: '습윤',
+        shortNote: '저온 구간(대기≤4°·노면≤2°) · 예비살포 검토',
+        isColdCondition: true
+      },
+      {
+        id: 'test:180',
+        sortOrder: 2,
+        label: '거창IC ↔ 가조IC',
+        kmLabel: '121.1~131.1k',
+        fromLevel: 0,
+        toLevel: 2,
+        toLabel: '주의',
+        escalatedAt: nowRef,
+        escalatedHm: nowHm,
+        isNewlyTriggered: true,
+        stationName: '남상졸음',
+        airTemp: 2.1,
+        roadTemp: 1.9,
+        surfaceState: '습윤',
+        shortNote: '저온 구간(대기≤4°·노면≤2°) · 예비살포 검토',
+        isColdCondition: true
+      },
+      {
+        id: 'test:190',
+        sortOrder: 3,
+        label: '가조IC ↔ 해인사IC',
+        kmLabel: '131.1~146.4k',
+        fromLevel: 0,
+        toLevel: 2,
+        toLabel: '주의',
+        escalatedAt: nowRef,
+        escalatedHm: nowHm,
+        isNewlyTriggered: true,
+        stationName: '거창휴',
+        airTemp: 5.4,
+        roadTemp: 4.8,
+        surfaceState: '건조',
+        shortNote: '영상 구간(대기>4°·노면>2°) · 습윤 오탐 확인',
+        isColdCondition: false
+      },
+      {
+        id: 'test:200',
+        sortOrder: 4,
+        label: '해인사IC ↔ 고령IC',
+        kmLabel: '146.4~152.9k',
+        fromLevel: 0,
+        toLevel: 2,
+        toLabel: '주의',
+        escalatedAt: prevRef,
+        escalatedHm: prevHm,
+        isNewlyTriggered: false,
+        stationName: '양전교',
+        airTemp: 1.6,
+        roadTemp: 1.1,
+        surfaceState: '습윤',
+        shortNote: '저온 구간(대기≤4°·노면≤2°) · 예비살포 검토',
+        isColdCondition: true
+      }
+    ];
     modal.showPreview({
       popupLevel: 2,
-      refTimeText: fmtTime(new Date().toISOString()).replace(' KST', ''),
+      refTimeText: nowRef,
       headline: '도로살얼음 위험정보 주의 격상 알림',
       directive: '온도, 노면상태 확인 후 예비살포',
       subDirective: '[사전 점검 시뮬레이션] 고정식 기상정보(대기온도, 노면온도, 노면상태) 확인 후 예비살포 실시',
-      triggeredItems: [
-        {
-          id: 'test:210',
-          label: '고령IC ↔ 동고령IC (테스트)',
-          kmLabel: '152.9~165.5k',
-          fromLevel: 0,
-          toLevel: 2,
-          toLabel: '주의',
-          stationName: '양전교',
-          airTemp: 1.8,
-          roadTemp: 1.1,
-          surfaceState: '습윤',
-          tempCheckNote: '저온 기준 해당(대기≤4°C 또는 노면≤2°C) · 예비살포 적극 검토',
-          isColdCondition: true
-        }
+      triggeredItems: sampleActive.filter(x => x.isNewlyTriggered),
+      activeItems: sampleActive,
+      corridorOverview: [
+        { id: 'test:160', label: '함양IC↔함양JC', level: 2, levelName: '주의', escalatedHm: nowHm, isNew: true },
+        { id: 'test:170', label: '함양JC↔거창IC', level: 0, levelName: '안전', escalatedHm: '', isNew: false },
+        { id: 'test:180', label: '거창IC↔가조IC', level: 2, levelName: '주의', escalatedHm: nowHm, isNew: true },
+        { id: 'test:190', label: '가조IC↔해인사IC', level: 2, levelName: '주의', escalatedHm: nowHm, isNew: true },
+        { id: 'test:200', label: '해인사IC↔고령IC', level: 2, levelName: '주의', escalatedHm: prevHm, isNew: false },
+        { id: 'test:210', label: '고령IC↔동고령IC', level: 1, levelName: '관심', escalatedHm: '', isNew: false },
+        { id: 'test:220', label: '동고령IC↔고령JC', level: 0, levelName: '안전', escalatedHm: '', isNew: false },
+        { id: 'test:230', label: '고령JC↔옥포JC', level: 0, levelName: '안전', escalatedHm: '', isNew: false }
       ]
     });
   });
 
   $('btnTestDangerModal')?.addEventListener('click', () => {
+    const nowMs = Date.now();
+    const nowRef = fmtTime(new Date(nowMs).toISOString()).replace(' KST', '');
+    const prevRef = fmtTime(new Date(nowMs - 10 * 60000).toISOString()).replace(' KST', '');
+    const nowHm = nowRef.slice(-5);
+    const prevHm = prevRef.slice(-5);
+    const sampleDanger = [
+      {
+        id: 'test:200',
+        sortOrder: 4,
+        label: '해인사IC ↔ 고령IC',
+        kmLabel: '146.4~152.9k',
+        fromLevel: 2,
+        toLevel: 3,
+        toLabel: '위험',
+        escalatedAt: nowRef,
+        escalatedHm: nowHm,
+        isNewlyTriggered: true,
+        stationName: '양전교',
+        airTemp: -0.6,
+        roadTemp: -1.1,
+        surfaceState: '결빙',
+        isColdCondition: true
+      },
+      {
+        id: 'test:210',
+        sortOrder: 5,
+        label: '고령IC ↔ 동고령IC',
+        kmLabel: '152.9~165.5k',
+        fromLevel: 2,
+        toLevel: 3,
+        toLabel: '위험',
+        escalatedAt: nowRef,
+        escalatedHm: nowHm,
+        isNewlyTriggered: true,
+        stationName: '양전교',
+        airTemp: -0.6,
+        roadTemp: -0.9,
+        surfaceState: '습윤',
+        isColdCondition: true
+      },
+      {
+        id: 'test:160',
+        sortOrder: 0,
+        label: '함양IC ↔ 함양JC',
+        kmLabel: '95.0~97.3k',
+        fromLevel: 0,
+        toLevel: 2,
+        toLabel: '주의',
+        escalatedAt: prevRef,
+        escalatedHm: prevHm,
+        isNewlyTriggered: false,
+        stationName: '함양',
+        airTemp: 0.9,
+        roadTemp: 0.4,
+        surfaceState: '습윤',
+        shortNote: '저온 구간(대기≤4°·노면≤2°) · 예비살포 검토',
+        isColdCondition: true
+      },
+      {
+        id: 'test:170',
+        sortOrder: 1,
+        label: '함양JC ↔ 거창IC',
+        kmLabel: '97.3~121.1k',
+        fromLevel: 1,
+        toLevel: 2,
+        toLabel: '주의',
+        escalatedAt: prevRef,
+        escalatedHm: prevHm,
+        isNewlyTriggered: false,
+        stationName: '죽산천교',
+        airTemp: null,
+        roadTemp: 0.2,
+        surfaceState: '습윤',
+        shortNote: '저온 구간(대기≤4°·노면≤2°) · 예비살포 검토',
+        isColdCondition: true
+      }
+    ];
     modal.showPreview({
       popupLevel: 3,
-      refTimeText: fmtTime(new Date().toISOString()).replace(' KST', ''),
+      refTimeText: nowRef,
       headline: '도로살얼음 위험정보 위험 격상 알림',
       directive: '예비살포 실시',
       subDirective: '[사전 점검 시뮬레이션] 선(先)예비살포, 후(後)상황판단회의 (제설작업 지속 여부 판단)',
-      triggeredItems: [
-        {
-          id: 'test:210',
-          label: '고령IC ↔ 동고령IC (테스트)',
-          kmLabel: '152.9~165.5k',
-          fromLevel: 2,
-          toLevel: 3,
-          toLabel: '위험',
-          stationName: '양전교',
-          airTemp: -0.5,
-          roadTemp: -0.8,
-          surfaceState: '습윤',
-          tempCheckNote: '🚨 위험단계 — 즉시 예비살포 실시 후 상황판단회의 진행',
-          isColdCondition: true
-        }
+      triggeredItems: sampleDanger.filter(x => x.isNewlyTriggered),
+      activeItems: sampleDanger,
+      corridorOverview: [
+        { id: 'test:160', label: '함양IC↔함양JC', level: 2, levelName: '주의', escalatedHm: prevHm, isNew: false },
+        { id: 'test:170', label: '함양JC↔거창IC', level: 2, levelName: '주의', escalatedHm: prevHm, isNew: false },
+        { id: 'test:180', label: '거창IC↔가조IC', level: 1, levelName: '관심', escalatedHm: '', isNew: false },
+        { id: 'test:190', label: '가조IC↔해인사IC', level: 1, levelName: '관심', escalatedHm: '', isNew: false },
+        { id: 'test:200', label: '해인사IC↔고령IC', level: 3, levelName: '위험', escalatedHm: nowHm, isNew: true },
+        { id: 'test:210', label: '고령IC↔동고령IC', level: 3, levelName: '위험', escalatedHm: nowHm, isNew: true },
+        { id: 'test:220', label: '동고령IC↔고령JC', level: 0, levelName: '안전', escalatedHm: '', isNew: false },
+        { id: 'test:230', label: '고령JC↔옥포JC', level: 0, levelName: '안전', escalatedHm: '', isNew: false }
       ]
     });
   });
