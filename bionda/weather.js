@@ -323,11 +323,25 @@ export async function loadWeather(place, obs = null, { skipKmaNetwork = false } 
     last24 = { ...today };
   }
 
-  // Merge KMA precipitation probability / precipitation signals into the 6-hour rows when KMA predicts rain/snow
+  // 기상청 초단기·단기예보(기온·습도·풍속·강수확률·강수형태)를 6시간 ICON 앙상블 표에도 동기화하여
+  // 상단 타임라인(기상청 4~5°C)과 6시간 표(Open-Meteo 광역 격자 7.6~7.7°C) 간 야간 복사냉각 기온 괴리 원천 제거
   if (kmaData?.hours?.length) {
     for (const r of rows) {
       const kh = kmaData.hours.find(h => h.time && h.time.slice(0, 16) === r.time.slice(0, 16));
       if (kh) {
+        const kTemp = kh.temp != null && kh.temp !== '' ? Number(kh.temp) : NaN;
+        if (Number.isFinite(kTemp)) {
+          r.omTemp = r.temp;
+          r.temp = kTemp;
+        }
+        const kHum = kh.humidity != null && kh.humidity !== '' ? Number(kh.humidity) : NaN;
+        if (Number.isFinite(kHum)) {
+          r.humidity = kHum;
+        }
+        const kWind = kh.wind != null && kh.wind !== '' ? Number(kh.wind) : NaN;
+        if (Number.isFinite(kWind)) {
+          r.wind = kWind;
+        }
         if (Number.isFinite(kh.chance) && (r.pop === null || kh.chance > r.pop)) {
           r.pop = kh.chance;
         }

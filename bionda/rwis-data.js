@@ -350,6 +350,10 @@ export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadR
     let worstSurface = null;
     let primaryStation = matchedStations[0] || null;
 
+    const sfsSeverity = (code) => ({
+      1: 1, 10: 2, 14: 3, 7: 4, 12: 4, 2: 5, 11: 6, 3: 7, 6: 7, 5: 8, 13: 8, 4: 9, 15: 9
+    }[Number(code)] || 0);
+
     for (const s of matchedStations) {
       if (Number.isFinite(s.roadTemp) && (minRoadTemp === null || s.roadTemp < minRoadTemp)) {
         minRoadTemp = s.roadTemp;
@@ -359,7 +363,7 @@ export function enrichZonesWithBionda({ rwisZones = [], roadStations = [], roadR
         minAirTemp = s.temp;
       }
       if (s.surfaceState && s.surfaceState !== '관측중') {
-        if (!worstSurface || (Number(s.surfaceCode) || 0) > (Number(worstSurface.code) || 0)) {
+        if (!worstSurface || sfsSeverity(s.surfaceCode) > sfsSeverity(worstSurface.code)) {
           worstSurface = { code: s.surfaceCode, label: s.surfaceState };
         }
       }
@@ -749,7 +753,8 @@ export function evaluateMeasuredPresaltAlerts({ roadStations = [], roadRisk = nu
       }
     }
 
-    const wetOrPrecip = (sc >= 2 && sc <= 6) || (Number.isFinite(s.dayPrecip) && s.dayPrecip > 0) || rainSoon;
+    const isMoistSfs = [2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15].includes(sc);
+    const wetOrPrecip = isMoistSfs || (Number.isFinite(s.dayPrecip) && s.dayPrecip > 0) || rainSoon;
     const riskHigh = iceLv >= 2 || fogLv >= 2;
     const airOk = ta === null || ta <= 4.0;
     const roadCold = tr !== null && tr <= 2.0;
@@ -757,17 +762,20 @@ export function evaluateMeasuredPresaltAlerts({ roadStations = [], roadRisk = nu
     let reason = '';
     let severity = 0; // 2=crit(결빙/적설 또는 노면≤0.5), 1=warn(예비살포)
 
-    if (sc === 5 || sc === 6) {
-      reason = sc === 5 ? '실측 결빙 감지' : '실측 적설·슬러시';
+    if (sc === 4 || sc === 15) {
+      reason = sc === 15 ? '실측 눈·결빙 감지' : '실측 결빙 감지';
       severity = 2;
-    } else if (sc === 4 && roadCold) {
-      reason = '노면 서리·≤2℃';
+    } else if (sc === 3 || sc === 6) {
+      reason = '실측 적설·슬러시';
+      severity = 2;
+    } else if ((sc === 5 || sc === 13) && (tr === null || roadCold)) {
+      reason = sc === 13 ? '노면 임계습윤·≤2℃' : '노면 서리·≤2℃';
       severity = 2;
     } else if (dawnFreezingRain && roadCold) {
       reason = '새벽(00~08시) 어는비 우려';
       severity = 2;
     } else if (roadCold && airOk && (wetOrPrecip || riskHigh)) {
-      reason = sc >= 2 ? `노면 ${s.surfaceState || '습윤'}·≤2℃` : rainSoon ? '노면≤2℃·강수임박' : '노면≤2℃·012위험';
+      reason = isMoistSfs ? `노면 ${s.surfaceState || '습윤'}·≤2℃` : rainSoon ? '노면≤2℃·강수임박' : '노면≤2℃·012위험';
       severity = tr <= 0.5 || iceLv >= 3 ? 2 : 1;
     }
 

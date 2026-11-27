@@ -186,9 +186,10 @@ export function renderCorridorMiniMap({
     const rRisk = findStationRoadRisk(s);
     const iceLv = rRisk?.iceLevel || 0;
     const fogLv = rRisk?.fogLevel || 0;
-    if (iceLv >= 3 || fogLv >= 3 || s.surfaceCode >= 4 || (s.roadTemp !== null && s.roadTemp <= 0.0)) return '#ef4444';
-    if (iceLv === 2 || fogLv === 2 || s.surfaceCode === 3 || (s.roadTemp !== null && s.roadTemp <= 2.5)) return '#f97316';
-    if (iceLv === 1 || fogLv === 1 || s.surfaceCode === 2 || (s.roadTemp !== null && s.roadTemp <= 4.5)) return '#eab308';
+    const sc = Number(s.surfaceCode) || 0;
+    if (iceLv >= 3 || fogLv >= 3 || [4, 5, 13, 15].includes(sc) || (s.roadTemp !== null && s.roadTemp <= 0.0)) return '#ef4444';
+    if (iceLv === 2 || fogLv === 2 || [3, 6, 11].includes(sc) || (s.roadTemp !== null && s.roadTemp <= 2.5)) return '#f97316';
+    if (iceLv === 1 || fogLv === 1 || [2, 7, 12].includes(sc) || (s.roadTemp !== null && s.roadTemp <= 4.5)) return '#eab308';
     return '#38dbf8';
   };
 
@@ -278,7 +279,8 @@ export function renderCorridorMiniMap({
       topRow.append(labelEl);
 
       const stateTxt = s.surfaceState || (s.stationType?.includes('결빙') ? '교량센서' : '건조');
-      const isWarnState = s.surfaceCode >= 2 || (s.roadTemp !== null && s.roadTemp <= 1.0);
+      const scNum = Number(s.surfaceCode) || 0;
+      const isWarnState = [2, 3, 4, 5, 6, 7, 11, 12, 13, 15].includes(scNum) || (scNum === 14 && s.roadTemp !== null && s.roadTemp <= 4.0) || (s.roadTemp !== null && s.roadTemp <= 1.0);
       topRow.append(el('span', stateTxt, 'road-stn-state' + (isWarnState ? ' warn' : '')));
 
       const valRow = el('div', '', 'road-stn-vals');

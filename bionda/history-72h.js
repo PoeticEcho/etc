@@ -397,6 +397,7 @@ if (typeof document !== 'undefined') {
     const trSeries = [];
     const taSeries = [];
     const wetFlags = [];
+    const isMoistSfs = sc => [2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15].includes(Number(sc));
 
     for (let i = 0; i < times.length; i++) {
       if (state.selectedStnId === 'coldest') {
@@ -406,7 +407,7 @@ if (typeof document !== 'undefined') {
         for (const id of BRANCH_STN_ORDER) {
           const s = m.stations[id];
           if (!s) continue;
-          if (s.sc[i] >= 2) anyWet = true;
+          if (isMoistSfs(s.sc[i])) anyWet = true;
           if (Number.isFinite(s.tr[i]) && (minTr === null || s.tr[i] < minTr)) {
             minTr = s.tr[i];
             pairTa = s.ta[i];
@@ -419,7 +420,7 @@ if (typeof document !== 'undefined') {
         const s = m.stations[state.selectedStnId];
         trSeries.push(s?.tr?.[i] ?? null);
         taSeries.push(s?.ta?.[i] ?? null);
-        wetFlags.push((s?.sc?.[i] || 0) >= 2);
+        wetFlags.push(isMoistSfs(s?.sc?.[i]));
       }
     }
 

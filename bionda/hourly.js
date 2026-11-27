@@ -19,6 +19,7 @@ import { mountTvGuard } from './tv-guard.js';
 
 const SETTINGS_KEY = 'weather-watch:settings:v2';
 const HOURLY_CACHE_KEY = 'weather-watch:cache:hourly:v3';
+export const HOURLY_LAST_GOOD_MAX_MS = 12 * 3600 * 1000; // 12시간: 직전 성공 스냅샷 0ms 즉시 표출 후 백그라운드 최신화
 const hourlyCacheScope = () => getApiBase() || '__same_origin__';
 const CORRIDOR_WATCH_POINTS = [
   { name: '대구 달성군남부', lat: 35.697, lon: 128.447 },
@@ -41,6 +42,7 @@ let state = {
   payload: null,
   fromSnapshot: false,
   fromCache: false,
+  fromLastGood: false,
   isRevalidating: false,
   cacheSavedAt: 0,
   lastLoadedAt: 0,
@@ -586,9 +588,9 @@ function updateSourceStatus() {
     footerStamp.textContent = `${label} ${formatMdHm(p.updatedAt)}${state.isRevalidating ? ' · 갱신 중' : ''}`;
   }
   if (hdrPill && hdrTxt) {
-    const hm = formatMdHm(state.fromCache ? (state.cacheSavedAt || p.updatedAt) : (state.lastLoadedAt || p.updatedAt));
+    const hm = formatMdHm(state.fromCache ? (state.cacheSavedAt || p.updatedAt) : p.updatedAt || state.lastLoadedAt);
     const showHard = hourlyHardRefreshActive || Date.now() < hourlyHardBannerUntil;
-    hdrPill.classList.toggle('is-cached', Boolean(state.fromCache && !state.fromSnapshot && !showHard));
+    hdrPill.classList.toggle('is-cached', Boolean((state.fromCache || state.fromLastGood) && !state.fromSnapshot && !showHard));
     hdrPill.classList.toggle('is-hard-refresh', showHard);
     hdrPill.classList.remove('is-error');
     if (hourlyHardRefreshActive) {
@@ -597,8 +599,14 @@ function updateSourceStatus() {
       hdrTxt.textContent = `⚡ 강제갱신 ${hm}`;
     } else if (state.fromSnapshot) {
       hdrTxt.textContent = `저장 자료 · ${hm}`;
+    } else if (state.fromLastGood) {
+      hdrTxt.textContent = state.isRevalidating
+        ? `최근 스냅샷 즉시표출 · 백그라운드 갱신 중`
+        : `최근 스냅샷 · ${hm}`;
     } else if (state.fromCache) {
-      hdrTxt.textContent = `캐시 즉시표출 · ${hm}`;
+      hdrTxt.textContent = state.isRevalidating
+        ? `캐시 즉시표출 · 백그라운드 갱신 중`
+        : `캐시 즉시표출 · ${hm}`;
     } else {
       hdrTxt.textContent = `실시간 ${hm}`;
     }
@@ -661,6 +669,7 @@ function flashKpiCells(kind, cardEl) {
 }
 
 let hourlyFetchInFlight = null;
+let hourlyFetchIsSilent = false;
 let hourlyFetchGen = 0;
 let hourlyHardRefreshActive = false;
 let hourlyHardBannerUntil = 0;
@@ -668,6 +677,39 @@ let lastLoadedHourKst = null;
 let topOfHourTimer = null;
 let ultraPickupTimer = null;
 let dwellRefreshTimer = null;
+let lastGoodRevalidateTimer = null;
+
+export function alignClientHourlyPayload(payload, nowMs = Date.now()) {
+  if (!payload?.ok || payload._fromSnapshot || !Array.isArray(payload.regions)) return null;
+  const curHourFloorMs = Math.floor(nowMs / 3600000) * 3600000;
+  const kstNow = new Date(nowMs + 9 * 3600000);
+  const todayDayNum = kstNow.getUTCDate();
+  const alignedRegions = payload.regions.map(r => {
+    const filtered = (Array.isArray(r?.hours) ? r.hours : []).filter(h => {
+      const hm = Date.parse(h?.time || '');
+      return Number.isFinite(hm) && hm >= curHourFloorMs;
+    });
+    const hours = filtered.map((h, idx) => ({
+      ...h,
+      offset: idx,
+      isTomorrow: h.dayNum !== todayDayNum
+    }));
+    return {
+      ...r,
+      hours,
+      summaries: {
+        h6: summarizeRegionSlice(hours.slice(0, 6)),
+        h12: summarizeRegionSlice(hours.slice(0, 12)),
+        h24: summarizeRegionSlice(hours.slice(0, 24)),
+        tomorrow: summarizeRegionSlice(hours)
+      }
+    };
+  });
+  const hasGaya = alignedRegions.some(r => r.id === 'gaya' && r.hours.length >= 6);
+  const validCount = alignedRegions.filter(r => r.hours.length >= 6).length;
+  if (!hasGaya || validCount < 12) return null;
+  return { ...payload, regions: alignedRegions };
+}
 
 function buildBackgroundHourlyOpts(sources, nowMs = Date.now()) {
   const due = sources ? isUltraUpdateDue(sources, nowMs) : false;
@@ -731,11 +773,16 @@ async function fetchShortTerm12Data(optsOrForce = false) {
     ? optsOrForce
     : { force: Boolean(optsOrForce) };
   const hard = Boolean(opts.hard);
+  const revalidate = Boolean(opts.revalidate);
   const force = Boolean(opts.force || hard);
-  if (hourlyFetchInFlight && !hard) return hourlyFetchInFlight;
+  const requestedSilent = Boolean(opts.silent && state.payload && !hard);
+  if (hourlyFetchInFlight && !hard && !(force && !requestedSilent && hourlyFetchIsSilent)) {
+    return hourlyFetchInFlight;
+  }
 
   const gen = ++hourlyFetchGen;
-  const silent = Boolean(opts.silent && state.payload && !hard);
+  const silent = requestedSilent;
+  hourlyFetchIsSilent = silent;
   const btn = $('reloadHourlyBtn');
   if (btn && !silent) btn.classList.add('is-busy');
   if (hard) {
@@ -753,6 +800,7 @@ async function fetchShortTerm12Data(optsOrForce = false) {
       const params = new URLSearchParams({ roster: '13' });
       if (force) params.set('force', '1');
       if (hard) params.set('hard', '1');
+      if (revalidate) params.set('revalidate', '1');
       const refreshShort = hard ? true : opts.refreshShort;
       const refreshUltra = hard ? true : opts.refreshUltra;
       if (refreshShort !== undefined) params.set('refreshShort', refreshShort ? '1' : '0');
@@ -761,7 +809,7 @@ async function fetchShortTerm12Data(optsOrForce = false) {
       const endpoint = apiUrl('/api/short-term-12?' + qs);
       const r = await fetch(endpoint, {
         signal: AbortSignal.timeout(26000),
-        ...(force ? { cache: 'no-store' } : {})
+        ...((force || revalidate) ? { cache: 'no-store' } : {})
       });
       if (r.ok) {
         const batch = await r.json();
@@ -771,20 +819,25 @@ async function fetchShortTerm12Data(optsOrForce = false) {
           if (gen !== hourlyFetchGen) return;
           clearTimeout(dwellRefreshTimer);
           dwellRefreshTimer = null;
+          clearTimeout(lastGoodRevalidateTimer);
+          lastGoodRevalidateTimer = null;
           const nowMs = Date.now();
           const prevShortMs = Date.parse(state.payload?.sources?.shortBase || '');
           const nextShortMs = Date.parse(data?.sources?.shortBase || '');
           const prevComplete = !state.fromSnapshot && (state.payload?.regions || []).filter(reg => reg.hours?.length).length >= 13;
           if (!hard && prevComplete && Number.isFinite(prevShortMs) && Number.isFinite(nextShortMs) && nextShortMs < prevShortMs) {
             state.isRevalidating = false;
+            state.fromLastGood = false;
             reportApiSuccess('hourly', nowMs);
             updateSourceStatus();
             return;
           }
+          const isEdgeLastGood = Boolean(data?.sources?.servedFromLastGood && !revalidate && !force);
           state.payload = data;
           state.fromSnapshot = false;
           state.fromCache = false;
-          state.isRevalidating = false;
+          state.fromLastGood = isEdgeLastGood;
+          state.isRevalidating = isEdgeLastGood;
           state.cacheSavedAt = nowMs;
           state.lastLoadedAt = nowMs;
           lastLoadedHourKst = cacheHourKey(nowMs);
@@ -793,13 +846,24 @@ async function fetchShortTerm12Data(optsOrForce = false) {
             hourlyHardBannerUntil = nowMs + 4500;
             setTimeout(() => updateSourceStatus(), 4600);
           }
-          if (!data?.sources?.mixedGeneration) {
-            writePageCache(HOURLY_CACHE_KEY, { scope: hourlyCacheScope(), data, nowMs });
+          const completeCount = (data?.regions || []).filter(reg => reg.hours?.length).length;
+          if (completeCount >= 13) {
+            const savedMs = isEdgeLastGood && Number.isFinite(Date.parse(data.updatedAt))
+              ? Date.parse(data.updatedAt)
+              : nowMs;
+            writePageCache(HOURLY_CACHE_KEY, { scope: hourlyCacheScope(), data, nowMs: savedMs });
           }
           reportApiSuccess('hourly', nowMs);
           updateSourceStatus();
           renderSheet();
           if ($('detailDialog')?.open && state.selectedRegionId) openRegionDetail(state.selectedRegionId);
+          // Edge가 공유 Last-Good 스냅샷을 0.1초 내에 먼저 내려준 경우: 화면 표출 직후 조용히 백그라운드 최신화 수행
+          if (isEdgeLastGood) {
+            lastGoodRevalidateTimer = setTimeout(() => {
+              lastGoodRevalidateTimer = null;
+              fetchShortTerm12Data({ revalidate: true, silent: true });
+            }, 250);
+          }
           return;
         }
       } else {
@@ -826,6 +890,7 @@ async function fetchShortTerm12Data(optsOrForce = false) {
         state.payload = snap;
         state.fromSnapshot = true;
         state.fromCache = false;
+        state.fromLastGood = false;
         state.isRevalidating = false;
         state.lastLoadedAt = Date.now();
         lastLoadedHourKst = cacheHourKey();
@@ -838,12 +903,14 @@ async function fetchShortTerm12Data(optsOrForce = false) {
 
     state.payload = null;
     state.fromCache = false;
+    state.fromLastGood = false;
     state.isRevalidating = false;
     updateSourceStatus();
     $('sheet').innerHTML = '<div class="hr-loading">단기예보 API 서버에 연결하지 못했습니다. 상단 [API 연결]에서 Worker 주소를 확인한 뒤 다시 시도해 주세요.</div>';
   })().finally(() => {
     if (hourlyFetchInFlight === run) {
       hourlyFetchInFlight = null;
+      hourlyFetchIsSilent = false;
       if (hard) hourlyHardRefreshActive = false;
       if (btn) btn.classList.remove('is-busy');
       if (state.payload) updateSourceStatus();
@@ -1014,11 +1081,14 @@ function bindEvents() {
 
 function restoreHourlyCacheAndBoot() {
   const nowMs = Date.now();
-  const hit = readPageCache(HOURLY_CACHE_KEY, { expectedScope: hourlyCacheScope(), nowMs });
-  const cachedPayload = hit?.entry?.data;
-  const validPayload = Boolean(cachedPayload?.ok && !cachedPayload._fromSnapshot &&
-    cachedPayload.regions?.some(r => r.id === 'gaya' && r.hours?.length));
-  const ultraDue = validPayload ? isUltraUpdateDue(cachedPayload.sources, nowMs) : false;
+  const hit = readPageCache(HOURLY_CACHE_KEY, {
+    expectedScope: hourlyCacheScope(),
+    maxStaleMs: HOURLY_LAST_GOOD_MAX_MS,
+    nowMs
+  });
+  const alignedCached = hit?.entry?.data ? alignClientHourlyPayload(hit.entry.data, nowMs) : null;
+  const validPayload = Boolean(alignedCached);
+  const ultraDue = validPayload ? isUltraUpdateDue(alignedCached.sources, nowMs) : false;
   const policy = evaluateCachePolicy({
     cacheHit: validPayload ? hit : null,
     freshMs: DEFAULT_FRESH_MS,
@@ -1027,19 +1097,24 @@ function restoreHourlyCacheAndBoot() {
   });
 
   if (policy.hasUsableCache && validPayload) {
-    state.payload = cachedPayload;
+    state.payload = alignedCached;
     state.fromSnapshot = false;
     state.fromCache = true;
+    state.fromLastGood = false;
     state.cacheSavedAt = hit.entry.savedAt;
     state.lastLoadedAt = hit.entry.savedAt;
-    lastLoadedHourKst = hit.entry.hourKey || cacheHourKey(nowMs);
+    lastLoadedHourKst = cacheHourKey(nowMs);
     state.isRevalidating = policy.shouldFetchNow;
 
     updateSourceStatus();
     renderSheet();
 
     if (policy.shouldFetchNow) {
-      fetchShortTerm12Data(buildBackgroundHourlyOpts(cachedPayload.sources, nowMs));
+      fetchShortTerm12Data({
+        ...buildBackgroundHourlyOpts(alignedCached.sources, nowMs),
+        revalidate: true,
+        silent: true
+      });
     } else if (policy.backgroundDwellDelayMs != null) {
       scheduleHourlyDwellRefresh(policy.backgroundDwellDelayMs);
     }

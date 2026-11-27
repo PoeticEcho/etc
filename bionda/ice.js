@@ -1,6 +1,11 @@
 // 도로관리청 실무 맞춤형 도로 살얼음·제설·수방·강풍 의사결정 엔진 (요구사항 4)
 // 모든 시각은 KST(Asia/Seoul), 단위는 °C, %, mm, cm, m/s 기준.
 
+const MOIST_SURFACE_CODES = [2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15];
+const FREEZING_SURFACE_CODES = [4, 5, 13, 15];
+const SNOW_ICE_SURFACE_CODES = [3, 4, 5, 6, 13, 15];
+const WET_WATCH_SURFACE_CODES = [2, 7, 11, 12];
+
 export function calcDewPoint(tempC, rh) {
   if (!Number.isFinite(tempC) || !Number.isFinite(rh) || rh <= 0) return null;
   const a = 17.625, b = 243.04;
@@ -64,12 +69,13 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
 
     const recent = previous.filter(x => x && x.time < r.time).slice(-6);
     const prevSampleTemp = recent.length ? recent[recent.length - 1]?.temp : null;
-    const wet = (r.precip > 0) || (current?.precip > 0) || recent.some(x => x.precip > 0) || (index === 0 && (obs?.dayPrecip > 0 || (obs?.surfaceCode >= 2 && obs?.surfaceCode <= 6)));
+    const wet = (r.precip > 0) || (current?.precip > 0) || recent.some(x => x.precip > 0) || (index === 0 && (obs?.dayPrecip > 0 || MOIST_SURFACE_CODES.includes(Number(obs?.surfaceCode))));
     const rainActive = (r.precip > 0) || Boolean(kmaMatch?.wet) || rainCodes.includes(r.code);
     const snowNow = (r.snow >= 0.1) || (r.snowPop >= 50) || (kmaMatch?.type?.includes('눈'));
     const fog = r.code === 45 || (index === 0 && Number.isFinite(obs?.visibility) && obs.visibility < 1000);
     const humid = Number.isFinite(r.humidity) && r.humidity >= 90;
-    const freezing = [48, 56, 57, 66, 67].includes(r.code) || (index === 0 && obs?.surfaceCode === 5);
+    const obsFreezingSurface = index === 0 && FREEZING_SURFACE_CODES.includes(Number(obs?.surfaceCode));
+    const freezing = [48, 56, 57, 66, 67].includes(r.code) || obsFreezingSurface;
     const cold = validTemp && r.temp <= 4.0;
     const cautionTempLimit = night ? 1.5 : 0.5;
     const frostWatch = deepNight && validTemp && r.temp <= 3.0 && Number.isFinite(r.humidity) && r.humidity >= 80 && Number.isFinite(r.wind) && r.wind <= 3.0;
@@ -93,7 +99,7 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
     let level = '신호 없음', rank = 0, cause = '', shortCause = '', presaltReason = '';
     if (freezing) {
       rank = 2;
-      cause = obs?.surfaceCode === 5 ? '도로기상관측 결빙 감지' : r.code === 48 ? '착빙성 안개 예보' : r.code >= 66 ? '어는 비 예보' : '어는 이슬비 예보';
+      cause = obsFreezingSurface ? `도로기상관측 ${obs?.surfaceState || '결빙'} 감지` : r.code === 48 ? '착빙성 안개 예보' : r.code >= 66 ? '어는 비 예보' : '어는 이슬비 예보';
       shortCause = '착빙·어는비';
       presaltReason = '어는비·착빙 결빙 우려';
     } else if (dawnFreezingRain) {
@@ -458,11 +464,11 @@ export function iceOutlook(current, history = [], forecast = [], obs = null, kma
         mobChip: null
       };
 
-  // 현재 노면 습윤 판정 (광학 노면센서 1=건조이면 강수 없을 시 건조 우선, 2~6=습윤/젖음/적설/결빙/슬러시)
+  // 현재 노면 습윤 판정 (기상청 SFS 공식 코드 기준: 1=건조·10=저시정은 건조 우선, 2/3/6/7/11/12/13/14/15는 수분·습기·적설·결빙 존재)
   const curSurfaceCode = obs?.surfaceCode;
   const curRainNow = Boolean(samples[0]?.rainActive || (Number.isFinite(obs?.precip) && obs.precip > 0));
   const curSurfaceWet = Number.isFinite(curSurfaceCode)
-    ? [2, 3, 6].includes(curSurfaceCode)
+    ? MOIST_SURFACE_CODES.includes(Number(curSurfaceCode))
     : curRainNow;
 
   return {
@@ -732,7 +738,7 @@ export function classifySeverityTier({ w = null, o = null, wrn = null, roadRisk 
     nowType.includes('눈') ||
     nowType.includes('진눈') ||
     [66, 67, 71, 73, 75, 77, 85, 86].includes(curCode) ||
-    [4, 5, 6].includes(surfaceCode);
+    SNOW_ICE_SURFACE_CODES.includes(Number(surfaceCode));
 
   const curRainRate = Math.max(
     Number.isFinite(o?.precip) ? o.precip : 0,
@@ -754,7 +760,11 @@ export function classifySeverityTier({ w = null, o = null, wrn = null, roadRisk 
   if (hasWatchCard || iceRank === 1 || roadIce === 2 || roadFog === 2 || floodRank === 1 || windActive) {
     return { tier: 2, key: 'directive', cls: 'tier-directive', pinColor: '#f97316', ringColor: 'rgba(249,115,22,0.36)', label: '지시·주의' };
   }
-  if ((wrn?.count || 0) > 0 || nowWet || surfaceCode === 2 || surfaceCode === 3 || roadIce === 1 || roadFog === 1) {
+  const coldDampWatch = Number(surfaceCode) === 14 && (
+    (Number.isFinite(o?.roadTemp) && o.roadTemp <= 4.0) ||
+    (Number.isFinite(o?.temp) && o.temp <= 4.0)
+  );
+  if ((wrn?.count || 0) > 0 || nowWet || WET_WATCH_SURFACE_CODES.includes(Number(surfaceCode)) || coldDampWatch || roadIce === 1 || roadFog === 1) {
     return { tier: 1, key: 'watch', cls: 'tier-watch', pinColor: '#eab308', ringColor: 'rgba(234,179,8,0.34)', label: '관심' };
   }
   return { tier: 0, key: 'calm', cls: 'tier-calm', pinColor: '#38dbf8', ringColor: 'rgba(56,219,248,0.28)', label: '평온' };

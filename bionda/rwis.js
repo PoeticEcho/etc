@@ -555,15 +555,15 @@ function renderCorridorMap(enriched) {
       let barCol = '#38dbf8';
       let subCol = '#a7e8dc';
       let strokeCol = 'rgba(56, 219, 248, 0.42)';
-      if (iceLv >= 3 || surfCode >= 4 || (tr !== null && tr <= 0.5)) {
+      if (iceLv >= 3 || [4, 5, 13, 15].includes(surfCode) || (tr !== null && tr <= 0.5)) {
         barCol = '#f43f5e';
         subCol = '#fecaca';
         strokeCol = '#f43f5e';
-      } else if (iceLv === 2 || surfCode === 3 || (tr !== null && tr <= 2.5)) {
+      } else if (iceLv === 2 || [3, 6, 11].includes(surfCode) || (tr !== null && tr <= 2.5)) {
         barCol = '#fb923c';
         subCol = '#fed7aa';
         strokeCol = '#fb923c';
-      } else if (iceLv === 1 || surfCode === 2 || (tr !== null && tr <= 4.0)) {
+      } else if (iceLv === 1 || [2, 7, 12].includes(surfCode) || (tr !== null && tr <= 4.0)) {
         barCol = '#facc15';
         subCol = '#fde68a';
         strokeCol = 'rgba(250, 204, 21, 0.58)';
@@ -867,8 +867,9 @@ function renderZoneCards(enriched) {
 
     const surfLabel = ro.surfaceState || '';
     const surfCode = Number(ro.surfaceCode);
+    const isMoistChip = [2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15].includes(surfCode) || /습윤|습기|수막|젖음|결빙|적설|슬러시|서리/.test(surfLabel);
     const surfChip = surfLabel
-      ? `<span class="rzc-surf-chip${(surfCode >= 2 || /습윤|젖음|결빙|적설/.test(surfLabel)) ? ' is-wet' : ''}">${esc(surfLabel)}</span>`
+      ? `<span class="rzc-surf-chip${isMoistChip ? ' is-wet' : ''}">${esc(surfLabel)}</span>`
       : '';
     const basisTxt = formatStationBasisLabel(ro.stationName);
     const basisHtml = basisTxt ? `<span class="rzc-stn-basis">${esc(basisTxt)}</span>` : '';
