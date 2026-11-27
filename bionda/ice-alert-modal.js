@@ -1152,7 +1152,6 @@ export function mountIceAlertModal({
     const metaParts = [];
     if (item.kmLabel) metaParts.push(item.kmLabel);
     if (item.stationName) metaParts.push(`${item.stationName} 기준`);
-    if (item.escalatedHm) metaParts.push(`${item.escalatedHm} 격상`);
     subMeta.textContent = metaParts.join(' · ') || '고정식 기상관측 확인';
     titleWrap.append(titleSpan, subMeta);
 
