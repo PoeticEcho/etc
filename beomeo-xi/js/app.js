@@ -169,6 +169,22 @@
     if (!node || !node.classList.contains('is-open')) return;
     node.classList.remove('is-open');
     node.setAttribute('aria-hidden', 'true');
+    if (node === articleModal) {
+      currentArticle = null;
+      writeArticleUrl('');
+      // 공유 링크로 바로 들어와 기사를 닫은 경우엔 기사 목록 자리로 데려다 줍니다.
+      if (openedFromLink) {
+        openedFromLink = false;
+        var newsSec = document.getElementById('news');
+        if (newsSec) {
+          window.setTimeout(function () {
+            var topbarH = topbar ? topbar.offsetHeight : 78;
+            var top = newsSec.getBoundingClientRect().top + window.pageYOffset - (topbarH + 8);
+            window.scrollTo({ top: Math.max(0, top), behavior: reduced ? 'auto' : 'smooth' });
+          }, 60);
+        }
+      }
+    }
     if (!(articleModal && articleModal.classList.contains('is-open')) &&
         !(lightbox && lightbox.classList.contains('is-open'))) {
       document.body.classList.remove('is-locked');
@@ -217,8 +233,43 @@
     return wrap;
   }
 
+  // 기사 하나를 가리키는 공유 주소 — articles/{id}/index.html 이 이 주소로 사람을 보냅니다.
+  var currentArticle = null;
+  var openedFromLink = false;
+
+  function articleShareUrl(id) {
+    if (!id) return '';
+    if (!/^https?:$/.test(location.protocol)) return 'articles/' + encodeURIComponent(id) + '/';
+    var path = location.pathname.replace(/index\.html?$/i, '').replace(/\/+$/, '');
+    return location.origin + path + '/articles/' + encodeURIComponent(id) + '/';
+  }
+
+  // ?article={id} 또는 #article={id} 에서 기사 id를 읽습니다.
+  function articleFromLocation() {
+    var id = '';
+    try { id = new URLSearchParams(location.search).get('article') || ''; } catch (e) { id = ''; }
+    if (!id) {
+      var m = /(?:^|[#&])article=([^&]+)/.exec(location.hash || '');
+      if (m) { try { id = decodeURIComponent(m[1]); } catch (e2) { id = m[1]; } }
+    }
+    return id;
+  }
+
+  // 주소창을 ?article={id} 로 맞추거나(열 때), 파라미터를 걷어냅니다(닫을 때).
+  function writeArticleUrl(id) {
+    if (!window.history || !history.replaceState) return;
+    if (!id && !articleFromLocation()) return;
+    var url = new URL(location.href);
+    if (id) url.searchParams.set('article', id);
+    else url.searchParams.delete('article');
+    url.hash = '';
+    var q = url.searchParams.toString();
+    history.replaceState(null, '', url.pathname + (q ? '?' + q : ''));
+  }
+
   function openArticle(article) {
     if (!articleModal) return;
+    currentArticle = article;
     $('#article-cat').textContent = article.category || '';
     $('#article-date').textContent = fmtDate(article.date);
     $('#article-title').textContent = article.title || '';
@@ -261,6 +312,14 @@
       srcBox.appendChild(ul);
     }
     $('#article-source').textContent = article.source || '범어자이 홍보자료';
+
+    // 이 기사만의 공유 주소와 주소창 상태를 맞춥니다.
+    writeArticleUrl(article.id);
+    var shareUrlNode = $('#article-share-url');
+    if (shareUrlNode) shareUrlNode.textContent = articleShareUrl(article.id);
+    var nativeShare = $('#article-share-native');
+    if (nativeShare) nativeShare.hidden = !navigator.share;
+
     openDialog(articleModal);
     articleModal.querySelector('.modal__sheet').scrollTop = 0;
   }
@@ -315,6 +374,16 @@
       ARTICLES.forEach(function (article, i) {
         grid.appendChild(buildNewsCard(article, i === 0));
       });
+
+      // 공유 링크(?article=…)로 들어왔으면 그 기사를 바로 띄웁니다.
+      var deepId = articleFromLocation();
+      if (deepId) {
+        var target = ARTICLES.filter(function (a) { return a.id === deepId; })[0];
+        if (target) {
+          openedFromLink = true;
+          openArticle(target);
+        }
+      }
 
       var latest = ARTICLES[0].date;
       var issueLine = $('#issue-line');
@@ -822,6 +891,48 @@
     }
   }
   if (favCopy) favCopy.addEventListener('click', copyPageUrl);
+
+  // 기사 모달의 공유 버튼 — 이 기사 전용 주소(카카오톡·SNS 미리보기가 뜨는 주소)를 복사합니다.
+  function copyText(text, okMsg) {
+    function done() { toast(okMsg); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); }
+      catch (e) { toast('복사가 막혔습니다. 기사 아래 주소를 직접 복사해 주세요.'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  var articleShareCopy = $('#article-share-copy');
+  var articleShareNative = $('#article-share-native');
+  if (articleShareCopy) {
+    articleShareCopy.addEventListener('click', function () {
+      var id = currentArticle && currentArticle.id ? currentArticle.id : articleFromLocation();
+      if (!id) return;
+      copyText(articleShareUrl(id), '링크가 복사되었습니다. 붙여 넣으면 기사 미리보기가 뜹니다.');
+    });
+  }
+  if (articleShareNative) {
+    articleShareNative.addEventListener('click', function () {
+      if (!navigator.share || !currentArticle) return;
+      navigator.share({
+        title: currentArticle.title || document.title,
+        text: currentArticle.excerpt || '',
+        url: articleShareUrl(currentArticle.id)
+      }).catch(function () {});
+    });
+  }
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && favModal && favModal.classList.contains('is-open')) closeDialog(favModal);
   });

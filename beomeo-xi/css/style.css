@@ -986,6 +986,17 @@ a.doc{text-decoration:none;color:inherit;cursor:pointer}
 .article__sources li::before{content:"·";position:absolute;left:2px}
 .article__source{margin-top:14px;font-size:11.5px;color:var(--muted)}
 
+/* 기사별 공유 링크 — 이 기사 주소를 복사하면 제목·사진 미리보기가 뜨는 페이지가 열립니다 */
+.article__share{margin-top:32px;padding-top:20px;border-top:1px solid var(--line)}
+.article__share-label{font-size:10.5px;letter-spacing:.16em;color:var(--muted);font-weight:500}
+.article__share-desc{margin-top:8px;font-size:12px;line-height:1.75;color:var(--muted)}
+.article__share-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.article__share-actions .fbtn{border-color:var(--line-2);background:var(--card);color:var(--ink)}
+.article__share-actions .fbtn:hover{border-color:var(--forest);background:var(--white);color:var(--forest)}
+.article__share-actions .fbtn--forest{border-color:transparent;background:linear-gradient(150deg,#13705a,#0d4f3c);color:var(--cream)}
+.article__share-actions .fbtn--forest:hover{background:linear-gradient(150deg,#17866a,#11614a);color:var(--cream)}
+.article__share-url{margin-top:12px;font-size:11px;letter-spacing:.02em;color:var(--muted);word-break:break-all}
+
 /* 기사 전문 상단 사진 */
 .article__figure{margin:26px 0 0}
 .article__photo{
@@ -1127,6 +1138,7 @@ body.is-locked{overflow:hidden}
   .dist__head span:nth-child(2){display:none}
   .transit ul{gap:10px 18px}
   .modal__sheet{margin:0 auto;max-height:100vh;height:100vh;width:100%;padding:26px 20px 40px}
+  .article__share-actions .fbtn{flex:1 1 0;justify-content:center;padding:12px 10px}
   .article__photo img{height:clamp(200px,38vh,360px)}
   .modal__close{top:12px;right:12px;padding:8px 11px}
   .lightbox{padding:56px 10px 20px}

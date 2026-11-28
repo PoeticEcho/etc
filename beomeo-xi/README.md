@@ -15,6 +15,8 @@ beomeo-xi/
 ├─ css/style.css         디자인 토큰과 전체 스타일
 ├─ js/app.js             내비게이션, 카운트업, 기사 모달, 갤러리/평면도 탭, 라이트박스
 ├─ js/archive.js         아카이브 렌더러 (목차·탭·라이트박스·영상 파사드)
+├─ scripts/build_articles.py  기사별 공유 페이지(articles/{id}/index.html) 생성기
+├─ articles/{id}/        기사 하나만 가리키는 공유 URL + OG 미리보기 (자동 생성, 직접 수정 금지)
 ├─ data/
 │  ├─ articles.json      주간 기사 (여기에만 추가하면 목록·발행일이 자동 갱신)
 │  ├─ gallery.json       뷰 갤러리 사진과 분류(filters)
@@ -76,6 +78,18 @@ GS건설 자이 공식 분양 홈페이지(**https://xi.co.kr/dgb**)와 자이 �
 - `body` 블록 타입은 `lead` / `p` / `h` / `quote` 네 가지입니다.
 - `sources`는 기사 끝 "근거 자료" 목록으로 출력됩니다. **확인된 사실과 추정을 섞지 말고, 추정은 문장에서 완화해 쓰세요.**
 - JSON 문법(쉼표, 따옴표)만 지키면 됩니다. 오류가 있으면 페이지에 안내 문구가 뜨고 나머지 섹션은 정상 동작합니다.
+- **기사를 추가했으면 공유 페이지도 다시 만드세요.** `python3 scripts/build_articles.py`(저장소 루트에서는 `python3 beomeo-xi/scripts/build_articles.py`)를 실행하면 `articles/{id}/index.html`이 기사마다 새로 생성되고, 목록에서 빠진 기사의 옛 페이지는 지워집니다. 생성된 파일도 함께 커밋해야 합니다.
+
+## 기사별 공유 URL (`articles/{id}/`)
+
+기사 하나를 카카오톡·SNS로 보낼 때는 메인 주소 대신 그 기사의 공유 주소를 씁니다.
+
+- GitHub Pages — `https://poeticecho.github.io/etc/beomeo-xi/articles/{id}/`
+- Vercel — `https://beomeoxi.vercel.app/articles/{id}/`
+
+이 주소는 그 기사의 `<title>`·`og:title`·`og:description`·`og:image`(기사 사진 절대 URL)·`twitter:*`를 가진 정적 HTML이라, 링크를 붙여 넣으면 **그 기사의 제목·요약·사진이 미리보기로 뜹니다.** 사람이 열면 곧바로 `../../?article={id}`로 넘어가 메인 페이지의 해당 기사 모달이 바로 열립니다(자바스크립트가 없으면 `<meta http-equiv="refresh">` 폴백).
+
+메인 페이지에서는 기사를 열면 주소창이 `?article={id}`로 바뀌고, 닫으면 원래 주소로 돌아옵니다. 기사 모달 하단의 **「공유 링크 복사」** 를 누르면 지금 보고 있는 도메인 기준 공유 주소가 클립보드에 복사되고(`navigator.share`가 있는 모바일에서는 「공유하기」 버튼도 함께 나옵니다) "링크가 복사되었습니다" 안내가 뜹니다. `#article={id}` 해시로 들어와도 같은 기사가 열립니다.
 
 ## 사진 추가하기
 
