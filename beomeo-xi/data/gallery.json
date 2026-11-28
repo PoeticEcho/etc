@@ -10,6 +10,34 @@
   ],
   "items": [
     {
+      "id": "live-south-high-view",
+      "src": "assets/photos/41-live-south-high-view.jpg",
+      "alt": "고층 세대 남향 창에서 내려다본 야시골 숲과 수성구 도심, 멀리 노을빛 받은 산 능선",
+      "label": "남향 창에서, 숲과 도심과 산줄기",
+      "desc": "창 아래로는 소나무가 빽빽한 야시골 숲, 그 너머로 수성구 도심, 가장 멀리에는 노을을 받은 산 능선이 겹칩니다. 해 질 무렵 고층 세대에서 담은 남향 조망.",
+      "tags": [
+        "live",
+        "city",
+        "sunset"
+      ],
+      "credit": "직접 촬영",
+      "date": "2026-11-28",
+      "source_note": "범어자이 고층 세대에서 직접 촬영한 남향 조망 사진입니다."
+    },
+    {
+      "id": "live-dongdaeguro-towers",
+      "src": "assets/photos/42-live-dongdaeguro-towers.jpg",
+      "alt": "동대구로 가로수 너머로 보이는 범어자이 두 동의 외관과 오른쪽 동 옥상의 XI 로고",
+      "label": "동대구로에서 올려다본 XI 외관",
+      "desc": "동대구로 가로수의 전나무 가지 사이로 지상 32~34층의 두 동이 솟습니다. 오른쪽 동 옥상에는 XI 로고가 얹혀 있습니다.",
+      "tags": [
+        "live"
+      ],
+      "credit": "직접 촬영",
+      "date": "2026-11-28",
+      "source_note": "동대구로에서 직접 촬영한 단지 외관 사진입니다."
+    },
+    {
       "id": "live-gate2",
       "src": "assets/photos/27-live-gate2.jpg",
       "alt": "맑은 하늘 아래 범어자이 GATE 2 정문과 XI 사인, 뒤로 아파트 세 동",
